@@ -2363,14 +2363,14 @@ small,
 .coordinators-layout {
     grid-template-columns: minmax(300px, 0.72fr) minmax(0, 1.28fr);
     align-items: stretch;
-    grid-auto-rows: 680px;
+    grid-auto-rows: 740px;
 }
 
 .coordinator-create-card,
 .coordinator-list-card {
     min-width: 0;
     height: 100%;
-    max-height: 680px;
+    max-height: 740px;
     box-sizing: border-box;
 }
 

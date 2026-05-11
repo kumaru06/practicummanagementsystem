@@ -21,7 +21,7 @@ Write-Host "  AMA Practicum System - Deploy Script" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# ── Step 0: Git commit & push ────────────────────────────────────────────────
+# Step 0: Git commit & push
 if (-not $SkipGit) {
     Write-Host "[0/3] Pushing to GitHub..." -ForegroundColor Yellow
     Set-Location $localRoot
@@ -48,11 +48,11 @@ if (-not $SkipGit) {
 }
 
 if ($SkipFTP) {
-    Write-Host "SkipFTP set — done." -ForegroundColor Green
+    Write-Host "SkipFTP set - done." -ForegroundColor Green
     exit 0
 }
 
-# ── Step 1: Build zip ───────────────────────────────────────────────────────
+# Step 1: Build zip
 Write-Host "[1/3] Building deployment zip..." -ForegroundColor Yellow
 Remove-Item $zipPath -ErrorAction SilentlyContinue
 
@@ -84,7 +84,7 @@ if ($ZipOnly) {
     exit 0
 }
 
-# ── Step 3: Upload via FTP ──────────────────────────────────────────────────
+# Step 3: Upload via FTP
 Write-Host ""
 Write-Host "[3/3] Uploading files via FTP..." -ForegroundColor Yellow
 Write-Host "  Testing FTP connection..." -ForegroundColor Gray
