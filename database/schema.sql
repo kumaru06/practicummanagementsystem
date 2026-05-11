@@ -33,7 +33,9 @@ CREATE TABLE users (
 CREATE TABLE coordinators (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL UNIQUE,
+  id_number VARCHAR(60) NULL,
   department VARCHAR(120) DEFAULT 'OJT Department',
+  UNIQUE KEY uq_coordinators_id_number (id_number),
   CONSTRAINT fk_coordinators_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 

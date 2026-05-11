@@ -1,7 +1,34 @@
 <?php
 class User
 {
+    private ?bool $coordinatorIdNumberReady = null;
+
     public function __construct(private PDO $db) {}
+
+    public function ensureCoordinatorIdNumberSupport(): void
+    {
+        if ($this->coordinatorIdNumberReady === true) {
+            return;
+        }
+
+        $columnStmt = $this->db->prepare("SHOW COLUMNS FROM coordinators LIKE 'id_number'");
+        $columnStmt->execute();
+        $hasColumn = (bool)$columnStmt->fetch();
+
+        if (!$hasColumn) {
+            $this->db->exec('ALTER TABLE coordinators ADD COLUMN id_number VARCHAR(60) NULL AFTER user_id');
+        }
+
+        $indexStmt = $this->db->prepare("SHOW INDEX FROM coordinators WHERE Key_name = 'uq_coordinators_id_number'");
+        $indexStmt->execute();
+        $hasIndex = (bool)$indexStmt->fetch();
+
+        if (!$hasIndex) {
+            $this->db->exec('ALTER TABLE coordinators ADD UNIQUE KEY uq_coordinators_id_number (id_number)');
+        }
+
+        $this->coordinatorIdNumberReady = true;
+    }
 
     public function findByEmail(string $email): ?array
     {
@@ -56,6 +83,19 @@ class User
 
     public function byRole(string $role): array
     {
+        if ($role === 'coordinator') {
+            $this->ensureCoordinatorIdNumberSupport();
+            $stmt = $this->db->prepare(
+                'SELECT u.*, c.id_number, c.department
+                 FROM users u
+                 LEFT JOIN coordinators c ON c.user_id = u.id
+                 WHERE u.role = ?
+                 ORDER BY u.id DESC'
+            );
+            $stmt->execute([$role]);
+            return $stmt->fetchAll();
+        }
+
         $stmt = $this->db->prepare('SELECT * FROM users WHERE role = ? ORDER BY name');
         $stmt->execute([$role]);
         return $stmt->fetchAll();

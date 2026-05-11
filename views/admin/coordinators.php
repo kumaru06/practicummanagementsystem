@@ -7,17 +7,29 @@
         <form method="post" class="form js-validate coordinator-create-form">
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="admin_create_coordinator">
-            <label class="floating-label">
-                <span class="label-text">Full Name</span>
-                <input required name="name" autocomplete="name">
-            </label>
-            <label class="floating-label">
-                <span class="label-text">Email</span>
-                <input required type="email" name="email" autocomplete="email">
+            <label>
+                <span class="label-text">ID Number <span class="field-required">*</span></span>
+                <input required name="id_number" autocomplete="off"
+                    inputmode="numeric" pattern="[0-9]+"
+                    title="ID Number must contain digits only"
+                    oninput="this.value=this.value.replace(/[^0-9]/g,'')">
             </label>
             <label>
-                <span class="coordinator-field-label">Department</span>
-                <input required name="department" value="OJT Department" placeholder="Enter department">
+                <span class="label-text">Full Name <span class="field-required">*</span></span>
+                <input required name="name" autocomplete="name"
+                    pattern="[A-Za-z\s\-\.]+"
+                    title="Full Name must contain letters only"
+                    oninput="this.value=this.value.replace(/[^A-Za-z\s\-\.]/g,'')">
+            </label>
+            <label>
+                <span class="label-text">Email <span class="field-required">*</span></span>
+                <input required type="email" name="email" autocomplete="email"
+                    pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
+                    title="Please enter a valid email address (e.g. name@example.com)">
+            </label>
+            <label>
+                <span class="label-text">Department <span class="field-required">*</span></span>
+                <input required name="department" value="OJT Department">
             </label>
             <p class="muted">A temporary password will be generated and emailed to the coordinator.</p>
             <button class="btn btn-primary" type="submit"><span class="btn-text">Create Coordinator</span><span class="spinner"></span></button>
@@ -43,13 +55,12 @@
                     </thead>
                     <tbody>
                         <?php foreach ($coordinators as $u): ?>
-                        <tr>
+                        <tr data-id-number="<?= e(trim((string)($u['id_number'] ?? '')) !== '' ? (string)$u['id_number'] : '-') ?>">
                             <td>
                                 <div class="coordinator-name-cell">
                                     <span class="table-avatar"><?= e(strtoupper(substr($u['name'] ?? 'C', 0, 1))) ?></span>
                                     <div>
                                         <strong><?= e($u['name']) ?></strong>
-                                        <small><?= e($u['is_active'] ? 'Coordinator account is active' : 'Coordinator account is inactive') ?></small>
                                     </div>
                                 </div>
                             </td>

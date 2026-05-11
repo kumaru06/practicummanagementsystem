@@ -93,20 +93,59 @@ class AdminController extends BaseController
         require_role('admin');
         $p = $this->post();
         try {
+            $users = new User($this->db);
+            $users->ensureCoordinatorIdNumberSupport();
+
+            $idNumber = trim((string)($p['id_number'] ?? ''));
+            if ($idNumber === '') {
+                throw new RuntimeException('ID number is required.');
+            }
+            if (!ctype_digit($idNumber)) {
+                throw new RuntimeException('ID number must contain digits only.');
+            }
+
+            $name = trim($p['name'] ?? '');
+            if ($name === '') {
+                throw new RuntimeException('Full name is required.');
+            }
+            if (preg_match('/[0-9]/', $name)) {
+                throw new RuntimeException('Full name must contain letters only, no numbers.');
+            }
+
+            $email = strtolower(trim($p['email'] ?? ''));
+            if ($email === '') {
+                throw new RuntimeException('Email is required.');
+            }
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL) || !preg_match('/\.[a-zA-Z]{2,}$/', explode('@', $email)[1] ?? '')) {
+                throw new RuntimeException('Please enter a valid email address (e.g. name@example.com).');
+            }
+
             $password = random_password();
-            $userId = (new User($this->db))->create(trim($p['name']), trim($p['email']), $password, 'coordinator', current_user()['id'], 0);
-            $stmt = $this->db->prepare('INSERT INTO coordinators (user_id, department) VALUES (?, ?)');
-            $stmt->execute([$userId, trim($p['department'] ?? 'OJT Department') ?: 'OJT Department']);
-            (new Email($this->db))->send(trim($p['email']), 'Your AMA Practicum Coordinator Account', 'account_credentials', 'account_credentials', [
-                'name' => trim($p['name']),
-                'email' => trim($p['email']),
+            $this->db->beginTransaction();
+            $duplicateIdStmt = $this->db->prepare('SELECT COUNT(*) FROM coordinators WHERE id_number = ?');
+            $duplicateIdStmt->execute([$idNumber]);
+            if ((int)$duplicateIdStmt->fetchColumn() > 0) {
+                throw new RuntimeException('ID number already exists.');
+            }
+
+            $userId = $users->create($name, $email, $password, 'coordinator', current_user()['id'], 0);
+            $stmt = $this->db->prepare('INSERT INTO coordinators (user_id, id_number, department) VALUES (?, ?, ?)');
+            $stmt->execute([$userId, $idNumber, trim($p['department'] ?? 'OJT Department') ?: 'OJT Department']);
+            $this->db->commit();
+
+            (new Email($this->db))->send($email, 'Your AMA Practicum Coordinator Account', 'account_credentials', 'account_credentials', [
+                'name' => $name,
+                'email' => $email,
                 'password' => $password,
                 'roleLabel' => 'OJT Coordinator',
             ]);
             flash('success', 'Coordinator account created and credentials email was processed.');
         } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             $msg = str_contains($e->getMessage(), '1062') || str_contains($e->getMessage(), 'Duplicate entry')
-                ? 'Email already exists.'
+                ? (str_contains(strtolower($e->getMessage()), 'id_number') ? 'ID number already exists.' : 'Email already exists.')
                 : $e->getMessage();
             flash('error', $msg);
         }

@@ -11,6 +11,7 @@ Pure PHP 8 + PDO MySQL OJT management system with four roles: Admin, OJT Coordin
    - If updating an existing database, run these after the original schema/seed instead:
      - `database/migration_2026_05_02_features.sql`
      - `database/migration_2026_05_03_deployment_flow.sql`
+   - `database/migration_2026_05_11_coordinator_id_number.sql`
    - On shared hosting like InfinityFree, select your database first, then import the SQL files. Do not use SQL files with `CREATE DATABASE` or `USE ...` statements.
 3. Confirm database credentials in `config/database.php`.
 4. Configure real SMTP credentials in `config/mail.php`.

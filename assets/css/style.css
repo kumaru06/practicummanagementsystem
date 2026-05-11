@@ -2363,18 +2363,21 @@ small,
 .coordinators-layout {
     grid-template-columns: minmax(300px, 0.72fr) minmax(0, 1.28fr);
     align-items: stretch;
+    grid-auto-rows: 680px;
 }
 
 .coordinator-create-card,
 .coordinator-list-card {
     min-width: 0;
+    height: 100%;
+    max-height: 680px;
+    box-sizing: border-box;
 }
 
 .coordinator-create-card {
     display: flex;
     flex-direction: column;
     padding: 24px 24px 22px;
-    height: 100%;
 }
 
 .coordinator-create-card .card-head {
@@ -2418,12 +2421,18 @@ small,
     margin-top: auto;
 }
 
+.field-required {
+    color: #b91c1c;
+    font-weight: 700;
+    margin-left: 2px;
+    font-size: 0.9em;
+}
+
 .coordinator-list-card {
     display: flex;
     flex-direction: column;
     gap: 18px;
     padding: 22px 22px 20px;
-    height: min(78vh, 860px);
     overflow: hidden;
 }
 

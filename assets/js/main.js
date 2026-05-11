@@ -730,7 +730,23 @@ function attachRowDetails(table) {
         row.addEventListener('click', e => {
             if (e.target.closest('a,button,form,input,select,textarea')) return;
             const headers = [...table.tHead.rows[0].cells].map(th => th.innerText.trim());
-            const html = [...row.cells].map((cell, i) => `<div class="detail-row"><span>${escapeHtml(headers[i] || 'Field')}</span><strong>${escapeHtml(cell.innerText.trim())}</strong></div>`).join('');
+            let extraFields = [];
+            if (row.dataset.idNumber) {
+                extraFields.push({
+                    label: 'ID Number',
+                    value: row.dataset.idNumber,
+                });
+            }
+            if (row.dataset.detailFields) {
+                try {
+                    const parsed = JSON.parse(row.dataset.detailFields);
+                    if (Array.isArray(parsed)) extraFields = parsed;
+                } catch {
+                    extraFields = [];
+                }
+            }
+            const extraHtml = extraFields.map(field => `<div class="detail-row"><span>${escapeHtml(field?.label || 'Field')}</span><strong>${escapeHtml(field?.value || '-')}</strong></div>`).join('');
+            const html = extraHtml + [...row.cells].map((cell, i) => `<div class="detail-row"><span>${escapeHtml(headers[i] || 'Field')}</span><strong>${escapeHtml(cell.innerText.trim())}</strong></div>`).join('');
             openSlidePanel('<h2>Record Details</h2>' + html);
         });
     });
