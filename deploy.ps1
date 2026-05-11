@@ -1,5 +1,8 @@
 param(
-    [switch]$ZipOnly  # Run with -ZipOnly to just build the zip without uploading
+    [switch]$ZipOnly,                  # Just build zip, no FTP upload
+    [switch]$SkipGit,                  # Skip git commit & push
+    [switch]$SkipFTP,                  # Skip FTP upload (git only)
+    [string]$Message = ""              # Git commit message (auto-generated if blank)
 )
 
 $ftpUser   = "if0_41872185"
@@ -18,8 +21,39 @@ Write-Host "  AMA Practicum System - Deploy Script" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""
 
+# ── Step 0: Git commit & push ────────────────────────────────────────────────
+if (-not $SkipGit) {
+    Write-Host "[0/3] Pushing to GitHub..." -ForegroundColor Yellow
+    Set-Location $localRoot
+
+    $status = & git status --porcelain 2>&1
+    if ($status) {
+        if ($Message -eq "") {
+            $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm"
+            $Message = "Deploy update - $timestamp"
+        }
+        & git add -A
+        & git commit -m $Message
+        $pushResult = & git push origin main 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "  Pushed to GitHub!" -ForegroundColor Green
+        } else {
+            Write-Host "  [!] Git push failed:" -ForegroundColor Red
+            Write-Host "  $pushResult" -ForegroundColor Red
+        }
+    } else {
+        Write-Host "  Nothing to commit, repo is up to date." -ForegroundColor Gray
+    }
+    Write-Host ""
+}
+
+if ($SkipFTP) {
+    Write-Host "SkipFTP set — done." -ForegroundColor Green
+    exit 0
+}
+
 # ── Step 1: Build zip ───────────────────────────────────────────────────────
-Write-Host "[1/2] Building deployment zip..." -ForegroundColor Yellow
+Write-Host "[1/3] Building deployment zip..." -ForegroundColor Yellow
 Remove-Item $zipPath -ErrorAction SilentlyContinue
 
 Add-Type -Assembly System.IO.Compression.FileSystem
@@ -50,9 +84,9 @@ if ($ZipOnly) {
     exit 0
 }
 
-# ── Step 2: Upload via FTP ──────────────────────────────────────────────────
+# ── Step 3: Upload via FTP ──────────────────────────────────────────────────
 Write-Host ""
-Write-Host "[2/2] Uploading files via FTP..." -ForegroundColor Yellow
+Write-Host "[3/3] Uploading files via FTP..." -ForegroundColor Yellow
 Write-Host "  Testing FTP connection..." -ForegroundColor Gray
 
 $testResult = & curl.exe --silent --show-error --max-time 10 --ftp-pasv --disable-epsv --user "${ftpUser}:${ftpPass}" "ftp://${ftpHost}/${remoteRoot}/" 2>&1
