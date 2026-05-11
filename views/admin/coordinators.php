@@ -1,4 +1,4 @@
-<?php $totalCoordinators = count($coordinators); ?>
+<?php $totalCoordinators = count($coordinators); /* v2 */ ?>
 
 <div class="grid two coordinators-layout">
     <section class="card coordinator-create-card">
