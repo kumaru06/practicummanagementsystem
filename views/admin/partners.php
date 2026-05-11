@@ -6,7 +6,13 @@ $totalPrograms = count($programs);
 ?>
 
 <!-- Hidden create-partner form (for cross-section field association) -->
-<form id="create-partner-form" method="post" class="form js-validate">
+<form
+    id="create-partner-form"
+    method="post"
+    class="form js-validate"
+    data-require-checkbox-group="program_ids[]"
+    data-require-checkbox-message="Select at least one accepted program/course."
+>
     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="action" value="admin_create_company">
 </form>
@@ -73,9 +79,9 @@ $totalPrograms = count($programs);
                     <label>Email Address<input form="create-partner-form" required type="email" name="contact_email"></label>
                     <label>Contact Number<input form="create-partner-form" required name="contact_number" inputmode="numeric" autocomplete="tel-national" maxlength="16" data-phone-format="ph" pattern="\+63\s9\d{2}\s\d{3}\s\d{4}" title="Use format +63 951 192 5735"></label>
                 </div>
-                <label style="display:flex;flex-direction:column;gap:5px;font-size:0.8rem;font-weight:600;color:#374151;">
+                <label>
                     Company Address
-                    <textarea form="create-partner-form" required name="address" style="padding:8px 11px;border:1px solid #e0e0e8;border-radius:8px;font-size:0.84rem;color:#111827;background:#fafafa;outline:none;font-family:inherit;resize:vertical;min-height:72px;"></textarea>
+                    <textarea form="create-partner-form" required name="address" maxlength="500"></textarea>
                 </label>
             </div>
 
@@ -98,18 +104,19 @@ $totalPrograms = count($programs);
             </div>
 
             <?php if ($partners): ?>
+                <div class="partner-directory-scroll">
                 <div class="partner-company-grid">
                     <?php foreach ($partners as $u): ?>
                         <article class="partner-company-card">
                             <div class="partner-company-top">
                                 <div class="partner-company-brand">
                                     <span class="partner-company-avatar"><?= e(strtoupper(substr($u['name'] ?? 'P', 0, 1))) ?></span>
-                                    <div>
-                                        <h3><?= e($u['name']) ?></h3>
+                                    <div class="partner-company-brand-copy">
+                                        <h3 class="partner-company-name" title="<?= e($u['name']) ?>"><?= e($u['name']) ?></h3>
                                         <p><?= e($u['contact_person'] ?? '—') ?></p>
                                     </div>
                                 </div>
-                                <span class="badge <?= $u['is_active'] ? 'active' : 'inactive' ?>"><?= $u['is_active'] ? 'Active' : 'Inactive' ?></span>
+                                <span class="badge partner-company-status <?= $u['is_active'] ? 'active' : 'inactive' ?>"><?= $u['is_active'] ? 'Active' : 'Inactive' ?></span>
                             </div>
                             <div class="partner-company-meta">
                                 <div><span>Email</span><strong><?= e($u['email']) ?></strong></div>
@@ -140,6 +147,7 @@ $totalPrograms = count($programs);
                         </article>
                     <?php endforeach; ?>
                 </div>
+                </div>
             <?php else: ?>
                 <div class="partner-empty-state">
                     <strong>No partner companies yet.</strong>
@@ -149,59 +157,6 @@ $totalPrograms = count($programs);
         </section>
 
     </div>
-
-    <!-- ③ Full-width: Detailed Table View -->
-    <?php if ($partners): ?>
-    <section class="partner-full-card">
-        <div class="partner-full-head">
-            <div>
-                <h2>Detailed Table View</h2>
-                <p class="muted">Quick scan, export-ready overview of all registered partners.</p>
-            </div>
-        </div>
-        <div class="table-wrap">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th data-sort>Company</th>
-                        <th data-sort>Contact Person</th>
-                        <th data-sort>Email</th>
-                        <th>Accepted Programs</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php foreach ($partners as $u): ?>
-                    <tr>
-                        <td><strong><?= e($u['name']) ?></strong></td>
-                        <td><?= e($u['contact_person'] ?? '—') ?><br><small class="muted"><?= e($u['contact_number'] ?? '') ?></small></td>
-                        <td><?= e($u['email']) ?></td>
-                        <td><?= e($u['accepted_programs'] ?? '—') ?></td>
-                        <td><span class="badge <?= $u['is_active'] ? 'active' : 'inactive' ?>"><?= $u['is_active'] ? 'Active' : 'Inactive' ?></span></td>
-                        <td>
-                            <form method="post" class="inline">
-                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                <input type="hidden" name="action" value="admin_resend_company_credentials">
-                                <input type="hidden" name="company_id" value="<?= (int)$u['id'] ?>">
-                                <button class="btn btn-small" type="submit">Resend Credentials</button>
-                            </form>
-                            <form method="post" class="inline">
-                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                <input type="hidden" name="action" value="admin_toggle_user">
-                                <input type="hidden" name="user_id" value="<?= (int)$u['user_id'] ?>">
-                                <input type="hidden" name="active" value="<?= $u['is_active'] ? 0 : 1 ?>">
-                                <input type="hidden" name="redirect" value="admin_partners">
-                                <button class="btn btn-small" type="submit"><?= $u['is_active'] ? 'Deactivate' : 'Activate' ?></button>
-                            </form>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    </section>
-    <?php endif; ?>
 
     <!-- ④ Full-width: Accepted Programs -->
     <section class="partner-full-card">

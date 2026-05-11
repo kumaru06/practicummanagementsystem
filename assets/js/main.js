@@ -454,15 +454,68 @@ function initCharacterCounters() {
 }
 
 function initForms() {
+    const getAssociatedControls = form => {
+        const selector = form.id
+            ? `input[form="${form.id}"], select[form="${form.id}"], textarea[form="${form.id}"]`
+            : '';
+        const localControls = [...form.querySelectorAll('input,select,textarea')];
+        const externalControls = selector ? [...document.querySelectorAll(selector)] : [];
+
+        return [...new Set([...localControls, ...externalControls])];
+    };
+
+    const getAssociatedSubmitButtons = form => {
+        const selector = form.id
+            ? `button[type="submit"][form="${form.id}"], input[type="submit"][form="${form.id}"]`
+            : '';
+        const localButtons = [...form.querySelectorAll('button[type="submit"],input[type="submit"]')];
+        const externalButtons = selector ? [...document.querySelectorAll(selector)] : [];
+
+        return [...new Set([...localButtons, ...externalButtons])];
+    };
+
+    const validateRequiredCheckboxGroup = form => {
+        const groupName = form.dataset.requireCheckboxGroup;
+        if (!groupName) return true;
+
+        const selector = form.id
+            ? `input[type="checkbox"][name="${groupName}"][form="${form.id}"]`
+            : `input[type="checkbox"][name="${groupName}"]`;
+        const checkboxes = [...document.querySelectorAll(selector)].filter(checkbox => !checkbox.disabled);
+        if (!checkboxes.length) return true;
+
+        const hasSelection = checkboxes.some(checkbox => checkbox.checked);
+        const message = hasSelection ? '' : (form.dataset.requireCheckboxMessage || 'Please select at least one option.');
+
+        checkboxes.forEach(checkbox => checkbox.setCustomValidity(''));
+        checkboxes[0].setCustomValidity(message);
+
+        return hasSelection;
+    };
+
     document.querySelectorAll('.js-validate').forEach(form => {
-        form.querySelectorAll('input,select,textarea').forEach(el => el.addEventListener('blur', () => el.classList.add('touched')));
+        const controls = getAssociatedControls(form);
+        const submitButtons = getAssociatedSubmitButtons(form);
+        const markTouched = () => controls.forEach(el => el.classList.add('touched'));
+
+        controls.forEach(el => {
+            const eventName = ['checkbox', 'radio'].includes(el.type) ? 'change' : 'blur';
+            el.addEventListener(eventName, () => {
+                el.classList.add('touched');
+                validateRequiredCheckboxGroup(form);
+            });
+        });
+
         form.addEventListener('submit', e => {
-            if (!form.checkValidity()) {
+            const hasValidCheckboxGroup = validateRequiredCheckboxGroup(form);
+            if (!hasValidCheckboxGroup || !form.checkValidity()) {
                 e.preventDefault();
-                form.querySelectorAll('input,select,textarea').forEach(el => el.classList.add('touched'));
+                markTouched();
+                form.reportValidity();
                 return;
             }
-            const btn = form.querySelector('button[type="submit"]');
+
+            const btn = e.submitter || submitButtons[0] || null;
             if (btn) { btn.classList.add('loading'); btn.disabled = true; }
         });
     });

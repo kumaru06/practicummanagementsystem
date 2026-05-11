@@ -119,8 +119,20 @@ class AdminController extends BaseController
         $p = $this->post();
         try {
             $password = random_password();
-            $programIds = $p['program_ids'] ?? [];
+            $companyName = trim($p['company_name'] ?? '');
             $contactPerson = trim($p['contact_person'] ?? $p['name'] ?? '');
+            $contactEmail = strtolower(trim($p['contact_email'] ?? ''));
+            $address = trim($p['address'] ?? '');
+            $programIds = array_values(array_unique(array_filter(array_map('intval', (array)($p['program_ids'] ?? [])))));
+
+            if ($companyName === '' || $contactPerson === '' || $contactEmail === '' || $address === '' || trim((string)($p['contact_number'] ?? '')) === '') {
+                throw new RuntimeException('Fill in all required partner company details before creating the account.');
+            }
+
+            if (!filter_var($contactEmail, FILTER_VALIDATE_EMAIL)) {
+                throw new RuntimeException('Enter a valid partner email address.');
+            }
+
             $contactNumberDigits = preg_replace('/\D+/', '', (string)($p['contact_number'] ?? ''));
             if (str_starts_with($contactNumberDigits, '63')) {
                 $contactNumberDigits = substr($contactNumberDigits, 2);
@@ -135,11 +147,11 @@ class AdminController extends BaseController
             if (!$programIds) {
                 throw new RuntimeException('Select at least one accepted program/course.');
             }
-            $userId = (new User($this->db))->create(trim($p['company_name']), trim($p['contact_email']), $password, 'partner', current_user()['id'], 0);
-            (new Company($this->db))->create($userId, trim($p['company_name']), trim($p['address'] ?? ''), $contactPerson, trim($p['contact_email']), $contactNumber, $programIds);
-            (new Email($this->db))->send(trim($p['contact_email']), 'Your AMA Practicum Partner Account', 'account_credentials', 'account_credentials', [
+            $userId = (new User($this->db))->create($companyName, $contactEmail, $password, 'partner', current_user()['id'], 0);
+            (new Company($this->db))->create($userId, $companyName, $address, $contactPerson, $contactEmail, $contactNumber, $programIds);
+            (new Email($this->db))->send($contactEmail, 'Your AMA Practicum Partner Account', 'account_credentials', 'account_credentials', [
                 'name' => $contactPerson,
-                'email' => trim($p['contact_email']),
+                'email' => $contactEmail,
                 'password' => $password,
                 'roleLabel' => 'Industry Partner',
             ]);

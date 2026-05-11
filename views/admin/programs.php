@@ -34,10 +34,7 @@ $inactivePrograms = $totalPrograms - $activePrograms;
                 <div class="programs-hrs-term-row">
                     <label class="programs-hours-label">
                         <span>Required OJT Hours</span>
-                        <div class="programs-hours-input-wrap">
-                            <input required type="number" min="1" name="required_hours">
-                            <span class="programs-hrs-badge">hrs</span>
-                        </div>
+                        <input required type="number" min="1" name="required_hours">
                     </label>
                     <label class="programs-term-label">
                         <span>Term</span>
