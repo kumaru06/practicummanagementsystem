@@ -89,7 +89,13 @@ class CoordinatorController extends BaseController
             }
             $userId = (new User($this->db))->create($fullName, trim($p['email']), $password, 'student', current_user()['id'], 0);
             (new Student($this->db))->create($userId, trim($p['student_no']), $program['name'], trim($p['year_level']), $corPath, current_user()['id'], (int)$program['id'], '', $birthdate);
-            flash('success', 'Student account created. Credentials will be emailed when the student is enrolled.');
+            (new Email($this->db))->send(trim($p['email']), 'Your AMA Practicum Student Account', 'account_credentials', 'account_credentials', [
+                'name'      => $fullName,
+                'email'     => trim($p['email']),
+                'password'  => $password,
+                'roleLabel' => 'Student',
+            ]);
+            flash('success', 'Student account created and login credentials have been sent to ' . trim($p['email']) . '.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
