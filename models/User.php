@@ -113,6 +113,21 @@ class User
         $stmt->execute([password_hash($password, PASSWORD_DEFAULT), $passwordChanged, $id]);
     }
 
+    public function updateEmail(int $id, string $email): void
+    {
+        $email = strtolower(trim($email));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new RuntimeException('A valid email address is required.');
+        }
+        $check = $this->db->prepare('SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1');
+        $check->execute([$email, $id]);
+        if ($check->fetch()) {
+            throw new RuntimeException('That email address is already in use by another account.');
+        }
+        $stmt = $this->db->prepare('UPDATE users SET email = ? WHERE id = ?');
+        $stmt->execute([$email, $id]);
+    }
+
     public function countRole(string $role): int
     {
         $stmt = $this->db->prepare('SELECT COUNT(*) FROM users WHERE role = ? AND is_active = 1');

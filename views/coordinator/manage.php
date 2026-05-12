@@ -5,14 +5,22 @@
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="coordinator_create_student">
             <label>Student Number<input required name="student_no"></label>
-            <label>Full Name<input required name="full_name"></label>
+            <div class="student-name-row">
+                <label>First Name<input required name="first_name" autocomplete="given-name" pattern="[A-Za-z\s\-\.]+" title="First name must contain letters only" oninput="this.value=this.value.replace(/[^A-Za-z\s\-\.]/g,'')"></label>
+                <label>Last Name<input required name="last_name" autocomplete="family-name" pattern="[A-Za-z\s\-\.]+" title="Last name must contain letters only" oninput="this.value=this.value.replace(/[^A-Za-z\s\-\.]/g,'')"></label>
+            </div>
             <label>Email<input required type="email" name="email"></label>
             <label><select required name="program_id">
                 <option value="">— Select course —</option>
                 <?php foreach ($programs as $program): ?><option value="<?= (int)$program['id'] ?>"><?= e($program['code'] . ' — ' . $program['name'] . ' (' . $program['required_hours'] . ' hrs)') ?></option><?php endforeach; ?>
             </select></label>
-            <label>Year Level<input required name="year_level"></label>
-            <label>Section<input required name="section"></label>
+            <label><select required name="year_level">
+                <option value="">— Select year level —</option>
+                <option value="1st Year">1st Year</option>
+                <option value="2nd Year">2nd Year</option>
+                <option value="3rd Year">3rd Year</option>
+            </select></label>
+            <label>Birthdate<input required type="date" name="birthdate" max="<?= e(date('Y-m-d')) ?>"></label>
             <label>COR PDF/JPG/PNG<input required type="file" name="cor_file" accept=".pdf,.jpg,.jpeg,.png"></label>
             <button class="btn btn-primary" type="submit"><span class="btn-text">Create Student</span><span class="spinner"></span></button>
         </form>

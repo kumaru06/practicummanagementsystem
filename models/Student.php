@@ -3,10 +3,10 @@ class Student
 {
     public function __construct(private PDO $db) {}
 
-    public function create(int $userId, string $studentNo, string $course, string $yearLevel, string $corFile, int $coordinatorId, ?int $programId = null, string $section = ''): int
+    public function create(int $userId, string $studentNo, string $course, string $yearLevel, string $corFile, int $coordinatorId, ?int $programId = null, string $section = '', ?string $birthdate = null): int
     {
-        $stmt = $this->db->prepare('INSERT INTO students (user_id, student_no, program_id, course, year_level, section, cor_file, coordinator_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-        $stmt->execute([$userId, $studentNo, $programId, $course, $yearLevel, $section, $corFile, $coordinatorId]);
+        $stmt = $this->db->prepare('INSERT INTO students (user_id, student_no, program_id, course, year_level, section, birthdate, cor_file, coordinator_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$userId, $studentNo, $programId, $course, $yearLevel, $section, $birthdate, $corFile, $coordinatorId]);
         return (int)$this->db->lastInsertId();
     }
 

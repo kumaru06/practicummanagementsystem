@@ -77,6 +77,7 @@ CREATE TABLE students (
   course VARCHAR(120) NOT NULL,
   year_level VARCHAR(60) NOT NULL,
   section VARCHAR(80) NULL,
+  birthdate DATE NULL,
   cor_file VARCHAR(255) NOT NULL,
   photo_file VARCHAR(255) NULL,
   address TEXT NULL,

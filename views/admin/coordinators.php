@@ -97,3 +97,40 @@
         </div>
     </section>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const createCard = document.querySelector('.coordinator-create-card');
+    const listCard = document.querySelector('.coordinator-list-card');
+
+    if (!createCard || !listCard) {
+        return;
+    }
+
+    const syncCoordinatorCardHeights = function () {
+        listCard.style.height = '';
+        listCard.style.minHeight = '';
+
+        if (window.innerWidth <= 1180) {
+            return;
+        }
+
+        const createHeight = Math.ceil(createCard.getBoundingClientRect().height);
+        if (!createHeight) {
+            return;
+        }
+
+        listCard.style.height = createHeight + 'px';
+        listCard.style.minHeight = createHeight + 'px';
+    };
+
+    syncCoordinatorCardHeights();
+    window.addEventListener('load', syncCoordinatorCardHeights);
+    window.addEventListener('resize', syncCoordinatorCardHeights);
+
+    if (window.ResizeObserver) {
+        const observer = new ResizeObserver(syncCoordinatorCardHeights);
+        observer.observe(createCard);
+    }
+});
+</script>

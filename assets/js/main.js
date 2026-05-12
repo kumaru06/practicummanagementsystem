@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initEmailLogViews();
     initRequirementReviewModals();
     initNotifications();
+    initCoordinatorCardAlignment();
     document.querySelectorAll('.data-table').forEach(table => enhanceTable(table));
     document.querySelector('#modal .modal-close')?.addEventListener('click', closeSlidePanel);
     document.addEventListener('click', handleOutsideMenus);
@@ -22,6 +23,38 @@ document.addEventListener('DOMContentLoaded', () => {
     initStudentModal();
     renderDashboardCharts();
 });
+
+function initCoordinatorCardAlignment() {
+    const layout = document.querySelector('.coordinators-layout');
+    const createCard = document.querySelector('.coordinator-create-card');
+    const listCard = document.querySelector('.coordinator-list-card');
+
+    if (!layout || !createCard || !listCard) return;
+
+    const syncHeights = () => {
+        listCard.style.height = '';
+        listCard.style.minHeight = '';
+
+        const isStackedLayout = window.innerWidth <= 1180;
+        if (isStackedLayout) return;
+
+        const createCardHeight = Math.ceil(createCard.getBoundingClientRect().height);
+        if (!createCardHeight) return;
+
+        listCard.style.height = `${createCardHeight}px`;
+        listCard.style.minHeight = `${createCardHeight}px`;
+    };
+
+    syncHeights();
+    window.addEventListener('resize', syncHeights);
+    window.addEventListener('load', syncHeights);
+
+    if (window.ResizeObserver) {
+        const observer = new ResizeObserver(() => syncHeights());
+        observer.observe(createCard);
+        observer.observe(layout);
+    }
+}
 
 function initCustomDatePickers() {
     document.querySelectorAll('.filter-date-picker').forEach(picker => {
@@ -1354,6 +1387,9 @@ function initStudentModal() {
         document.getElementById('sm-email').textContent       = d.email || '';
         document.getElementById('sm-student-no').textContent  = d.studentNo || '';
         document.getElementById('sm-course').textContent      = d.course || '';
+        document.getElementById('sm-year-level').textContent  = d.yearLevel || '';
+        const bdRaw = d.birthdate || '';
+        document.getElementById('sm-birthdate').textContent   = bdRaw ? new Date(bdRaw + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
         document.getElementById('sm-company').textContent     = d.company || '';
         document.getElementById('sm-progress').textContent    = `${d.rendered} / ${d.required} hrs (${d.percent}%)`;
 
@@ -1374,6 +1410,11 @@ function initStudentModal() {
         } else {
             corWrap.style.display = 'none';
         }
+
+        // Edit email form
+        document.getElementById('sm-email-csrf').value    = d.csrf || '';
+        document.getElementById('sm-email-user-id').value = d.userId || '';
+        document.getElementById('sm-email-input').value   = d.email || '';
 
         // Reset form
         document.getElementById('sm-csrf').value       = d.csrf || '';

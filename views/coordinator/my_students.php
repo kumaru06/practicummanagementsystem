@@ -37,7 +37,9 @@
                             data-name="<?= e($s['name']) ?>"
                             data-email="<?= e($s['email']) ?>"
                             data-student-no="<?= e($s['student_no']) ?>"
-                            data-course="<?= e($s['course'] . ' ' . $s['year_level']) ?>"
+                            data-course="<?= e($s['course']) ?>"
+                            data-year-level="<?= e($s['year_level']) ?>"
+                            data-birthdate="<?= e($s['birthdate'] ?? '') ?>"
                             data-company="<?= e($s['company_name'] ?? '-') ?>"
                             data-status="<?= e($s['deployment_status'] ?? 'pending') ?>"
                             data-rendered="<?= number_format($rendered, 2) ?>"
@@ -45,6 +47,7 @@
                             data-percent="<?= $percent ?>"
                             data-cor="<?= e($s['cor_file'] ?? '') ?>"
                             data-student-id="<?= (int)$s['id'] ?>"
+                            data-user-id="<?= (int)$s['user_id'] ?>"
                             data-csrf="<?= e(csrf_token()) ?>"
                             type="button">View</button></td>
                 </tr>
@@ -64,7 +67,9 @@
         </div>
         <div class="sm-details-grid student-panel-grid">
             <div class="student-panel-item"><span class="sm-label">Student No.</span><strong id="sm-student-no"></strong></div>
+            <div class="student-panel-item"><span class="sm-label">Birthdate</span><strong id="sm-birthdate"></strong></div>
             <div class="student-panel-item"><span class="sm-label">Course</span><strong id="sm-course"></strong></div>
+            <div class="student-panel-item"><span class="sm-label">Year Level</span><strong id="sm-year-level"></strong></div>
             <div class="student-panel-item"><span class="sm-label">Company</span><strong id="sm-company"></strong></div>
             <div class="student-panel-item"><span class="sm-label">Status</span><div id="sm-status"></div></div>
             <div class="student-panel-item student-panel-item-wide"><span class="sm-label">OJT Progress</span><strong id="sm-progress"></strong></div>
@@ -72,6 +77,18 @@
         <div id="sm-cor-wrap" class="student-panel-actions" style="display:none">
             <a id="sm-cor-link" class="btn btn-small" target="_blank" href="#">View COR</a>
         </div>
+        <details class="student-panel-reset">
+            <summary>Edit Email</summary>
+            <form method="post" class="student-panel-reset-form" id="sm-email-form">
+                <input type="hidden" name="csrf_token" id="sm-email-csrf">
+                <input type="hidden" name="action" value="coordinator_update_student_email">
+                <input type="hidden" name="user_id" id="sm-email-user-id">
+                <label style="margin-bottom:8px;display:block">New Email Address
+                    <input type="email" name="email" id="sm-email-input" required placeholder="Enter new email" style="margin-top:4px">
+                </label>
+                <button class="btn btn-small" type="submit">Update Email</button>
+            </form>
+        </details>
         <details class="student-panel-reset">
             <summary>Reset Password</summary>
             <form method="post" class="student-panel-reset-form">

@@ -2362,21 +2362,20 @@ small,
 
 .coordinators-layout {
     grid-template-columns: minmax(300px, 0.72fr) minmax(0, 1.28fr);
-    align-items: stretch;
-    grid-auto-rows: 740px;
+    align-items: start;
 }
 
 .coordinator-create-card,
 .coordinator-list-card {
     min-width: 0;
-    height: 100%;
-    max-height: 740px;
     box-sizing: border-box;
 }
 
 .coordinator-create-card {
     display: flex;
     flex-direction: column;
+    align-self: start;
+    height: auto;
     padding: 24px 24px 22px;
 }
 
@@ -2386,11 +2385,10 @@ small,
 }
 
 .coordinator-create-toolbar-spacer {
-    min-height: 44px;
+    display: none;
 }
 
 .coordinator-create-card .form {
-    flex: 1;
     align-content: start;
     gap: 14px;
 }
@@ -2418,7 +2416,7 @@ small,
 }
 
 .coordinator-create-card .btn {
-    margin-top: auto;
+    margin-top: 4px;
 }
 
 .field-required {
@@ -2431,6 +2429,7 @@ small,
 .coordinator-list-card {
     display: flex;
     flex-direction: column;
+    align-self: start;
     gap: 18px;
     padding: 22px 22px 20px;
     overflow: hidden;
@@ -2856,6 +2855,12 @@ small,
     gap: 16px;
 }
 
+.student-name-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
 .form label,
 .filter-bar label {
     display: grid;
@@ -2866,6 +2871,12 @@ small,
 
 .form label {
     font-size: 0.94rem;
+}
+
+@media (max-width: 640px) {
+    .student-name-row {
+        grid-template-columns: 1fr;
+    }
 }
 
 .form textarea {
