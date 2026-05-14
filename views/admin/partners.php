@@ -107,6 +107,7 @@ $totalPrograms = count($programs);
                 <div class="partner-directory-scroll">
                 <div class="partner-company-grid">
                     <?php foreach ($partners as $u): ?>
+                        <?php $selectedProgramIds = array_values(array_filter(array_map('intval', explode(',', (string)($u['accepted_program_ids'] ?? ''))))); ?>
                         <article class="partner-company-card">
                             <div class="partner-company-top">
                                 <div class="partner-company-brand">
@@ -129,6 +130,34 @@ $totalPrograms = count($programs);
                                 <?php if (empty(trim((string)($u['accepted_programs'] ?? '')))): ?><span style="background:#f3f4f6;color:#9ca3af;border-color:#e5e7eb;">Not set</span><?php endif; ?>
                             </div>
                             <div class="partner-company-footer">
+                                <details class="partner-company-action partner-company-edit">
+                                    <summary class="btn btn-small">Edit Programs</summary>
+                                    <form method="post" class="partner-company-edit-form">
+                                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                        <input type="hidden" name="action" value="admin_update_company_programs">
+                                        <input type="hidden" name="company_id" value="<?= (int)$u['id'] ?>">
+
+                                        <div class="partner-program-picker">
+                                            <?php foreach ($programs as $program): ?>
+                                                <label class="partner-program-option">
+                                                    <input
+                                                        type="checkbox"
+                                                        name="program_ids[]"
+                                                        value="<?= (int)$program['id'] ?>"
+                                                        <?= in_array((int)$program['id'], $selectedProgramIds, true) ? 'checked' : '' ?>
+                                                    >
+                                                    <span class="partner-program-copy">
+                                                        <strong><?= e($program['code']) ?></strong>
+                                                        <span><?= e($program['name']) ?></span>
+                                                    </span>
+                                                    <em><?= (int)$program['required_hours'] ?> hrs</em>
+                                                </label>
+                                            <?php endforeach; ?>
+                                        </div>
+
+                                        <button class="btn btn-small btn-primary" type="submit">Save Programs</button>
+                                    </form>
+                                </details>
                                 <form method="post" class="inline partner-company-action">
                                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                     <input type="hidden" name="action" value="admin_resend_company_credentials">

@@ -32,6 +32,7 @@ class CoordinatorController extends BaseController
             'students'  => (new Student($this->db))->allByCoordinator($coordId),
             'companies' => (new Company($this->db))->all(),
             'programs'  => (new Program($this->db))->all(true),
+            'terms'     => (new Term($this->db))->all(),
         ]);
     }
 

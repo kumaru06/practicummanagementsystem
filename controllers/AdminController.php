@@ -50,7 +50,66 @@ class AdminController extends BaseController
         $this->render('admin/programs', [
             'title' => 'Programs / Courses',
             'programs' => (new Program($this->db))->all(),
+            'terms' => (new Term($this->db))->all(),
         ]);
+    }
+
+    private function validateAcademicTerm(string $term): string
+    {
+        $term = trim($term);
+        // Normalize en-dash (–) and em-dash (—) to regular hyphen, and non-breaking spaces to space
+        $term = str_replace(["\u{2013}", "\u{2014}", "\u{00A0}"], ['-', '-', ' '], $term);
+        $term = preg_replace('/\s+/', ' ', $term);
+        if ($term === '') {
+            throw new RuntimeException('Term is required.');
+        }
+        if (mb_strlen($term) > 120) {
+            throw new RuntimeException('Term is too long. Keep it within 120 characters.');
+        }
+        if (!preg_match('/^\d{4}\s\((1st|2nd|3rd)\sTri\)\s-\sSY\s(\d{4})-(\d{4})$/', $term, $matches)) {
+            throw new RuntimeException('Invalid term format. Use: 2523 (2nd Tri) - SY 2025-2026');
+        }
+        $startYear = (int)$matches[2];
+        $endYear = (int)$matches[3];
+        if ($endYear !== $startYear + 1) {
+            throw new RuntimeException('School year must be consecutive (example: SY 2025-2026).');
+        }
+        return $term;
+    }
+
+    public function saveTerm(): void
+    {
+        require_role('admin');
+        $p = $this->post();
+        try {
+            $termLabel = $this->validateAcademicTerm((string)($p['term_label'] ?? ''));
+            $terms = new Term($this->db);
+            $termId = (int)($p['term_id'] ?? 0);
+
+            if ($termId > 0) {
+                $terms->update($termId, $termLabel);
+                flash('success', 'Term updated.');
+            } else {
+                $terms->create($termLabel);
+                flash('success', 'Term added.');
+            }
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+        redirect('index.php?r=admin_programs');
+    }
+
+    public function deleteTerm(): void
+    {
+        require_role('admin');
+        $p = $this->post();
+        try {
+            (new Term($this->db))->delete((int)($p['term_id'] ?? 0));
+            flash('success', 'Term deleted.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+        redirect('index.php?r=admin_programs');
     }
 
     public function manageUsers(): void
@@ -201,17 +260,49 @@ class AdminController extends BaseController
         redirect('index.php?r=admin_partners');
     }
 
+    public function updateCompanyPrograms(): void
+    {
+        require_role('admin');
+        $p = $this->post();
+        try {
+            $companyId = (int)($p['company_id'] ?? 0);
+            $programIds = array_values(array_unique(array_filter(array_map('intval', (array)($p['program_ids'] ?? [])))));
+
+            if ($companyId <= 0) {
+                throw new RuntimeException('Invalid partner company selected.');
+            }
+            if (!$programIds) {
+                throw new RuntimeException('Select at least one accepted program/course.');
+            }
+
+            $companies = new Company($this->db);
+            $company = $companies->find($companyId);
+            if (!$company) {
+                throw new RuntimeException('Partner company not found.');
+            }
+
+            $companies->syncPrograms($companyId, $programIds);
+            flash('success', 'Accepted programs updated for ' . ($company['name'] ?? 'partner company') . '.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+        redirect('index.php?r=admin_partners');
+    }
+
     public function saveProgram(): void
     {
         require_role('admin');
         $p = $this->post();
         try {
             $programs = new Program($this->db);
+            $term = $this->validateAcademicTerm((string)($p['term'] ?? ''));
+            (new Term($this->db))->createIfMissing($term);
+
             if (!empty($p['program_id'])) {
-                $programs->update((int)$p['program_id'], trim($p['code']), trim($p['name']), trim($p['term'] ?? ''), (int)$p['required_hours'], (int)($p['is_active'] ?? 1));
+                $programs->update((int)$p['program_id'], trim($p['code']), trim($p['name']), $term, (int)$p['required_hours'], (int)($p['is_active'] ?? 1));
                 flash('success', 'Program updated.');
             } else {
-                $programs->create(trim($p['code']), trim($p['name']), trim($p['term'] ?? ''), (int)$p['required_hours']);
+                $programs->create(trim($p['code']), trim($p['name']), $term, (int)$p['required_hours']);
                 flash('success', 'Program created.');
             }
         } catch (Throwable $e) {

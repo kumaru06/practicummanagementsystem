@@ -20,7 +20,16 @@
                 <option value="2nd Year">2nd Year</option>
                 <option value="3rd Year">3rd Year</option>
             </select></label>
-            <label>Birthdate<input required type="date" name="birthdate" max="<?= e(date('Y-m-d')) ?>"></label>
+            <label>Birthdate
+                <span class="filter-date-picker form-date-picker is-placeholder" data-date-required="1">
+                    <input type="hidden" name="birthdate" value="">
+                    <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select birthdate">
+                        <span class="filter-date-value">mm/dd/yyyy</span>
+                        <span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span>
+                    </button>
+                    <div class="filter-date-panel" hidden></div>
+                </span>
+            </label>
             <label>COR PDF/JPG/PNG<input required type="file" name="cor_file" accept=".pdf,.jpg,.jpeg,.png"></label>
             <button class="btn btn-primary" type="submit"><span class="btn-text">Create Student</span><span class="spinner"></span></button>
         </form>
@@ -37,11 +46,54 @@
             </div>
             <div class="wizard-step">
                 <label><select required name="company_id"><option value="">— Select company —</option><?php foreach ($companies as $c): ?><option value="<?= (int)$c['id'] ?>" data-program-ids="<?= e($c['accepted_program_ids'] ?? '') ?>"><?= e($c['name'] . (!empty($c['accepted_programs']) ? ' — ' . $c['accepted_programs'] : '')) ?></option><?php endforeach; ?></select></label>
-                <label>Academic Term<input required name="academic_term" placeholder="Term 2533"></label>
-                <label>Term Start Date<input required type="date" name="term_start_date"></label>
-                <label>Term End Date<input required type="date" name="term_end_date"></label>
-                <label>Start Date<input required type="date" name="start_date"></label>
-                <label>End Date<input required type="date" name="end_date"></label>
+                <label>Academic Term
+                    <select required name="academic_term">
+                        <option value="">— Select Term —</option>
+                        <?php foreach (($terms ?? []) as $t): ?>
+                            <option value="<?= e($t['term_label']) ?>"><?= e($t['term_label']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <label>Term Start Date
+                    <span class="filter-date-picker form-date-picker is-placeholder" data-date-required="1">
+                        <input type="hidden" name="term_start_date" value="">
+                        <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select term start date">
+                            <span class="filter-date-value">mm/dd/yyyy</span>
+                            <span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span>
+                        </button>
+                        <div class="filter-date-panel" hidden></div>
+                    </span>
+                </label>
+                <label>Term End Date
+                    <span class="filter-date-picker form-date-picker is-placeholder" data-date-required="1">
+                        <input type="hidden" name="term_end_date" value="">
+                        <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select term end date">
+                            <span class="filter-date-value">mm/dd/yyyy</span>
+                            <span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span>
+                        </button>
+                        <div class="filter-date-panel" hidden></div>
+                    </span>
+                </label>
+                <label>Start Date
+                    <span class="filter-date-picker form-date-picker is-placeholder" data-date-required="1">
+                        <input type="hidden" name="start_date" value="">
+                        <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select start date">
+                            <span class="filter-date-value">mm/dd/yyyy</span>
+                            <span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span>
+                        </button>
+                        <div class="filter-date-panel" hidden></div>
+                    </span>
+                </label>
+                <label>End Date
+                    <span class="filter-date-picker form-date-picker is-placeholder" data-date-required="1">
+                        <input type="hidden" name="end_date" value="">
+                        <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select end date">
+                            <span class="filter-date-value">mm/dd/yyyy</span>
+                            <span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span>
+                        </button>
+                        <div class="filter-date-panel" hidden></div>
+                    </span>
+                </label>
                 <label>Required Hours<input required readonly type="number" min="1" name="required_hours"></label>
                 <div class="wizard-actions"><button class="btn btn-small wizard-prev" type="button">Back</button><button class="btn btn-primary wizard-next" type="button">Next</button></div>
             </div>

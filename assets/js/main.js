@@ -56,17 +56,114 @@ function initCoordinatorCardAlignment() {
     }
 }
 
+/* ── Global shared calendar panel (escapes all overflow/transform ancestors) ── */
+let _globalCalPanel = null;
+let _globalCalActivePicker = null;
+let _globalCalState = null;
+
+function getGlobalCalPanel() {
+    if (_globalCalPanel) return _globalCalPanel;
+    _globalCalPanel = document.createElement('div');
+    _globalCalPanel.className = 'global-cal-panel';
+    _globalCalPanel.hidden = true;
+    document.body.appendChild(_globalCalPanel);
+
+    _globalCalPanel.addEventListener('mousedown', e => e.stopPropagation());
+    _globalCalPanel.addEventListener('click', e => {
+        const nav = e.target.closest('[data-date-nav]');
+        if (nav && _globalCalState) {
+            const delta = Number(nav.dataset.dateNav || 0);
+            _globalCalState.view = new Date(_globalCalState.view.getFullYear(), _globalCalState.view.getMonth() + delta, 1);
+            _globalCalPanel.innerHTML = buildCustomDatePanel(_globalCalState);
+            return;
+        }
+        const action = e.target.closest('[data-date-action]');
+        if (action && _globalCalActivePicker) {
+            const { input, state, sync } = _globalCalActivePicker;
+            if (action.dataset.dateAction === 'clear') {
+                state.selected = null; input.value = ''; sync();
+            }
+            if (action.dataset.dateAction === 'today') {
+                const today = stripTime(new Date());
+                state.selected = today; state.view = new Date(today.getFullYear(), today.getMonth(), 1);
+                input.value = formatCustomDateValue(today); sync();
+            }
+            closeGlobalCalPanel();
+            return;
+        }
+        const day = e.target.closest('[data-date-value]');
+        if (day && _globalCalActivePicker) {
+            const { input, state, sync, picker } = _globalCalActivePicker;
+            const selectedDate = parseCustomDateValue(day.dataset.dateValue || '');
+            if (!selectedDate) return;
+            state.selected = selectedDate;
+            state.view = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+            input.value = formatCustomDateValue(selectedDate);
+            picker.classList.remove('date-required-error');
+            sync();
+            closeGlobalCalPanel();
+        }
+    });
+    return _globalCalPanel;
+}
+
+function positionGlobalCalPanel(trigger) {
+    const panel = getGlobalCalPanel();
+    const rect = trigger.getBoundingClientRect();
+    const panelW = 308;
+    const panelH = 360;
+    const vpW = window.innerWidth;
+    const vpH = window.innerHeight;
+    let left = rect.left;
+    if (left + panelW > vpW - 8) left = vpW - panelW - 8;
+    if (left < 8) left = 8;
+    let top;
+    if (rect.bottom + 6 + panelH <= vpH - 8) {
+        top = rect.bottom + 6;
+    } else {
+        top = rect.top - 6 - panelH;
+        if (top < 8) top = 8;
+    }
+    panel.style.top = top + 'px';
+    panel.style.left = left + 'px';
+}
+
+function openGlobalCalPanel(pickerCtx) {
+    _globalCalActivePicker = pickerCtx;
+    _globalCalState = pickerCtx.state;
+    const panel = getGlobalCalPanel();
+    panel.innerHTML = buildCustomDatePanel(_globalCalState);
+    positionGlobalCalPanel(pickerCtx.trigger);
+    panel.hidden = false;
+    requestAnimationFrame(() => panel.classList.add('is-open'));
+}
+
+function closeGlobalCalPanel() {
+    if (!_globalCalPanel) return;
+    _globalCalPanel.classList.remove('is-open');
+    _globalCalPanel.hidden = true;
+    if (_globalCalActivePicker) {
+        _globalCalActivePicker.picker.classList.remove('is-open');
+        _globalCalActivePicker.picker.querySelector('.filter-date-trigger')?.setAttribute('aria-expanded', 'false');
+        _globalCalActivePicker = null;
+    }
+    _globalCalState = null;
+}
+
 function initCustomDatePickers() {
     document.querySelectorAll('.filter-date-picker').forEach(picker => {
         if (picker.dataset.enhanced === '1') return;
-
         picker.dataset.enhanced = '1';
 
         const input = picker.querySelector('input[type="hidden"]');
         const trigger = picker.querySelector('.filter-date-trigger');
         const value = picker.querySelector('.filter-date-value');
-        const panel = picker.querySelector('.filter-date-panel');
-        if (!input || !trigger || !value || !panel) return;
+        const isFormPicker = picker.classList.contains('form-date-picker');
+
+        // For non-form pickers keep the inline panel approach
+        const panel = !isFormPicker ? picker.querySelector('.filter-date-panel') : null;
+        if (!input || !trigger || !value) return;
+        if (!isFormPicker && !panel) return;
 
         const initialDate = parseCustomDateValue(input.value);
         const state = {
@@ -79,66 +176,68 @@ function initCustomDatePickers() {
             picker.classList.toggle('is-placeholder', !state.selected);
         };
 
-        const render = () => {
-            panel.innerHTML = buildCustomDatePanel(state);
-        };
+        if (isFormPicker) {
+            // Remove the inline placeholder panel — all rendering is via global panel
+            picker.querySelector('.filter-date-panel')?.remove();
 
-        trigger.addEventListener('click', event => {
-            event.stopPropagation();
-            const opening = !picker.classList.contains('is-open');
-            closeCustomSelects();
-            closeCustomDatePickers(opening ? picker : null);
-            picker.classList.toggle('is-open', opening);
-            panel.hidden = !opening;
-            trigger.setAttribute('aria-expanded', String(opening));
-            if (opening) render();
-        });
-
-        panel.addEventListener('click', event => {
-            const nav = event.target.closest('[data-date-nav]');
-            if (nav) {
-                const delta = Number(nav.dataset.dateNav || 0);
-                state.view = new Date(state.view.getFullYear(), state.view.getMonth() + delta, 1);
-                render();
-                return;
-            }
-
-            const action = event.target.closest('[data-date-action]');
-            if (action) {
-                if (action.dataset.dateAction === 'clear') {
-                    state.selected = null;
-                    input.value = '';
-                    sync();
-                    closeCustomDatePickers();
+            trigger.addEventListener('click', event => {
+                event.stopPropagation();
+                const isOpen = picker.classList.contains('is-open');
+                closeCustomSelects();
+                closeGlobalCalPanel();
+                if (!isOpen) {
+                    picker.classList.add('is-open');
+                    trigger.setAttribute('aria-expanded', 'true');
+                    openGlobalCalPanel({ picker, trigger, input, state, sync });
                 }
+            });
+        } else {
+            // Original inline panel logic for filter date pickers (email logs)
+            const render = () => { panel.innerHTML = buildCustomDatePanel(state); };
 
-                if (action.dataset.dateAction === 'today') {
-                    const today = stripTime(new Date());
-                    state.selected = today;
-                    state.view = new Date(today.getFullYear(), today.getMonth(), 1);
-                    input.value = formatCustomDateValue(today);
-                    sync();
-                    closeCustomDatePickers();
+            trigger.addEventListener('click', event => {
+                event.stopPropagation();
+                const opening = !picker.classList.contains('is-open');
+                closeCustomSelects();
+                closeCustomDatePickers(opening ? picker : null);
+                picker.classList.toggle('is-open', opening);
+                panel.hidden = !opening;
+                trigger.setAttribute('aria-expanded', String(opening));
+                if (opening) render();
+            });
+
+            panel.addEventListener('click', event => {
+                const nav = event.target.closest('[data-date-nav]');
+                if (nav) {
+                    const delta = Number(nav.dataset.dateNav || 0);
+                    state.view = new Date(state.view.getFullYear(), state.view.getMonth() + delta, 1);
+                    render(); return;
                 }
+                const action = event.target.closest('[data-date-action]');
+                if (action) {
+                    if (action.dataset.dateAction === 'clear') { state.selected = null; input.value = ''; sync(); closeCustomDatePickers(); }
+                    if (action.dataset.dateAction === 'today') {
+                        const today = stripTime(new Date());
+                        state.selected = today; state.view = new Date(today.getFullYear(), today.getMonth(), 1);
+                        input.value = formatCustomDateValue(today); sync(); closeCustomDatePickers();
+                    }
+                    return;
+                }
+                const day = event.target.closest('[data-date-value]');
+                if (!day) return;
+                const selectedDate = parseCustomDateValue(day.dataset.dateValue || '');
+                if (!selectedDate) return;
+                state.selected = selectedDate;
+                state.view = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+                input.value = formatCustomDateValue(selectedDate);
+                picker.classList.remove('date-required-error');
+                sync(); closeCustomDatePickers();
+            });
 
-                return;
-            }
-
-            const day = event.target.closest('[data-date-value]');
-            if (!day) return;
-
-            const selectedDate = parseCustomDateValue(day.dataset.dateValue || '');
-            if (!selectedDate) return;
-
-            state.selected = selectedDate;
-            state.view = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
-            input.value = formatCustomDateValue(selectedDate);
-            sync();
-            closeCustomDatePickers();
-        });
+            render();
+        }
 
         sync();
-        render();
     });
 }
 
@@ -353,11 +452,19 @@ function closeCustomSelects(except = null) {
 }
 
 function closeCustomDatePickers(except = null) {
+    if (!except) closeGlobalCalPanel();
     document.querySelectorAll('.filter-date-picker.is-open').forEach(picker => {
         if (except && picker === except) return;
         picker.classList.remove('is-open');
-        picker.querySelector('.filter-date-panel')?.setAttribute('hidden', 'hidden');
+        const floatingPanel = picker._floatingPanel;
+        if (floatingPanel) {
+            floatingPanel.hidden = true;
+            floatingPanel.classList.remove('is-open');
+        } else {
+            picker.querySelector('.filter-date-panel')?.setAttribute('hidden', 'hidden');
+        }
         picker.querySelector('.filter-date-trigger')?.setAttribute('aria-expanded', 'false');
+        if (picker._parentCard) { picker._parentCard.classList.remove('picker-open'); picker._parentCard = null; }
     });
 }
 
@@ -541,10 +648,13 @@ function initForms() {
 
         form.addEventListener('submit', e => {
             const hasValidCheckboxGroup = validateRequiredCheckboxGroup(form);
-            if (!hasValidCheckboxGroup || !form.checkValidity()) {
+            const reqDatePickers = [...form.querySelectorAll('.filter-date-picker[data-date-required]')];
+            const missingDates = reqDatePickers.filter(p => !p.querySelector('input[type="hidden"]')?.value);
+            missingDates.forEach(p => p.classList.add('date-required-error'));
+            if (!hasValidCheckboxGroup || !form.checkValidity() || missingDates.length) {
                 e.preventDefault();
                 markTouched();
-                form.reportValidity();
+                if (!missingDates.length) form.reportValidity();
                 return;
             }
 
@@ -585,7 +695,14 @@ function initWizards() {
         };
         form.querySelectorAll('.wizard-next').forEach(btn => btn.addEventListener('click', () => {
             const fields = [...panels[index].querySelectorAll('input,select,textarea')];
-            if (fields.some(field => !field.checkValidity())) { fields.forEach(field => field.classList.add('touched')); return; }
+            const reqDatePickers = [...panels[index].querySelectorAll('.filter-date-picker[data-date-required]')];
+            const missingDates = reqDatePickers.filter(p => !p.querySelector('input[type="hidden"]')?.value);
+            if (fields.some(field => !field.checkValidity()) || missingDates.length) {
+                fields.forEach(field => field.classList.add('touched'));
+                missingDates.forEach(p => p.classList.add('date-required-error'));
+                return;
+            }
+            reqDatePickers.forEach(p => p.classList.remove('date-required-error'));
             show(index + 1);
         }));
         form.querySelectorAll('.wizard-prev').forEach(btn => btn.addEventListener('click', () => show(index - 1)));
@@ -725,7 +842,7 @@ function handleOutsideMenus(event) {
         if (!menu.parentElement.contains(event.target)) menu.classList.remove('open');
     });
     if (!event.target.closest('.custom-select')) closeCustomSelects();
-    if (!event.target.closest('.filter-date-picker')) closeCustomDatePickers();
+    if (!event.target.closest('.filter-date-picker') && !event.target.closest('.global-cal-panel')) closeCustomDatePickers();
     const panel = document.querySelector('.notif-panel');
     const btn   = document.getElementById('notifBtn');
     if (panel && panel.classList.contains('is-open') && !panel.contains(event.target) && event.target !== btn && !btn?.contains(event.target)) {

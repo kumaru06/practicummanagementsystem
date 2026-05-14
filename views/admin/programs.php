@@ -2,11 +2,44 @@
 $totalPrograms = count($programs);
 $activePrograms = count(array_filter($programs, static fn ($program) => (int)($program['is_active'] ?? 0) === 1));
 $inactivePrograms = $totalPrograms - $activePrograms;
+$termSuggestions = array_values(array_unique(array_filter(array_map(static fn(array $term): string => trim((string)($term['term_label'] ?? '')), $terms ?? []))));
+sort($termSuggestions, SORT_NATURAL | SORT_FLAG_CASE);
+$termFormatPattern = '\d{4} \((1st|2nd|3rd) Tri\) - SY \d{4}-\d{4}';
 ?>
 
 <div class="programs-page">
 
-    <!-- TOP ROW: Add Form (left) + Stats (right, stacked vertically) -->
+    <div class="programs-stats-strip">
+        <div class="programs-stat-card programs-stat-total">
+            <div class="programs-stat-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            </div>
+            <div>
+                <span>Total Programs</span>
+                <strong><?= (int)$totalPrograms ?></strong>
+            </div>
+        </div>
+        <div class="programs-stat-card programs-stat-active">
+            <div class="programs-stat-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <div>
+                <span>Active</span>
+                <strong><?= (int)$activePrograms ?></strong>
+            </div>
+        </div>
+        <div class="programs-stat-card programs-stat-inactive">
+            <div class="programs-stat-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            </div>
+            <div>
+                <span>Inactive</span>
+                <strong><?= (int)$inactivePrograms ?></strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOP ROW: Add Program (left) + Term Management (right) -->
     <div class="programs-top-row">
 
         <!-- Add Program / Course -->
@@ -39,20 +72,14 @@ $inactivePrograms = $totalPrograms - $activePrograms;
                     <label class="programs-term-label">
                         <span>Term</span>
                         <select required name="term">
-                            <option value="" disabled selected>— Select —</option>
-                            <?php
-                            $currentYear = (int)date('Y');
-                            for ($y = $currentYear - 1; $y <= $currentYear + 1; $y++) {
-                                foreach ([1, 2, 3] as $s) {
-                                    $yy = $y % 100;
-                                    $termCode = sprintf('%02d%d', $yy, $s);
-                                    echo "<option value=\"$termCode\">{$y} &ndash; Term {$s}</option>";
-                                }
-                            }
-                            ?>
+                            <option value="">— Select Term —</option>
+                            <?php foreach ($termSuggestions as $ts): ?>
+                                <option value="<?= e($ts) ?>"><?= e($ts) ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </label>
                 </div>
+                <?php if (empty($termSuggestions)): ?><small class="muted">No terms yet. Add one in the Term panel first.</small><?php endif; ?>
                 <button class="btn programs-add-btn" type="submit">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
                     <span class="btn-text">Add Program</span>
@@ -61,36 +88,55 @@ $inactivePrograms = $totalPrograms - $activePrograms;
             </form>
         </section>
 
-        <!-- Stats — stacked vertically -->
-        <div class="programs-stats-col">
-            <div class="programs-stat-card programs-stat-total">
-                <div class="programs-stat-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        <section class="card programs-term-card">
+            <div class="programs-add-card-header">
+                <div class="programs-icon-wrap">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7h8M8 12h8M8 17h5"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
                 </div>
                 <div>
-                    <span>Total Programs</span>
-                    <strong><?= (int)$totalPrograms ?></strong>
+                    <h2>Term</h2>
+                    <p>Create and manage term list used by Program / Course.</p>
                 </div>
             </div>
-            <div class="programs-stat-card programs-stat-active">
-                <div class="programs-stat-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                </div>
-                <div>
-                    <span>Active</span>
-                    <strong><?= (int)$activePrograms ?></strong>
-                </div>
+
+            <form method="post" class="form js-validate programs-term-form">
+                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                <input type="hidden" name="action" value="admin_save_term">
+                <label>
+                    Input Term
+                    <input
+                        required
+                        name="term_label"
+                        placeholder="2523 (2nd Tri) - SY 2025-2026"
+                        maxlength="120"
+                    >
+                </label>
+                <button class="btn programs-add-btn" type="submit">
+                    <span class="btn-text">Save Term</span>
+                    <span class="spinner"></span>
+                </button>
+            </form>
+
+            <div class="programs-term-list">
+                <?php if (empty($terms)): ?>
+                    <div class="programs-term-empty">No terms added yet.</div>
+                <?php else: ?>
+                    <?php foreach ($terms as $term): ?>
+                        <div class="programs-term-row">
+                            <span class="programs-term-label-text"><?= e($term['term_label']) ?></span>
+                            <form method="post" class="programs-term-delete-form" onsubmit="return confirm('Delete this term? Programs currently using it will have their term cleared.')">
+                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                <input type="hidden" name="action" value="admin_delete_term">
+                                <input type="hidden" name="term_id" value="<?= (int)$term['id'] ?>">
+                                <button class="programs-term-delete-btn" type="submit" title="Delete term">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                                </button>
+                            </form>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
-            <div class="programs-stat-card programs-stat-inactive">
-                <div class="programs-stat-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                </div>
-                <div>
-                    <span>Inactive</span>
-                    <strong><?= (int)$inactivePrograms ?></strong>
-                </div>
-            </div>
-        </div>
+        </section>
 
     </div><!-- /programs-top-row -->
 
@@ -125,18 +171,14 @@ $inactivePrograms = $totalPrograms - $activePrograms;
                         <div class="program-row-inline">
                             <input form="<?= e($formId) ?>" class="pf-input pf-code" name="code" value="<?= e($p['code']) ?>" placeholder="Code" required>
                             <input form="<?= e($formId) ?>" class="pf-input pf-name" name="name" value="<?= e($p['name']) ?>" placeholder="Program Name" required>
-                            <select form="<?= e($formId) ?>" class="pf-input pf-term" name="term">
-                                <?php
-                                $currentYear = (int)date('Y');
-                                for ($y = $currentYear - 1; $y <= $currentYear + 1; $y++) {
-                                    $yy = $y % 100;
-                                    foreach ([1, 2, 3] as $s) {
-                                        $termCode = sprintf('%02d%d', $yy, $s);
-                                        $sel = ($p['term'] ?? '') === $termCode ? 'selected' : '';
-                                        echo "<option value=\"$termCode\" $sel>$termCode</option>";
-                                    }
-                                }
-                                ?>
+                            <select form="<?= e($formId) ?>" class="pf-input pf-term" name="term" required>
+                                <option value="">— Term —</option>
+                                <?php foreach ($termSuggestions as $ts): ?>
+                                    <option value="<?= e($ts) ?>" <?= ($p['term'] === $ts) ? 'selected' : '' ?>><?= e($ts) ?></option>
+                                <?php endforeach; ?>
+                                <?php if (!in_array($p['term'], $termSuggestions, true) && $p['term'] !== ''): ?>
+                                    <option value="<?= e($p['term']) ?>" selected><?= e($p['term']) ?></option>
+                                <?php endif; ?>
                             </select>
                             <input form="<?= e($formId) ?>" class="pf-input pf-hours" type="number" min="1" name="required_hours" value="<?= (int)$p['required_hours'] ?>" placeholder="Hours" required>
                             <select form="<?= e($formId) ?>" class="pf-input pf-status" name="is_active">
@@ -164,5 +206,7 @@ $inactivePrograms = $totalPrograms - $activePrograms;
             <?php endif; ?>
         </div>
     </section>
+
+
 
 </div><!-- /programs-page -->
