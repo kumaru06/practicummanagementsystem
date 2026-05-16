@@ -12,7 +12,8 @@ class Student
 
     public function allByCoordinator(int $coordinatorUserId): array
     {
-        $stmt = $this->db->prepare('SELECT s.*, u.name, u.email, u.is_active, p.code program_code, p.required_hours program_required_hours, e.id enrollment_id, e.status deployment_status, e.predeployment_status, e.required_hours, COALESCE(SUM(d.hours), 0) rendered_hours, pc.name company_name FROM students s JOIN users u ON u.id = s.user_id LEFT JOIN programs p ON p.id = s.program_id LEFT JOIN ojt_enrollments e ON e.student_id = s.id LEFT JOIN daily_time_records d ON d.student_id = s.id LEFT JOIN partner_companies pc ON pc.id = e.company_id WHERE s.coordinator_id = ? GROUP BY s.id, u.id, p.id, e.id, pc.id ORDER BY u.name');
+        (new Company($this->db))->ensureMoaMouSupport();
+        $stmt = $this->db->prepare('SELECT s.*, u.name, u.email, u.is_active, p.code program_code, p.required_hours program_required_hours, e.id enrollment_id, e.status deployment_status, e.predeployment_status, e.required_hours, COALESCE(SUM(d.hours), 0) rendered_hours, pc.id company_id, pc.name company_name, pc.moa_mou_file company_moa_mou_file FROM students s JOIN users u ON u.id = s.user_id LEFT JOIN programs p ON p.id = s.program_id LEFT JOIN ojt_enrollments e ON e.student_id = s.id LEFT JOIN daily_time_records d ON d.student_id = s.id LEFT JOIN partner_companies pc ON pc.id = e.company_id WHERE s.coordinator_id = ? GROUP BY s.id, u.id, p.id, e.id, pc.id ORDER BY u.name');
         $stmt->execute([$coordinatorUserId]);
         return $stmt->fetchAll();
     }

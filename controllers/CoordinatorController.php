@@ -55,6 +55,54 @@ class CoordinatorController extends BaseController
         ]);
     }
 
+    public function moaMouLibrary(): void
+    {
+        require_role('coordinator');
+
+        $companies = array_values(array_filter(
+            (new Company($this->db))->all(),
+            static fn (array $company): bool => !empty($company['moa_mou_file'])
+        ));
+
+        $this->render('coordinator/moa_mou', [
+            'title' => 'Partner MOA/MOU',
+            'companies' => $companies,
+        ]);
+    }
+
+    public function viewPartnerDocument(): void
+    {
+        require_role('coordinator');
+
+        $companyId = (int)($_GET['company_id'] ?? 0);
+        $company = (new Company($this->db))->find($companyId);
+
+        if (!$company || empty($company['moa_mou_file'])) {
+            http_response_code(404);
+            exit('MOA/MOU file not found.');
+        }
+
+        $relativePath = ltrim((string)$company['moa_mou_file'], '/\\');
+        $absolutePath = realpath(__DIR__ . '/../' . $relativePath);
+        $uploadsRoot = realpath(__DIR__ . '/../uploads');
+
+        if (!$absolutePath || !$uploadsRoot || !str_starts_with($absolutePath, $uploadsRoot) || !is_file($absolutePath)) {
+            http_response_code(404);
+            exit('MOA/MOU file not found.');
+        }
+
+        $mime = mime_content_type($absolutePath) ?: 'application/octet-stream';
+        $fileName = basename($absolutePath);
+
+        header('Content-Type: ' . $mime);
+        header('Content-Length: ' . (string)filesize($absolutePath));
+        header('Content-Disposition: inline; filename="' . rawurlencode($fileName) . '"');
+        header('X-Content-Type-Options: nosniff');
+
+        readfile($absolutePath);
+        exit;
+    }
+
     public function evaluations(): void
     {
         require_role('coordinator');
@@ -81,12 +129,17 @@ class CoordinatorController extends BaseController
             if ($fullName === '') {
                 throw new RuntimeException('First name and last name are required.');
             }
-            if (!in_array(trim((string)($p['year_level'] ?? '')), ['1st Year', '2nd Year', '3rd Year'], true)) {
+            if (!in_array(trim((string)($p['year_level'] ?? '')), ['3rd Year', '4th Year'], true)) {
                 throw new RuntimeException('Select a valid year level.');
             }
             $birthdate = trim((string)($p['birthdate'] ?? ''));
             if ($birthdate === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $birthdate)) {
                 throw new RuntimeException('Select a valid birthdate.');
+            }
+            $birthdateObj = new DateTime($birthdate);
+            $age = (new DateTime())->diff($birthdateObj)->y;
+            if ($age < 20) {
+                throw new RuntimeException('Student must be at least 20 years old to be eligible for OJT.');
             }
             $userId = (new User($this->db))->create($fullName, trim($p['email']), $password, 'student', current_user()['id'], 0);
             (new Student($this->db))->create($userId, trim($p['student_no']), $program['name'], trim($p['year_level']), $corPath, current_user()['id'], (int)$program['id'], '', $birthdate);

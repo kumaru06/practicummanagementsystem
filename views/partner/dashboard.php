@@ -1,3 +1,12 @@
+<?php if ($company): ?>
+<section class="card">
+	<div class="section-head section-head-split">
+		<div><h2><?= e($company['name']) ?></h2><p class="muted">Partner company profile and agreement file.</p></div>
+		<?= !empty($company['moa_mou_file']) ? '<a class="btn btn-small" target="_blank" href="' . e(asset($company['moa_mou_file'])) . '">View MOA/MOU</a>' : '<span class="muted">No MOA/MOU uploaded</span>' ?>
+	</div>
+</section>
+<?php endif; ?>
+
 <section class="card"><div class="section-head section-head-split"><div><h2>Deployed Students</h2><p class="muted">Students currently assigned to your company.</p></div><input class="table-search table-search-wide" placeholder="Search students..."></div><div class="table-wrap"><table class="data-table"><thead><tr><th data-sort>Name</th><th data-sort>Student No.</th><th>Course/Year</th><th>Schedule</th><th>Status</th><th>Details</th></tr></thead><tbody><?php foreach ($students as $s): ?><tr><td><?= e($s['student_name']) ?><br><small><?= e($s['student_email']) ?></small></td><td><?= e($s['student_no']) ?></td><td><?= e($s['course'] . ' ' . $s['year_level']) ?></td><td><?= e($s['start_date'] . ' to ' . $s['end_date']) ?></td><td><span class="badge <?= e($s['status']) ?>"><?= e($s['status']) ?></span></td><td><a class="btn btn-small" href="index.php?r=partner&enrollment=<?= (int)$s['id'] ?>">Open</a></td></tr><?php endforeach; ?></tbody></table></div><div class="pagination"></div></section>
 
 <?php if ($selected): ?>

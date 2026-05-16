@@ -9,6 +9,7 @@ $totalPrograms = count($programs);
 <form
     id="create-partner-form"
     method="post"
+    enctype="multipart/form-data"
     class="form js-validate"
     data-require-checkbox-group="program_ids[]"
     data-require-checkbox-message="Select at least one accepted program/course."
@@ -74,24 +75,22 @@ $totalPrograms = count($programs);
                     <p>Basic identity and contact details.</p>
                 </div>
                 <div class="partner-form-fields">
-                    <label>Company Name<input form="create-partner-form" required name="company_name"></label>
-                    <label>Name<input form="create-partner-form" required name="contact_person" autocomplete="name"></label>
-                    <label>Email Address<input form="create-partner-form" required type="email" name="contact_email"></label>
-                    <label>Contact Number<input form="create-partner-form" required name="contact_number" inputmode="numeric" autocomplete="tel-national" maxlength="16" data-phone-format="ph" pattern="\+63\s9\d{2}\s\d{3}\s\d{4}" title="Use format +63 951 192 5735"></label>
+                    <label><span>Company Name <span class="field-required">*</span></span><input form="create-partner-form" required name="company_name"></label>
+                    <label><span>Name <span class="field-required">*</span></span><input form="create-partner-form" required name="contact_person" autocomplete="name"></label>
+                    <label><span>Email Address <span class="field-required">*</span></span><input form="create-partner-form" required type="email" name="contact_email"></label>
+                    <label><span>Contact Number <span class="field-required">*</span></span><input form="create-partner-form" required name="contact_number" inputmode="numeric" autocomplete="tel-national" maxlength="16" data-phone-format="ph" pattern="\+63\s9\d{2}\s\d{3}\s\d{4}" title="Use format +63 951 192 5735"></label>
                 </div>
                 <label>
-                    Company Address
+                    <span>Company Address <span class="field-required">*</span></span>
                     <textarea form="create-partner-form" required name="address" maxlength="500"></textarea>
                 </label>
+                <p class="partner-credential-note" style="width: 100%; margin: 4px 0 0; color: #8B1A1A; text-align: center;">
+                    <strong style="display: block; color: #7e0000; text-align: center;">Auto credential delivery</strong>
+                    A temporary password is generated and emailed to the partner on creation.
+                </p>
             </div>
 
-            <div class="partner-credential-strip">
-                <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 1 5 5v1h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1V7a5 5 0 0 1 5-5Zm3 6V7a3 3 0 1 0-6 0v1h6Z"/></svg>
-                <div>
-                    <strong>Auto credential delivery</strong>
-                    <span>A temporary password is generated and emailed to the partner on creation.</span>
-                </div>
-            </div>
+
         </section>
 
         <section class="partner-directory-card">
@@ -122,6 +121,14 @@ $totalPrograms = count($programs);
                             <div class="partner-company-meta">
                                 <div><span>Email</span><strong><?= e($u['email']) ?></strong></div>
                                 <div><span>Phone</span><strong><?= e($u['contact_number'] ?: '—') ?></strong></div>
+                            </div>
+                            <div class="partner-company-doc-row">
+                                <span class="partner-company-doc-label">MOA/MOU</span>
+                                <?php if (!empty($u['moa_mou_file'])): ?>
+                                    <a class="btn btn-small partner-company-doc-btn" target="_blank" rel="noopener noreferrer" href="index.php?r=admin_partner_document&amp;company_id=<?= (int)$u['id'] ?>">View MOA/MOU</a>
+                                <?php else: ?>
+                                    <span class="muted">No MOA/MOU uploaded</span>
+                                <?php endif; ?>
                             </div>
                             <div class="partner-program-tags">
                                 <?php foreach (array_filter(array_map('trim', explode(',', (string)($u['accepted_programs'] ?? '')))) as $programCode): ?>
@@ -191,7 +198,7 @@ $totalPrograms = count($programs);
     <section class="partner-full-card">
         <div class="partner-full-head">
             <div>
-                <h2>Accepted Programs</h2>
+                <h2>Accepted Programs <span class="field-required">*</span></h2>
                 <p class="muted">Select which programs the new partner company can accept students from.</p>
             </div>
         </div>
@@ -217,6 +224,11 @@ $totalPrograms = count($programs);
         <?php endif; ?>
 
         <div class="partner-programs-footer">
+            <label class="partner-upload-field">
+                <span class="partner-upload-title">Upload MOA/MOU <span class="field-required">*</span></span>
+                <input form="create-partner-form" required type="file" name="moa_mou_file" accept=".pdf,.jpg,.jpeg,.png">
+                <small class="muted partner-upload-note">Required. PDF, JPG, or PNG up to 8MB.</small>
+            </label>
             <button form="create-partner-form" class="btn btn-primary" type="submit">
                 <span class="btn-text">Create Partner Company</span>
                 <span class="spinner"></span>

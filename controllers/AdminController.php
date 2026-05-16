@@ -44,6 +44,39 @@ class AdminController extends BaseController
         ]);
     }
 
+    public function viewPartnerDocument(): void
+    {
+        require_role('admin');
+
+        $companyId = (int)($_GET['company_id'] ?? 0);
+        $company = (new Company($this->db))->find($companyId);
+
+        if (!$company || empty($company['moa_mou_file'])) {
+            http_response_code(404);
+            exit('MOA/MOU file not found.');
+        }
+
+        $relativePath = ltrim((string)$company['moa_mou_file'], '/\\');
+        $absolutePath = realpath(__DIR__ . '/../' . $relativePath);
+        $uploadsRoot = realpath(__DIR__ . '/../uploads');
+
+        if (!$absolutePath || !$uploadsRoot || !str_starts_with($absolutePath, $uploadsRoot) || !is_file($absolutePath)) {
+            http_response_code(404);
+            exit('MOA/MOU file not found.');
+        }
+
+        $mime = mime_content_type($absolutePath) ?: 'application/octet-stream';
+        $fileName = basename($absolutePath);
+
+        header('Content-Type: ' . $mime);
+        header('Content-Length: ' . (string)filesize($absolutePath));
+        header('Content-Disposition: inline; filename="' . rawurlencode($fileName) . '"');
+        header('X-Content-Type-Options: nosniff');
+
+        readfile($absolutePath);
+        exit;
+    }
+
     public function managePrograms(): void
     {
         require_role('admin');
@@ -215,6 +248,7 @@ class AdminController extends BaseController
     {
         require_role('admin');
         $p = $this->post();
+        $moaMouFile = null;
         try {
             $password = random_password();
             $companyName = trim($p['company_name'] ?? '');
@@ -222,6 +256,8 @@ class AdminController extends BaseController
             $contactEmail = strtolower(trim($p['contact_email'] ?? ''));
             $address = trim($p['address'] ?? '');
             $programIds = array_values(array_unique(array_filter(array_map('intval', (array)($p['program_ids'] ?? [])))));
+            $companies = new Company($this->db);
+            $companies->ensureMoaMouSupport();
 
             if ($companyName === '' || $contactPerson === '' || $contactEmail === '' || $address === '' || trim((string)($p['contact_number'] ?? '')) === '') {
                 throw new RuntimeException('Fill in all required partner company details before creating the account.');
@@ -245,8 +281,12 @@ class AdminController extends BaseController
             if (!$programIds) {
                 throw new RuntimeException('Select at least one accepted program/course.');
             }
+            $moaMouFile = upload_document($_FILES['moa_mou_file'] ?? [], 'company_moa_mou', true);
+
+            $this->db->beginTransaction();
             $userId = (new User($this->db))->create($companyName, $contactEmail, $password, 'partner', current_user()['id'], 0);
-            (new Company($this->db))->create($userId, $companyName, $address, $contactPerson, $contactEmail, $contactNumber, $programIds);
+            $companies->create($userId, $companyName, $address, $contactPerson, $contactEmail, $contactNumber, $programIds, $moaMouFile);
+            $this->db->commit();
             (new Email($this->db))->send($contactEmail, 'Your AMA Practicum Partner Account', 'account_credentials', 'account_credentials', [
                 'name' => $contactPerson,
                 'email' => $contactEmail,
@@ -255,6 +295,12 @@ class AdminController extends BaseController
             ]);
             flash('success', 'Partner company account created and credentials email was processed.');
         } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            if ($moaMouFile && is_file(__DIR__ . '/../' . $moaMouFile)) {
+                @unlink(__DIR__ . '/../' . $moaMouFile);
+            }
             flash('error', $e->getMessage());
         }
         redirect('index.php?r=admin_partners');

@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initEmailLogViews();
     initRequirementReviewModals();
     initNotifications();
+    initMoaLibrary();
     initCoordinatorCardAlignment();
     document.querySelectorAll('.data-table').forEach(table => enhanceTable(table));
     document.querySelector('#modal .modal-close')?.addEventListener('click', closeSlidePanel);
@@ -23,6 +24,48 @@ document.addEventListener('DOMContentLoaded', () => {
     initStudentModal();
     renderDashboardCharts();
 });
+
+function initMoaLibrary() {
+    const library = document.querySelector('[data-cdoc-library]');
+    if (!library) return;
+
+    const searchInput = library.querySelector('[data-cdoc-search]');
+    const filters = Array.from(library.querySelectorAll('[data-cdoc-filter]'));
+    const cards = Array.from(library.querySelectorAll('[data-cdoc-card]'));
+    const count = library.querySelector('[data-cdoc-visible-count]');
+    const noResults = library.querySelector('[data-cdoc-no-results]');
+    let activeFilter = 'all';
+
+    const applyFilters = () => {
+        const query = (searchInput?.value || '').trim().toLowerCase();
+        let visible = 0;
+
+        cards.forEach(card => {
+            const status = card.dataset.status || '';
+            const searchable = card.dataset.search || '';
+            const matchesStatus = activeFilter === 'all' || status === activeFilter;
+            const matchesSearch = query === '' || searchable.includes(query);
+            const shouldShow = matchesStatus && matchesSearch;
+
+            card.hidden = !shouldShow;
+            if (shouldShow) visible += 1;
+        });
+
+        if (count) count.textContent = String(visible);
+        if (noResults) noResults.hidden = visible !== 0;
+    };
+
+    searchInput?.addEventListener('input', applyFilters);
+    filters.forEach(button => {
+        button.addEventListener('click', () => {
+            activeFilter = button.dataset.cdocFilter || 'all';
+            filters.forEach(item => item.classList.toggle('is-active', item === button));
+            applyFilters();
+        });
+    });
+
+    applyFilters();
+}
 
 function initCoordinatorCardAlignment() {
     const layout = document.querySelector('.coordinators-layout');
@@ -166,9 +209,11 @@ function initCustomDatePickers() {
         if (!isFormPicker && !panel) return;
 
         const initialDate = parseCustomDateValue(input.value);
+        const maxDate = parseCustomDateValue(picker.dataset.dateMax || '');
         const state = {
             selected: initialDate,
-            view: initialDate ? new Date(initialDate.getFullYear(), initialDate.getMonth(), 1) : new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+            view: initialDate ? new Date(initialDate.getFullYear(), initialDate.getMonth(), 1) : (maxDate ? new Date(maxDate.getFullYear(), maxDate.getMonth(), 1) : new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
+            max: maxDate || null,
         };
 
         const sync = () => {
@@ -258,12 +303,14 @@ function buildCustomDatePanel(state) {
         if (date.getMonth() !== state.view.getMonth()) classes.push('is-outside');
         if (isSameCustomDate(date, today)) classes.push('is-today');
         if (state.selected && isSameCustomDate(date, state.selected)) classes.push('is-selected');
+        const isDisabled = state.max && date > state.max;
+        if (isDisabled) classes.push('is-disabled');
 
         cells.push(`
             <button
                 class="${classes.join(' ')}"
                 type="button"
-                data-date-value="${formatCustomDateValue(date)}"
+                ${isDisabled ? 'disabled aria-disabled="true"' : `data-date-value="${formatCustomDateValue(date)}"`}
                 aria-pressed="${state.selected && isSameCustomDate(date, state.selected) ? 'true' : 'false'}"
             >${date.getDate()}</button>
         `);
@@ -280,7 +327,7 @@ function buildCustomDatePanel(state) {
             <div class="filter-date-grid">${cells.join('')}</div>
             <div class="filter-date-actions">
                 <button class="filter-date-action" type="button" data-date-action="clear">Clear</button>
-                <button class="filter-date-action" type="button" data-date-action="today">Today</button>
+                ${!state.max || today <= state.max ? `<button class="filter-date-action" type="button" data-date-action="today">Today</button>` : ''}
             </div>
         </div>
     `;
@@ -726,6 +773,8 @@ function initEnrollmentAutomation() {
         const form = studentSelect.closest('form');
         const companySelect = form?.querySelector('[name="company_id"]');
         const hoursInput = form?.querySelector('[name="required_hours"]');
+        const companyDocPreview = form?.querySelector('[data-company-doc-preview]');
+        const companyDocLink = form?.querySelector('[data-company-doc-link]');
         if (!form || !companySelect || !hoursInput) return;
         const sync = () => {
             const selected = studentSelect.selectedOptions[0];
@@ -742,9 +791,25 @@ function initEnrollmentAutomation() {
             if (companySelect.selectedOptions[0]?.disabled) companySelect.value = '';
             updateWizardSummary(form);
         };
+        const syncCompanyDocument = () => {
+            if (!companyDocPreview || !companyDocLink) return;
+            const selectedCompany = companySelect.selectedOptions[0];
+            const docUrl = selectedCompany?.dataset.moaMou || '';
+            if (docUrl) {
+                companyDocLink.href = docUrl;
+                companyDocPreview.hidden = false;
+            } else {
+                companyDocLink.href = '#';
+                companyDocPreview.hidden = true;
+            }
+        };
         studentSelect.addEventListener('change', sync);
-        companySelect.addEventListener('change', () => updateWizardSummary(form));
+        companySelect.addEventListener('change', () => {
+            updateWizardSummary(form);
+            syncCompanyDocument();
+        });
         sync();
+        syncCompanyDocument();
     });
 }
 
@@ -1526,6 +1591,17 @@ function initStudentModal() {
             corWrap.style.display = '';
         } else {
             corWrap.style.display = 'none';
+        }
+
+        const moaWrap = document.getElementById('sm-moa-wrap');
+        const moaLink = document.getElementById('sm-moa-link');
+        if (moaWrap && moaLink) {
+            if (d.moaMou && d.moaMou.trim() !== '') {
+                moaLink.href = d.moaMou;
+                moaWrap.style.display = '';
+            } else {
+                moaWrap.style.display = 'none';
+            }
         }
 
         // Edit email form

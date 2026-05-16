@@ -1,12 +1,33 @@
 <?php
 class Company
 {
+    private ?bool $moaMouSupportReady = null;
+
     public function __construct(private PDO $db) {}
 
-    public function create(int $userId, string $name, string $address, string $contactPerson, string $contactEmail, string $contactNumber = '', array $programIds = []): int
+    public function ensureMoaMouSupport(): void
     {
-        $stmt = $this->db->prepare('INSERT INTO partner_companies (user_id, name, address, contact_person, contact_email, contact_number) VALUES (?, ?, ?, ?, ?, ?)');
-        $stmt->execute([$userId, $name, $address, $contactPerson, strtolower(trim($contactEmail)), $contactNumber]);
+        if ($this->moaMouSupportReady === true) {
+            return;
+        }
+
+        $columnStmt = $this->db->prepare("SHOW COLUMNS FROM partner_companies LIKE 'moa_mou_file'");
+        $columnStmt->execute();
+        $hasColumn = (bool)$columnStmt->fetch();
+
+        if (!$hasColumn) {
+            $this->db->exec('ALTER TABLE partner_companies ADD COLUMN moa_mou_file VARCHAR(255) NULL AFTER contact_number');
+        }
+
+        $this->moaMouSupportReady = true;
+    }
+
+    public function create(int $userId, string $name, string $address, string $contactPerson, string $contactEmail, string $contactNumber = '', array $programIds = [], ?string $moaMouFile = null): int
+    {
+        $this->ensureMoaMouSupport();
+
+        $stmt = $this->db->prepare('INSERT INTO partner_companies (user_id, name, address, contact_person, contact_email, contact_number, moa_mou_file) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$userId, $name, $address, $contactPerson, strtolower(trim($contactEmail)), $contactNumber, $moaMouFile]);
         $companyId = (int)$this->db->lastInsertId();
         $this->syncPrograms($companyId, $programIds);
         return $companyId;
@@ -14,11 +35,13 @@ class Company
 
     public function all(): array
     {
+        $this->ensureMoaMouSupport();
         return $this->db->query('SELECT pc.*, u.id user_id_key, u.email, u.is_active, GROUP_CONCAT(p.code ORDER BY p.code SEPARATOR ", ") accepted_programs, GROUP_CONCAT(cp.program_id ORDER BY cp.program_id SEPARATOR ",") accepted_program_ids FROM partner_companies pc JOIN users u ON u.id = pc.user_id LEFT JOIN company_programs cp ON cp.company_id = pc.id LEFT JOIN programs p ON p.id = cp.program_id GROUP BY pc.id, u.id ORDER BY pc.name')->fetchAll();
     }
 
     public function find(int $id): ?array
     {
+        $this->ensureMoaMouSupport();
         $stmt = $this->db->prepare('SELECT pc.*, u.email user_email FROM partner_companies pc JOIN users u ON u.id = pc.user_id WHERE pc.id = ?');
         $stmt->execute([$id]);
         return $stmt->fetch() ?: null;
@@ -26,6 +49,7 @@ class Company
 
     public function findByUser(int $userId): ?array
     {
+        $this->ensureMoaMouSupport();
         $stmt = $this->db->prepare('SELECT * FROM partner_companies WHERE user_id = ? LIMIT 1');
         $stmt->execute([$userId]);
         return $stmt->fetch() ?: null;

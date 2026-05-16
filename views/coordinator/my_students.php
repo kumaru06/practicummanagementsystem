@@ -46,6 +46,7 @@
                             data-required="<?= number_format($required, 2) ?>"
                             data-percent="<?= $percent ?>"
                             data-cor="<?= e($s['cor_file'] ?? '') ?>"
+                            data-moa-mou="<?= e(!empty($s['company_moa_mou_file']) && !empty($s['company_id']) ? 'index.php?r=coordinator_partner_document&company_id=' . (int)$s['company_id'] : '') ?>"
                             data-student-id="<?= (int)$s['id'] ?>"
                             data-user-id="<?= (int)$s['user_id'] ?>"
                             data-csrf="<?= e(csrf_token()) ?>"
@@ -76,6 +77,9 @@
         </div>
         <div id="sm-cor-wrap" class="student-panel-actions" style="display:none">
             <a id="sm-cor-link" class="btn btn-small" target="_blank" href="#">View COR</a>
+        </div>
+        <div id="sm-moa-wrap" class="student-panel-actions" style="display:none">
+            <a id="sm-moa-link" class="btn btn-small" target="_blank" href="#">View MOA/MOU</a>
         </div>
         <details class="student-panel-reset">
             <summary>Edit Email</summary>
