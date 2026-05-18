@@ -51,6 +51,7 @@ function route_url(string $route, array $params = []): string
         'student.profile' => 'index.php?r=student_profile',
         'student.password.edit' => 'index.php?r=student_password',
         'partner.dashboard' => 'index.php?r=partner',
+        'partner.portal' => 'index.php?r=partner_portal',
     ];
     $url = $map[$route] ?? $route;
     if ($params) {

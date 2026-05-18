@@ -34,6 +34,7 @@ $pathRoutes = [
     'student/profile' => 'student_profile',
     'student/password' => 'student_password',
     'partner' => 'partner',
+    'partner/portal' => 'partner_portal',
 ];
 $route = $_GET['r'] ?? ($pathRoutes[$path] ?? current_user()['role']);
 $method = $_SERVER['REQUEST_METHOD'];
@@ -49,6 +50,28 @@ if (($_GET['action'] ?? '') === 'mark_all_notifications_read') {
     (new Notification(db()))->markAllRead((int)current_user()['id']);
     flash('success', 'Notifications marked as read.');
     redirect($_SERVER['HTTP_REFERER'] ?? 'index.php');
+}
+
+if (($_GET['action'] ?? '') === 'read_notification') {
+    $notificationId = (int)($_GET['id'] ?? 0);
+    $userId = (int)current_user()['id'];
+    $notificationModel = new Notification(db());
+    $notification = $notificationModel->findForUser($notificationId, $userId);
+    $notificationModel->markRead($notificationId, $userId);
+    $redirectTo = (string)($_GET['redirect'] ?? 'index.php');
+    if (preg_match('#^(?:[a-z][a-z0-9+.-]*:|//)#i', $redirectTo)) {
+        $redirectTo = 'index.php';
+    }
+    if ((current_user()['role'] ?? '') === 'coordinator' && str_contains($redirectTo, 'r=coordinator_students') && !str_contains($redirectTo, 'focus_student=')) {
+        $message = (string)($notification['message'] ?? '');
+        foreach ((new Student(db()))->allByCoordinator($userId) as $student) {
+            if (!empty($student['name']) && stripos($message, (string)$student['name']) !== false) {
+                $redirectTo = route_url('coordinator.students', ['focus_student' => (int)$student['id']]);
+                break;
+            }
+        }
+    }
+    redirect($redirectTo !== '' ? $redirectTo : 'index.php');
 }
 
 $freshUser = (new User(db()))->find((int)current_user()['id']);
@@ -95,6 +118,7 @@ if ($method === 'POST') {
         'student/profile' => 'student_save_profile',
         'student/change-password' => 'student_change_password',
         'student/requirements/upload' => 'student_upload_requirement',
+        'student/requirements/upload-bulk' => 'student_upload_requirements_bulk',
         'student/requirements/submit' => 'student_submit_requirements',
         'student/dtr' => 'student_add_dtr',
         'student/weekly-reports' => 'student_add_weekly',
@@ -131,6 +155,7 @@ if ($method === 'POST') {
         'student_change_password' => (new StudentController())->changePassword(),
         'student_save_profile' => (new StudentController())->saveProfile(),
         'student_upload_requirement' => (new StudentController())->uploadRequirement(),
+        'student_upload_requirements_bulk' => (new StudentController())->uploadRequirementsBulk(),
         'student_submit_requirements' => (new StudentController())->submitRequirements(),
         'coordinator_forward_deployment' => (new CoordinatorController())->forwardDeployment(),
         'partner_accept_deployment' => (new PartnerController())->acceptDeployment(),
@@ -169,5 +194,6 @@ match ($route) {
     'student_profile' => (new StudentController())->profileForm(),
     'student_password' => (new StudentController())->changePasswordForm(),
     'partner' => (new PartnerController())->dashboard(),
+    'partner_portal' => (new PartnerController())->portal(),
     default => redirect('index.php?r=' . current_user()['role']),
 };

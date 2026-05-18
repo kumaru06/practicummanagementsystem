@@ -260,11 +260,11 @@ class AdminController extends BaseController
             $companies->ensureMoaMouSupport();
 
             if ($companyName === '' || $contactPerson === '' || $contactEmail === '' || $address === '' || trim((string)($p['contact_number'] ?? '')) === '') {
-                throw new RuntimeException('Fill in all required partner company details before creating the account.');
+                throw new RuntimeException('Fill in all required Industry Partner details before creating the account.');
             }
 
             if (!filter_var($contactEmail, FILTER_VALIDATE_EMAIL)) {
-                throw new RuntimeException('Enter a valid partner email address.');
+                throw new RuntimeException('Enter a valid Industry Partner email address.');
             }
 
             $contactNumberDigits = preg_replace('/\D+/', '', (string)($p['contact_number'] ?? ''));
@@ -287,13 +287,13 @@ class AdminController extends BaseController
             $userId = (new User($this->db))->create($companyName, $contactEmail, $password, 'partner', current_user()['id'], 0);
             $companies->create($userId, $companyName, $address, $contactPerson, $contactEmail, $contactNumber, $programIds, $moaMouFile);
             $this->db->commit();
-            (new Email($this->db))->send($contactEmail, 'Your AMA Practicum Partner Account', 'account_credentials', 'account_credentials', [
+            (new Email($this->db))->send($contactEmail, 'Your AMA Practicum Industry Partner Account', 'account_credentials', 'account_credentials', [
                 'name' => $contactPerson,
                 'email' => $contactEmail,
                 'password' => $password,
                 'roleLabel' => 'Industry Partner',
             ]);
-            flash('success', 'Partner company account created and credentials email was processed.');
+            flash('success', 'Industry Partner account created and credentials email was processed.');
         } catch (Throwable $e) {
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();
@@ -315,7 +315,7 @@ class AdminController extends BaseController
             $programIds = array_values(array_unique(array_filter(array_map('intval', (array)($p['program_ids'] ?? [])))));
 
             if ($companyId <= 0) {
-                throw new RuntimeException('Invalid partner company selected.');
+                throw new RuntimeException('Invalid Industry Partner selected.');
             }
             if (!$programIds) {
                 throw new RuntimeException('Select at least one accepted program/course.');
@@ -324,11 +324,11 @@ class AdminController extends BaseController
             $companies = new Company($this->db);
             $company = $companies->find($companyId);
             if (!$company) {
-                throw new RuntimeException('Partner company not found.');
+                throw new RuntimeException('Industry Partner not found.');
             }
 
             $companies->syncPrograms($companyId, $programIds);
-            flash('success', 'Accepted programs updated for ' . ($company['name'] ?? 'partner company') . '.');
+            flash('success', 'Accepted programs updated for ' . ($company['name'] ?? 'Industry Partner') . '.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
@@ -377,17 +377,17 @@ class AdminController extends BaseController
         try {
             $company = (new Company($this->db))->find((int)$p['company_id']);
             if (!$company) {
-                throw new RuntimeException('Partner company not found.');
+                throw new RuntimeException('Industry Partner not found.');
             }
             $password = random_password();
             (new User($this->db))->updatePassword((int)$company['user_id'], $password, 0);
-            $sent = (new Email($this->db))->send($company['contact_email'], 'Your AMA Practicum Partner Account', 'account_credentials', 'account_credentials', [
+            $sent = (new Email($this->db))->send($company['contact_email'], 'Your AMA Practicum Industry Partner Account', 'account_credentials', 'account_credentials', [
                 'name' => $company['contact_person'],
                 'email' => $company['contact_email'],
                 'password' => $password,
                 'roleLabel' => 'Industry Partner',
             ]);
-            flash($sent ? 'success' : 'error', $sent ? 'Partner credentials were resent to ' . $company['contact_email'] . '.' : 'Credentials were reset, but the email failed. Check Email Logs.');
+            flash($sent ? 'success' : 'error', $sent ? 'Industry Partner credentials were resent to ' . $company['contact_email'] . '.' : 'Credentials were reset, but the email failed. Check Email Logs.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }

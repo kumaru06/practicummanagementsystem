@@ -31,106 +31,136 @@ $nextAction = match (true) {
 };
 ?>
 
-<section class="hero-banner compact student-hero">
-    <div>
-        <span class="eyebrow">Student Portal</span>
-        <h2>Welcome back, <?= e($user['name'] ?? 'Student') ?>.</h2>
-        <p class="muted">Track your OJT progress, deployment status, documents, and report submissions from one overview.</p>
-    </div>
-    <div class="hero-actions"><span class="hero-pill"><?= e($enrollment['company_name'] ?? 'Awaiting deployment') ?></span></div>
-</section>
-
-<section class="card dashboard-alert">
-    <div>
-        <span class="eyebrow">Next step</span>
-        <h2><?= e($nextAction['title']) ?></h2>
-        <p class="muted"><?= e($nextAction['message']) ?></p>
-    </div>
-    <a class="btn btn-primary" href="<?= e($nextAction['route']) ?>"><?= e($nextAction['label']) ?></a>
-</section>
-
-<div class="grid cards">
-    <div class="card metric"><svg viewBox="0 0 24 24"><path d="M3 5h18v14H3V5Zm2 2v10h14V7H5Z"/></svg><div><strong><?= e($enrollment['company_name'] ?? 'Not enrolled') ?></strong><span>Company</span></div></div>
-    <div class="card metric"><svg viewBox="0 0 24 24"><path d="M7 2h2v2h6V2h2v2h3v18H4V4h3V2Zm11 8H6v10h12V10Z"/></svg><div><strong><?= e(($officialStart ?: '-') . ' to ' . ($projectedEnd ?: '-')) ?></strong><span>Official Schedule</span></div></div>
-    <div class="card metric"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 5v5l4 2-.8 1.8L11 13V7h2Z"/></svg><div><strong><?= number_format($remaining, 2) ?></strong><span>Remaining Hours</span></div></div>
-</div>
-
-<section class="card progress-card ring-progress-card">
-    <div class="progress-ring-wrap">
-        <svg class="progress-ring" viewBox="0 0 120 120" aria-label="OJT progress">
-            <circle class="ring-bg" cx="60" cy="60" r="50"></circle>
-            <circle class="ring-value" cx="60" cy="60" r="50" style="stroke-dashoffset: <?= $ringOffset ?>"></circle>
-        </svg>
-        <div class="ring-label"><strong><?= $percent ?>%</strong><span>Complete</span></div>
-    </div>
-    <div>
-        <div class="section-head"><div><h2>OJT Progress Tracker</h2><p class="muted"><?= number_format($rendered, 2) ?> rendered hours out of <?= number_format($required, 2) ?> required hours</p></div><span class="badge <?= e($enrollment['status'] ?? 'pending') ?>"><?= e($enrollment['status'] ?? 'pending') ?></span></div>
-        <p class="muted">DTR and weekly submissions are handled on the Submit Record page after your partner company completes orientation.</p>
-    </div>
-</section>
-
-<div class="grid two">
-    <section class="card">
-        <div class="section-head"><div><h2>Pre-deployment Snapshot</h2><p class="muted">Requirement status migrated from the Laravel workflow.</p></div><span class="badge <?= e($predeployment) ?>"><?= e(str_replace('_', ' ', $predeployment)) ?></span></div>
-        <div class="progress-list">
-            <div><strong><?= $uploadedRequirements ?>/<?= $totalRequirements ?></strong><span>Uploaded requirements</span></div>
-            <div><strong><?= $approvedRequirements ?>/<?= $totalRequirements ?></strong><span>Approved requirements</span></div>
-            <div><strong><?= count($weeklyReports ?? []) ?></strong><span>Weekly reports submitted</span></div>
+<div class="student-dashboard-page">
+    <section class="student-dashboard-hero">
+        <div class="student-hero-copy">
+            <span class="student-hero-kicker">Student Portal</span>
+            <h2>Welcome back, <?= e($user['name'] ?? 'Student') ?>.</h2>
+            <p>Monitor your OJT progress, requirements, deployment, and reports from one focused dashboard.</p>
+            <div class="student-hero-actions">
+                <a class="btn btn-primary" href="<?= e($nextAction['route']) ?>"><?= e($nextAction['label']) ?></a>
+                <a class="btn btn-small student-ghost-btn" href="<?= e(route_url('student.timeline')) ?>">View Timeline</a>
+            </div>
         </div>
-        <a class="btn btn-small" href="<?= e(route_url('student.documents')) ?>">Manage Documents</a>
+        <aside class="student-hero-panel" aria-label="Deployment summary">
+            <span class="student-panel-label">Deployment Company</span>
+            <strong><?= e($enrollment['company_name'] ?? 'Awaiting deployment') ?></strong>
+            <div class="student-panel-meta">
+                <span><?= e($enrollment['status'] ?? 'pending') ?></span>
+                <span><?= number_format($remaining, 2) ?> hrs left</span>
+            </div>
+        </aside>
     </section>
-    <section class="card">
-        <div class="section-head"><div><h2>Quick Actions</h2><p class="muted">Use the dedicated pages for each task.</p></div></div>
-        <div class="quick-actions">
+
+    <section class="student-next-card">
+        <div class="student-next-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 5v5l4 2-.8 1.8L11 13V7h2Z"/></svg></div>
+        <div>
+            <span class="student-section-label">Recommended next step</span>
+            <h3><?= e($nextAction['title']) ?></h3>
+            <p><?= e($nextAction['message']) ?></p>
+        </div>
+        <a class="btn btn-primary" href="<?= e($nextAction['route']) ?>"><?= e($nextAction['label']) ?></a>
+    </section>
+
+    <div class="student-stat-grid">
+        <article class="student-stat-card">
+            <span class="student-stat-icon"><svg viewBox="0 0 24 24"><path d="M3 5h18v14H3V5Zm2 2v10h14V7H5Z"/></svg></span>
+            <div><span>Company</span><strong><?= e($enrollment['company_name'] ?? 'Not enrolled') ?></strong></div>
+        </article>
+        <article class="student-stat-card">
+            <span class="student-stat-icon"><svg viewBox="0 0 24 24"><path d="M7 2h2v2h6V2h2v2h3v18H4V4h3V2Zm11 8H6v10h12V10Z"/></svg></span>
+            <div><span>Official Schedule</span><strong><?= e(($officialStart ?: '-') . ' to ' . ($projectedEnd ?: '-')) ?></strong></div>
+        </article>
+        <article class="student-stat-card">
+            <span class="student-stat-icon"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 5v5l4 2-.8 1.8L11 13V7h2Z"/></svg></span>
+            <div><span>Remaining Hours</span><strong><?= number_format($remaining, 2) ?></strong></div>
+        </article>
+        <article class="student-stat-card">
+            <span class="student-stat-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4V6Zm0 5h16v2H4v-2Zm0 5h10v2H4v-2Z"/></svg></span>
+            <div><span>Submitted Records</span><strong><?= (int)$reportCount ?></strong></div>
+        </article>
+    </div>
+
+    <div class="student-dashboard-main">
+        <section class="student-progress-card">
+            <div class="progress-ring-wrap">
+                <svg class="progress-ring" viewBox="0 0 120 120" aria-label="OJT progress">
+                    <circle class="ring-bg" cx="60" cy="60" r="50"></circle>
+                    <circle class="ring-value" cx="60" cy="60" r="50" style="stroke-dashoffset: <?= $ringOffset ?>"></circle>
+                </svg>
+                <div class="ring-label"><strong><?= $percent ?>%</strong><span>Complete</span></div>
+            </div>
+            <div class="student-progress-copy">
+                <span class="student-section-label">OJT Progress</span>
+                <h3><?= number_format($rendered, 2) ?> / <?= number_format($required, 2) ?> hours rendered</h3>
+                <p>DTR and weekly submissions unlock after your Industry Partner completes orientation.</p>
+                <div class="student-progress-bar" aria-hidden="true"><span style="width: <?= $percent ?>%"></span></div>
+                <span class="badge <?= e($enrollment['status'] ?? 'pending') ?>"><?= e($enrollment['status'] ?? 'pending') ?></span>
+            </div>
+        </section>
+
+        <section class="student-requirement-card">
+            <div class="student-card-head">
+                <div>
+                    <span class="student-section-label">Pre-deployment</span>
+                    <h3>Requirements Snapshot</h3>
+                </div>
+                <span class="badge <?= e($predeployment) ?>"><?= e(str_replace('_', ' ', $predeployment)) ?></span>
+            </div>
+            <div class="student-check-list">
+                <div><span>Uploaded</span><strong><?= $uploadedRequirements ?>/<?= $totalRequirements ?></strong></div>
+                <div><span>Approved</span><strong><?= $approvedRequirements ?>/<?= $totalRequirements ?></strong></div>
+                <div><span>Weekly Reports</span><strong><?= count($weeklyReports ?? []) ?></strong></div>
+            </div>
+            <a class="btn btn-small" href="<?= e(route_url('student.documents')) ?>">Manage Documents</a>
+        </section>
+    </div>
+
+    <div class="student-status-grid">
+        <article class="student-status-card"><span>Profile</span><strong><?= $profileComplete ? 'Complete' : 'Incomplete' ?></strong></article>
+        <article class="student-status-card"><span>Approved Documents</span><strong><?= $approvedRequirements ?>/<?= $totalRequirements ?></strong></article>
+        <article class="student-status-card"><span>Deployment</span><strong><?= $deploymentComplete ? 'Started' : ucwords(str_replace('_', ' ', $predeployment)) ?></strong></article>
+        <article class="student-status-card"><span>Reports</span><strong><?= (int)$reportCount ?></strong></article>
+    </div>
+
+    <div class="student-info-grid">
+        <section class="student-mini-card">
+            <div class="student-card-head"><h3>Today’s DTR</h3><span><?= e(date('M d, Y')) ?></span></div>
+            <?php if ($todayDtr): ?>
+                <strong><?= e($todayDtr['time_in']) ?> - <?= e($todayDtr['time_out']) ?></strong>
+                <p><?= e($todayDtr['hours']) ?> hours · <?= e($todayDtr['tasks_done']) ?></p>
+            <?php else: ?>
+                <p><?= ($canSubmitReports ?? false) ? 'No DTR submitted for today yet.' : e($reportLockMessage ?? 'DTR is locked.') ?></p>
+            <?php endif; ?>
+        </section>
+        <section class="student-mini-card">
+            <div class="student-card-head"><h3>Latest Weekly Report</h3><span>Narrative PDF</span></div>
+            <?php if ($latestWeekly): ?>
+                <strong>Week <?= (int)$latestWeekly['week_no'] ?></strong>
+                <p><?= e($latestWeekly['report_text'] ?: 'PDF report submitted.') ?></p>
+                <?php if (!empty($latestWeekly['file_path'])): ?><a class="btn btn-small" target="_blank" href="<?= e($latestWeekly['file_path']) ?>">View PDF</a><?php endif; ?>
+            <?php else: ?>
+                <p>No weekly report submitted yet.</p>
+            <?php endif; ?>
+        </section>
+        <section class="student-mini-card student-actions-card">
+            <div class="student-card-head"><h3>Quick Actions</h3><span>Shortcuts</span></div>
             <a class="btn btn-small" href="<?= e(route_url('student.records')) ?>">Submit Record</a>
             <a class="btn btn-small" href="<?= e(route_url('student.timeline')) ?>">Activity Timeline</a>
             <a class="btn btn-small" href="<?= e(route_url('student.settings')) ?>">Settings</a>
+        </section>
+    </div>
+
+    <section class="student-activity-card">
+        <div class="student-card-head"><h3>Recent Activity</h3><span>Latest DTR entries</span></div>
+        <div class="timeline">
+            <?php if (empty($dtrs ?? [])): ?><p class="muted">No daily time records submitted yet.</p><?php endif; ?>
+            <?php foreach (array_slice($dtrs ?? [], 0, 4) as $d): ?>
+                <article class="timeline-item">
+                    <span class="timeline-dot"></span>
+                    <div class="timeline-card"><strong><?= e($d['work_date']) ?></strong><small><?= e($d['time_in']) ?> - <?= e($d['time_out']) ?> · <?= e($d['hours']) ?> hours</small><p><?= e($d['tasks_done']) ?></p></div>
+                </article>
+            <?php endforeach; ?>
         </div>
-        <?php if (!($canSubmitReports ?? false)): ?><p class="muted" style="margin-top:14px"><?= e($reportLockMessage ?? '') ?></p><?php endif; ?>
     </section>
 </div>
-
-<section class="card">
-    <div class="section-head"><div><h2>Progress Categories</h2><p class="muted">A quick Laravel-style snapshot of your practicum readiness.</p></div></div>
-    <div class="grid cards">
-        <div class="card metric"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg><div><strong><?= $profileComplete ? 'Complete' : 'Incomplete' ?></strong><span>Profile</span></div></div>
-        <div class="card metric"><svg viewBox="0 0 24 24"><path d="M7 2h10v20H7V2Zm2 4h6v2H9V6Zm0 4h6v2H9v-2Zm0 4h4v2H9v-2Z"/></svg><div><strong><?= $approvedRequirements ?>/<?= $totalRequirements ?></strong><span>Approved Documents</span></div></div>
-        <div class="card metric"><svg viewBox="0 0 24 24"><path d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg><div><strong><?= $deploymentComplete ? 'Started' : ucwords(str_replace('_', ' ', $predeployment)) ?></strong><span>Deployment</span></div></div>
-        <div class="card metric"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4V6Zm0 5h16v2H4v-2Zm0 5h10v2H4v-2Z"/></svg><div><strong><?= $reportCount ?></strong><span>Submitted Records</span></div></div>
-    </div>
-</section>
-
-<div class="grid two">
-    <section class="card">
-        <div class="section-head"><h2>Today’s DTR</h2><span class="muted"><?= e(date('M d, Y')) ?></span></div>
-        <?php if ($todayDtr): ?>
-            <p><strong><?= e($todayDtr['time_in']) ?> - <?= e($todayDtr['time_out']) ?></strong></p>
-            <p class="muted"><?= e($todayDtr['hours']) ?> hours · <?= e($todayDtr['tasks_done']) ?></p>
-        <?php else: ?>
-            <p class="muted"><?= ($canSubmitReports ?? false) ? 'No DTR submitted for today yet.' : e($reportLockMessage ?? 'DTR is locked.') ?></p>
-        <?php endif; ?>
-    </section>
-    <section class="card">
-        <div class="section-head"><h2>Latest Weekly Report</h2><span class="muted">Narrative PDF</span></div>
-        <?php if ($latestWeekly): ?>
-            <p><strong>Week <?= (int)$latestWeekly['week_no'] ?></strong></p>
-            <p class="muted"><?= e($latestWeekly['report_text'] ?: 'PDF report submitted.') ?></p>
-            <?php if (!empty($latestWeekly['file_path'])): ?><a class="btn btn-small" target="_blank" href="<?= e($latestWeekly['file_path']) ?>">View PDF</a><?php endif; ?>
-        <?php else: ?>
-            <p class="muted">No weekly report submitted yet.</p>
-        <?php endif; ?>
-    </section>
-</div>
-
-<section class="card">
-    <div class="section-head"><h2>Recent Activity</h2><span class="muted">Latest DTR entries</span></div>
-    <div class="timeline">
-        <?php if (empty($dtrs ?? [])): ?><p class="muted">No daily time records submitted yet.</p><?php endif; ?>
-        <?php foreach (array_slice($dtrs ?? [], 0, 4) as $d): ?>
-            <article class="timeline-item">
-                <span class="timeline-dot"></span>
-                <div class="timeline-card"><strong><?= e($d['work_date']) ?></strong><small><?= e($d['time_in']) ?> - <?= e($d['time_out']) ?> · <?= e($d['hours']) ?> hours</small><p><?= e($d['tasks_done']) ?></p></div>
-            </article>
-        <?php endforeach; ?>
-    </div>
-</section>

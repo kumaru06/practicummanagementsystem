@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260517-moa-library-ui">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260518-industry-partner-ui">
 </head>
 <body class="app-page role-<?= e($user['role'] ?? 'guest') ?>">
 <div class="app-shell">
@@ -24,7 +24,7 @@
             $currentRoute = $_GET['r'] ?? $homeRoute;
             $pageSubtitle = in_array($role, ['admin', 'coordinator'], true)
                 ? ''
-                : ucwords(str_replace('_', ' ', $role ?: 'dashboard'));
+                : ($role === 'partner' ? 'Industry Partner' : ucwords(str_replace('_', ' ', $role ?: 'dashboard')));
             ?>
             <a class="nav-link <?= in_array($currentRoute, ['admin', 'coordinator', 'student', 'partner'], true) ? 'active' : '' ?>" href="index.php?r=<?= e($homeRoute) ?>"><svg viewBox="0 0 24 24"><path d="M4 13h7V4H4v9Zm0 7h7v-5H4v5Zm9 0h7v-9h-7v9Zm0-16v5h7V4h-7Z"/></svg><span>Dashboard</span></a>
             <?php if ($role === 'admin'):
@@ -39,7 +39,7 @@
                 <div class="nav-group-items">
                     <a class="nav-link nav-sub <?= $currentRoute === 'admin_users' ? 'active' : '' ?>" href="index.php?r=admin_users"><svg viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 8-4v6h2V8L12 3Zm-6 9v4c2 3 10 3 12 0v-4l-6 3-6-3Z"/></svg><span>Manage Student</span></a>
                     <a class="nav-link nav-sub <?= $currentRoute === 'admin_coordinators' ? 'active' : '' ?>" href="index.php?r=admin_coordinators"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg><span>Manage Coordinators</span></a>
-                    <a class="nav-link nav-sub <?= $currentRoute === 'admin_partners' ? 'active' : '' ?>" href="index.php?r=admin_partners"><svg viewBox="0 0 24 24"><path d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg><span>Manage Companies</span></a>
+                    <a class="nav-link nav-sub <?= $currentRoute === 'admin_partners' ? 'active' : '' ?>" href="index.php?r=admin_partners"><svg viewBox="0 0 24 24"><path d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg><span>Manage Industry Partners</span></a>
                 </div>
             </div><?php endif; ?>
             <?php if ($role === 'admin'): ?><a class="nav-link <?= $currentRoute === 'admin_email_logs' ? 'active' : '' ?>" href="index.php?r=admin_email_logs"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2Zm0 4-8 5-8-5V6l8 5 8-5v2Z"/></svg><span>Email Logs</span></a><a class="nav-link <?= $currentRoute === 'admin_evaluations' ? 'active' : '' ?>" href="index.php?r=admin_evaluations"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z"/></svg><span>Evaluations</span></a><a class="nav-link <?= $currentRoute === 'admin_programs' ? 'active' : '' ?>" href="index.php?r=admin_programs"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4V5Zm2 2v10h12V7H6Zm2 2h8v2H8V9Zm0 4h6v2H8v-2Z"/></svg><span>Programs / Courses</span></a><?php endif; ?>
@@ -53,14 +53,14 @@
                 <a class="nav-link <?= $currentRoute === 'student_documents' ? 'active' : '' ?>" href="index.php?r=student_documents"><svg viewBox="0 0 24 24"><path d="M7 2h7l5 5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm7 1.5V8h4.5L14 3.5ZM9 12h6v2H9v-2Zm0 4h6v2H9v-2Z"/></svg><span>Documents</span></a>
                 <a class="nav-link <?= in_array($currentRoute, ['student_settings', 'student_password'], true) ? 'active' : '' ?>" href="index.php?r=student_settings"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.49.42l-.36 2.54c-.58.23-1.12.54-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.31 8.48a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.51.4 1.05.71 1.63.94l.36 2.54a.5.5 0 0 0 .49.42h3.8a.5.5 0 0 0 .49-.42l.36-2.54c.58-.23 1.12-.54 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z"/></svg><span>Settings</span></a>
             <?php endif; ?>
-            <?php if ($role === 'partner'): ?><a class="nav-link <?= $currentRoute === 'partner' ? 'active' : '' ?>" href="index.php?r=partner"><svg viewBox="0 0 24 24"><path d="M3 21V7l6-4 6 4v14h-4v-5H7v5H3Zm14 0V9h4v12h-4ZM7 9h4v2H7V9Zm0 4h4v2H7v-2Z"/></svg><span>Company Portal</span></a><?php endif; ?>
+            <?php if ($role === 'partner'): ?><a class="nav-link <?= $currentRoute === 'partner_portal' ? 'active' : '' ?>" href="index.php?r=partner_portal"><svg viewBox="0 0 24 24"><path d="M3 21V7l6-4 6 4v14h-4v-5H7v5H3Zm14 0V9h4v12h-4ZM7 9h4v2H7V9Zm0 4h4v2H7v-2Z"/></svg><span>Industry Partner Portal</span></a><?php endif; ?>
         </nav>
         <div class="sidebar-user">
             <div class="sidebar-user-info">
                 <span class="user-avatar"><?= e(strtoupper(substr($user['name'] ?? 'A', 0, 1))) ?></span>
                 <div>
                     <strong><?= e($user['name'] ?? '') ?></strong>
-                    <small><?= e(ucwords(str_replace('_', ' ', $user['role'] ?? ''))) ?></small>
+                    <small><?= e(($user['role'] ?? '') === 'partner' ? 'Industry Partner' : ucwords(str_replace('_', ' ', $user['role'] ?? ''))) ?></small>
                 </div>
             </div>
             <a class="nav-link sidebar-logout" href="logout.php">
@@ -102,7 +102,8 @@
                     <?php foreach ($notifications as $note): ?>
                         <?php $isUnread = (int)$note['is_read'] === 0; ?>
                         <?php $initials = strtoupper(substr(strip_tags($note['title']), 0, 1)); ?>
-                        <a class="notif-item<?= $isUnread ? ' is-unread' : '' ?>" href="<?= e($note['link'] ?: '#') ?>">
+                        <?php $noteLink = $note['link'] ?: 'index.php'; ?>
+                        <a class="notif-item<?= $isUnread ? ' is-unread' : '' ?>" href="<?= e(route_url('dashboard', ['action' => 'read_notification', 'id' => (int)$note['id'], 'redirect' => $noteLink])) ?>">
                             <div class="notif-avatar" aria-hidden="true"><?= e($initials) ?></div>
                             <div class="notif-body">
                                 <span class="notif-title"><?= e($note['title']) ?></span>

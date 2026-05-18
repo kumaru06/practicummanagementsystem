@@ -28,7 +28,7 @@ $totalPrograms = count($programs);
             </div>
             <div class="partner-stat-body">
                 <strong><?= (int)$totalPartners ?></strong>
-                <span>Total Partners</span>
+                <span>Industry Partners</span>
             </div>
         </div>
         <div class="partner-stat-card">
@@ -60,12 +60,12 @@ $totalPrograms = count($programs);
         </div>
     </div>
 
-    <!-- ② 2-Col: Add Partner (left) | Partner Directory (right) -->
+    <!-- ② 2-Col: Add Industry Partner (left) | Industry Partner Directory (right) -->
     <div class="partner-admin-layout">
 
         <section class="partner-form-card">
             <div class="partner-form-head">
-                <h2>Add Partner Company</h2>
+                <h2>Add Industry Partner</h2>
                 <p>Fill in the company details below. Choose accepted programs in the section below.</p>
             </div>
 
@@ -86,7 +86,7 @@ $totalPrograms = count($programs);
                 </label>
                 <p class="partner-credential-note" style="width: 100%; margin: 4px 0 0; color: #8B1A1A; text-align: center;">
                     <strong style="display: block; color: #7e0000; text-align: center;">Auto credential delivery</strong>
-                    A temporary password is generated and emailed to the partner on creation.
+                    A temporary password is generated and emailed to the Industry Partner on creation.
                 </p>
             </div>
 
@@ -96,8 +96,8 @@ $totalPrograms = count($programs);
         <section class="partner-directory-card">
             <div class="partner-directory-head">
                 <div>
-                    <h2>Partner Directory</h2>
-                    <p>All registered partner companies and their details.</p>
+                    <h2>Industry Partner Directory</h2>
+                    <p>All registered Industry Partners and their details.</p>
                 </div>
                 <span class="partner-count-pill"><?= (int)$totalPartners ?> listed</span>
             </div>
@@ -186,8 +186,8 @@ $totalPrograms = count($programs);
                 </div>
             <?php else: ?>
                 <div class="partner-empty-state">
-                    <strong>No partner companies yet.</strong>
-                    <span>Use the form on the left to add your first partner.</span>
+                    <strong>No Industry Partners yet.</strong>
+                    <span>Use the form on the left to add your first Industry Partner.</span>
                 </div>
             <?php endif; ?>
         </section>
@@ -199,14 +199,14 @@ $totalPrograms = count($programs);
         <div class="partner-full-head">
             <div>
                 <h2>Accepted Programs <span class="field-required">*</span></h2>
-                <p class="muted">Select which programs the new partner company can accept students from.</p>
+                <p class="muted">Select which programs the new Industry Partner can accept students from.</p>
             </div>
         </div>
 
         <?php if (empty($programs)): ?>
             <div class="partner-empty-state">
                 <strong>No programs available yet.</strong>
-                <span>Create programs first in Programs / Courses before adding partners.</span>
+                <span>Create programs first in Programs / Courses before adding Industry Partners.</span>
             </div>
         <?php else: ?>
             <div class="partner-programs-grid">
@@ -230,7 +230,7 @@ $totalPrograms = count($programs);
                 <small class="muted partner-upload-note">Required. PDF, JPG, or PNG up to 8MB.</small>
             </label>
             <button form="create-partner-form" class="btn btn-primary" type="submit">
-                <span class="btn-text">Create Partner Company</span>
+                <span class="btn-text">Create Industry Partner</span>
                 <span class="spinner"></span>
             </button>
         </div>

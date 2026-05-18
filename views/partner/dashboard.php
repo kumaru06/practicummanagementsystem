@@ -1,83 +1,58 @@
-<?php if ($company): ?>
-<section class="card">
-	<div class="section-head section-head-split">
-		<div><h2><?= e($company['name']) ?></h2><p class="muted">Partner company profile and agreement file.</p></div>
-		<?= !empty($company['moa_mou_file']) ? '<a class="btn btn-small" target="_blank" href="' . e(asset($company['moa_mou_file'])) . '">View MOA/MOU</a>' : '<span class="muted">No MOA/MOU uploaded</span>' ?>
-	</div>
-</section>
-<?php endif; ?>
+<?php
+$stats = $stats ?? ['total' => 0, 'pending' => 0, 'active' => 0, 'orientation' => 0, 'completed' => 0];
+$recentStudents = array_slice($students ?? [], 0, 5);
+?>
+<div class="industry-dashboard">
+    <section class="card ip-dashboard-hero">
+        <div>
+            <span class="eyebrow">Industry Partner Workspace</span>
+            <h2><?= e($company['name'] ?? 'Industry Partner') ?></h2>
+            <p class="muted">A professional overview of assigned OJT students, orientation progress, and evaluation work.</p>
+        </div>
+        <a class="btn btn-primary" href="<?= e(route_url('partner.portal')) ?>">Open Industry Partner Portal</a>
+    </section>
 
-<section class="card"><div class="section-head section-head-split"><div><h2>Deployed Students</h2><p class="muted">Students currently assigned to your company.</p></div><input class="table-search table-search-wide" placeholder="Search students..."></div><div class="table-wrap"><table class="data-table"><thead><tr><th data-sort>Name</th><th data-sort>Student No.</th><th>Course/Year</th><th>Schedule</th><th>Status</th><th>Details</th></tr></thead><tbody><?php foreach ($students as $s): ?><tr><td><?= e($s['student_name']) ?><br><small><?= e($s['student_email']) ?></small></td><td><?= e($s['student_no']) ?></td><td><?= e($s['course'] . ' ' . $s['year_level']) ?></td><td><?= e($s['start_date'] . ' to ' . $s['end_date']) ?></td><td><span class="badge <?= e($s['status']) ?>"><?= e($s['status']) ?></span></td><td><a class="btn btn-small" href="index.php?r=partner&enrollment=<?= (int)$s['id'] ?>">Open</a></td></tr><?php endforeach; ?></tbody></table></div><div class="pagination"></div></section>
+    <section class="ip-kpi-grid">
+        <article class="card ip-kpi-card"><span>Total Students</span><strong><?= (int)$stats['total'] ?></strong><small class="muted">Assigned to your organization</small></article>
+        <article class="card ip-kpi-card"><span>Pending</span><strong><?= (int)$stats['pending'] ?></strong><small class="muted">Awaiting next action</small></article>
+        <article class="card ip-kpi-card"><span>Orientation</span><strong><?= (int)$stats['orientation'] ?></strong><small class="muted">Accepted or scheduled</small></article>
+        <article class="card ip-kpi-card"><span>Active OJT</span><strong><?= (int)$stats['active'] ?></strong><small class="muted">Currently rendering hours</small></article>
+    </section>
 
-<?php if ($selected): ?>
-<div class="grid two">
-	<section class="card">
-		<div class="section-head"><h2><?= e($selected['student_name']) ?> - Forwarded Documents</h2><span class="badge <?= e($selected['predeployment_status']) ?>"><?= e(str_replace('_', ' ', $selected['predeployment_status'])) ?></span></div>
-		<p><strong>Endorsement Letter:</strong> <?= $selected['endorsement_file'] ? '<a class="btn btn-small" target="_blank" href="' . e($selected['endorsement_file']) . '">View</a>' : '<span class="muted">Not yet forwarded</span>' ?></p>
-		<div class="table-wrap"><table class="data-table"><thead><tr><th>Requirement</th><th>File</th></tr></thead><tbody>
-			<?php foreach ($requirements as $req): ?><tr><td><?= e($req['requirement_name']) ?></td><td><?= !empty($req['file_path']) ? '<a class="btn btn-small" target="_blank" href="' . e($req['file_path']) . '">View</a>' : '-' ?></td></tr><?php endforeach; ?>
-		</tbody></table></div>
-		<?php if ($selected['predeployment_status'] === 'forwarded'): ?>
-			<form method="post" style="margin-top:14px">
-				<input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-				<input type="hidden" name="action" value="partner_accept_deployment">
-				<input type="hidden" name="enrollment_id" value="<?= (int)$selected['id'] ?>">
-				<button class="btn btn-primary" type="submit">Accept Deployment</button>
-			</form>
-		<?php endif; ?>
-	</section>
-	<section class="card">
-		<h2>Orientation & OJT Start</h2>
-		<?php if (in_array($selected['predeployment_status'], ['accepted','orientation_scheduled'], true)): ?>
-			<form method="post" class="form js-validate" style="margin-bottom:18px">
-				<input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-				<input type="hidden" name="action" value="partner_send_orientation_email">
-				<input type="hidden" name="enrollment_id" value="<?= (int)$selected['id'] ?>">
-				<label class="no-floating-label">Orientation Email / Instructions<textarea required name="orientation_notes" placeholder="Send orientation instructions without setting a system date/time yet."></textarea></label>
-				<button class="btn btn-small" type="submit">Send Orientation Email Only</button>
-			</form>
-			<form method="post" class="form js-validate">
-				<input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-				<input type="hidden" name="action" value="partner_schedule_orientation">
-				<input type="hidden" name="enrollment_id" value="<?= (int)$selected['id'] ?>">
-				<label>Orientation Date/Time<input required type="datetime-local" name="orientation_datetime" value="<?= e($selected['orientation_datetime'] ? str_replace(' ', 'T', substr($selected['orientation_datetime'], 0, 16)) : '') ?>"></label>
-				<label>Notes<textarea name="orientation_notes"><?= e($selected['orientation_notes'] ?? '') ?></textarea></label>
-				<button class="btn btn-primary" type="submit">Schedule Orientation</button>
-			</form>
-		<?php endif; ?>
-		<?php if ($selected['predeployment_status'] === 'orientation_scheduled'): ?>
-			<form method="post" class="form js-validate" style="margin-top:18px">
-				<input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-				<input type="hidden" name="action" value="partner_complete_orientation">
-				<input type="hidden" name="enrollment_id" value="<?= (int)$selected['id'] ?>">
-				<label>Official OJT Start Date
-					<span class="filter-date-picker form-date-picker is-placeholder" data-date-required="1">
-						<input type="hidden" name="official_start_date" value="">
-						<button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select OJT start date">
-							<span class="filter-date-value">mm/dd/yyyy</span>
-							<span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span>
-						</button>
-						<div class="filter-date-panel" hidden></div>
-					</span>
-				</label>
-				<label>Projected End Date
-					<span class="filter-date-picker form-date-picker is-placeholder">
-						<input type="hidden" name="projected_end_date" value="">
-						<button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select projected end date">
-							<span class="filter-date-value">mm/dd/yyyy</span>
-							<span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span>
-						</button>
-						<div class="filter-date-panel" hidden></div>
-					</span>
-					<small class="muted">Leave blank to calculate automatically from <?= (int)$selected['required_hours'] ?> required hours at 8 hours/day, weekdays only.</small>
-				</label>
-				<button class="btn btn-primary" type="submit">Mark Orientation Completed</button>
-			</form>
-		<?php endif; ?>
-		<?php if ($selected['predeployment_status'] === 'orientation_completed'): ?>
-			<p class="muted">OJT officially started on <?= e($selected['official_start_date']) ?>. Projected end date: <?= e($selected['projected_end_date']) ?>.</p>
-		<?php endif; ?>
-	</section>
+    <div class="grid two ip-dashboard-grid">
+        <section class="card">
+            <div class="section-head section-head-split">
+                <div>
+                    <h2>Recent Assigned Students</h2>
+                    <p class="muted">Quick access to student records in the portal.</p>
+                </div>
+                <a class="btn btn-small" href="<?= e(route_url('partner.portal')) ?>">View All</a>
+            </div>
+            <div class="ip-student-list">
+                <?php if (empty($recentStudents)): ?>
+                    <p class="muted">No students assigned yet.</p>
+                <?php endif; ?>
+                <?php foreach ($recentStudents as $student): ?>
+                    <a class="ip-student-row" href="<?= e(route_url('partner.portal', ['enrollment' => (int)$student['id']])) ?>#student-workspace">
+                        <span class="user-avatar"><?= e(strtoupper(substr($student['student_name'] ?? 'S', 0, 1))) ?></span>
+                        <span><strong><?= e($student['student_name']) ?></strong><small><?= e($student['course'] . ' ' . $student['year_level']) ?></small></span>
+                        <em class="badge <?= e($student['status'] ?? 'pending') ?>"><?= e($student['status'] ?? 'pending') ?></em>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </section>
+
+        <section class="card ip-guide-card">
+            <div class="section-head">
+                <h2>Portal Workflow</h2>
+                <p class="muted">Use the Industry Partner Portal for daily operational tasks.</p>
+            </div>
+            <ol class="ip-workflow-list">
+                <li><strong>Review forwarded documents</strong><span>Open each student and verify their endorsement and requirements.</span></li>
+                <li><strong>Send orientation instructions</strong><span>Email instructions first if the schedule is not finalized.</span></li>
+                <li><strong>Schedule orientation</strong><span>Orientation date/time and notes are required before saving.</span></li>
+                <li><strong>Complete OJT start and evaluation</strong><span>Set official dates, then submit the final evaluation when OJT ends.</span></li>
+            </ol>
+        </section>
+    </div>
 </div>
-<div class="grid two"><section class="card"><h2><?= e($selected['student_name']) ?> - Time Records</h2><div class="table-wrap"><table class="data-table"><thead><tr><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Tasks</th></tr></thead><tbody><?php foreach ($dtrs as $d): ?><tr><td><?= e($d['work_date']) ?></td><td><?= e($d['time_in']) ?></td><td><?= e($d['time_out']) ?></td><td><?= e($d['hours']) ?></td><td><?= e($d['tasks_done']) ?></td></tr><?php endforeach; ?></tbody></table></div></section><section class="card"><h2>Final Evaluation</h2><form method="post" class="form js-validate"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="partner_submit_evaluation"><input type="hidden" name="enrollment_id" value="<?= (int)$selected['id'] ?>"><label>Rating (1-5)<input required type="number" min="1" max="5" name="rating" value="<?= e($evaluation['rating'] ?? '') ?>"></label><label>Comments<textarea required name="comments"><?= e($evaluation['comments'] ?? '') ?></textarea></label><button class="btn btn-primary" type="submit"><span class="btn-text">Submit Evaluation</span><span class="spinner"></span></button></form></section></div>
-<?php endif; ?>

@@ -50,7 +50,7 @@ $termFormatPattern = '\d{4} \((1st|2nd|3rd) Tri\) - SY \d{4}-\d{4}';
                 </div>
                 <div>
                     <h2>Add Program / Course</h2>
-                    <p>Programs must be prepared first before partner companies can choose them.</p>
+                    <p>Programs must be prepared first before Industry Partners can choose them.</p>
                 </div>
             </div>
             <form method="post" class="form js-validate programs-form">

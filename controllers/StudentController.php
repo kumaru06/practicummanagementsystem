@@ -75,7 +75,7 @@ class StudentController extends BaseController
             redirect('index.php');
         }
         try {
-            foreach (['address', 'contact_number', 'emergency_contact_name', 'emergency_contact_number', 'guardian_name', 'guardian_contact', 'year_level', 'section'] as $field) {
+            foreach (['address', 'contact_number', 'emergency_contact_name', 'emergency_contact_number', 'year_level', 'section'] as $field) {
                 if (trim((string)($p[$field] ?? '')) === '') {
                     throw new RuntimeException('Please complete all required profile fields.');
                 }
@@ -118,6 +118,56 @@ class StudentController extends BaseController
             $path = upload_document($_FILES['requirement_file'] ?? [], 'requirements/' . (int)$student['id']);
             $studentModel->saveRequirement((int)$student['id'], $requirementKey, $path);
             flash('success', 'Requirement uploaded.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+        redirect('index.php?r=student_documents');
+    }
+
+    public function uploadRequirementsBulk(): void
+    {
+        require_role('student');
+        $this->post();
+        $student = (new Student($this->db))->findByUser(current_user()['id']);
+        if (!$student) {
+            flash('error', 'Student record not found.');
+            redirect('index.php?r=student');
+        }
+        try {
+            if (!(new Enrollment($this->db))->detailsByStudent((int)$student['id'])) {
+                throw new RuntimeException('You must be enrolled in OJT before uploading pre-deployment requirements.');
+            }
+
+            $studentModel = new Student($this->db);
+            $selectedFiles = [];
+            foreach ($studentModel->requirementDefinitions() as $requirementKey => $definition) {
+                $file = $_FILES['requirements']['name'][$requirementKey] ?? '';
+                if ($file === '') {
+                    continue;
+                }
+                if (!$studentModel->canUploadRequirement((int)$student['id'], (string)$requirementKey)) {
+                    throw new RuntimeException($definition['name'] . ': ' . $studentModel->requirementUploadMessage((int)$student['id'], (string)$requirementKey) . '.');
+                }
+                $selectedFiles[$requirementKey] = [
+                    'name' => $_FILES['requirements']['name'][$requirementKey] ?? '',
+                    'type' => $_FILES['requirements']['type'][$requirementKey] ?? '',
+                    'tmp_name' => $_FILES['requirements']['tmp_name'][$requirementKey] ?? '',
+                    'error' => $_FILES['requirements']['error'][$requirementKey] ?? UPLOAD_ERR_NO_FILE,
+                    'size' => $_FILES['requirements']['size'][$requirementKey] ?? 0,
+                ];
+            }
+
+            if (empty($selectedFiles)) {
+                throw new RuntimeException('Choose at least one requirement file to upload.');
+            }
+
+            $uploadedCount = 0;
+            foreach ($selectedFiles as $requirementKey => $singleFile) {
+                $path = upload_document($singleFile, 'requirements/' . (int)$student['id']);
+                $studentModel->saveRequirement((int)$student['id'], (string)$requirementKey, $path);
+                $uploadedCount++;
+            }
+            flash('success', $uploadedCount . ' requirement file' . ($uploadedCount === 1 ? '' : 's') . ' uploaded.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
@@ -184,6 +234,9 @@ class StudentController extends BaseController
         try {
             (new Report($this->db))->addDtr((int)$student['id'], $p['work_date'], $p['time_in'], $p['time_out'], trim($p['tasks_done']));
             $enrollments->syncCompletion((int)$student['id']);
+            if (!empty($student['coordinator_id'])) {
+                (new Notification($this->db))->create((int)$student['coordinator_id'], 'DTR submitted', $student['name'] . ' submitted a daily time record for ' . date('M d, Y', strtotime((string)$p['work_date'])) . '.', route_url('coordinator.students'));
+            }
             flash('success', 'Daily time record submitted.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
@@ -209,6 +262,9 @@ class StudentController extends BaseController
         try {
             $path = $this->uploadReport($_FILES['report_file'] ?? []);
             (new Report($this->db))->addWeekly((int)$student['id'], (int)$p['week_no'], trim($p['report_text'] ?? ''), $path);
+            if (!empty($student['coordinator_id'])) {
+                (new Notification($this->db))->create((int)$student['coordinator_id'], 'Weekly report submitted', $student['name'] . ' submitted weekly report #' . (int)$p['week_no'] . '.', route_url('coordinator.students'));
+            }
             flash('success', 'Weekly report submitted.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());

@@ -65,7 +65,7 @@ class CoordinatorController extends BaseController
         ));
 
         $this->render('coordinator/moa_mou', [
-            'title' => 'Partner MOA/MOU',
+            'title' => 'Industry Partner MOA/MOU',
             'companies' => $companies,
         ]);
     }
@@ -172,7 +172,7 @@ class CoordinatorController extends BaseController
                 throw new RuntimeException('Student has no valid program/course assigned.');
             }
             if (!(new Company($this->db))->acceptsProgram($companyId, (int)$program['id'])) {
-                throw new RuntimeException('Selected partner company does not accept the student\'s program/course.');
+                throw new RuntimeException('Selected Industry Partner does not accept the student\'s program/course.');
             }
             $requiredHours = (int)$program['required_hours'];
             (new Enrollment($this->db))->create($studentId, $companyId, null, null, $requiredHours, trim($p['academic_term'] ?? ''), $p['term_start_date'] ?? '', $p['term_end_date'] ?? '');
@@ -190,7 +190,8 @@ class CoordinatorController extends BaseController
                 'password' => $tempPassword,
                 'coordinator' => current_user(),
             ]);
-            flash('success', 'Student enrolled and credentials email was processed. Partner deployment email will be sent after approved documents are forwarded.');
+            (new Notification($this->db))->create((int)$student['user_id'], 'OJT enrollment created', 'You have been enrolled for OJT deployment at ' . ($company['name'] ?? 'your Industry Partner') . '.', route_url('student.documents'));
+            flash('success', 'Student enrolled and credentials email was processed. Industry Partner deployment email will be sent after approved documents are forwarded.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
@@ -246,7 +247,7 @@ class CoordinatorController extends BaseController
             }
             $company = (new Company($this->db))->find((int)$enrollment['company_id']);
             if (!$company) {
-                throw new RuntimeException('Partner company not found.');
+                throw new RuntimeException('Industry Partner not found.');
             }
             $endorsement = !empty($_FILES['endorsement_file']['name'])
                 ? upload_document($_FILES['endorsement_file'] ?? [], 'endorsements')
@@ -264,9 +265,9 @@ class CoordinatorController extends BaseController
                     'requiredHours' => (int)$enrollment['required_hours'],
                     'coordinator' => current_user(),
                 ], $attachments);
-                (new Notification($this->db))->create((int)$company['user_id'], 'Student deployment forwarded', $student['name'] . ' has been forwarded to your company for review.', route_url('partner.dashboard', ['enrollment' => (int)$enrollment['id']]));
+                (new Notification($this->db))->create((int)$company['user_id'], 'Student deployment forwarded', $student['name'] . ' has been forwarded to your Industry Partner Portal for review.', route_url('partner.portal', ['enrollment' => (int)$enrollment['id']]));
             }
-            flash('success', 'Documents approved and forwarded to partner company.');
+            flash('success', 'Documents approved and forwarded to the Industry Partner.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }

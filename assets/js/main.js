@@ -1553,6 +1553,19 @@ function initStudentModal() {
     const modal = document.getElementById('studentModal');
     if (!modal) return;
 
+    const formatDateTime = value => {
+        if (!value) return '—';
+        const normalized = String(value).replace(' ', 'T');
+        const date = new Date(normalized);
+        return Number.isNaN(date.getTime()) ? value : date.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    };
+
+    const formatDate = value => {
+        if (!value) return '—';
+        const date = new Date(`${value}T00:00:00`);
+        return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    };
+
     // Close handlers
     document.getElementById('studentModalClose')?.addEventListener('click', closeStudentModal);
     modal.addEventListener('click', e => { if (e.target === modal) closeStudentModal(); });
@@ -1574,6 +1587,11 @@ function initStudentModal() {
         document.getElementById('sm-birthdate').textContent   = bdRaw ? new Date(bdRaw + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
         document.getElementById('sm-company').textContent     = d.company || '';
         document.getElementById('sm-progress').textContent    = `${d.rendered} / ${d.required} hrs (${d.percent}%)`;
+        document.getElementById('sm-predeployment').textContent = d.predeploymentStatus || '—';
+        document.getElementById('sm-orientation-datetime').textContent = formatDateTime(d.orientationDatetime || '');
+        document.getElementById('sm-official-start').textContent = formatDate(d.officialStartDate || '');
+        document.getElementById('sm-projected-end').textContent = formatDate(d.projectedEndDate || '');
+        document.getElementById('sm-orientation-notes').textContent = d.orientationNotes || 'No orientation instructions recorded yet.';
 
         // Status badge
         const statusEl = document.getElementById('sm-status');
@@ -1615,4 +1633,15 @@ function initStudentModal() {
 
         modal.classList.add('open');
     });
+
+    const params = new URLSearchParams(window.location.search);
+    const focusStudent = params.get('focus_student');
+    if (focusStudent) {
+        const escapedFocusStudent = window.CSS?.escape ? CSS.escape(focusStudent) : focusStudent.replace(/"/g, '\\"');
+        const targetButton = document.querySelector(`.student-view-btn[data-student-id="${escapedFocusStudent}"]`);
+        if (targetButton) {
+            targetButton.closest('tr')?.classList.add('is-selected-row');
+            setTimeout(() => targetButton.click(), 120);
+        }
+    }
 }

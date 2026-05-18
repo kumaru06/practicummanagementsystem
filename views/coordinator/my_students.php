@@ -42,6 +42,11 @@
                             data-birthdate="<?= e($s['birthdate'] ?? '') ?>"
                             data-company="<?= e($s['company_name'] ?? '-') ?>"
                             data-status="<?= e($s['deployment_status'] ?? 'pending') ?>"
+                            data-predeployment-status="<?= e(str_replace('_', ' ', $s['predeployment_status'] ?? 'not_submitted')) ?>"
+                            data-orientation-datetime="<?= e($s['orientation_datetime'] ?? '') ?>"
+                            data-orientation-notes="<?= e($s['orientation_notes'] ?? '') ?>"
+                            data-official-start-date="<?= e($s['official_start_date'] ?? '') ?>"
+                            data-projected-end-date="<?= e($s['projected_end_date'] ?? '') ?>"
                             data-rendered="<?= number_format($rendered, 2) ?>"
                             data-required="<?= number_format($required, 2) ?>"
                             data-percent="<?= $percent ?>"
@@ -74,6 +79,11 @@
             <div class="student-panel-item"><span class="sm-label">Company</span><strong id="sm-company"></strong></div>
             <div class="student-panel-item"><span class="sm-label">Status</span><div id="sm-status"></div></div>
             <div class="student-panel-item student-panel-item-wide"><span class="sm-label">OJT Progress</span><strong id="sm-progress"></strong></div>
+            <div class="student-panel-item"><span class="sm-label">Pre-Deployment</span><strong id="sm-predeployment"></strong></div>
+            <div class="student-panel-item"><span class="sm-label">Orientation Date/Time</span><strong id="sm-orientation-datetime"></strong></div>
+            <div class="student-panel-item"><span class="sm-label">Official OJT Start</span><strong id="sm-official-start"></strong></div>
+            <div class="student-panel-item"><span class="sm-label">Projected End</span><strong id="sm-projected-end"></strong></div>
+            <div class="student-panel-item student-panel-item-wide"><span class="sm-label">Orientation Instructions / Notes</span><strong id="sm-orientation-notes"></strong></div>
         </div>
         <div id="sm-cor-wrap" class="student-panel-actions" style="display:none">
             <a id="sm-cor-link" class="btn btn-small" target="_blank" href="#">View COR</a>
@@ -164,7 +174,7 @@
                         <div class="requirement-forward-box">
                             <div>
                                 <strong>Ready to forward deployment</strong>
-                                <small>Attach the endorsement letter and send the approved documents to the partner.</small>
+                                <small>Attach the endorsement letter and send the approved documents to the Industry Partner.</small>
                             </div>
                             <form method="post" enctype="multipart/form-data" class="form requirement-forward-form">
                                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">

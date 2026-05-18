@@ -55,7 +55,7 @@ class AuthController extends BaseController
             'student' => ['label' => 'Student Login Portal', 'route' => route_url('student.login')],
             'admin' => ['label' => 'Admin Login Portal', 'route' => route_url('admin.login')],
             'coordinator' => ['label' => 'OJT Coordinator Login Portal', 'route' => route_url('coordinator.login')],
-            'partner' => ['label' => 'Partner Company Login Portal', 'route' => route_url('partner.login')],
+            'partner' => ['label' => 'Industry Partner Login Portal', 'route' => route_url('partner.login')],
         ];
         $visible = array_filter($all, static fn ($key) => $key !== 'admin', ARRAY_FILTER_USE_KEY);
 

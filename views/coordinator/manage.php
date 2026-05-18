@@ -4,7 +4,7 @@
         <form method="post" enctype="multipart/form-data" class="form js-validate">
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="coordinator_create_student">
-            <label><span>Student Number <span class="field-required">*</span></span><input required name="student_no"></label>
+            <label><span>Student ID/USN <span class="field-required">*</span></span><input required name="student_no"></label>
             <div class="student-name-row">
                 <label><span>First Name <span class="field-required">*</span></span><input required name="first_name" autocomplete="given-name" pattern="[A-Za-z\s\-\.]+" title="First name must contain letters only" oninput="this.value=this.value.replace(/[^A-Za-z\s\-\.]/g,'')"></label>
                 <label><span>Last Name <span class="field-required">*</span></span><input required name="last_name" autocomplete="family-name" pattern="[A-Za-z\s\-\.]+" title="Last name must contain letters only" oninput="this.value=this.value.replace(/[^A-Za-z\s\-\.]/g,'')"></label>
@@ -34,7 +34,7 @@
         </form>
     </section>
     <section class="card">
-        <div class="card-head"><h2>Enroll Student in OJT</h2><p class="muted">Follow the step-by-step wizard to assign a partner company and send deployment emails.</p></div>
+        <div class="card-head"><h2>Enroll Student in OJT</h2><p class="muted">Follow the step-by-step wizard to assign an Industry Partner and send deployment emails.</p></div>
         <form method="post" class="form js-validate wizard-form" data-wizard>
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="coordinator_enroll_student">
@@ -44,9 +44,9 @@
                 <button class="btn btn-primary wizard-next" type="button">Next</button>
             </div>
             <div class="wizard-step">
-                <label><select required name="company_id"><option value="">— Select company —</option><?php foreach ($companies as $c): ?><option value="<?= (int)$c['id'] ?>" data-program-ids="<?= e($c['accepted_program_ids'] ?? '') ?>" data-moa-mou="<?= e(!empty($c['moa_mou_file']) ? 'index.php?r=coordinator_partner_document&company_id=' . (int)$c['id'] : '') ?>"><?= e($c['name'] . (!empty($c['accepted_programs']) ? ' — ' . $c['accepted_programs'] : '')) ?></option><?php endforeach; ?></select></label>
+                <label><select required name="company_id"><option value="">— Select Industry Partner —</option><?php foreach ($companies as $c): ?><option value="<?= (int)$c['id'] ?>" data-program-ids="<?= e($c['accepted_program_ids'] ?? '') ?>" data-moa-mou="<?= e(!empty($c['moa_mou_file']) ? 'index.php?r=coordinator_partner_document&company_id=' . (int)$c['id'] : '') ?>"><?= e($c['name'] . (!empty($c['accepted_programs']) ? ' — ' . $c['accepted_programs'] : '')) ?></option><?php endforeach; ?></select></label>
                 <div class="company-doc-preview" data-company-doc-preview hidden>
-                    <span class="muted">Partner MOA/MOU:</span>
+                    <span class="muted">Industry Partner MOA/MOU:</span>
                     <a class="btn btn-small" data-company-doc-link target="_blank" href="#">View MOA/MOU</a>
                 </div>
                 <label>Academic Term

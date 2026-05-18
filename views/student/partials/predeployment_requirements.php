@@ -7,12 +7,52 @@
         $allRequirementsApproved = true;
         $allRequirementsUploaded = true;
         $hasRejectedRequirements = false;
+        $hasBulkUploadSlots = false;
+        $studentModelForBulk = !empty($student) ? new Student(db()) : null;
         foreach ($requirements as $checkReq) {
             if (empty($checkReq['file_path'])) $allRequirementsUploaded = false;
             if (empty($checkReq['file_path']) || ($checkReq['status'] ?? '') !== 'approved') $allRequirementsApproved = false;
             if (!empty($checkReq['file_path']) && ($checkReq['status'] ?? '') === 'rejected') $hasRejectedRequirements = true;
         }
+        if ($studentModelForBulk && !empty($student)) {
+            foreach (array_keys($requirements) as $bulkKey) {
+                if ($studentModelForBulk->canUploadRequirement((int)$student['id'], (string)$bulkKey)) {
+                    $hasBulkUploadSlots = true;
+                    break;
+                }
+            }
+        }
     ?>
+    <?php if ($hasBulkUploadSlots): ?>
+    <form method="post" enctype="multipart/form-data" class="bulk-requirement-uploader">
+        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="action" value="student_upload_requirements_bulk">
+        <div class="bulk-upload-head">
+            <div>
+                <span class="bulk-upload-eyebrow">Upload faster</span>
+                <h3>Upload multiple requirements at once</h3>
+                <p class="muted">Choose files for all available requirements, then submit once. Accepted files: PDF, JPG, PNG, max 8MB each.</p>
+            </div>
+            <button class="btn btn-primary" type="submit">Upload Selected Files</button>
+        </div>
+        <div class="bulk-upload-grid">
+            <?php foreach ($requirements as $bulkKey => $bulkReq): ?>
+                <?php
+                    $canBulkUpload = $studentModelForBulk && $studentModelForBulk->canUploadRequirement((int)$student['id'], (string)$bulkKey);
+                    $bulkMessage = $studentModelForBulk ? $studentModelForBulk->requirementUploadMessage((int)$student['id'], (string)$bulkKey) : 'Enrollment required';
+                ?>
+                <label class="bulk-upload-item<?= $canBulkUpload ? '' : ' is-locked' ?>">
+                    <span><?= e($bulkReq['requirement_name']) ?></span>
+                    <?php if ($canBulkUpload): ?>
+                        <input type="file" name="requirements[<?= e($bulkKey) ?>]" accept=".pdf,.jpg,.jpeg,.png">
+                    <?php else: ?>
+                        <em><?= e($bulkMessage) ?></em>
+                    <?php endif; ?>
+                </label>
+            <?php endforeach; ?>
+        </div>
+    </form>
+    <?php endif; ?>
     <div class="table-wrap"><table class="data-table"><thead><tr><th>Requirement</th><th>Notes</th><th>File</th><th>Status</th><th>Upload</th></tr></thead><tbody>
         <?php foreach ($requirements as $key => $req): ?>
             <?php
@@ -28,7 +68,12 @@
                 }
             ?>
             <tr>
-                <td><?= e($req['requirement_name']) ?></td>
+                <td>
+                    <?= e($req['requirement_name']) ?>
+                    <?php if ($key === 'guardian_consent'): ?>
+                        <a class="requirement-template-link" href="<?= e(asset('template/PARENT GUARDIAN_(OJT) CONSENT FORM.docx')) ?>" download>Download template</a>
+                    <?php endif; ?>
+                </td>
                 <td><?= e($req['notes'] ?? '') ?></td>
                 <td><?= !empty($req['file_path']) ? '<a class="btn btn-small" target="_blank" href="' . e(asset($req['file_path'])) . '">View</a>' : '<span class="muted">Not uploaded</span>' ?></td>
                 <td>

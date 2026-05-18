@@ -1,6 +1,6 @@
 # AMA Computer College Practicum Management System
 
-Pure PHP 8 + PDO MySQL OJT management system with four roles: Admin, OJT Coordinator, Student, and Partner Company.
+Pure PHP 8 + PDO MySQL OJT management system with four roles: Admin, OJT Coordinator, Student, and Industry Partner.
 
 ## Setup
 

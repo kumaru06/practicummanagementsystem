@@ -55,7 +55,7 @@
                             'icon' => '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" fill="currentColor" opacity=".92"/><path d="M4.75 18.5c0-2.07 1.68-3.75 3.75-3.75S12.25 16.43 12.25 18.5V19H4.75v-.5Zm7 0c0-1.8 1.45-3.25 3.25-3.25s3.25 1.45 3.25 3.25V19h-6.5v-.5Z" fill="currentColor" opacity=".68"/><path d="M11 13.2c.43-.2.9-.3 1.4-.3 1.9 0 3.44 1.54 3.44 3.44V17H13.8c-.18-1.6-1.19-2.96-2.8-3.8Z" fill="currentColor" opacity=".48"/></svg>',
                         ],
                         'partner' => [
-                            'desc' => 'Partner company account',
+                            'desc' => 'Industry Partner account',
                             'icon' => '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 5.75A1.75 1.75 0 0 1 6.75 4h7.5A1.75 1.75 0 0 1 16 5.75V20H5V5.75Z" fill="currentColor" opacity=".9"/><path d="M16 8.75A1.75 1.75 0 0 1 17.75 7h.5A1.75 1.75 0 0 1 20 8.75V20h-4V8.75Z" fill="currentColor" opacity=".62"/><path d="M8 7.5h2v2H8v-2Zm0 4h2v2H8v-2Zm0 4h2v2H8v-2Zm4-8h2v2h-2v-2Zm0 4h2v2h-2v-2Zm0 4h2v2h-2v-2Z" fill="white" opacity=".92"/></svg>',
                         ],
                     ];

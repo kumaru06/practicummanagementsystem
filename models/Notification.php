@@ -23,6 +23,13 @@ class Notification
         return (int)$stmt->fetchColumn();
     }
 
+    public function findForUser(int $id, int $userId): ?array
+    {
+        $stmt = $this->db->prepare('SELECT * FROM notifications WHERE id = ? AND user_id = ? LIMIT 1');
+        $stmt->execute([$id, $userId]);
+        return $stmt->fetch() ?: null;
+    }
+
     public function markRead(int $id, int $userId): void
     {
         $stmt = $this->db->prepare('UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?');

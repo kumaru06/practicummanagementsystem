@@ -13,10 +13,8 @@
             <label>Section<input required name="section" value="<?= e($student['section'] ?? '') ?>"></label>
             <label>Emergency Contact Name<input required name="emergency_contact_name" value="<?= e($student['emergency_contact_name'] ?? '') ?>"></label>
             <label>Emergency Contact Number<input required name="emergency_contact_number" value="<?= e($student['emergency_contact_number'] ?? '') ?>"></label>
-            <label>Guardian Name<input required name="guardian_name" value="<?= e($student['guardian_name'] ?? '') ?>"></label>
-            <label>Guardian Contact<input required name="guardian_contact" value="<?= e($student['guardian_contact'] ?? '') ?>"></label>
         </div>
         <label>Address<textarea required name="address"><?= e($student['address'] ?? '') ?></textarea></label>
-        <button class="btn btn-primary" type="submit"><span class="btn-text">Save Profile & Unlock Dashboard</span><span class="spinner"></span></button>
+        <button class="btn btn-primary" type="submit"><span class="btn-text"><?= !empty($profileCompleted) ? 'Save Profile Changes' : 'Save Profile & Unlock Dashboard' ?></span><span class="spinner"></span></button>
     </form>
 </section>
