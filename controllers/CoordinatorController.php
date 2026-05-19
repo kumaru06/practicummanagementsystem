@@ -143,13 +143,7 @@ class CoordinatorController extends BaseController
             }
             $userId = (new User($this->db))->create($fullName, trim($p['email']), $password, 'student', current_user()['id'], 0);
             (new Student($this->db))->create($userId, trim($p['student_no']), $program['name'], trim($p['year_level']), $corPath, current_user()['id'], (int)$program['id'], '', $birthdate);
-            (new Email($this->db))->send(trim($p['email']), 'Your AMA Practicum Student Account', 'account_credentials', 'account_credentials', [
-                'name'      => $fullName,
-                'email'     => trim($p['email']),
-                'password'  => $password,
-                'roleLabel' => 'Student',
-            ]);
-            flash('success', 'Student account created and login credentials have been sent to ' . trim($p['email']) . '.');
+            flash('success', 'Student profile created. Login credentials will be emailed when you enroll the student and click Enroll & Send Emails.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
@@ -189,6 +183,7 @@ class CoordinatorController extends BaseController
                 'requiredHours' => $requiredHours,
                 'password' => $tempPassword,
                 'coordinator' => current_user(),
+                'loginUrl' => absolute_route_url('student.login'),
             ]);
             (new Notification($this->db))->create((int)$student['user_id'], 'OJT enrollment created', 'You have been enrolled for OJT deployment at ' . ($company['name'] ?? 'your Industry Partner') . '.', route_url('student.documents'));
             flash('success', 'Student enrolled and credentials email was processed. Industry Partner deployment email will be sent after approved documents are forwarded.');
@@ -289,6 +284,7 @@ class CoordinatorController extends BaseController
             'student' => $student,
             'password' => $password,
             'coordinator' => current_user(),
+            'loginUrl' => absolute_route_url('student.login'),
         ]);
         flash('success', 'Student password reset and emailed.');
         redirect('index.php?r=coordinator_students');

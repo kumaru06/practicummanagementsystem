@@ -17,9 +17,9 @@ class AuthController extends BaseController
                 flash('error', 'Please choose the correct login portal for your account.');
                 redirect('auth.php');
             }
-            $email = trim($_POST['email'] ?? '');
+            $identifier = trim($_POST['email'] ?? '');
             $password = $_POST['password'] ?? '';
-            $user = (new User($this->db))->findByEmail($email);
+            $user = (new User($this->db))->findForLogin($identifier, $portalRole);
             if ($user && (int)$user['is_active'] === 1 && password_verify($password, $user['password_hash'])) {
                 if (($user['role'] ?? '') !== $portalRole) {
                     $targetPortal = $this->portalViewData((string)$user['role']);

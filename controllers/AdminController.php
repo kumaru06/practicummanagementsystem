@@ -230,6 +230,7 @@ class AdminController extends BaseController
                 'email' => $email,
                 'password' => $password,
                 'roleLabel' => 'OJT Coordinator',
+                'loginUrl' => absolute_route_url('coordinator.login'),
             ]);
             flash('success', 'Coordinator account created and credentials email was processed.');
         } catch (Throwable $e) {
@@ -292,6 +293,7 @@ class AdminController extends BaseController
                 'email' => $contactEmail,
                 'password' => $password,
                 'roleLabel' => 'Industry Partner',
+                'loginUrl' => absolute_route_url('partner.login'),
             ]);
             flash('success', 'Industry Partner account created and credentials email was processed.');
         } catch (Throwable $e) {
@@ -386,6 +388,7 @@ class AdminController extends BaseController
                 'email' => $company['contact_email'],
                 'password' => $password,
                 'roleLabel' => 'Industry Partner',
+                'loginUrl' => absolute_route_url('partner.login'),
             ]);
             flash($sent ? 'success' : 'error', $sent ? 'Industry Partner credentials were resent to ' . $company['contact_email'] . '.' : 'Credentials were reset, but the email failed. Check Email Logs.');
         } catch (Throwable $e) {
@@ -400,7 +403,7 @@ class AdminController extends BaseController
         $p = $this->post();
         $redirect = trim((string)($p['redirect'] ?? 'admin_users')) ?: 'admin_users';
         try {
-            $target = (new User($this->db))->find((int)$p['user_id']);
+            $target = (new User($this->db))->findWithDetails((int)$p['user_id']);
             if (!$target || ($target['role'] ?? '') === 'admin') {
                 throw new RuntimeException('User account cannot be reset.');
             }
@@ -412,11 +415,19 @@ class AdminController extends BaseController
                 'partner' => 'Industry Partner',
                 default => ucwords(str_replace('_', ' ', (string)$target['role'])),
             };
+            $loginRoute = match ($target['role']) {
+                'coordinator' => 'coordinator.login',
+                'student' => 'student.login',
+                'partner' => 'partner.login',
+                default => 'login',
+            };
             $sent = (new Email($this->db))->send($target['email'], 'Your AMA Practicum Account Credentials', 'account_credentials', 'account_credentials', [
                 'name' => $target['name'],
                 'email' => $target['email'],
+                'usn' => ($target['role'] ?? '') === 'student' ? ($target['student_no'] ?? '') : '',
                 'password' => $password,
                 'roleLabel' => $roleLabel,
+                'loginUrl' => absolute_route_url($loginRoute),
             ]);
             flash($sent ? 'success' : 'error', $sent ? 'Temporary credentials were sent to ' . $target['email'] . '.' : 'Password was reset, but the email failed. Check Email Logs.');
         } catch (Throwable $e) {

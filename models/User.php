@@ -37,9 +37,44 @@ class User
         return $stmt->fetch() ?: null;
     }
 
+    public function findForLogin(string $identifier, ?string $portalRole = null): ?array
+    {
+        $identifier = trim($identifier);
+        if ($identifier === '') {
+            return null;
+        }
+
+        if ($portalRole === 'student') {
+            $stmt = $this->db->prepare(
+                'SELECT u.*, s.student_no
+                 FROM users u
+                 LEFT JOIN students s ON s.user_id = u.id
+                 WHERE u.role = "student" AND (u.email = ? OR s.student_no = ?)
+                 LIMIT 1'
+            );
+            $stmt->execute([strtolower($identifier), $identifier]);
+            return $stmt->fetch() ?: null;
+        }
+
+        return $this->findByEmail(strtolower($identifier));
+    }
+
     public function find(int $id): ?array
     {
         $stmt = $this->db->prepare('SELECT * FROM users WHERE id = ? LIMIT 1');
+        $stmt->execute([$id]);
+        return $stmt->fetch() ?: null;
+    }
+
+    public function findWithDetails(int $id): ?array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT u.*, s.student_no
+             FROM users u
+             LEFT JOIN students s ON s.user_id = u.id
+             WHERE u.id = ?
+             LIMIT 1'
+        );
         $stmt->execute([$id]);
         return $stmt->fetch() ?: null;
     }

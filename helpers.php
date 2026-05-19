@@ -64,6 +64,22 @@ function route_url(string $route, array $params = []): string
     return app_base_path() . '/' . ltrim($url, '/');
 }
 
+function absolute_route_url(string $route, array $params = []): string
+{
+    $relativeUrl = route_url($route, $params);
+    if (preg_match('#^https?://#', $relativeUrl)) {
+        return $relativeUrl;
+    }
+
+    $base = rtrim(defined('SYSTEM_URL') ? SYSTEM_URL : '', '/');
+    $basePath = app_base_path();
+    if ($base !== '' && $basePath !== '' && str_starts_with($relativeUrl, $basePath . '/')) {
+        $relativeUrl = substr($relativeUrl, strlen($basePath));
+    }
+
+    return $base . '/' . ltrim($relativeUrl, '/');
+}
+
 function route_for_role(?string $role = null): string
 {
     return match ($role ?? (current_user()['role'] ?? '')) {
@@ -136,6 +152,11 @@ function flash(?string $key = null, ?string $message = null): ?string
         return $value;
     }
     return null;
+}
+
+function temporary_report_unlock_enabled(): bool
+{
+    return defined('TEMPORARY_REPORT_UNLOCK') && TEMPORARY_REPORT_UNLOCK;
 }
 
 function random_password(int $length = 12): string

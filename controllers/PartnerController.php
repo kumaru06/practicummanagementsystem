@@ -251,8 +251,10 @@ class PartnerController extends BaseController
             http_response_code(403);
             exit('Forbidden');
         }
-        if (($enrollment['predeployment_status'] ?? '') !== 'orientation_completed') {
-            flash('error', 'Final evaluation unlocks after orientation completion.');
+        $renderedHours = (new Report($this->db))->totalHours((int)$enrollment['student_id']);
+        $requiredHours = (float)($enrollment['required_hours'] ?? 0);
+        if ($requiredHours <= 0 || $renderedHours < $requiredHours) {
+            flash('error', 'Final evaluation unlocks after the student completes the required OJT hours.');
             redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
         }
         (new Evaluation($this->db))->submit((int)$p['enrollment_id'], (int)$company['id'], (int)$p['rating'], trim($p['comments']));

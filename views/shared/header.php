@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260518-industry-partner-ui">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260520-confirm-modal">
 </head>
 <body class="app-page role-<?= e($user['role'] ?? 'guest') ?>">
 <div class="app-shell">
@@ -63,7 +63,7 @@
                     <small><?= e(($user['role'] ?? '') === 'partner' ? 'Industry Partner' : ucwords(str_replace('_', ' ', $user['role'] ?? ''))) ?></small>
                 </div>
             </div>
-            <a class="nav-link sidebar-logout" href="logout.php">
+            <a class="nav-link sidebar-logout" href="logout.php" data-confirm="Are you sure you want to log out?" data-confirm-title="Log out of your account" data-confirm-ok="Yes, log out" data-confirm-cancel="Stay signed in">
                 <svg viewBox="0 0 24 24"><path d="M16 13v-2H7V8l-5 4 5 4v-3h9Zm1-9H9a2 2 0 0 0-2 2v3h2V6h8v12H9v-3H7v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z"/></svg>
                 <span>Logout</span>
             </a>

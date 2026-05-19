@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($portalLabel ?? 'Login') ?> - AMA Practicum System</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260509-login-portal-force-style">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260519-login-usn-support">
 </head>
 <body class="login-page">
     <div class="login-split">
@@ -76,7 +76,7 @@
                 <?php else: ?>
                     <form method="post" action="<?= e(route_url($portalRole . '.login.post')) ?>" class="form js-validate">
                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                        <label>Email<input required type="email" name="email" autocomplete="username"></label>
+                        <label><?= $portalRole === 'student' ? 'Email or USN' : 'Email' ?><input required type="<?= $portalRole === 'student' ? 'text' : 'email' ?>" name="email" autocomplete="username"></label>
                         <label>Password<input required type="password" name="password" autocomplete="current-password"></label>
                         <button class="btn btn-primary" type="submit"><span class="btn-text">Sign in</span><span class="spinner"></span></button>
                     </form>

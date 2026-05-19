@@ -1,11 +1,16 @@
-<?php $selectedId = (int)($selected['id'] ?? 0); ?>
+<?php
+$selectedId = (int)($selected['id'] ?? 0);
+$renderedHours = array_reduce($dtrs ?? [], static fn ($total, $dtr) => $total + (float)($dtr['hours'] ?? 0), 0.0);
+$requiredHours = (float)($selected['required_hours'] ?? 0);
+$evaluationUnlocked = $selected && $requiredHours > 0 && $renderedHours >= $requiredHours;
+?>
 <div class="industry-portal">
     <?php if ($company): ?>
         <section class="card ip-hero-card">
             <div class="ip-hero-copy">
                 <span class="eyebrow">Industry Partner Portal</span>
                 <h2><?= e($company['name']) ?></h2>
-                <p class="muted">Review forwarded student documents, send orientation instructions, schedule OJT start activities, and submit final evaluations.</p>
+                <p class="muted">Review forwarded student documents, schedule OJT start activities, and submit final evaluations after required hours are completed.</p>
             </div>
             <div class="ip-hero-actions">
                 <?= !empty($company['moa_mou_file']) ? '<a class="btn btn-small" target="_blank" href="' . e(asset($company['moa_mou_file'])) . '">View MOA/MOU</a>' : '<span class="muted">No MOA/MOU uploaded</span>' ?>
@@ -93,24 +98,17 @@
                 <section class="card ip-sub-card orientation-card">
                     <div class="section-head orientation-head">
                         <h2>Orientation &amp; OJT Start</h2>
-                        <p class="muted">Send instructions first, then schedule the official orientation when the date is ready.</p>
+                        <p class="muted">Select the orientation date and time, then add notes for the student before sending the schedule.</p>
                     </div>
                     <?php if (in_array($selected['predeployment_status'], ['accepted','orientation_scheduled'], true)): ?>
                         <div class="ip-form-stack">
-                            <form method="post" class="form js-validate ip-form-panel orientation-action-card">
-                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                <input type="hidden" name="action" value="partner_send_orientation_email">
-                                <input type="hidden" name="enrollment_id" value="<?= (int)$selected['id'] ?>">
-                                <label class="no-floating-label required-label orientation-field"><span class="field-title">Orientation Email / Instructions <span class="req">*</span></span><textarea required name="orientation_notes" maxlength="500" placeholder="Send orientation instructions without setting a system date/time yet."></textarea></label>
-                                <button class="btn btn-small" type="submit">Send Orientation Email Only</button>
-                            </form>
                             <form method="post" class="form js-validate ip-form-panel orientation-action-card orientation-action-card-primary">
                                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                 <input type="hidden" name="action" value="partner_schedule_orientation">
                                 <input type="hidden" name="enrollment_id" value="<?= (int)$selected['id'] ?>">
                                 <label class="no-floating-label required-label orientation-field"><span class="field-title">Orientation Date/Time <span class="req">*</span></span><input required type="datetime-local" name="orientation_datetime" value="<?= e($selected['orientation_datetime'] ? str_replace(' ', 'T', substr($selected['orientation_datetime'], 0, 16)) : '') ?>"></label>
                                 <label class="no-floating-label required-label orientation-field"><span class="field-title">Notes <span class="req">*</span></span><textarea required name="orientation_notes" maxlength="500" placeholder="Add meeting link, venue, attire, documents to bring, and contact person."><?= e($selected['orientation_notes'] ?? '') ?></textarea></label>
-                                <button class="btn btn-primary" type="submit">Schedule Orientation</button>
+                                <button class="btn btn-primary" type="submit">Send Schedule Orientation</button>
                             </form>
                         </div>
                     <?php endif; ?>
@@ -153,7 +151,7 @@
                 </section>
                 <section class="card ip-sub-card">
                     <h2>Final Evaluation</h2>
-                    <?php if ($selected['predeployment_status'] === 'orientation_completed'): ?>
+                    <?php if ($evaluationUnlocked): ?>
                         <form method="post" class="form js-validate">
                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="action" value="partner_submit_evaluation">
@@ -163,7 +161,7 @@
                             <button class="btn btn-primary" type="submit"><span class="btn-text"><?= $evaluation ? 'Update Evaluation' : 'Submit Evaluation' ?></span><span class="spinner"></span></button>
                         </form>
                     <?php else: ?>
-                        <p class="muted">Final evaluation unlocks after orientation is completed and the student officially starts OJT.</p>
+                        <p class="muted">Final evaluation unlocks after the student completes the required OJT hours. Current progress: <?= e(number_format($renderedHours, 2)) ?> / <?= e(number_format($requiredHours, 2)) ?> hours.</p>
                         <button class="btn btn-primary" type="button" disabled>Evaluation Locked</button>
                     <?php endif; ?>
                 </section>

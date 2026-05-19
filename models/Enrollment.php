@@ -159,6 +159,7 @@ class Enrollment
     {
         if (!$enrollment) return false;
         if (($enrollment['status'] ?? '') !== 'active' || ($enrollment['predeployment_status'] ?? '') !== 'orientation_completed') return false;
+        if (temporary_report_unlock_enabled()) return true;
         $startDate = $enrollment['official_start_date'] ?? $enrollment['start_date'] ?? null;
         if (!$startDate || strtotime((string)$startDate) === false) return false;
         return date('Y-m-d') >= date('Y-m-d', strtotime((string)$startDate));

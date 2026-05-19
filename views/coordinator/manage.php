@@ -35,7 +35,7 @@
     </section>
     <section class="card">
         <div class="card-head"><h2>Enroll Student in OJT</h2><p class="muted">Follow the step-by-step wizard to assign an Industry Partner and send deployment emails.</p></div>
-        <form method="post" class="form js-validate wizard-form" data-wizard>
+        <form method="post" class="form js-validate wizard-form" data-wizard data-confirm-submit="Enroll this student and send the enrollment/deployment emails now? Please verify the student, company, dates, and required hours before continuing." data-confirm-title="Confirm OJT enrollment" data-confirm-ok="Enroll & send emails" data-confirm-cancel="Review details">
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="coordinator_enroll_student">
             <div class="wizard-steps"><span class="active">Student</span><span>Company & Dates</span><span>Confirm</span></div>

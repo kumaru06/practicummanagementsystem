@@ -4,6 +4,10 @@ require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/config/mail.php';
 require_once __DIR__ . '/helpers.php';
 
+date_default_timezone_set('Asia/Manila');
+
+define('TEMPORARY_REPORT_UNLOCK', false);
+
 $autoload = __DIR__ . '/vendor/autoload.php';
 if (file_exists($autoload)) {
     require_once $autoload;

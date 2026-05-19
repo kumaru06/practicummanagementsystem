@@ -4,6 +4,7 @@
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS evaluations;
 DROP TABLE IF EXISTS weekly_reports;
+DROP TABLE IF EXISTS dtr_drafts;
 DROP TABLE IF EXISTS daily_time_records;
 DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS email_logs;
@@ -150,6 +151,17 @@ CREATE TABLE daily_time_records (
   tasks_done TEXT NOT NULL,
   submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_dtr_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE dtr_drafts (
+  student_id INT NOT NULL PRIMARY KEY,
+  work_date DATE NULL,
+  time_in VARCHAR(5) NULL,
+  time_out VARCHAR(5) NULL,
+  time_in_locked TINYINT(1) NOT NULL DEFAULT 0,
+  time_out_locked TINYINT(1) NOT NULL DEFAULT 0,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_dtr_drafts_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE weekly_reports (

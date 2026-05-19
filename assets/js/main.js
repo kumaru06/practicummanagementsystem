@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initCustomDatePickers();
     initPhoneInputs();
     initCharacterCounters();
+    initDtrTimeLocks();
     initForms();
     initCounters();
     initWizards();
@@ -17,13 +18,147 @@ document.addEventListener('DOMContentLoaded', () => {
     initNotifications();
     initMoaLibrary();
     initCoordinatorCardAlignment();
+    initConfirmActions();
+    initStudentMobileTapProxy();
     document.querySelectorAll('.data-table').forEach(table => enhanceTable(table));
     document.querySelector('#modal .modal-close')?.addEventListener('click', closeSlidePanel);
     document.addEventListener('click', handleOutsideMenus);
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeSlidePanel(); closeNotifications(); closeRequirementReviewModals(); closeCustomSelects(); closeCustomDatePickers(); } });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeSlidePanel(); closeNotifications(); closeRequirementReviewModals(); closeCustomSelects(); closeCustomDatePickers(); closeDtrTimePicker(); } });
     initStudentModal();
     renderDashboardCharts();
 });
+
+function initConfirmActions() {
+    document.querySelectorAll('[data-confirm]').forEach(element => {
+        if (element.dataset.confirmReady === '1') return;
+        element.dataset.confirmReady = '1';
+        element.addEventListener('click', async event => {
+            event.preventDefault();
+            event.stopPropagation();
+            const confirmed = await showConfirmModal(element.dataset.confirm || 'Are you sure?', {
+                title: element.dataset.confirmTitle || 'Confirm action',
+                confirmText: element.dataset.confirmOk || 'Continue',
+                cancelText: element.dataset.confirmCancel || 'Cancel',
+            });
+            if (!confirmed) return;
+            if (element.tagName === 'A' && element.href) {
+                window.location.href = element.href;
+                return;
+            }
+            element.closest('form')?.requestSubmit();
+        });
+    });
+}
+
+function showConfirmModal(message, options = {}) {
+    return new Promise(resolve => {
+        const existing = document.querySelector('.app-confirm-overlay');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.className = 'app-confirm-overlay';
+        overlay.innerHTML = `
+            <div class="app-confirm-card" role="dialog" aria-modal="true" aria-labelledby="app-confirm-title">
+                <div class="app-confirm-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20a10 10 0 0 1 0-20Zm0 5a1 1 0 0 0-1 1v4.2a1 1 0 0 0 2 0V8a1 1 0 0 0-1-1Zm0 9.75a1.25 1.25 0 1 0 0-2.5a1.25 1.25 0 0 0 0 2.5Z"/></svg>
+                </div>
+                <div class="app-confirm-copy">
+                    <h2 id="app-confirm-title">${escapeHtml(options.title || 'Confirm action')}</h2>
+                    <p>${escapeHtml(message)}</p>
+                </div>
+                <div class="app-confirm-actions">
+                    <button class="btn btn-ghost app-confirm-cancel" type="button">${escapeHtml(options.cancelText || 'Cancel')}</button>
+                    <button class="btn btn-primary app-confirm-ok" type="button">${escapeHtml(options.confirmText || 'Continue')}</button>
+                </div>
+            </div>
+        `;
+
+        const close = value => {
+            overlay.classList.remove('is-open');
+            document.removeEventListener('keydown', onKeydown);
+            setTimeout(() => overlay.remove(), 160);
+            resolve(value);
+        };
+        const onKeydown = event => {
+            if (event.key === 'Escape') close(false);
+        };
+
+        overlay.addEventListener('click', event => {
+            if (event.target === overlay) close(false);
+        });
+        overlay.querySelector('.app-confirm-cancel')?.addEventListener('click', () => close(false));
+        overlay.querySelector('.app-confirm-ok')?.addEventListener('click', () => close(true));
+        document.addEventListener('keydown', onKeydown);
+        document.body.appendChild(overlay);
+        requestAnimationFrame(() => {
+            overlay.classList.add('is-open');
+            overlay.querySelector('.app-confirm-ok')?.focus();
+        });
+    });
+}
+
+function initStudentMobileTapProxy() {
+    if (!document.body.classList.contains('role-student')) return;
+
+    let proxying = false;
+    let suppressUntil = 0;
+    const isMobileStudentLayout = () => window.matchMedia('(max-width: 720px)').matches;
+    const clickableSelector = 'button,a,input:not([type="hidden"]),textarea,select,[data-time-lock-toggle],[data-time-picker-trigger],.filter-date-trigger';
+    const skipSelector = '.notif-panel,.topbar,.sidebar,.global-cal-panel,.dtr-time-panel';
+
+    const findContentControl = (x, y) => {
+        const content = document.querySelector('.role-student .content');
+        if (!content) return null;
+
+        const elements = document.elementsFromPoint(x, y);
+        for (const element of elements) {
+            if (!element || element === document.documentElement || element === document.body) continue;
+            if (element.closest(skipSelector)) continue;
+            if (!content.contains(element)) continue;
+
+            const control = element.matches(clickableSelector) ? element : element.closest(clickableSelector);
+            if (control && content.contains(control)) return control;
+        }
+        return null;
+    };
+
+    const forwardTap = event => {
+        if (proxying || !isMobileStudentLayout()) return;
+        if (Date.now() < suppressUntil) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            return;
+        }
+        const point = event.changedTouches?.[0] || event.touches?.[0] || event;
+        if (typeof point.clientX !== 'number' || typeof point.clientY !== 'number') return;
+
+        const topbar = document.querySelector('.role-student .topbar')?.getBoundingClientRect();
+        const sidebar = document.querySelector('.role-student .sidebar')?.getBoundingClientRect();
+        if (topbar && point.clientY <= topbar.bottom) return;
+        if (sidebar && point.clientY >= sidebar.top) return;
+
+        const control = findContentControl(point.clientX, point.clientY);
+        if (!control) return;
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        proxying = true;
+        suppressUntil = Date.now() + 450;
+        try {
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(control.tagName) && control.type !== 'button' && control.type !== 'submit') {
+                control.focus();
+                if (control.type === 'file') control.click();
+            } else {
+                control.click();
+            }
+        } finally {
+            setTimeout(() => { proxying = false; }, 0);
+        }
+    };
+
+    document.addEventListener('touchend', forwardTap, { capture: true, passive: false });
+    document.addEventListener('click', forwardTap, { capture: true });
+}
 
 function initMoaLibrary() {
     const library = document.querySelector('[data-cdoc-library]');
@@ -113,6 +248,7 @@ function getGlobalCalPanel() {
 
     _globalCalPanel.addEventListener('mousedown', e => e.stopPropagation());
     _globalCalPanel.addEventListener('click', e => {
+        e.stopPropagation();
         const nav = e.target.closest('[data-date-nav]');
         if (nav && _globalCalState) {
             const delta = Number(nav.dataset.dateNav || 0);
@@ -146,6 +282,14 @@ function getGlobalCalPanel() {
             sync();
             closeGlobalCalPanel();
         }
+    });
+    _globalCalPanel.addEventListener('change', e => {
+        const yearSelect = e.target.closest('[data-date-year]');
+        if (!yearSelect || !_globalCalState) return;
+        const selectedYear = Number(yearSelect.value || 0);
+        if (!selectedYear) return;
+        _globalCalState.view = new Date(selectedYear, _globalCalState.view.getMonth(), 1);
+        _globalCalPanel.innerHTML = buildCustomDatePanel(_globalCalState);
     });
     return _globalCalPanel;
 }
@@ -279,6 +423,15 @@ function initCustomDatePickers() {
                 sync(); closeCustomDatePickers();
             });
 
+            panel.addEventListener('change', event => {
+                const yearSelect = event.target.closest('[data-date-year]');
+                if (!yearSelect) return;
+                const selectedYear = Number(yearSelect.value || 0);
+                if (!selectedYear) return;
+                state.view = new Date(selectedYear, state.view.getMonth(), 1);
+                render();
+            });
+
             render();
         }
 
@@ -293,6 +446,13 @@ function buildCustomDatePanel(state) {
     const firstDay = new Date(state.view.getFullYear(), state.view.getMonth(), 1);
     const start = new Date(firstDay);
     start.setDate(firstDay.getDate() - firstDay.getDay());
+    const currentYear = today.getFullYear();
+    const maxYear = state.max ? state.max.getFullYear() : currentYear + 10;
+    const minYear = Math.min(maxYear - 100, state.selected?.getFullYear() ?? maxYear, state.view.getFullYear());
+    const years = [];
+    for (let year = maxYear; year >= minYear; year -= 1) {
+        years.push(`<option value="${year}" ${year === state.view.getFullYear() ? 'selected' : ''}>${year}</option>`);
+    }
 
     const cells = [];
     for (let index = 0; index < 42; index += 1) {
@@ -320,7 +480,14 @@ function buildCustomDatePanel(state) {
         <div class="filter-date-calendar" role="dialog" aria-label="Calendar picker">
             <div class="filter-date-calendar-header">
                 <button class="filter-date-nav" type="button" data-date-nav="-1" aria-label="Previous month"></button>
-                <div class="filter-date-title">${monthLabel}</div>
+                <div class="filter-date-title-wrap">
+                    <div class="filter-date-title">${monthLabel}</div>
+                    <label class="filter-date-year-wrap" aria-label="Select year">
+                        <select class="filter-date-year-select" data-date-year>
+                            ${years.join('')}
+                        </select>
+                    </label>
+                </div>
                 <button class="filter-date-nav" type="button" data-date-nav="1" aria-label="Next month"></button>
             </div>
             <div class="filter-date-weekdays">${weekDays.map(day => `<span>${day}</span>`).join('')}</div>
@@ -640,6 +807,247 @@ function initCharacterCounters() {
     });
 }
 
+let _dtrTimePanel = null;
+let _dtrTimeContext = null;
+let _dtrTimeState = null;
+
+function formatDtrTimeDisplay(value) {
+    const match = String(value || '').match(/^(\d{1,2}):(\d{2})/);
+    if (!match) return '--:-- --';
+    const hour24 = Number(match[1]);
+    const minute = match[2];
+    const suffix = hour24 >= 12 ? 'PM' : 'AM';
+    const hour12 = hour24 % 12 || 12;
+    return `${String(hour12).padStart(2, '0')}:${minute} ${suffix}`;
+}
+
+function toDtrTimeValue(hour, minute, period) {
+    let hour24 = Number(hour) % 12;
+    if (period === 'PM') hour24 += 12;
+    return `${String(hour24).padStart(2, '0')}:${String(Number(minute) || 0).padStart(2, '0')}`;
+}
+
+function parseDtrTimeValue(value) {
+    const match = String(value || '').match(/^(\d{1,2}):(\d{2})/);
+    const fallback = new Date();
+    const hour24 = match ? Number(match[1]) : fallback.getHours();
+    const minute = match ? Number(match[2]) : fallback.getMinutes();
+    return {
+        hour: hour24 % 12 || 12,
+        minute: Math.max(0, Math.min(59, minute)),
+        period: hour24 >= 12 ? 'PM' : 'AM',
+    };
+}
+
+function getDtrTimePanel() {
+    if (_dtrTimePanel) return _dtrTimePanel;
+    _dtrTimePanel = document.createElement('div');
+    _dtrTimePanel.className = 'dtr-time-panel';
+    _dtrTimePanel.hidden = true;
+    document.body.appendChild(_dtrTimePanel);
+
+    _dtrTimePanel.addEventListener('mousedown', e => e.stopPropagation());
+    _dtrTimePanel.addEventListener('click', e => {
+        e.stopPropagation();
+        if (!_dtrTimeState || !_dtrTimeContext) return;
+        const hour = e.target.closest('[data-dtr-hour]');
+        if (hour) {
+            _dtrTimeState.hour = Number(hour.dataset.dtrHour || 12);
+            renderDtrTimePanel();
+            return;
+        }
+        const period = e.target.closest('[data-dtr-period]');
+        if (period) {
+            _dtrTimeState.period = period.dataset.dtrPeriod || 'AM';
+            renderDtrTimePanel();
+            return;
+        }
+        const now = e.target.closest('[data-dtr-now]');
+        if (now) {
+            _dtrTimeState = parseDtrTimeValue(`${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`);
+            renderDtrTimePanel();
+            return;
+        }
+        const set = e.target.closest('[data-dtr-set-time]');
+        if (set) {
+            const minuteInput = _dtrTimePanel.querySelector('[data-dtr-minute]');
+            _dtrTimeState.minute = Math.max(0, Math.min(59, Number(minuteInput?.value || 0)));
+            _dtrTimeContext.input.value = toDtrTimeValue(_dtrTimeState.hour, _dtrTimeState.minute, _dtrTimeState.period);
+            _dtrTimeContext.sync();
+            closeDtrTimePicker();
+            _dtrTimeContext.saveButton?.focus();
+        }
+    });
+    _dtrTimePanel.addEventListener('input', e => {
+        const minuteInput = e.target.closest('[data-dtr-minute]');
+        if (!minuteInput || !_dtrTimeState) return;
+        minuteInput.value = String(Math.max(0, Math.min(59, Number(minuteInput.value || 0)))).padStart(2, '0');
+        _dtrTimeState.minute = Number(minuteInput.value || 0);
+    });
+    return _dtrTimePanel;
+}
+
+function renderDtrTimePanel() {
+    const panel = getDtrTimePanel();
+    const hours = Array.from({ length: 12 }, (_, i) => i + 1).map(hour => `<button type="button" class="dtr-time-chip ${hour === _dtrTimeState.hour ? 'is-active' : ''}" data-dtr-hour="${hour}">${String(hour).padStart(2, '0')}</button>`).join('');
+    panel.innerHTML = `<div class="dtr-time-panel-head"><strong>Choose Time</strong><button type="button" data-dtr-now>Use Now</button></div><div class="dtr-time-preview">${formatDtrTimeDisplay(toDtrTimeValue(_dtrTimeState.hour, _dtrTimeState.minute, _dtrTimeState.period))}</div><div class="dtr-time-hours">${hours}</div><div class="dtr-time-bottom"><label>Minute<input type="number" min="0" max="59" value="${String(_dtrTimeState.minute).padStart(2, '0')}" data-dtr-minute></label><div class="dtr-time-periods"><button type="button" class="${_dtrTimeState.period === 'AM' ? 'is-active' : ''}" data-dtr-period="AM">AM</button><button type="button" class="${_dtrTimeState.period === 'PM' ? 'is-active' : ''}" data-dtr-period="PM">PM</button></div></div><button type="button" class="btn btn-primary dtr-time-set" data-dtr-set-time>Set Time</button>`;
+}
+
+function openDtrTimePicker(context) {
+    closeDtrTimePicker();
+    _dtrTimeContext = context;
+    _dtrTimeState = parseDtrTimeValue(context.input.value);
+    const panel = getDtrTimePanel();
+    renderDtrTimePanel();
+    const rect = context.trigger.getBoundingClientRect();
+    const viewportPadding = 10;
+    const width = Math.min(320, window.innerWidth - (viewportPadding * 2));
+    const panelHeight = Math.min(panel.getBoundingClientRect().height || 380, window.innerHeight - (viewportPadding * 2));
+    const belowTop = rect.bottom + 8;
+    const aboveTop = rect.top - panelHeight - 8;
+    const hasRoomBelow = belowTop + panelHeight <= window.innerHeight - viewportPadding;
+    panel.style.width = `${width}px`;
+    panel.style.left = `${Math.max(viewportPadding, Math.min(rect.left, window.innerWidth - width - viewportPadding))}px`;
+    panel.style.top = `${Math.max(viewportPadding, hasRoomBelow ? belowTop : aboveTop)}px`;
+    panel.hidden = false;
+    requestAnimationFrame(() => panel.classList.add('is-open'));
+}
+
+function closeDtrTimePicker() {
+    if (!_dtrTimePanel) return;
+    _dtrTimePanel.classList.remove('is-open');
+    _dtrTimePanel.hidden = true;
+    _dtrTimeContext = null;
+    _dtrTimeState = null;
+}
+
+function initDtrTimeLocks() {
+    document.querySelectorAll('[data-dtr-lock-flow]').forEach(form => {
+        const groups = [...form.querySelectorAll('[data-time-lock-group]')].map(group => ({
+            group,
+            input: group.querySelector('[data-lockable-time]'),
+            trigger: group.querySelector('[data-time-picker-trigger]'),
+            display: group.querySelector('[data-time-display]'),
+            button: group.querySelector('[data-time-lock-toggle]'),
+            locked: group.dataset.savedLocked === '1' && !!group.querySelector('[data-lockable-time]')?.value,
+        })).filter(item => item.input && item.button && item.trigger && item.display);
+        const tasks = form.querySelector('[data-dtr-tasks]');
+        const submit = form.querySelector('[data-dtr-submit]');
+        if (!groups.length || !tasks || !submit) return;
+
+        const saveDraft = () => {
+            const body = new URLSearchParams();
+            body.set('csrf_token', form.querySelector('input[name="csrf_token"]')?.value || '');
+            body.set('action', 'student_save_dtr_draft');
+            body.set('work_date', form.querySelector('input[name="work_date"]')?.value || '');
+            body.set('time_in', groups[0]?.input.value || '');
+            body.set('time_out', groups[1]?.input.value || '');
+            body.set('time_in_locked', groups[0]?.locked ? '1' : '0');
+            body.set('time_out_locked', groups[1]?.locked ? '1' : '0');
+            return fetch('index.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                body,
+            }).catch(() => null);
+        };
+
+        const sync = () => {
+            const timeInLocked = groups[0]?.locked || false;
+            const timeOutLocked = groups[1]?.locked || false;
+
+            groups.forEach((item, index) => {
+                const mustWait = index === 1 && !timeInLocked;
+                item.input.disabled = false;
+                item.trigger.disabled = false;
+                item.button.disabled = false;
+                item.trigger.setAttribute('aria-disabled', String(mustWait || item.locked));
+                item.button.setAttribute('aria-disabled', String(mustWait));
+                item.display.textContent = formatDtrTimeDisplay(item.input.value);
+                item.group.classList.toggle('is-locked', item.locked);
+                item.group.classList.toggle('is-waiting', mustWait);
+                item.group.classList.toggle('has-time', !!item.input.value);
+                item.button.textContent = item.locked ? item.button.dataset.editLabel : item.button.dataset.applyLabel;
+            });
+
+            tasks.disabled = !timeOutLocked;
+            submit.disabled = !timeOutLocked;
+            form.classList.toggle('dtr-ready-for-tasks', timeOutLocked);
+        };
+
+        const unlockFrom = startIndex => {
+            groups.slice(startIndex).forEach(item => {
+                item.locked = false;
+                item.group.classList.remove('is-locked');
+            });
+        };
+
+        groups.forEach((item, index) => {
+            let lastTap = 0;
+            const runOnce = (event, handler) => {
+                const now = Date.now();
+                if (event.type !== 'keydown' && now - lastTap < 350) return;
+                lastTap = now;
+                event.preventDefault();
+                event.stopPropagation();
+                handler();
+            };
+
+            const openPicker = () => {
+                if (item.trigger.getAttribute('aria-disabled') === 'true') return;
+                openDtrTimePicker({ input: item.input, trigger: item.trigger, saveButton: item.button, sync });
+            };
+
+            const toggleLock = () => {
+                sync();
+                if (item.button.getAttribute('aria-disabled') === 'true') return;
+                if (item.locked) {
+                    unlockFrom(index);
+                    if (index === 0) {
+                        groups[1].input.value = '';
+                        tasks.value = '';
+                        tasks.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    sync();
+                    saveDraft();
+                    item.trigger.focus();
+                    return;
+                }
+                if (!item.input.value) {
+                    item.group.classList.add('needs-time');
+                    openPicker();
+                    return;
+                }
+                item.group.classList.remove('needs-time');
+                item.locked = true;
+                sync();
+                saveDraft();
+                const nextInput = groups[index + 1]?.input || tasks;
+                const nextTrigger = groups[index + 1]?.trigger || null;
+                (nextTrigger || nextInput)?.focus();
+            };
+
+            item.input.addEventListener('input', sync);
+            item.input.addEventListener('change', sync);
+            item.input.addEventListener('blur', sync);
+            item.input.addEventListener('keyup', sync);
+            ['pointerup', 'touchend', 'click'].forEach(eventName => {
+                item.trigger.addEventListener(eventName, event => runOnce(event, openPicker), { passive: false });
+                item.button.addEventListener(eventName, event => runOnce(event, toggleLock), { passive: false });
+            });
+            item.trigger.addEventListener('keydown', event => {
+                if (!['Enter', ' '].includes(event.key)) return;
+                runOnce(event, openPicker);
+            });
+            item.button.addEventListener('keydown', event => {
+                if (!['Enter', ' '].includes(event.key)) return;
+                runOnce(event, toggleLock);
+            });
+        });
+
+        sync();
+    });
+}
+
 function initForms() {
     const getAssociatedControls = form => {
         const selector = form.id
@@ -704,6 +1112,28 @@ function initForms() {
                 if (!missingDates.length) form.reportValidity();
                 return;
             }
+
+            if (form.dataset.confirmSubmit && form.dataset.confirmedSubmit !== '1') {
+                e.preventDefault();
+                const btn = e.submitter || submitButtons[0] || null;
+                showConfirmModal(form.dataset.confirmSubmit, {
+                    title: form.dataset.confirmTitle || 'Confirm submission',
+                    confirmText: form.dataset.confirmOk || 'Submit',
+                    cancelText: form.dataset.confirmCancel || 'Review again',
+                }).then(confirmed => {
+                    if (!confirmed) return;
+                    form.dataset.confirmedSubmit = '1';
+                    if (btn && typeof form.requestSubmit === 'function') {
+                        form.requestSubmit(btn);
+                    } else if (typeof form.requestSubmit === 'function') {
+                        form.requestSubmit();
+                    } else {
+                        form.submit();
+                    }
+                });
+                return;
+            }
+            delete form.dataset.confirmedSubmit;
 
             const btn = e.submitter || submitButtons[0] || null;
             if (btn) { btn.classList.add('loading'); btn.disabled = true; }
@@ -908,6 +1338,7 @@ function handleOutsideMenus(event) {
     });
     if (!event.target.closest('.custom-select')) closeCustomSelects();
     if (!event.target.closest('.filter-date-picker') && !event.target.closest('.global-cal-panel')) closeCustomDatePickers();
+    if (!event.target.closest('.dtr-time-panel') && !event.target.closest('[data-time-picker-trigger]')) closeDtrTimePicker();
     const panel = document.querySelector('.notif-panel');
     const btn   = document.getElementById('notifBtn');
     if (panel && panel.classList.contains('is-open') && !panel.contains(event.target) && event.target !== btn && !btn?.contains(event.target)) {

@@ -227,12 +227,13 @@ class StudentController extends BaseController
             redirect('index.php?r=student_records');
         }
         $officialStart = $enrollment['official_start_date'] ?? $enrollment['start_date'] ?? null;
-        if ($officialStart && strtotime((string)$p['work_date']) < strtotime((string)$officialStart)) {
+        if (!temporary_report_unlock_enabled() && $officialStart && strtotime((string)$p['work_date']) < strtotime((string)$officialStart)) {
             flash('error', 'DTR date cannot be earlier than your official OJT start date.');
             redirect('index.php?r=student_records');
         }
         try {
             (new Report($this->db))->addDtr((int)$student['id'], $p['work_date'], $p['time_in'], $p['time_out'], trim($p['tasks_done']));
+            (new Report($this->db))->clearDtrDraft((int)$student['id']);
             $enrollments->syncCompletion((int)$student['id']);
             if (!empty($student['coordinator_id'])) {
                 (new Notification($this->db))->create((int)$student['coordinator_id'], 'DTR submitted', $student['name'] . ' submitted a daily time record for ' . date('M d, Y', strtotime((string)$p['work_date'])) . '.', route_url('coordinator.students'));
@@ -270,6 +271,29 @@ class StudentController extends BaseController
             flash('error', $e->getMessage());
         }
         redirect('index.php?r=student_records');
+    }
+
+    public function saveDtrDraft(): void
+    {
+        require_role('student');
+        verify_csrf();
+        $p = $this->post();
+        $student = (new Student($this->db))->findByUser(current_user()['id']);
+        header('Content-Type: application/json');
+        if (!$student) {
+            http_response_code(404);
+            echo json_encode(['ok' => false, 'message' => 'Student record not found.']);
+            return;
+        }
+        (new Report($this->db))->saveDtrDraft(
+            (int)$student['id'],
+            trim((string)($p['work_date'] ?? '')) ?: null,
+            trim((string)($p['time_in'] ?? '')) ?: null,
+            trim((string)($p['time_out'] ?? '')) ?: null,
+            !empty($p['time_in_locked']),
+            !empty($p['time_out_locked'])
+        );
+        echo json_encode(['ok' => true]);
     }
 
     private function uploadReport(array $file): string
@@ -313,6 +337,7 @@ class StudentController extends BaseController
             'canSubmitReports' => $enrollmentModel->allowsReports($enrollment),
             'reportLockMessage' => $enrollmentModel->reportLockMessage($enrollment),
             'dtrs' => $student ? $reports->dtrByStudent((int)$student['id']) : [],
+            'dtrDraft' => $student ? $reports->dtrDraftByStudent((int)$student['id']) : [],
             'weeklyReports' => $student ? $reports->weeklyByStudent((int)$student['id']) : [],
             'hours' => $student ? $reports->totalHours((int)$student['id']) : 0,
             'requirements' => $requirements,
