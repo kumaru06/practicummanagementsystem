@@ -53,7 +53,7 @@
         </div>
     </form>
     <?php endif; ?>
-    <div class="table-wrap"><table class="data-table"><thead><tr><th>Requirement</th><th>Notes</th><th>File</th><th>Status</th><th>Upload</th></tr></thead><tbody>
+    <div class="table-wrap requirement-table-wrap"><table class="data-table"><thead><tr><th>Requirement</th><th>Notes</th><th>File</th><th>Status</th><th>Upload</th></tr></thead><tbody>
         <?php foreach ($requirements as $key => $req): ?>
             <?php
                 $predeploymentStatus = $enrollment['predeployment_status'] ?? 'not_submitted';

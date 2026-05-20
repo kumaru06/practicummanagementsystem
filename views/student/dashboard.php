@@ -153,7 +153,7 @@ $nextAction = match (true) {
 
     <section class="student-activity-card">
         <div class="student-card-head"><h3>Recent Activity</h3><span>Latest DTR entries</span></div>
-        <div class="timeline">
+        <div class="timeline<?= empty($dtrs ?? []) ? ' is-empty' : '' ?>">
             <?php if (empty($dtrs ?? [])): ?><p class="muted">No daily time records submitted yet.</p><?php endif; ?>
             <?php foreach (array_slice($dtrs ?? [], 0, 4) as $d): ?>
                 <article class="timeline-item">

@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initCoordinatorCardAlignment();
     initConfirmActions();
     initStudentMobileTapProxy();
+    initStudentProfilePhotoPreview();
     document.querySelectorAll('.data-table').forEach(table => enhanceTable(table));
     document.querySelector('#modal .modal-close')?.addEventListener('click', closeSlidePanel);
     document.addEventListener('click', handleOutsideMenus);
@@ -27,6 +28,34 @@ document.addEventListener('DOMContentLoaded', () => {
     initStudentModal();
     renderDashboardCharts();
 });
+
+function initStudentProfilePhotoPreview() {
+    const input = document.querySelector('[data-profile-photo-input]');
+    const preview = document.querySelector('[data-profile-photo-preview]');
+    const fallback = document.querySelector('[data-profile-photo-fallback]');
+    if (!preview || !fallback) return;
+
+    const showFallback = () => {
+        preview.classList.add('is-hidden');
+        preview.removeAttribute('src');
+        fallback.classList.remove('is-hidden');
+    };
+
+    preview.addEventListener('error', showFallback, { once: true });
+    if (!preview.getAttribute('src')) showFallback();
+
+    input?.addEventListener('change', () => {
+        const file = input.files?.[0];
+        if (!file || !file.type.startsWith('image/')) {
+            showFallback();
+            return;
+        }
+
+        preview.src = URL.createObjectURL(file);
+        preview.classList.remove('is-hidden');
+        fallback.classList.add('is-hidden');
+    });
+}
 
 function initConfirmActions() {
     document.querySelectorAll('[data-confirm]').forEach(element => {

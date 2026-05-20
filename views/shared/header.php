@@ -1,3 +1,9 @@
+<?php
+$headerInitial = strtoupper(substr($user['name'] ?? 'A', 0, 1));
+$headerPhotoSource = (($user['role'] ?? '') === 'student') ? (($student ?? null) ?: ($studentRecord ?? null)) : null;
+$headerPhotoPath = !empty($headerPhotoSource['photo_file']) ? __DIR__ . '/../../' . ltrim((string)$headerPhotoSource['photo_file'], '/\\') : '';
+$headerPhotoUrl = ($headerPhotoPath !== '' && is_file($headerPhotoPath)) ? asset($headerPhotoSource['photo_file']) : '';
+?>
 <!doctype html>
 <html lang="en">
 <head>
@@ -7,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260520-confirm-modal">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260520-profile-topbar-photo">
 </head>
 <body class="app-page role-<?= e($user['role'] ?? 'guest') ?>">
 <div class="app-shell">
@@ -79,7 +85,14 @@
                         <?php if (($unreadNotifications ?? 0) > 0): ?><span class="notif-badge"><?= (int)$unreadNotifications ?></span><?php endif; ?>
                     </button>
                 </div>
-                <div class="user-chip"><span class="user-avatar"><?= e(strtoupper(substr($user['name'] ?? 'A', 0, 1))) ?></span><div><strong><?= e($user['name'] ?? '') ?></strong><small><?= e($user['email'] ?? '') ?></small></div></div>
+                <div class="user-chip">
+                    <?php if ($headerPhotoUrl !== ''): ?>
+                        <span class="user-avatar user-avatar-photo"><img src="<?= e($headerPhotoUrl) ?>" alt="<?= e($user['name'] ?? 'User') ?> profile photo"></span>
+                    <?php else: ?>
+                        <span class="user-avatar"><?= e($headerInitial) ?></span>
+                    <?php endif; ?>
+                    <div><strong><?= e($user['name'] ?? '') ?></strong><small><?= e($user['email'] ?? '') ?></small></div>
+                </div>
             </div>
         </header>
         <div class="notif-panel" id="notifPanel" role="dialog" aria-label="Notifications" hidden>

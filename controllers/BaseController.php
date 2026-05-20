@@ -15,6 +15,7 @@ abstract class BaseController
         $notifications = [];
         $unreadNotifications = 0;
         $studentProfileCompleted = true;
+        $studentRecord = null;
         if ($user) {
             try {
                 $notificationModel = new Notification($this->db);

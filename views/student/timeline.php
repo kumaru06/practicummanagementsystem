@@ -1,6 +1,6 @@
 <section class="card">
     <div class="section-head"><h2>Activity Timeline</h2><span class="muted">Daily time records and weekly submissions</span></div>
-    <div class="timeline">
+    <div class="timeline<?= !$dtrs && !$weeklyReports ? ' is-empty' : '' ?>">
         <?php if (!$dtrs && !$weeklyReports): ?><p class="muted">No practicum activity submitted yet.</p><?php endif; ?>
         <?php foreach ($dtrs as $d): ?>
             <article class="timeline-item" data-detail="<?= e($d['work_date'] . '|' . $d['time_in'] . ' - ' . $d['time_out'] . '|' . $d['hours'] . ' hours|' . $d['tasks_done']) ?>">
