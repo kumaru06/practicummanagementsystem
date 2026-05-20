@@ -161,6 +161,9 @@ class CoordinatorController extends BaseController
             if (!$student || (int)$student['coordinator_id'] !== current_user()['id']) {
                 throw new RuntimeException('Student does not belong to your coordination.');
             }
+            if ((new Enrollment($this->db))->byStudent($studentId)) {
+                throw new RuntimeException('This student is already enrolled. Please try again.');
+            }
             $program = !empty($student['program_id']) ? (new Program($this->db))->find((int)$student['program_id']) : null;
             if (!$program) {
                 throw new RuntimeException('Student has no valid program/course assigned.');
@@ -190,7 +193,7 @@ class CoordinatorController extends BaseController
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
-        redirect('index.php?r=coordinator');
+        redirect('index.php?r=coordinator_manage');
     }
 
     public function reviewRequirement(): void

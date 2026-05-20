@@ -1,3 +1,13 @@
+<?php
+$enrolledCount = 0;
+foreach ($students as $studentRow) {
+    if (!empty($studentRow['enrollment_id'])) {
+        $enrolledCount++;
+    }
+}
+$unenrolledCount = count($students) - $enrolledCount;
+?>
+
 <div class="grid two">
     <section class="card">
         <div class="card-head"><h2>Create Student from COR</h2><p class="muted">Add a student account and securely store their uploaded registration document.</p></div>
@@ -40,7 +50,7 @@
             <input type="hidden" name="action" value="coordinator_enroll_student">
             <div class="wizard-steps"><span class="active">Student</span><span>Company & Dates</span><span>Confirm</span></div>
             <div class="wizard-step active">
-                <label><select required name="student_id"><option value="">— Select student —</option><?php foreach ($students as $s): ?><option value="<?= (int)$s['id'] ?>" data-program-id="<?= (int)($s['program_id'] ?? 0) ?>" data-required-hours="<?= (int)($s['program_required_hours'] ?? 0) ?>"><?= e($s['name'] . ' - ' . $s['student_no'] . ' (' . ($s['program_code'] ?? $s['course']) . ')') ?></option><?php endforeach; ?></select></label>
+                <label><select required name="student_id"><option value="">— Select student —</option><?php foreach ($students as $s): ?><option value="<?= (int)$s['id'] ?>" data-program-id="<?= (int)($s['program_id'] ?? 0) ?>" data-required-hours="<?= (int)($s['program_required_hours'] ?? 0) ?>" data-is-enrolled="<?= !empty($s['enrollment_id']) ? '1' : '0' ?>"><?= e($s['name'] . ' - ' . $s['student_no'] . ' (' . ($s['program_code'] ?? $s['course']) . ')' . ' - ' . (!empty($s['enrollment_id']) ? 'Enrolled' : 'Unenrolled')) ?></option><?php endforeach; ?></select></label>
                 <button class="btn btn-primary wizard-next" type="button">Next</button>
             </div>
             <div class="wizard-step">
@@ -87,3 +97,45 @@
         </form>
     </section>
 </div>
+
+<section class="card enrollment-directory-card" data-enrollment-directory>
+    <div class="section-head section-head-split">
+        <div>
+            <h2>Student Enrollment Status</h2>
+            <p class="muted">Review which students are already enrolled and quickly select available students for the enrollment wizard.</p>
+        </div>
+        <div class="toolbar-inline enrollment-directory-toolbar">
+            <input class="table-search" placeholder="Search by name or student ID..." aria-label="Search student enrollment status">
+        </div>
+    </div>
+    <div class="enrollment-directory-stats" aria-label="Enrollment summary">
+        <div class="enrollment-directory-stat total"><span>Total Students</span><strong><?= count($students) ?></strong></div>
+        <div class="enrollment-directory-stat enrolled"><span>Enrolled</span><strong><?= $enrolledCount ?></strong></div>
+        <div class="enrollment-directory-stat unenrolled"><span>Unenrolled</span><strong><?= $unenrolledCount ?></strong></div>
+    </div>
+    <div class="table-wrap">
+        <table class="data-table no-row-details" data-enrollment-directory-table>
+            <thead>
+                <tr>
+                    <th data-sort>Name</th>
+                    <th data-sort>Student ID</th>
+                    <th data-sort>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($students as $s): ?>
+                    <?php $isEnrolled = !empty($s['enrollment_id']); ?>
+                    <tr class="enrollment-directory-row" data-student-id="<?= (int)$s['id'] ?>" data-student-enrolled="<?= $isEnrolled ? '1' : '0' ?>">
+                        <td>
+                            <?= e($s['name']) ?><br>
+                            <small><?= e($s['program_code'] ?? $s['course']) ?></small>
+                        </td>
+                        <td><?= e($s['student_no']) ?></td>
+                        <td><span class="badge <?= $isEnrolled ? 'enrolled' : 'unenrolled' ?>"><?= $isEnrolled ? 'Enrolled' : 'Unenrolled' ?></span></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <div class="pagination"></div>
+</section>

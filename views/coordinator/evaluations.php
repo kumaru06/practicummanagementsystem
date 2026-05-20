@@ -8,7 +8,7 @@
     <?php else: ?>
     <div class="table-wrap"><table class="data-table"><thead><tr>
         <th data-sort>Student</th>
-        <th data-sort>Student No.</th>
+        <th data-sort>Student ID</th>
         <th data-sort>Course</th>
         <th data-sort>Company</th>
         <th data-sort>Rating</th>

@@ -171,7 +171,7 @@ $termFormatPattern = '\d{4} \((1st|2nd|3rd) Tri\) - SY \d{4}-\d{4}';
                         <div class="program-row-inline">
                             <input form="<?= e($formId) ?>" class="pf-input pf-code" name="code" value="<?= e($p['code']) ?>" placeholder="Code" required>
                             <input form="<?= e($formId) ?>" class="pf-input pf-name" name="name" value="<?= e($p['name']) ?>" placeholder="Program Name" required>
-                            <select form="<?= e($formId) ?>" class="pf-input pf-term" name="term" required>
+                            <select form="<?= e($formId) ?>" class="pf-input pf-term pf-native-select" name="term" data-native-select="1" required>
                                 <option value="">— Term —</option>
                                 <?php foreach ($termSuggestions as $ts): ?>
                                     <option value="<?= e($ts) ?>" <?= ($p['term'] === $ts) ? 'selected' : '' ?>><?= e($ts) ?></option>
@@ -181,7 +181,7 @@ $termFormatPattern = '\d{4} \((1st|2nd|3rd) Tri\) - SY \d{4}-\d{4}';
                                 <?php endif; ?>
                             </select>
                             <input form="<?= e($formId) ?>" class="pf-input pf-hours" type="number" min="1" name="required_hours" value="<?= (int)$p['required_hours'] ?>" placeholder="Hours" required>
-                            <select form="<?= e($formId) ?>" class="pf-input pf-status" name="is_active">
+                            <select form="<?= e($formId) ?>" class="pf-input pf-status pf-native-select" name="is_active" data-native-select="1">
                                 <option value="1" <?= $isActive ? 'selected' : '' ?>>Active</option>
                                 <option value="0" <?= !$isActive ? 'selected' : '' ?>>Inactive</option>
                             </select>

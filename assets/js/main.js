@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initCounters();
     initWizards();
     initEnrollmentAutomation();
+    initEnrollmentDirectory();
     initViewToggles();
     initTimelineDetails();
     initEmailLogViews();
@@ -122,6 +123,51 @@ function showConfirmModal(message, options = {}) {
         requestAnimationFrame(() => {
             overlay.classList.add('is-open');
             overlay.querySelector('.app-confirm-ok')?.focus();
+        });
+    });
+}
+
+function showAlertModal(message, options = {}) {
+    return new Promise(resolve => {
+        const existing = document.querySelector('.app-confirm-overlay');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.className = 'app-confirm-overlay';
+        overlay.innerHTML = `
+            <div class="app-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="app-alert-title">
+                <div class="app-confirm-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20a10 10 0 0 1 0-20Zm0 5a1 1 0 0 0-1 1v4.2a1 1 0 0 0 2 0V8a1 1 0 0 0-1-1Zm0 9.75a1.25 1.25 0 1 0 0-2.5a1.25 1.25 0 0 0 0 2.5Z"/></svg>
+                </div>
+                <div class="app-confirm-copy">
+                    <h2 id="app-alert-title">${escapeHtml(options.title || 'Notice')}</h2>
+                    <p>${escapeHtml(message)}</p>
+                </div>
+                <div class="app-confirm-actions">
+                    <button class="btn btn-primary app-alert-ok" type="button">${escapeHtml(options.confirmText || 'OK')}</button>
+                </div>
+            </div>
+        `;
+
+        const close = () => {
+            overlay.classList.remove('is-open');
+            document.removeEventListener('keydown', onKeydown);
+            setTimeout(() => overlay.remove(), 160);
+            resolve();
+        };
+        const onKeydown = event => {
+            if (event.key === 'Escape' || event.key === 'Enter') close();
+        };
+
+        overlay.addEventListener('click', event => {
+            if (event.target === overlay) close();
+        });
+        overlay.querySelector('.app-alert-ok')?.addEventListener('click', close);
+        document.addEventListener('keydown', onKeydown);
+        document.body.appendChild(overlay);
+        requestAnimationFrame(() => {
+            overlay.classList.add('is-open');
+            overlay.querySelector('.app-alert-ok')?.focus();
         });
     });
 }
@@ -556,14 +602,19 @@ function isSameCustomDate(first, second) {
 }
 
 function initCustomFilterSelects() {
-    document.querySelectorAll('.email-filter-bare .filter-select-wrap select').forEach((select, index) => {
-        const wrap = select.closest('.filter-select-wrap');
-        if (!wrap || wrap.dataset.enhanced === '1') return;
+    document.querySelectorAll('select').forEach((select, index) => {
+        if (select.dataset.enhanced === '1' || select.classList.contains('filter-date-year-select') || select.multiple || select.dataset.nativeSelect === '1') return;
 
-        wrap.dataset.enhanced = '1';
-        wrap.classList.add('is-enhanced');
+        const wrap = select.closest('.filter-select-wrap') || select.parentElement;
+        if (!wrap) return;
 
-        const fieldLabel = wrap.closest('.filter-control')?.querySelector('.filter-label')?.textContent?.trim() || 'Select';
+        select.dataset.enhanced = '1';
+        wrap.classList.add('is-enhanced', 'select-enhanced-wrap');
+
+        const fieldLabel = wrap.closest('.filter-control')?.querySelector('.filter-label')?.textContent?.trim()
+            || wrap.querySelector('span')?.textContent?.replace('*', '').trim()
+            || select.getAttribute('aria-label')
+            || 'Select';
         const custom = document.createElement('div');
         custom.className = 'custom-select';
 
@@ -593,41 +644,55 @@ function initCustomFilterSelects() {
         menu.setAttribute('role', 'listbox');
         menu.setAttribute('aria-label', fieldLabel);
 
-        [...select.options].forEach((option, optionIndex) => {
-            const item = document.createElement('button');
-            item.type = 'button';
-            item.className = 'custom-select-option';
-            item.setAttribute('role', 'option');
-            item.dataset.value = option.value;
-            item.dataset.index = String(optionIndex);
-            item.innerHTML = `
-                <span class="custom-select-option-dot" aria-hidden="true"></span>
-                <span class="custom-select-option-label">${escapeHtml(option.textContent.trim())}</span>
-            `;
-            item.addEventListener('click', () => {
-                select.selectedIndex = optionIndex;
-                select.dispatchEvent(new Event('change', { bubbles: true }));
-                closeCustomSelects();
-                trigger.focus();
-            });
-            item.addEventListener('keydown', event => handleCustomSelectOptionKeys(event, custom));
-            menu.appendChild(item);
-        });
-
         trigger.append(copy, caret);
         custom.append(trigger, menu);
         wrap.appendChild(custom);
 
+        let optionSignature = '';
+
+        const renderOptions = () => {
+            const nextSignature = [...select.options].map(option => [option.value, option.textContent, option.hidden, option.disabled].join('|')).join('::');
+            if (nextSignature === optionSignature && menu.children.length) return;
+            optionSignature = nextSignature;
+            menu.innerHTML = '';
+            [...select.options].forEach((option, optionIndex) => {
+                if (option.hidden) return;
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'custom-select-option';
+                item.setAttribute('role', 'option');
+                item.dataset.value = option.value;
+                item.dataset.index = String(optionIndex);
+                item.disabled = option.disabled;
+                item.innerHTML = `
+                    <span class="custom-select-option-dot" aria-hidden="true"></span>
+                    <span class="custom-select-option-label">${escapeHtml(option.textContent.trim())}</span>
+                `;
+                item.addEventListener('click', () => {
+                    if (option.disabled) return;
+                    select.selectedIndex = optionIndex;
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                    closeCustomSelects();
+                    trigger.focus();
+                });
+                item.addEventListener('keydown', event => handleCustomSelectOptionKeys(event, custom));
+                menu.appendChild(item);
+            });
+        };
+
         const syncState = () => {
+            renderOptions();
             const selectedOption = select.selectedOptions[0] || select.options[0];
             const hasValue = !!(selectedOption?.value || '').trim();
             value.textContent = selectedOption?.textContent?.trim() || fieldLabel;
             custom.classList.toggle('is-placeholder', !hasValue);
+            custom.classList.toggle('is-disabled', select.disabled);
+            trigger.disabled = select.disabled;
             [...menu.querySelectorAll('.custom-select-option')].forEach(item => {
-                const selected = item.dataset.value === (selectedOption?.value || '');
+                const selected = item.dataset.index === String(selectedOption?.index ?? select.selectedIndex);
                 item.classList.toggle('is-selected', selected);
                 item.setAttribute('aria-selected', String(selected));
-                item.tabIndex = selected ? 0 : -1;
+                item.tabIndex = selected && !item.disabled ? 0 : -1;
             });
         };
 
@@ -638,6 +703,7 @@ function initCustomFilterSelects() {
 
         trigger.addEventListener('click', event => {
             event.stopPropagation();
+            syncState();
             const opening = !custom.classList.contains('is-open');
             closeCustomSelects(opening ? custom : null);
             setOpen(opening);
@@ -655,6 +721,7 @@ function initCustomFilterSelects() {
         });
 
         select.addEventListener('change', syncState);
+        select._syncCustomSelect = syncState;
         syncState();
     });
 }
@@ -1200,6 +1267,17 @@ function initWizards() {
             updateWizardSummary(form);
         };
         form.querySelectorAll('.wizard-next').forEach(btn => btn.addEventListener('click', () => {
+            const studentSelect = form.querySelector('[name="student_id"]');
+            const selectedStudent = studentSelect?.selectedOptions?.[0];
+            if (selectedStudent?.dataset.isEnrolled === '1') {
+                showAlertModal('This student is already enrolled. Please try again.', {
+                    title: 'Student already enrolled',
+                    confirmText: 'OK'
+                });
+                studentSelect.value = '';
+                updateWizardSummary(form);
+                return;
+            }
             const fields = [...panels[index].querySelectorAll('input,select,textarea')];
             const reqDatePickers = [...panels[index].querySelectorAll('.filter-date-picker[data-date-required]')];
             const missingDates = reqDatePickers.filter(p => !p.querySelector('input[type="hidden"]')?.value);
@@ -1221,8 +1299,8 @@ function updateWizardSummary(form) {
     if (!box) return;
     const student = form.querySelector('[name="student_id"]')?.selectedOptions[0]?.textContent || '-';
     const company = form.querySelector('[name="company_id"]')?.selectedOptions[0]?.textContent || '-';
-    const start = form.querySelector('[name="start_date"]')?.value || '-';
-    const end = form.querySelector('[name="end_date"]')?.value || '-';
+    const start = form.querySelector('[name="term_start_date"]')?.value || '-';
+    const end = form.querySelector('[name="term_end_date"]')?.value || '-';
     const hours = form.querySelector('[name="required_hours"]')?.value || '-';
     box.innerHTML = `<h3>Confirm Enrollment</h3><p><strong>Student:</strong> ${escapeHtml(student)}</p><p><strong>Company:</strong> ${escapeHtml(company)}</p><p><strong>Schedule:</strong> ${escapeHtml(start)} to ${escapeHtml(end)}</p><p><strong>Required Hours:</strong> ${escapeHtml(hours)}</p><p class="muted">Submitting will send the student enrollment and company deployment emails.</p>`;
 }
@@ -1235,8 +1313,31 @@ function initEnrollmentAutomation() {
         const companyDocPreview = form?.querySelector('[data-company-doc-preview]');
         const companyDocLink = form?.querySelector('[data-company-doc-link]');
         if (!form || !companySelect || !hoursInput) return;
+        const clearSelection = () => {
+            studentSelect.value = '';
+            hoursInput.value = '';
+        };
+        const resetCompanies = () => {
+            [...companySelect.options].forEach(option => {
+                option.hidden = false;
+                option.disabled = false;
+            });
+            companySelect.value = '';
+            companySelect._syncCustomSelect?.();
+        };
         const sync = () => {
             const selected = studentSelect.selectedOptions[0];
+            if (selected?.dataset.isEnrolled === '1') {
+                clearSelection();
+                resetCompanies();
+                syncCompanyDocument();
+                updateWizardSummary(form);
+                showAlertModal('This student is already enrolled. Please try again.', {
+                    title: 'Student already enrolled',
+                    confirmText: 'OK'
+                });
+                return;
+            }
             const programId = selected?.dataset.programId || '';
             const requiredHours = selected?.dataset.requiredHours || '';
             hoursInput.value = requiredHours;
@@ -1248,6 +1349,7 @@ function initEnrollmentAutomation() {
                 option.disabled = !visible;
             });
             if (companySelect.selectedOptions[0]?.disabled) companySelect.value = '';
+            companySelect._syncCustomSelect?.();
             updateWizardSummary(form);
         };
         const syncCompanyDocument = () => {
@@ -1267,6 +1369,13 @@ function initEnrollmentAutomation() {
             updateWizardSummary(form);
             syncCompanyDocument();
         });
+        if (studentSelect.selectedOptions[0]?.dataset.isEnrolled === '1') {
+            clearSelection();
+            resetCompanies();
+            syncCompanyDocument();
+            updateWizardSummary(form);
+            return;
+        }
         sync();
         syncCompanyDocument();
     });
@@ -2104,4 +2213,35 @@ function initStudentModal() {
             setTimeout(() => targetButton.click(), 120);
         }
     }
+}
+
+function initEnrollmentDirectory() {
+    document.querySelectorAll('[data-enrollment-directory]').forEach(directory => {
+        const table = directory.querySelector('[data-enrollment-directory-table]');
+        const wizardForm = document.querySelector('[data-wizard]');
+        const studentSelect = wizardForm?.querySelector('[name="student_id"]');
+        if (!table || !studentSelect) return;
+
+        table.tBodies[0]?.addEventListener('click', event => {
+            const row = event.target.closest('.enrollment-directory-row');
+            if (!row) return;
+
+            const isEnrolled = row.dataset.studentEnrolled === '1';
+            const studentId = row.dataset.studentId || '';
+            document.querySelectorAll('.enrollment-directory-row.is-selected-row').forEach(activeRow => activeRow.classList.remove('is-selected-row'));
+            row.classList.add('is-selected-row');
+
+            if (isEnrolled) {
+                showAlertModal('This student is already enrolled. Please try again.', {
+                    title: 'Student already enrolled',
+                    confirmText: 'OK'
+                });
+                return;
+            }
+
+            studentSelect.value = studentId;
+            studentSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            wizardForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
 }

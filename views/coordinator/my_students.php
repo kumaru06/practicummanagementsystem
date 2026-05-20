@@ -14,7 +14,7 @@
                 </article>
             <?php endforeach; ?>
         </div>
-        <div class="table-wrap"><table class="data-table no-row-details"><thead><tr><th data-sort>Name</th><th data-sort>Student No.</th><th>Pre-Deployment</th><th>Details</th></tr></thead><tbody>
+        <div class="table-wrap"><table class="data-table no-row-details"><thead><tr><th data-sort>Name</th><th data-sort>Student ID</th><th>Pre-Deployment</th><th>Details</th></tr></thead><tbody>
             <?php foreach ($students as $s): ?>
                 <?php $required = (float)($s['required_hours'] ?? 0); $rendered = (float)($s['rendered_hours'] ?? 0); $percent = $required > 0 ? min(100, round(($rendered / $required) * 100)) : 0; ?>
                 <tr>
@@ -72,7 +72,7 @@
             </div>
         </div>
         <div class="sm-details-grid student-panel-grid">
-            <div class="student-panel-item"><span class="sm-label">Student No.</span><strong id="sm-student-no"></strong></div>
+            <div class="student-panel-item"><span class="sm-label">Student ID</span><strong id="sm-student-no"></strong></div>
             <div class="student-panel-item"><span class="sm-label">Birthdate</span><strong id="sm-birthdate"></strong></div>
             <div class="student-panel-item"><span class="sm-label">Course</span><strong id="sm-course"></strong></div>
             <div class="student-panel-item"><span class="sm-label">Year Level</span><strong id="sm-year-level"></strong></div>

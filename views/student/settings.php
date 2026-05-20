@@ -9,7 +9,7 @@
     <section class="card">
         <h2>Profile Status</h2>
         <p><strong>Name:</strong> <?= e($student['name'] ?? '') ?></p>
-        <p><strong>Student No:</strong> <?= e($student['student_no'] ?? '') ?></p>
+        <p><strong>Student ID:</strong> <?= e($student['student_no'] ?? '') ?></p>
         <p><strong>Course:</strong> <?= e($student['course'] ?? '') ?></p>
         <p><strong>Status:</strong> <span class="badge <?= !empty($student['profile_completed']) ? 'active' : 'pending' ?>"><?= !empty($student['profile_completed']) ? 'Complete' : 'Incomplete' ?></span></p>
     </section>

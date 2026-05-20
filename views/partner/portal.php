@@ -31,7 +31,7 @@ $evaluationUnlocked = $selected && $requiredHours > 0 && $renderedHours >= $requ
                 <thead>
                     <tr>
                         <th data-sort>Name</th>
-                        <th data-sort>Student No.</th>
+                        <th data-sort>Student ID</th>
                         <th>Course/Year</th>
                         <th>Schedule</th>
                         <th>Status</th>
