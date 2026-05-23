@@ -5368,6 +5368,11 @@ small,
     color: #991b1b;
 }
 
+.badge.approved {
+    background: var(--green-bg);
+    color: #166534;
+}
+
 .inline {
     display: inline;
 }
