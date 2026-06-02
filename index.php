@@ -184,6 +184,7 @@ match ($route) {
     'coordinator' => (new CoordinatorController())->dashboard(),
     'coordinator_manage' => (new CoordinatorController())->manage(),
     'coordinator_students' => (new CoordinatorController())->myStudents(),
+    'coordinator_preview_endorsement' => (new CoordinatorController())->previewEndorsementLetter(),
     'coordinator_moa_mou' => (new CoordinatorController())->moaMouLibrary(),
     'coordinator_partner_document' => (new CoordinatorController())->viewPartnerDocument(),
     'coordinator_evaluations' => (new CoordinatorController())->evaluations(),
@@ -197,5 +198,6 @@ match ($route) {
     'student_password' => (new StudentController())->changePasswordForm(),
     'partner' => (new PartnerController())->dashboard(),
     'partner_portal' => (new PartnerController())->portal(),
+    'partner_view_endorsement' => (new PartnerController())->viewEndorsementLetter(),
     default => redirect('index.php?r=' . current_user()['role']),
 };

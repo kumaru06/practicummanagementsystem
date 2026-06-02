@@ -247,13 +247,31 @@ class CoordinatorController extends BaseController
             if (!$company) {
                 throw new RuntimeException('Industry Partner not found.');
             }
-            $endorsement = !empty($_FILES['endorsement_file']['name'])
-                ? upload_document($_FILES['endorsement_file'] ?? [], 'endorsements')
-                : generate_endorsement_letter($student, $company, current_user(), $enrollment);
-            (new Enrollment($this->db))->approveAndForward((int)$enrollment['id'], $endorsement);
+
+            /**
+             * Generate Endorsement Letter PDF dynamically (in-memory, not saved to disk)
+             */
+            $endorsementLetter = new EndorsementLetter($this->db);
+            $pdfBuffer = $endorsementLetter->generatePdfBuffer((int)$student['id'], (int)$enrollment['id']);
+
+            // Update enrollment status to 'forwarded' with a virtual endorsement reference
+            $stmt = $this->db->prepare('UPDATE ojt_enrollments SET predeployment_status = "forwarded", endorsement_file = ?, forwarded_at = NOW() WHERE id = ?');
+            $stmt->execute(['(generated-pdf)', (int)$enrollment['id']]);
+
             if ($company) {
+                // Fetch requirement files for attachment
                 $attachments = array_map(static fn ($path) => ['path' => $path], $studentModel->requirementFilePaths((int)$student['id']));
-                $attachments[] = ['path' => $endorsement, 'name' => 'Endorsement Letter.' . pathinfo($endorsement, PATHINFO_EXTENSION)];
+                
+                /**
+                 * Add the generated PDF as a string attachment
+                 * The Email class will use addStringAttachment for this
+                 */
+                $attachments[] = [
+                    'string' => $pdfBuffer,
+                    'name' => 'Endorsement_Letter.pdf',
+                    'type' => 'application/pdf'
+                ];
+
                 (new Email($this->db))->send($company['contact_email'], 'Student Deployment Documents Forwarded', 'deployment_forwarded', 'company_deployment', [
                     'student' => $student,
                     'company' => $company,
@@ -265,11 +283,59 @@ class CoordinatorController extends BaseController
                 ], $attachments);
                 (new Notification($this->db))->create((int)$company['user_id'], 'Student deployment forwarded', $student['name'] . ' has been forwarded to your Industry Partner Portal for review.', route_url('partner.portal', ['enrollment' => (int)$enrollment['id']]));
             }
-            flash('success', 'Documents approved and forwarded to the Industry Partner.');
+            flash('success', 'Documents approved and Endorsement Letter generated and forwarded to the Industry Partner.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
         redirect('index.php?r=coordinator_students');
+    }
+
+    /**
+     * Preview the auto-generated endorsement letter before forwarding
+     * 
+     * This allows coordinators to review the PDF before clicking "Approve & Forward"
+     */
+    public function previewEndorsementLetter(): void
+    {
+        require_role('coordinator');
+        $enrollmentId = (int)($_GET['enrollment'] ?? 0);
+        
+        if (!$enrollmentId) {
+            http_response_code(400);
+            exit('Invalid enrollment ID.');
+        }
+
+        $enrollment = (new Enrollment($this->db))->find($enrollmentId);
+        
+        if (!$enrollment) {
+            http_response_code(404);
+            exit('Enrollment not found.');
+        }
+
+        // Verify the student belongs to this coordinator
+        $student = (new Student($this->db))->find((int)$enrollment['student_id']);
+        if (!$student || (int)$student['coordinator_id'] !== current_user()['id']) {
+            http_response_code(403);
+            exit('You do not have access to this enrollment.');
+        }
+
+        try {
+            // Generate the PDF on-demand
+            $endorsementLetter = new EndorsementLetter($this->db);
+            $pdfContent = $endorsementLetter->generatePdfBuffer((int)$enrollment['student_id'], (int)$enrollment['id']);
+
+            // Stream the PDF to the browser
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="Endorsement_Letter_Preview.pdf"');
+            header('Content-Length: ' . strlen($pdfContent));
+            header('Cache-Control: public, max-age=3600');
+            echo $pdfContent;
+            exit;
+
+        } catch (Throwable $e) {
+            http_response_code(500);
+            exit('Error generating endorsement letter: ' . $e->getMessage());
+        }
     }
 
     public function resetStudentPassword(): void

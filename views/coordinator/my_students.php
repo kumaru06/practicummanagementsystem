@@ -174,15 +174,17 @@
                         <div class="requirement-forward-box">
                             <div>
                                 <strong>Ready to forward deployment</strong>
-                                <small>Attach the endorsement letter and send the approved documents to the Industry Partner.</small>
+                                <small>The endorsement letter will be generated automatically and sent to the Industry Partner along with the approved documents.</small>
                             </div>
-                            <form method="post" enctype="multipart/form-data" class="form requirement-forward-form">
-                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                <input type="hidden" name="action" value="coordinator_forward_deployment">
-                                <input type="hidden" name="enrollment_id" value="<?= (int)$s['enrollment_id'] ?>">
-                                <label>Endorsement Letter<input required type="file" name="endorsement_file" accept=".pdf,.jpg,.jpeg,.png"></label>
-                                <button class="btn btn-small" type="submit">Approve &amp; Forward</button>
-                            </form>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <a class="btn btn-small" target="_blank" href="<?= e(route_url('coordinator.preview_endorsement', ['enrollment' => (int)$s['enrollment_id']])) ?>">Preview Letter</a>
+                                <form method="post" class="form requirement-forward-form" style="margin: 0;">
+                                    <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                    <input type="hidden" name="action" value="coordinator_forward_deployment">
+                                    <input type="hidden" name="enrollment_id" value="<?= (int)$s['enrollment_id'] ?>">
+                                    <button class="btn btn-small" type="submit">Approve &amp; Forward</button>
+                                </form>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>

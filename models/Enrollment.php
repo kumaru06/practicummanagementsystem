@@ -201,6 +201,59 @@ class Enrollment
         return $enrollment;
     }
 
+    /**
+     * Fetches comprehensive endorsement letter data for a specific enrollment.
+     * 
+     * This method performs a single optimized query to retrieve all data needed
+     * for generating an endorsement letter PDF, including student, company, program,
+     * and coordinator information.
+     * 
+     * @param int $enrollmentId The OJT enrollment ID
+     * @return ?array Complete endorsement data or null if not found
+     */
+    public function findForEndorsement(int $enrollmentId): ?array
+    {
+        $stmt = $this->db->prepare('
+            SELECT 
+                s.id student_id,
+                s.student_no,
+                s.course,
+                s.year_level,
+                u.name student_name,
+                u.email student_email,
+                p.name program_name,
+                p.required_hours program_required_hours,
+                pc.id company_id,
+                pc.name company_name,
+                pc.address company_address,
+                pc.contact_person,
+                pc.contact_email company_email,
+                pc.contact_number company_phone,
+                oe.id enrollment_id,
+                oe.academic_term,
+                oe.term_start_date,
+                oe.term_end_date,
+                oe.start_date,
+                oe.end_date,
+                oe.required_hours enrollment_required_hours,
+                coord_u.name coordinator_name,
+                coord_u.email coordinator_email,
+                c.department coordinator_dept
+            FROM ojt_enrollments oe
+            JOIN students s ON s.id = oe.student_id
+            JOIN users u ON u.id = s.user_id
+            LEFT JOIN programs p ON p.id = s.program_id
+            JOIN partner_companies pc ON pc.id = oe.company_id
+            LEFT JOIN users coord_u ON coord_u.id = s.coordinator_id
+            LEFT JOIN coordinators c ON c.user_id = coord_u.id
+            WHERE oe.id = ?
+            LIMIT 1
+        ');
+        
+        $stmt->execute([$enrollmentId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
     public function setPredeploymentStatus(int $studentId, string $status): void
     {
         $stmt = $this->db->prepare('UPDATE ojt_enrollments SET predeployment_status = ? WHERE student_id = ?');

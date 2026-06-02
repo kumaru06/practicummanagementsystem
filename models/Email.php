@@ -30,11 +30,21 @@ class Email
             $mail->Body = $body;
             $mail->AltBody = trim(strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $body)));
             foreach ($attachments as $attachment) {
-                $path = is_array($attachment) ? ($attachment['path'] ?? '') : (string)$attachment;
-                $name = is_array($attachment) ? ($attachment['name'] ?? '') : '';
-                $fullPath = str_starts_with($path, __DIR__) ? $path : dirname(__DIR__) . '/' . ltrim($path, '/\\');
-                if ($path && is_file($fullPath)) {
-                    $mail->addAttachment($fullPath, $name ?: basename($fullPath));
+                // Support for string attachments (e.g., dynamically generated PDFs)
+                if (is_array($attachment) && isset($attachment['string'])) {
+                    $content = $attachment['string'];
+                    $name = $attachment['name'] ?? 'attachment';
+                    $type = $attachment['type'] ?? 'application/octet-stream';
+                    $mail->addStringAttachment($content, $name, PHPMailer::ENCODING_BASE64, $type);
+                }
+                // Standard file attachment handling
+                else {
+                    $path = is_array($attachment) ? ($attachment['path'] ?? '') : (string)$attachment;
+                    $name = is_array($attachment) ? ($attachment['name'] ?? '') : '';
+                    $fullPath = str_starts_with($path, __DIR__) ? $path : dirname(__DIR__) . '/' . ltrim($path, '/\\');
+                    if ($path && is_file($fullPath)) {
+                        $mail->addAttachment($fullPath, $name ?: basename($fullPath));
+                    }
                 }
             }
             $mail->send();

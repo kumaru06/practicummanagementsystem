@@ -267,4 +267,59 @@ class PartnerController extends BaseController
         flash('success', 'Final evaluation submitted.');
         redirect('index.php?r=partner_portal&enrollment=' . (int)$p['enrollment_id']);
     }
+
+    /**
+     * Display the auto-generated endorsement letter as a PDF in the browser
+     * 
+     * This method handles viewing the dynamically generated endorsement letter
+     * for a specific enrollment. The PDF is generated on-demand and streamed directly.
+     */
+    public function viewEndorsementLetter(): void
+    {
+        require_role('partner');
+        $company = (new Company($this->db))->findByUser(current_user()['id']);
+        $enrollmentId = (int)($_GET['enrollment'] ?? 0);
+        
+        if (!$enrollmentId) {
+            http_response_code(400);
+            exit('Invalid enrollment ID.');
+        }
+
+        $enrollment = (new Enrollment($this->db))->find($enrollmentId);
+        
+        if (!$enrollment) {
+            http_response_code(404);
+            exit('Enrollment not found.');
+        }
+
+        // Verify the Industry Partner has access to this enrollment
+        if (!$company || (int)$enrollment['company_id'] !== (int)$company['id']) {
+            http_response_code(403);
+            exit('You do not have access to this enrollment.');
+        }
+
+        // Verify the endorsement letter has been forwarded
+        if (empty($enrollment['endorsement_file'])) {
+            http_response_code(404);
+            exit('Endorsement letter has not been forwarded yet.');
+        }
+
+        try {
+            // Generate the PDF on-demand
+            $endorsementLetter = new EndorsementLetter($this->db);
+            $pdfContent = $endorsementLetter->generatePdfBuffer((int)$enrollment['student_id'], (int)$enrollment['id']);
+
+            // Stream the PDF to the browser
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="Endorsement_Letter.pdf"');
+            header('Content-Length: ' . strlen($pdfContent));
+            header('Cache-Control: public, max-age=3600');
+            echo $pdfContent;
+            exit;
+
+        } catch (Throwable $e) {
+            http_response_code(500);
+            exit('Error generating endorsement letter: ' . $e->getMessage());
+        }
+    }
 }

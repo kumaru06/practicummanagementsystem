@@ -40,6 +40,7 @@ function route_url(string $route, array $params = []): string
         'coordinator.dashboard' => 'index.php?r=coordinator',
         'coordinator.manage' => 'index.php?r=coordinator_manage',
         'coordinator.students' => 'index.php?r=coordinator_students',
+        'coordinator.preview_endorsement' => 'index.php?r=coordinator_preview_endorsement',
         'coordinator.evaluations' => 'index.php?r=coordinator_evaluations',
         'student.dashboard' => 'index.php?r=student',
         'student.portal' => 'index.php?r=student_documents',
@@ -52,6 +53,7 @@ function route_url(string $route, array $params = []): string
         'student.password.edit' => 'index.php?r=student_password',
         'partner.dashboard' => 'index.php?r=partner',
         'partner.portal' => 'index.php?r=partner_portal',
+        'partner.view_endorsement' => 'index.php?r=partner_view_endorsement',
     ];
     $url = $map[$route] ?? $route;
     if ($params) {
