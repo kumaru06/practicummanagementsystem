@@ -33,9 +33,10 @@ class EndorsementLetter
         $html = $this->buildHtmlTemplate($data);
 
         // Generate PDF using Dompdf
-        $dompdf = new Dompdf();
+        $dompdf = new Dompdf(['isPhpEnabled' => true]);
         $dompdf->loadHtml($html, 'UTF-8');
         $dompdf->setPaper('A4', 'portrait');
+        $dompdf->getOptions()->setIsFontSubsettingEnabled(true);
         $dompdf->render();
 
         return $dompdf->output();
@@ -138,134 +139,79 @@ class EndorsementLetter
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Endorsement Letter</title>
     <style>
+        @page {
+            margin: 0;
+        }
         * {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
         }
-        
         body {
             font-family: 'Times New Roman', Times, serif;
-            font-size: 12pt;
-            line-height: 1.5;
+            font-size: 10pt;
+            line-height: 1.3;
             color: #000;
-            padding: 40px 60px;
-            background: white;
+            padding: 60px 70px 50px 70px;
         }
-        
         .header {
             text-align: center;
-            margin-bottom: 25px;
+            margin-bottom: 12px;
             border-bottom: 2px solid #000;
-            padding-bottom: 10px;
+            padding-bottom: 5px;
         }
-        
         .header h1 {
-            font-size: 14pt;
+            font-size: 13pt;
             font-weight: bold;
-            margin-bottom: 5px;
-            color: #000;
-            letter-spacing: 0.5px;
+            margin-bottom: 2px;
         }
-        
         .header h2 {
-            font-size: 12pt;
+            font-size: 10pt;
             font-weight: bold;
-            color: #000;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
-        
         .header p {
-            font-size: 11pt;
+            font-size: 9pt;
             color: #333;
         }
-        
         .date-section {
             text-align: right;
-            margin-bottom: 20px;
-            font-size: 11pt;
+            margin-bottom: 10px;
             font-style: italic;
         }
-        
         .recipient {
-            margin-bottom: 20px;
-            font-size: 11pt;
-            line-height: 1.4;
-        }
-        
-        .recipient-name {
-            font-weight: bold;
-            margin-bottom: 3px;
-        }
-        
-        .recipient-details {
-            margin: 2px 0;
-        }
-        
-        .salutation {
-            margin-bottom: 12px;
-            font-weight: bold;
-            font-size: 11pt;
-        }
-        
-        .body-content {
-            line-height: 1.6;
-            font-size: 11pt;
-        }
-        
-        .body-content p {
             margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        .salutation {
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        .body-content p {
+            margin-bottom: 5px;
             text-align: justify;
         }
-        
-        .body-content strong {
-            font-weight: bold;
-            color: #000;
-        }
-        
-        .requirements-list {
+        .req-list {
             list-style: disc;
-            margin-left: 40px;
-            margin-top: 10px;
-            margin-bottom: 12px;
+            margin: 4px 0 4px 25px;
         }
-        
-        .requirements-list li {
-            margin-bottom: 6px;
-            line-height: 1.5;
-            font-size: 11pt;
+        .req-list li {
+            margin-bottom: 2px;
+            line-height: 1.25;
+            font-size: 9pt;
         }
-        
-        .closing-text {
+        .closing {
+            margin-top: 12px;
+        }
+        .sig-block {
             margin-top: 20px;
-            margin-bottom: 30px;
-            font-size: 11pt;
         }
-        
-        .signature-block {
-            margin-top: 40px;
-            font-size: 11pt;
-        }
-        
-        .signature-block p {
-            margin-bottom: 2px;
-        }
-        
-        .coordinator-name {
+        .sig-block .name {
             font-weight: bold;
-            margin-top: 5px;
-            margin-bottom: 2px;
         }
-        
-        .coordinator-title {
-            font-size: 11pt;
-        }
-        
-        .coordinator-email {
-            font-size: 10pt;
+        .sig-block .email {
+            font-size: 9pt;
         }
     </style>
 </head>
@@ -275,55 +221,44 @@ class EndorsementLetter
         <h2>Recommendation / Endorsement Letter</h2>
         <p>Office of the OJT Department</p>
     </div>
-    
-    <div class="date-section">
-        {{ CURRENT_DATE }}
-    </div>
-    
+
+    <div class="date-section">{{ CURRENT_DATE }}</div>
+
     <div class="recipient">
-        <div class="recipient-name">{{ CONTACT_PERSON }}</div>
-        <div class="recipient-details">{{ COMPANY_POSITION }}</div>
-        <div class="recipient-details">{{ COMPANY_NAME }}</div>
-        <div class="recipient-details">{{ COMPANY_ADDRESS }}</div>
+        <strong>Name:</strong> {{ CONTACT_PERSON }}<br>
+        <strong>Company:</strong> {{ COMPANY_NAME }}<br>
+        <strong>Address:</strong> {{ COMPANY_ADDRESS }}
     </div>
-    
+
     <div class="salutation">Dear {{ CONTACT_PERSON }},</div>
-    
+
     <div class="body-content">
-        <p>This is to formally endorse <strong>{{ STUDENT_NAME }}</strong>, Student ID <strong>{{ STUDENT_NO }}</strong>, 
-        from <strong>{{ STUDENT_COURSE }}</strong> ({{ STUDENT_YEAR_LEVEL }}), for On-the-Job Training deployment 
-        at <strong>{{ COMPANY_NAME }}</strong>.</p>
-        
-        <p>The student is enrolled for <strong>{{ ACADEMIC_TERM }}</strong>{% if TERM_DATES %} ({{ TERM_DATES }}){% endif %} 
-        and is required to complete <strong>{{ REQUIRED_HOURS }} hours</strong> of On-the-Job Training. 
-        The official OJT start date and projected end date will be confirmed by your company after the student's orientation.</p>
-        
+        <p>This is to formally endorse <strong>{{ STUDENT_NAME }}</strong>, Student ID <strong>{{ STUDENT_NO }}</strong>, from <strong>{{ STUDENT_COURSE }}</strong> ({{ STUDENT_YEAR_LEVEL }}), for On-the-Job Training deployment at <strong>{{ COMPANY_NAME }}</strong>.</p>
+
+        <p>The student is enrolled for <strong>{{ ACADEMIC_TERM }}</strong>{% if TERM_DATES %} ({{ TERM_DATES }}){% endif %} and is required to complete <strong>{{ REQUIRED_HOURS }} hours</strong> of On-the-Job Training. The official OJT start date and projected end date will be confirmed by your company after the student's orientation.</p>
+
         <p>In line with our objective of providing our students with a holistic, quality and relevant computer-based education in all disciplines, we strongly emphasized a discipline-based training environment appropriate to the rank of each and are given the best training after having finished the theoretical requirements in school.</p>
-        
-        <p>It is in this context that the <strong>AMA COMPUTER COLLEGE</strong> hereby endorse <strong>{{ STUDENT_NAME }}</strong>, student of <strong>{{ STUDENT_COURSE }}</strong> program to complete the required hours in your company in view to complete his curriculum.</p>
-        
-        <p>In support of this collaboration, and to enable the student to maximize his time and learning with your company and ensure his safety as well, may we request that the student:</p>
-        
-        <ul class="requirements-list">
-            <li>be assigned to areas or given work assignments that are meaningful and will make him gain practical experience in his field of specialization</li>
-            <li>not be given personal and mental tasks that are unrelated to the discipline</li>
-            <li>not be exposed to work assignments that are dangerous or will expose him to risk or harm by allowing him to observe and be fully compliant with the OSHA standards and all safety regulations of your company</li>
-            <li>be treated with in a professional manner and all transactions and interactions between the school and your company be conducted in a professional and ethical manner</li>
-            <li>work dealings and engagements</li>
+
+        <p>It is in this context that the <strong>AMA COMPUTER COLLEGE</strong> hereby endorses <strong>{{ STUDENT_NAME }}</strong>, student of <strong>{{ STUDENT_COURSE }}</strong> program to complete the required hours in your company in view of completing the curriculum.</p>
+
+        <p>In support of this collaboration, and to enable the student to maximize their time and learning with your company and ensure their safety as well, may we request that the student:</p>
+
+        <ul class="req-list">
+            <li>be assigned to areas or given work assignments that are meaningful and will make them gain practical experience in their field of specialization</li>
+            <li>not be given personal and menial tasks that are unrelated to the discipline</li>
+            <li>not be exposed to dangerous work assignments or risk, and be fully compliant with OSHA standards and all safety regulations of your company</li>
+            <li>be treated in a professional manner and all interactions between the school and your company be conducted professionally and ethically</li>
         </ul>
-        
-        <p>Thank you and we look forward to our continuing partnership in the development of our students and once-to-be professionals.</p>
+
+        <p>Thank you and we look forward to our continuing partnership in the development of our students and future professionals.</p>
     </div>
-    
+
     <div class="closing">
-        <p class="closing-text">Respectfully submitted,</p>
-        
-        <div class="closing-text">Respectfully submitted,</div>
-        
-        <div class="signature-block">
-            <p class="coordinator-name">{{ COORDINATOR_NAME }}</p>
-            <p class="coordinator-title">{{ COORDINATOR_TITLE }}</p>
-            <p class="coordinator-email">{{ COORDINATOR_EMAIL }}</p>
+        <p>Respectfully submitted,</p>
+        <div class="sig-block">
+            <p class="name">{{ COORDINATOR_NAME }}</p>
+            <p>{{ COORDINATOR_TITLE }}</p>
+            <p class="email">{{ COORDINATOR_EMAIL }}</p>
         </div>
     </div>
 </body>
@@ -334,7 +269,6 @@ HTML;
         $replacements = [
             '{{ CURRENT_DATE }}' => $currentDate,
             '{{ CONTACT_PERSON }}' => $safe($data['contact_person'] ?? 'Industry Partner'),
-            '{{ COMPANY_POSITION }}' => $safe(ucfirst(strtolower($data['contact_person'] ?? 'Contact Person'))),
             '{{ COMPANY_NAME }}' => $safe($data['company_name'] ?? ''),
             '{{ COMPANY_ADDRESS }}' => $safe($data['company_address'] ?? ''),
             '{{ STUDENT_NAME }}' => $safe($data['student_name'] ?? ''),

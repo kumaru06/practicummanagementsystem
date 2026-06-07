@@ -35,6 +35,7 @@ $pathRoutes = [
     'student/password' => 'student_password',
     'partner' => 'partner',
     'partner/portal' => 'partner_portal',
+    'partner/submissions' => 'partner_submissions',
 ];
 $route = $_GET['r'] ?? ($pathRoutes[$path] ?? current_user()['role']);
 $method = $_SERVER['REQUEST_METHOD'];
@@ -129,6 +130,8 @@ if ($method === 'POST') {
         'partner/orientation/schedule' => 'partner_schedule_orientation',
         'partner/orientation/complete' => 'partner_complete_orientation',
         'partner/evaluations' => 'partner_submit_evaluation',
+        'partner/submissions/dtr/review' => 'partner_review_dtr',
+        'partner/submissions/weekly/review' => 'partner_review_weekly',
     ];
     $action = $_POST['action'] ?? ($pathActionMap[$path] ?? '');
     match ($action) {
@@ -168,6 +171,8 @@ if ($method === 'POST') {
         'student_add_weekly' => (new StudentController())->addWeekly(),
         'student_upload_report' => (new StudentController())->addWeekly(),
         'partner_submit_evaluation' => (new PartnerController())->submitEvaluation(),
+        'partner_review_dtr' => (new PartnerController())->reviewDtr(),
+        'partner_review_weekly' => (new PartnerController())->reviewWeekly(),
         default => exit('Unknown action'),
     };
 }
@@ -198,6 +203,7 @@ match ($route) {
     'student_password' => (new StudentController())->changePasswordForm(),
     'partner' => (new PartnerController())->dashboard(),
     'partner_portal' => (new PartnerController())->portal(),
+    'partner_submissions' => (new PartnerController())->submissions(),
     'partner_view_endorsement' => (new PartnerController())->viewEndorsementLetter(),
     default => redirect('index.php?r=' . current_user()['role']),
 };

@@ -40,6 +40,160 @@ class PartnerController extends BaseController
         ]);
     }
 
+    /**
+     * Submissions hub: lists all students for this partner with pending counts,
+     * and (if ?student_id=X provided) shows the per-student detail with DTR + Weekly tabs.
+     */
+    public function submissions(): void
+    {
+        require_role('partner');
+        $company = (new Company($this->db))->findByUser(current_user()['id']);
+        if (!$company) {
+            $this->render('partner/submissions', [
+                'title' => 'Student Submissions',
+                'company' => null,
+                'studentSummaries' => [],
+                'selectedStudent' => null,
+                'studentDtrs' => [],
+                'studentWeeklies' => [],
+                'activeTab' => 'dtr',
+            ]);
+            return;
+        }
+
+        $reportModel = new Report($this->db);
+        $studentSummaries = $reportModel->submissionSummaryByCompany((int)$company['id']);
+
+        $selectedStudentId = isset($_GET['student_id']) ? (int)$_GET['student_id'] : 0;
+        $selectedStudent = null;
+        $studentDtrs = [];
+        $studentWeeklies = [];
+
+        if ($selectedStudentId > 0) {
+            foreach ($studentSummaries as $row) {
+                if ((int)$row['student_id'] === $selectedStudentId) {
+                    $selectedStudent = $row;
+                    break;
+                }
+            }
+            if ($selectedStudent) {
+                $studentDtrs = $reportModel->dtrByStudent($selectedStudentId);
+                $studentWeeklies = $reportModel->weeklyByStudent($selectedStudentId);
+                foreach ($studentWeeklies as &$wr) {
+                    $wr['proof_files'] = $reportModel->proofFilesByReport((int)$wr['id']);
+                }
+                unset($wr);
+            }
+        }
+
+        $activeTab = ($_GET['tab'] ?? 'dtr') === 'weekly' ? 'weekly' : 'dtr';
+
+        $this->render('partner/submissions', [
+            'title' => 'Student Submissions',
+            'company' => $company,
+            'studentSummaries' => $studentSummaries,
+            'selectedStudent' => $selectedStudent,
+            'studentDtrs' => $studentDtrs,
+            'studentWeeklies' => $studentWeeklies,
+            'activeTab' => $activeTab,
+        ]);
+    }
+
+    public function reviewDtr(): void
+    {
+        require_role('partner');
+        $p = $this->post();
+        $action = $p['decision'] ?? '';
+        $dtrId = (int)($p['dtr_id'] ?? 0);
+        $studentId = (int)($p['student_id'] ?? 0);
+        $notes = trim($p['notes'] ?? '');
+
+        try {
+            if (!in_array($action, ['approved', 'rejected'], true)) {
+                throw new RuntimeException('Invalid decision.');
+            }
+            $this->ensureRecordOwnership($studentId, $dtrId, 'dtr');
+
+            $report = new Report($this->db);
+            $report->setDtrVerification($dtrId, $action, (int)current_user()['id'], $notes ?: null);
+
+            $this->notifyStudentAndCoordinator($studentId, 'dtr', $action, $notes);
+
+            flash('success', 'Daily Time Record ' . $action . '.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+        redirect('index.php?r=partner_submissions&student_id=' . $studentId . '&tab=dtr');
+    }
+
+    public function reviewWeekly(): void
+    {
+        require_role('partner');
+        $p = $this->post();
+        $action = $p['decision'] ?? '';
+        $weeklyId = (int)($p['weekly_id'] ?? 0);
+        $studentId = (int)($p['student_id'] ?? 0);
+        $notes = trim($p['notes'] ?? '');
+
+        try {
+            if (!in_array($action, ['approved', 'rejected'], true)) {
+                throw new RuntimeException('Invalid decision.');
+            }
+            $this->ensureRecordOwnership($studentId, $weeklyId, 'weekly');
+
+            $report = new Report($this->db);
+            $report->setWeeklyVerification($weeklyId, $action, (int)current_user()['id'], $notes ?: null);
+
+            $this->notifyStudentAndCoordinator($studentId, 'weekly', $action, $notes);
+
+            flash('success', 'Weekly report ' . $action . '.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+        redirect('index.php?r=partner_submissions&student_id=' . $studentId . '&tab=weekly');
+    }
+
+    private function ensureRecordOwnership(int $studentId, int $recordId, string $type): void
+    {
+        $company = (new Company($this->db))->findByUser(current_user()['id']);
+        if (!$company) {
+            throw new RuntimeException('Industry Partner profile not found.');
+        }
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM ojt_enrollments WHERE student_id = ? AND company_id = ?'
+        );
+        $stmt->execute([$studentId, (int)$company['id']]);
+        if ((int)$stmt->fetchColumn() === 0) {
+            throw new RuntimeException('You do not have access to this student.');
+        }
+        $report = new Report($this->db);
+        $record = $type === 'dtr' ? $report->findDtr($recordId) : $report->findWeekly($recordId);
+        if (!$record || (int)$record['student_id'] !== $studentId) {
+            throw new RuntimeException('Record not found for this student.');
+        }
+    }
+
+    private function notifyStudentAndCoordinator(int $studentId, string $type, string $action, string $notes): void
+    {
+        $student = (new Student($this->db))->find($studentId);
+        if (!$student) return;
+        $notifications = new Notification($this->db);
+        $label = $type === 'dtr' ? 'Daily Time Record' : 'Weekly Report';
+        $title = $label . ' ' . ($action === 'approved' ? 'approved' : 'rejected');
+        $message = 'Your ' . $label . ' was ' . $action . ' by your Industry Partner' . ($notes !== '' ? ': ' . $notes : '.');
+
+        $notifications->create((int)$student['user_id'], $title, $message, route_url('student.records'));
+
+        if ($action === 'approved' && !empty($student['coordinator_id'])) {
+            $notifications->create(
+                (int)$student['coordinator_id'],
+                $label . ' approved by Industry Partner',
+                $student['name'] . '\'s ' . $label . ' has been approved by the Industry Partner.',
+                route_url('coordinator.students')
+            );
+        }
+    }
+
     public function portal(): void
     {
         require_role('partner');
@@ -296,12 +450,6 @@ class PartnerController extends BaseController
         if (!$company || (int)$enrollment['company_id'] !== (int)$company['id']) {
             http_response_code(403);
             exit('You do not have access to this enrollment.');
-        }
-
-        // Verify the endorsement letter has been forwarded
-        if (empty($enrollment['endorsement_file'])) {
-            http_response_code(404);
-            exit('Endorsement letter has not been forwarded yet.');
         }
 
         try {

@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initEmailLogViews();
     initRequirementReviewModals();
     initNotifications();
+    try { initWeeklyReportUpload(); } catch (err) { console.warn('Weekly report upload init failed:', err); }
     initMoaLibrary();
     initCoordinatorCardAlignment();
     initConfirmActions();
@@ -2243,5 +2244,119 @@ function initEnrollmentDirectory() {
             studentSelect.dispatchEvent(new Event('change', { bubbles: true }));
             wizardForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
+    });
+}
+
+function initWeeklyReportUpload() {
+    const form = document.getElementById('weeklyReportForm');
+    if (!form) return;
+
+    const dropzone = document.getElementById('wrDropzone');
+    const fileInput = document.getElementById('wrFileInput');
+    const browseLink = document.getElementById('wrBrowseLink');
+    const previewRow = document.getElementById('wrPreviewRow');
+    if (!dropzone || !fileInput || !browseLink || !previewRow) return;
+    const textarea = form.querySelector('textarea[name="accomplishments"]');
+    const charCurrent = form.querySelector('[data-char-current]');
+    const MAX_SIZE = 10 * 1024 * 1024;
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
+    const ALLOWED_EXTS = ['.jpg', '.jpeg', '.png', '.pdf'];
+    let proofFiles = [];
+
+    if (textarea && charCurrent) {
+        textarea.addEventListener('input', () => {
+            charCurrent.textContent = textarea.value.length;
+        });
+    }
+
+    browseLink.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('click', e => {
+        if (e.target.closest('#wrBrowseLink')) return;
+        fileInput.click();
+    });
+
+    dropzone.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropzone.classList.add('is-dragover');
+    });
+    dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('is-dragover');
+    });
+    dropzone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropzone.classList.remove('is-dragover');
+        addFiles(e.dataTransfer.files);
+    });
+
+    fileInput.addEventListener('change', () => {
+        addFiles(fileInput.files);
+        fileInput.value = '';
+    });
+
+    function addFiles(fileList) {
+        for (const file of fileList) {
+            const ext = '.' + file.name.split('.').pop().toLowerCase();
+            if (!ALLOWED_TYPES.includes(file.type) && !ALLOWED_EXTS.includes(ext)) {
+                alert(file.name + ' is not a supported file type. Please upload JPG, PNG, or PDF files.');
+                continue;
+            }
+            if (file.size > MAX_SIZE) {
+                alert(file.name + ' exceeds the 10MB file size limit.');
+                continue;
+            }
+            proofFiles.push(file);
+            renderPreview(file, proofFiles.length - 1);
+        }
+    }
+
+    function renderPreview(file, index) {
+        const item = document.createElement('div');
+        item.className = 'wr-preview-item';
+        item.dataset.index = index;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'wr-preview-remove';
+        removeBtn.innerHTML = '&times;';
+        removeBtn.addEventListener('click', () => removeFile(index));
+        item.appendChild(removeBtn);
+
+        if (file.type.startsWith('image/')) {
+            const img = document.createElement('img');
+            img.alt = file.name;
+            const reader = new FileReader();
+            reader.onload = e => { img.src = e.target.result; };
+            reader.readAsDataURL(file);
+            item.appendChild(img);
+        } else {
+            const icon = document.createElement('div');
+            icon.className = 'wr-file-icon';
+            icon.innerHTML = '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6Zm7 1.5L18.5 9H13V3.5ZM8 12h8v2H8v-2Zm0 4h5v2H8v-2Z"/></svg>'
+                + '<span>' + (file.name.length > 12 ? file.name.slice(0, 10) + '...' : file.name) + '</span>';
+            item.appendChild(icon);
+        }
+
+        previewRow.appendChild(item);
+    }
+
+    function removeFile(index) {
+        proofFiles[index] = null;
+        const el = previewRow.querySelector('[data-index="' + index + '"]');
+        if (el) el.remove();
+    }
+
+    form.addEventListener('submit', e => {
+        const activeFiles = proofFiles.filter(f => f !== null);
+        if (activeFiles.length > 0) {
+            const dt = new DataTransfer();
+            activeFiles.forEach(f => dt.items.add(f));
+            const dynamicInput = document.createElement('input');
+            dynamicInput.type = 'file';
+            dynamicInput.name = 'proof_files[]';
+            dynamicInput.multiple = true;
+            dynamicInput.hidden = true;
+            dynamicInput.files = dt.files;
+            form.appendChild(dynamicInput);
+        }
     });
 }

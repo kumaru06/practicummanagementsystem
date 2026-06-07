@@ -235,10 +235,11 @@ class StudentController extends BaseController
             (new Report($this->db))->addDtr((int)$student['id'], $p['work_date'], $p['time_in'], $p['time_out'], trim($p['tasks_done']));
             (new Report($this->db))->clearDtrDraft((int)$student['id']);
             $enrollments->syncCompletion((int)$student['id']);
-            if (!empty($student['coordinator_id'])) {
-                (new Notification($this->db))->create((int)$student['coordinator_id'], 'DTR submitted', $student['name'] . ' submitted a daily time record for ' . date('M d, Y', strtotime((string)$p['work_date'])) . '.', route_url('coordinator.students'));
+            $company = (new Company($this->db))->findByEnrollmentStudent((int)$student['id']);
+            if ($company) {
+                (new Notification($this->db))->create((int)$company['user_id'], 'New DTR pending approval', $student['name'] . ' submitted a DTR for ' . date('M d, Y', strtotime((string)$p['work_date'])) . '. Please review.', route_url('partner.submissions', ['student_id' => (int)$student['id'], 'tab' => 'dtr']));
             }
-            flash('success', 'Daily time record submitted.');
+            flash('success', 'Daily time record submitted. Awaiting Industry Partner approval.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
@@ -261,12 +262,32 @@ class StudentController extends BaseController
             redirect('index.php?r=student_records');
         }
         try {
-            $path = $this->uploadReport($_FILES['report_file'] ?? []);
-            (new Report($this->db))->addWeekly((int)$student['id'], (int)$p['week_no'], trim($p['report_text'] ?? ''), $path);
-            if (!empty($student['coordinator_id'])) {
-                (new Notification($this->db))->create((int)$student['coordinator_id'], 'Weekly report submitted', $student['name'] . ' submitted weekly report #' . (int)$p['week_no'] . '.', route_url('coordinator.students'));
+            $pdfPath = null;
+            $accomplishments = trim($p['accomplishments'] ?? '');
+            if (mb_strlen($accomplishments) > 2000) {
+                $accomplishments = mb_substr($accomplishments, 0, 2000);
             }
-            flash('success', 'Weekly report submitted.');
+            $dateStart = !empty($p['date_covered_start']) ? date('Y-m-d', strtotime($p['date_covered_start'])) : null;
+            $dateEnd = !empty($p['date_covered_end']) ? date('Y-m-d', strtotime($p['date_covered_end'])) : null;
+
+            $report = new Report($this->db);
+            $reportId = $report->addWeekly(
+                (int)$student['id'],
+                (int)$p['week_no'],
+                trim($p['report_text'] ?? ''),
+                $pdfPath,
+                $accomplishments ?: null,
+                $dateStart,
+                $dateEnd
+            );
+
+            $this->uploadProofFiles($report, $reportId, (int)$student['id']);
+
+            $company = (new Company($this->db))->findByEnrollmentStudent((int)$student['id']);
+            if ($company) {
+                (new Notification($this->db))->create((int)$company['user_id'], 'New Weekly Report pending approval', $student['name'] . ' submitted weekly report #' . (int)$p['week_no'] . '. Please review.', route_url('partner.submissions', ['student_id' => (int)$student['id'], 'tab' => 'weekly']));
+            }
+            flash('success', 'Weekly report submitted. Awaiting Industry Partner approval.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
@@ -296,13 +317,16 @@ class StudentController extends BaseController
         echo json_encode(['ok' => true]);
     }
 
-    private function uploadReport(array $file): string
+    private function uploadReport(array $file, bool $required = true): ?string
     {
         if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            throw new RuntimeException('Report file is required.');
+            if ($required) {
+                throw new RuntimeException('Report file is required.');
+            }
+            return null;
         }
-        if ($file['size'] > 5 * 1024 * 1024) {
-            throw new RuntimeException('Report file must not exceed 5MB.');
+        if ($file['size'] > 10 * 1024 * 1024) {
+            throw new RuntimeException('Report file must not exceed 10MB.');
         }
         $allowed = ['application/pdf' => 'pdf'];
         $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
@@ -316,6 +340,44 @@ class StudentController extends BaseController
         $name = bin2hex(random_bytes(16)) . '.pdf';
         move_uploaded_file($file['tmp_name'], $dir . '/' . $name);
         return 'uploads/reports/' . $name;
+    }
+
+    private function uploadProofFiles(Report $report, int $reportId, int $studentId): void
+    {
+        $files = $_FILES['proof_files'] ?? null;
+        if (!$files || !is_array($files['name'] ?? null)) return;
+
+        $allowed = [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'application/pdf' => 'pdf',
+        ];
+        $dir = __DIR__ . '/../uploads/proof/' . $studentId;
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        $count = count($files['name']);
+        for ($i = 0; $i < $count; $i++) {
+            if (($files['error'][$i] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) continue;
+            if ($files['size'][$i] > 10 * 1024 * 1024) continue;
+
+            $mime = (new finfo(FILEINFO_MIME_TYPE))->file($files['tmp_name'][$i]);
+            if (!isset($allowed[$mime])) continue;
+
+            $ext = $allowed[$mime];
+            $safeName = bin2hex(random_bytes(12)) . '.' . $ext;
+            $originalName = htmlspecialchars(basename($files['name'][$i]), ENT_QUOTES, 'UTF-8');
+
+            move_uploaded_file($files['tmp_name'][$i], $dir . '/' . $safeName);
+            $report->addWeeklyProofFile(
+                $reportId,
+                'uploads/proof/' . $studentId . '/' . $safeName,
+                $originalName,
+                $ext,
+                (int)$files['size'][$i]
+            );
+        }
     }
 
     private function studentPageData(string $title): array

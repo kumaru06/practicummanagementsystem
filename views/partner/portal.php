@@ -74,7 +74,7 @@ $evaluationUnlocked = $selected && $requiredHours > 0 && $renderedHours >= $requ
                             <p class="muted">Review the endorsement letter and approved pre-deployment files.</p>
                         </div>
                     </div>
-                    <p class="ip-inline-file"><strong>Endorsement Letter:</strong> <?= $selected['endorsement_file'] ? '<a class="btn btn-small" target="_blank" href="' . e(route_url('partner.view_endorsement', ['enrollment' => (int)$selected['id']])) . '">View</a>' : '<span class="muted">Not yet forwarded</span>' ?></p>
+                    <p class="ip-inline-file"><strong>Endorsement Letter:</strong> <a class="btn btn-small" target="_blank" href="<?= e(route_url('partner.view_endorsement', ['enrollment' => (int)$selected['id']])) ?>">View</a></p>
                     <div class="table-wrap">
                         <table class="data-table compact-table">
                             <thead><tr><th>Requirement</th><th>File</th></tr></thead>

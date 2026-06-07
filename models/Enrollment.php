@@ -17,7 +17,7 @@ class Enrollment
 
     public function syncCompletion(int $studentId): void
     {
-        $stmt = $this->db->prepare('SELECT e.id, e.required_hours, COALESCE(SUM(d.hours), 0) rendered_hours FROM ojt_enrollments e LEFT JOIN daily_time_records d ON d.student_id = e.student_id WHERE e.student_id = ? AND e.status = "active" GROUP BY e.id, e.required_hours');
+        $stmt = $this->db->prepare('SELECT e.id, e.required_hours, COALESCE(SUM(CASE WHEN d.verification_status = "approved" THEN d.hours ELSE 0 END), 0) rendered_hours FROM ojt_enrollments e LEFT JOIN daily_time_records d ON d.student_id = e.student_id WHERE e.student_id = ? AND e.status = "active" GROUP BY e.id, e.required_hours');
         $stmt->execute([$studentId]);
         $rows = $stmt->fetchAll();
         foreach ($rows as $row) {
@@ -158,8 +158,8 @@ class Enrollment
     public function allowsReports(?array $enrollment): bool
     {
         if (!$enrollment) return false;
-        if (($enrollment['status'] ?? '') !== 'active' || ($enrollment['predeployment_status'] ?? '') !== 'orientation_completed') return false;
         if (temporary_report_unlock_enabled()) return true;
+        if (($enrollment['status'] ?? '') !== 'active' || ($enrollment['predeployment_status'] ?? '') !== 'orientation_completed') return false;
         $startDate = $enrollment['official_start_date'] ?? $enrollment['start_date'] ?? null;
         if (!$startDate || strtotime((string)$startDate) === false) return false;
         return date('Y-m-d') >= date('Y-m-d', strtotime((string)$startDate));
@@ -168,6 +168,7 @@ class Enrollment
     public function reportLockMessage(?array $enrollment): string
     {
         if (!$enrollment) return 'DTR and weekly reports are locked until you are enrolled and deployed to a company.';
+        if (temporary_report_unlock_enabled()) return 'DTR and weekly reports are now unlocked.';
         if (($enrollment['predeployment_status'] ?? '') !== 'orientation_completed') return 'DTR and weekly reports are locked until your documents are approved, forwarded, accepted, and the company completes your orientation.';
         if (($enrollment['status'] ?? '') !== 'active') return 'DTR and weekly reports are locked until your OJT deployment becomes active.';
         $startDate = $enrollment['official_start_date'] ?? $enrollment['start_date'] ?? null;

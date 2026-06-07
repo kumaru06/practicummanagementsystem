@@ -13,7 +13,7 @@ $headerPhotoUrl = ($headerPhotoPath !== '' && is_file($headerPhotoPath)) ? asset
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260520-enrollment-ui-v2">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260607-partner-approval-v4">
 </head>
 <body class="app-page role-<?= e($user['role'] ?? 'guest') ?>">
 <div class="app-shell">
@@ -59,7 +59,10 @@ $headerPhotoUrl = ($headerPhotoPath !== '' && is_file($headerPhotoPath)) ? asset
                 <a class="nav-link <?= $currentRoute === 'student_documents' ? 'active' : '' ?>" href="index.php?r=student_documents"><svg viewBox="0 0 24 24"><path d="M7 2h7l5 5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm7 1.5V8h4.5L14 3.5ZM9 12h6v2H9v-2Zm0 4h6v2H9v-2Z"/></svg><span>Documents</span></a>
                 <a class="nav-link <?= in_array($currentRoute, ['student_settings', 'student_password'], true) ? 'active' : '' ?>" href="index.php?r=student_settings"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.49.42l-.36 2.54c-.58.23-1.12.54-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.31 8.48a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.51.4 1.05.71 1.63.94l.36 2.54a.5.5 0 0 0 .49.42h3.8a.5.5 0 0 0 .49-.42l.36-2.54c.58-.23 1.12-.54 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z"/></svg><span>Settings</span></a>
             <?php endif; ?>
-            <?php if ($role === 'partner'): ?><a class="nav-link <?= $currentRoute === 'partner_portal' ? 'active' : '' ?>" href="index.php?r=partner_portal"><svg viewBox="0 0 24 24"><path d="M3 21V7l6-4 6 4v14h-4v-5H7v5H3Zm14 0V9h4v12h-4ZM7 9h4v2H7V9Zm0 4h4v2H7v-2Z"/></svg><span>Industry Partner Portal</span></a><?php endif; ?>
+            <?php if ($role === 'partner'): ?>
+                <a class="nav-link <?= $currentRoute === 'partner_portal' ? 'active' : '' ?>" href="index.php?r=partner_portal"><svg viewBox="0 0 24 24"><path d="M3 21V7l6-4 6 4v14h-4v-5H7v5H3Zm14 0V9h4v12h-4ZM7 9h4v2H7V9Zm0 4h4v2H7v-2Z"/></svg><span>Industry Partner Portal</span></a>
+                <a class="nav-link <?= $currentRoute === 'partner_submissions' ? 'active' : '' ?>" href="index.php?r=partner_submissions"><svg viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-9 14-4-4 1.4-1.4 2.6 2.6 5.6-5.6L17 10l-7 7Z"/></svg><span>Student Submissions</span></a>
+            <?php endif; ?>
         </nav>
         <div class="sidebar-user">
             <div class="sidebar-user-info">

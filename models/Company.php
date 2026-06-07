@@ -47,6 +47,14 @@ class Company
         return $stmt->fetch() ?: null;
     }
 
+    public function findByEnrollmentStudent(int $studentId): ?array
+    {
+        $this->ensureMoaMouSupport();
+        $stmt = $this->db->prepare('SELECT pc.* FROM partner_companies pc JOIN ojt_enrollments e ON e.company_id = pc.id WHERE e.student_id = ? LIMIT 1');
+        $stmt->execute([$studentId]);
+        return $stmt->fetch() ?: null;
+    }
+
     public function findByUser(int $userId): ?array
     {
         $this->ensureMoaMouSupport();
