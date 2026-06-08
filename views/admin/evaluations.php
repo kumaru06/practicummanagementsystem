@@ -11,7 +11,8 @@
         <th data-sort>Student ID</th>
         <th data-sort>Course</th>
         <th data-sort>Company</th>
-        <th data-sort>Rating</th>
+        <th data-sort>Final Grade</th>
+        <th>Certificate</th>
         <th>Comments</th>
         <th data-sort>Submitted</th>
     </tr></thead><tbody>
@@ -21,7 +22,8 @@
             <td><?= e($ev['student_no']) ?></td>
             <td><?= e($ev['course'] . ' ' . $ev['year_level']) ?></td>
             <td><?= e($ev['company_name']) ?></td>
-            <td><strong><?= (int)$ev['rating'] ?></strong> / 5</td>
+            <td><strong><?= isset($ev['final_grade']) && $ev['final_grade'] !== null ? e(number_format((float)$ev['final_grade'], 2)) . '%' : ((int)$ev['rating'] . ' / 5') ?></strong></td>
+            <td><?php if (!empty($ev['certificate_file'])): ?><a class="btn btn-small" target="_blank" href="<?= e(asset($ev['certificate_file'])) ?>">View</a><?php else: ?><span class="muted">&mdash;</span><?php endif; ?></td>
             <td style="max-width:300px;white-space:normal"><?= e($ev['comments']) ?></td>
             <td><?= e(date('M j, Y', strtotime($ev['submitted_at']))) ?></td>
         </tr>

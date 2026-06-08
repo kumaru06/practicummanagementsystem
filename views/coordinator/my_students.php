@@ -118,7 +118,7 @@
 <?php foreach ($students as $s): ?>
     <?php $studentRequirements = $requirementsByStudent[(int)$s['id']] ?? []; ?>
     <?php if (in_array($s['predeployment_status'] ?? '', ['submitted', 'approved'], true)): ?>
-        <div class="modal requirement-review-modal" id="reviewModal-<?= (int)$s['id'] ?>">
+        <div class="modal requirement-review-modal" id="reviewModal-<?= (int)$s['id'] ?>" data-student-id="<?= (int)$s['id'] ?>">
             <div class="modal-card requirement-review-modal-card">
                 <button class="modal-close requirement-review-modal-close" type="button" aria-label="Close review panel">&times;</button>
                 <div class="requirement-review-modal-header">
@@ -126,7 +126,7 @@
                         <h2>Review Documents</h2>
                         <p><?= e($s['name']) ?> • <?= e($s['student_no']) ?></p>
                     </div>
-                    <span class="badge <?= e($s['predeployment_status'] ?? 'not_submitted') ?>"><?= e(str_replace('_', ' ', $s['predeployment_status'] ?? 'not_submitted')) ?></span>
+                    <span class="badge <?= e($s['predeployment_status'] ?? 'not_submitted') ?>" data-modal-status-badge><?= e(str_replace('_', ' ', $s['predeployment_status'] ?? 'not_submitted')) ?></span>
                 </div>
                 <div class="requirement-review-modal-body">
                     <div class="requirement-review-modal-summary">
@@ -135,18 +135,18 @@
                     </div>
                     <div class="requirement-review-modal-grid">
                         <?php foreach ($studentRequirements as $req): ?>
-                            <article class="requirement-review-item status-<?= e($req['status'] ?? 'pending') ?>">
+                            <article class="requirement-review-item status-<?= e($req['status'] ?? 'pending') ?>" data-requirement-key="<?= e($req['requirement_key']) ?>">
                                 <div class="requirement-review-head">
                                     <div>
                                         <strong class="requirement-review-title"><?= e($req['requirement_name']) ?></strong>
                                         <small class="muted"><?= !empty($req['file_path']) ? 'Uploaded file ready for review' : 'No file uploaded yet' ?></small>
                                     </div>
-                                    <span class="badge <?= e($req['status'] ?? 'pending') ?>"><?= e($req['status'] ?? 'pending') ?></span>
+                                    <span class="badge <?= e($req['status'] ?? 'pending') ?>" data-req-status-badge><?= e($req['status'] ?? 'pending') ?></span>
                                 </div>
                                 <div class="requirement-review-file-row"><?= !empty($req['file_path']) ? '<a class="btn btn-small requirement-review-file" target="_blank" href="' . e($req['file_path']) . '">View File</a>' : '<span class="requirement-review-empty">No file uploaded</span>' ?></div>
                                 <?php if (!empty($req['file_path']) && ($s['predeployment_status'] ?? '') === 'submitted'): ?>
-                                    <div class="requirement-review-actions">
-                                        <form method="post" class="inline">
+                                    <div class="requirement-review-actions" data-review-actions>
+                                        <form method="post" class="inline js-review-form" data-review-status="approved">
                                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                             <input type="hidden" name="action" value="coordinator_review_requirement">
                                             <input type="hidden" name="student_id" value="<?= (int)$s['id'] ?>">
@@ -154,7 +154,7 @@
                                             <input type="hidden" name="status" value="approved">
                                             <button class="btn btn-small" type="submit">Approve</button>
                                         </form>
-                                        <form method="post" class="inline requirement-review-reject-form">
+                                        <form method="post" class="inline requirement-review-reject-form js-review-form" data-review-status="rejected">
                                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                             <input type="hidden" name="action" value="coordinator_review_requirement">
                                             <input type="hidden" name="student_id" value="<?= (int)$s['id'] ?>">
@@ -170,8 +170,8 @@
                             </article>
                         <?php endforeach; ?>
                     </div>
-                    <?php if (($s['predeployment_status'] ?? '') === 'approved' && !empty($s['enrollment_id'])): ?>
-                        <div class="requirement-forward-box">
+                    <?php if (!empty($s['enrollment_id'])): ?>
+                        <div class="requirement-forward-box" data-forward-box<?= ($s['predeployment_status'] ?? '') !== 'approved' ? ' style="display:none"' : '' ?>>
                             <div>
                                 <strong>Ready to forward deployment</strong>
                                 <small>The endorsement letter will be generated automatically and sent to the Industry Partner along with the approved documents.</small>

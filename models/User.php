@@ -2,8 +2,26 @@
 class User
 {
     private ?bool $coordinatorIdNumberReady = null;
+    private ?bool $coordinatorSignatureReady = null;
 
     public function __construct(private PDO $db) {}
+
+    public function ensureCoordinatorSignatureSupport(): void
+    {
+        if ($this->coordinatorSignatureReady === true) {
+            return;
+        }
+
+        $columnStmt = $this->db->prepare("SHOW COLUMNS FROM coordinators LIKE 'signature_file'");
+        $columnStmt->execute();
+        $hasColumn = (bool)$columnStmt->fetch();
+
+        if (!$hasColumn) {
+            $this->db->exec('ALTER TABLE coordinators ADD COLUMN signature_file VARCHAR(255) NULL AFTER department');
+        }
+
+        $this->coordinatorSignatureReady = true;
+    }
 
     public function ensureCoordinatorIdNumberSupport(): void
     {
@@ -120,8 +138,9 @@ class User
     {
         if ($role === 'coordinator') {
             $this->ensureCoordinatorIdNumberSupport();
+            $this->ensureCoordinatorSignatureSupport();
             $stmt = $this->db->prepare(
-                'SELECT u.*, c.id_number, c.department
+                'SELECT u.*, c.id_number, c.department, c.signature_file
                  FROM users u
                  LEFT JOIN coordinators c ON c.user_id = u.id
                  WHERE u.role = ?

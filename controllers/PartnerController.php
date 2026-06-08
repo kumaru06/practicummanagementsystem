@@ -394,6 +394,35 @@ class PartnerController extends BaseController
         redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
     }
 
+    /**
+     * Renders the detailed final evaluation form (reached via a button on the portal).
+     */
+    public function evaluateForm(): void
+    {
+        require_role('partner');
+        $company = (new Company($this->db))->findByUser(current_user()['id']);
+        $enroll = new Enrollment($this->db);
+        $selected = isset($_GET['enrollment']) ? $enroll->find((int)$_GET['enrollment']) : null;
+        if (!$selected || !$company || (int)$selected['company_id'] !== (int)$company['id']) {
+            http_response_code(403);
+            exit('Forbidden');
+        }
+
+        $renderedHours = (new Report($this->db))->totalHours((int)$selected['student_id']);
+        $requiredHours = (float)($selected['required_hours'] ?? 0);
+        if ($requiredHours <= 0 || $renderedHours < $requiredHours) {
+            flash('error', 'Final evaluation unlocks after the student completes the required OJT hours.');
+            redirect('index.php?r=partner_portal&enrollment=' . (int)$selected['id']);
+        }
+
+        $this->render('partner/evaluate', [
+            'title' => 'Final Evaluation',
+            'company' => $company,
+            'selected' => $selected,
+            'evaluation' => (new Evaluation($this->db))->byEnrollment((int)$selected['id']),
+        ]);
+    }
+
     public function submitEvaluation(): void
     {
         require_role('partner');
@@ -411,11 +440,29 @@ class PartnerController extends BaseController
             flash('error', 'Final evaluation unlocks after the student completes the required OJT hours.');
             redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
         }
-        (new Evaluation($this->db))->submit((int)$p['enrollment_id'], (int)$company['id'], (int)$p['rating'], trim($p['comments']));
+
+        try {
+            $ratings = [];
+            foreach (Evaluation::criteriaFlat() as $key => $def) {
+                $ratings[$key] = (int)($p['criteria'][$key] ?? 0);
+            }
+            $certificateFile = upload_document($_FILES['certificate_file'] ?? [], 'certificates', false);
+            (new Evaluation($this->db))->submitDetailed(
+                (int)$p['enrollment_id'],
+                (int)$company['id'],
+                $ratings,
+                trim($p['comments'] ?? ''),
+                $certificateFile
+            );
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+            redirect('index.php?r=partner_evaluate&enrollment=' . (int)$enrollment['id']);
+        }
+
         $studentDetails = (new Student($this->db))->find((int)$enrollment['student_id']);
         if ($studentDetails) {
             $notifications = new Notification($this->db);
-            $notifications->create((int)$studentDetails['user_id'], 'Final evaluation submitted', $company['name'] . ' submitted your final OJT evaluation.', route_url('student.dashboard'));
+            $notifications->create((int)$studentDetails['user_id'], 'Final evaluation submitted', $company['name'] . ' submitted your final OJT evaluation.', route_url('student.evaluation'));
             $notifications->create((int)$studentDetails['coordinator_id'], 'Final evaluation submitted', $company['name'] . ' submitted the final evaluation for ' . $studentDetails['name'] . '.', route_url('coordinator.evaluations'));
         }
         flash('success', 'Final evaluation submitted.');

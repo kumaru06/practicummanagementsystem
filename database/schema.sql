@@ -37,6 +37,7 @@ CREATE TABLE coordinators (
   user_id INT NOT NULL UNIQUE,
   id_number VARCHAR(60) NULL,
   department VARCHAR(120) DEFAULT 'OJT Department',
+  signature_file VARCHAR(255) NULL,
   UNIQUE KEY uq_coordinators_id_number (id_number),
   CONSTRAINT fk_coordinators_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
@@ -179,7 +180,10 @@ CREATE TABLE evaluations (
   enrollment_id INT NOT NULL UNIQUE,
   company_id INT NOT NULL,
   rating TINYINT NOT NULL,
+  criteria_ratings TEXT NULL,
+  final_grade DECIMAL(5,2) NULL,
   comments TEXT NOT NULL,
+  certificate_file VARCHAR(255) NULL,
   submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_eval_enrollment FOREIGN KEY (enrollment_id) REFERENCES ojt_enrollments(id) ON DELETE CASCADE,
   CONSTRAINT fk_eval_company FOREIGN KEY (company_id) REFERENCES partner_companies(id) ON DELETE CASCADE

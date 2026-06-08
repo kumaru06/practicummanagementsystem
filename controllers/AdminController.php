@@ -187,6 +187,7 @@ class AdminController extends BaseController
         try {
             $users = new User($this->db);
             $users->ensureCoordinatorIdNumberSupport();
+            $users->ensureCoordinatorSignatureSupport();
 
             $idNumber = trim((string)($p['id_number'] ?? ''));
             if ($idNumber === '') {
@@ -212,6 +213,11 @@ class AdminController extends BaseController
                 throw new RuntimeException('Please enter a valid email address (e.g. name@example.com).');
             }
 
+            $signaturePath = upload_signature($_FILES['signature_file'] ?? []);
+            if ($signaturePath === null) {
+                throw new RuntimeException('Signature image is required.');
+            }
+
             $password = random_password();
             $this->db->beginTransaction();
             $duplicateIdStmt = $this->db->prepare('SELECT COUNT(*) FROM coordinators WHERE id_number = ?');
@@ -221,8 +227,8 @@ class AdminController extends BaseController
             }
 
             $userId = $users->create($name, $email, $password, 'coordinator', current_user()['id'], 0);
-            $stmt = $this->db->prepare('INSERT INTO coordinators (user_id, id_number, department) VALUES (?, ?, ?)');
-            $stmt->execute([$userId, $idNumber, trim($p['department'] ?? 'OJT Department') ?: 'OJT Department']);
+            $stmt = $this->db->prepare('INSERT INTO coordinators (user_id, id_number, department, signature_file) VALUES (?, ?, ?, ?)');
+            $stmt->execute([$userId, $idNumber, trim($p['department'] ?? 'OJT Department') ?: 'OJT Department', $signaturePath]);
             $this->db->commit();
 
             (new Email($this->db))->send($email, 'Your AMA Practicum Coordinator Account', 'account_credentials', 'account_credentials', [
@@ -233,6 +239,84 @@ class AdminController extends BaseController
                 'loginUrl' => absolute_route_url('coordinator.login'),
             ]);
             flash('success', 'Coordinator account created and credentials email was processed.');
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            $msg = str_contains($e->getMessage(), '1062') || str_contains($e->getMessage(), 'Duplicate entry')
+                ? (str_contains(strtolower($e->getMessage()), 'id_number') ? 'ID number already exists.' : 'Email already exists.')
+                : $e->getMessage();
+            flash('error', $msg);
+        }
+        redirect('index.php?r=admin_coordinators');
+    }
+
+    public function updateCoordinator(): void
+    {
+        require_role('admin');
+        $p = $this->post();
+        try {
+            $userId = (int)($p['user_id'] ?? 0);
+            if ($userId <= 0) {
+                throw new RuntimeException('Invalid coordinator.');
+            }
+
+            $users = new User($this->db);
+            $users->ensureCoordinatorIdNumberSupport();
+            $users->ensureCoordinatorSignatureSupport();
+
+            $name = trim($p['name'] ?? '');
+            if ($name === '') {
+                throw new RuntimeException('Full name is required.');
+            }
+            if (preg_match('/[0-9]/', $name)) {
+                throw new RuntimeException('Full name must contain letters only, no numbers.');
+            }
+
+            $email = strtolower(trim($p['email'] ?? ''));
+            if ($email === '') {
+                throw new RuntimeException('Email is required.');
+            }
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL) || !preg_match('/\.[a-zA-Z]{2,}$/', explode('@', $email)[1] ?? '')) {
+                throw new RuntimeException('Please enter a valid email address.');
+            }
+
+            $idNumber = trim((string)($p['id_number'] ?? ''));
+            if ($idNumber !== '' && !ctype_digit($idNumber)) {
+                throw new RuntimeException('ID number must contain digits only.');
+            }
+
+            $signaturePath = upload_signature($_FILES['signature_file'] ?? []);
+
+            $this->db->beginTransaction();
+
+            $stmt = $this->db->prepare('UPDATE users SET name = ?, email = ? WHERE id = ? AND role = ?');
+            $stmt->execute([$name, $email, $userId, 'coordinator']);
+
+            $updates = ['department = ?'];
+            $params = [trim($p['department'] ?? 'OJT Department') ?: 'OJT Department'];
+
+            if ($idNumber !== '') {
+                $dupStmt = $this->db->prepare('SELECT COUNT(*) FROM coordinators WHERE id_number = ? AND user_id != ?');
+                $dupStmt->execute([$idNumber, $userId]);
+                if ((int)$dupStmt->fetchColumn() > 0) {
+                    throw new RuntimeException('ID number already exists.');
+                }
+                $updates[] = 'id_number = ?';
+                $params[] = $idNumber;
+            }
+
+            if ($signaturePath !== null) {
+                $updates[] = 'signature_file = ?';
+                $params[] = $signaturePath;
+            }
+
+            $params[] = $userId;
+            $stmt = $this->db->prepare('UPDATE coordinators SET ' . implode(', ', $updates) . ' WHERE user_id = ?');
+            $stmt->execute($params);
+
+            $this->db->commit();
+            flash('success', 'Coordinator account updated successfully.');
         } catch (Throwable $e) {
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();

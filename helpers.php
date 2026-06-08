@@ -49,10 +49,12 @@ function route_url(string $route, array $params = []): string
         'student.timeline' => 'index.php?r=student_timeline',
         'student.documents' => 'index.php?r=student_documents',
         'student.settings' => 'index.php?r=student_settings',
+        'student.evaluation' => 'index.php?r=student_evaluation',
         'student.profile' => 'index.php?r=student_profile',
         'student.password.edit' => 'index.php?r=student_password',
         'partner.dashboard' => 'index.php?r=partner',
         'partner.portal' => 'index.php?r=partner_portal',
+        'partner.evaluate' => 'index.php?r=partner_evaluate',
         'partner.submissions' => 'index.php?r=partner_submissions',
         'partner.view_endorsement' => 'index.php?r=partner_view_endorsement',
     ];
@@ -241,14 +243,46 @@ function upload_document(array $file, string $folder = 'documents', bool $requir
     return 'uploads/' . $safeFolder . '/' . $name;
 }
 
+function upload_signature(array $file): ?string
+{
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+    if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+        throw new RuntimeException('Unable to read uploaded signature.');
+    }
+    if ($file['size'] > 2 * 1024 * 1024) {
+        throw new RuntimeException('Signature image must not exceed 2MB.');
+    }
+
+    $allowed = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+    ];
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
+    if (!isset($allowed[$mime])) {
+        throw new RuntimeException('Signature must be a PNG or JPG image.');
+    }
+
+    $targetDir = __DIR__ . '/uploads/signatures';
+    if (!is_dir($targetDir)) {
+        mkdir($targetDir, 0755, true);
+    }
+    $name = bin2hex(random_bytes(16)) . '.' . $allowed[$mime];
+    if (!move_uploaded_file($file['tmp_name'], $targetDir . '/' . $name)) {
+        throw new RuntimeException('Unable to save uploaded signature.');
+    }
+    return 'uploads/signatures/' . $name;
+}
+
 function projected_ojt_end_date(string $startDate, int $requiredHours, int $hoursPerDay = 8): string
 {
     $daysNeeded = max(1, (int)ceil($requiredHours / max(1, $hoursPerDay)));
     $date = new DateTimeImmutable($startDate);
     $workedDays = 0;
     while ($workedDays < $daysNeeded) {
-        $weekday = (int)$date->format('N');
-        if ($weekday <= 5) {
+        $weekday = (int)$date->format('N'); // 1=Mon … 6=Sat, 7=Sun
+        if ($weekday <= 6) {
             $workedDays++;
         }
         if ($workedDays < $daysNeeded) {

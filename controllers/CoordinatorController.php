@@ -200,6 +200,7 @@ class CoordinatorController extends BaseController
     {
         require_role('coordinator');
         $p = $this->post();
+        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
         try {
             $studentId = (int)$p['student_id'];
             $studentModel = new Student($this->db);
@@ -208,19 +209,40 @@ class CoordinatorController extends BaseController
                 throw new RuntimeException('Student does not belong to your coordination.');
             }
             $status = trim($p['status'] ?? '');
-            $studentModel->reviewRequirement($studentId, trim($p['requirement_key'] ?? ''), $status, trim($p['notes'] ?? ''));
+            $requirementKey = trim($p['requirement_key'] ?? '');
+            $studentModel->reviewRequirement($studentId, $requirementKey, $status, trim($p['notes'] ?? ''));
             $enrollmentModel = new Enrollment($this->db);
             if ($status === 'rejected') {
-                $enrollmentModel->setPredeploymentStatus($studentId, 'needs_revision');
+                $newPredeploymentStatus = 'needs_revision';
+                $enrollmentModel->setPredeploymentStatus($studentId, $newPredeploymentStatus);
                 (new Notification($this->db))->create((int)$student['user_id'], 'Requirement needs revision', 'One of your pre-deployment requirements was rejected. Only the rejected file needs to be corrected and re-uploaded.', route_url('student.dashboard'));
             } elseif ($studentModel->hasApprovedRequirements($studentId)) {
-                $enrollmentModel->setPredeploymentStatus($studentId, 'approved');
+                $newPredeploymentStatus = 'approved';
+                $enrollmentModel->setPredeploymentStatus($studentId, $newPredeploymentStatus);
                 (new Notification($this->db))->create((int)$student['user_id'], 'Requirements approved', 'All of your pre-deployment requirements have been approved by your coordinator.', route_url('student.dashboard'));
             } else {
-                $enrollmentModel->setPredeploymentStatus($studentId, $studentModel->hasRejectedRequirements($studentId) ? 'needs_revision' : 'submitted');
+                $newPredeploymentStatus = $studentModel->hasRejectedRequirements($studentId) ? 'needs_revision' : 'submitted';
+                $enrollmentModel->setPredeploymentStatus($studentId, $newPredeploymentStatus);
+            }
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'ok' => true,
+                    'requirement_key' => $requirementKey,
+                    'requirement_status' => $status,
+                    'predeployment_status' => $newPredeploymentStatus,
+                    'message' => 'Requirement review saved.',
+                ]);
+                exit;
             }
             flash('success', 'Requirement review saved.');
         } catch (Throwable $e) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                http_response_code(422);
+                echo json_encode(['ok' => false, 'message' => $e->getMessage()]);
+                exit;
+            }
             flash('error', $e->getMessage());
         }
         redirect('index.php?r=coordinator_students');

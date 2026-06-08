@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initToasts();
     initFloatingLabels();
     initCustomFilterSelects();
+    initDateTimePickers();
     initCustomDatePickers();
     initPhoneInputs();
     initCharacterCounters();
@@ -180,7 +181,7 @@ function initStudentMobileTapProxy() {
     let suppressUntil = 0;
     const isMobileStudentLayout = () => window.matchMedia('(max-width: 720px)').matches;
     const clickableSelector = 'button,a,input:not([type="hidden"]),textarea,select,[data-time-lock-toggle],[data-time-picker-trigger],.filter-date-trigger';
-    const skipSelector = '.notif-panel,.topbar,.sidebar,.global-cal-panel,.dtr-time-panel';
+    const skipSelector = '.notif-panel,.topbar,.sidebar,.global-cal-panel,.global-datetime-panel,.dtr-time-panel';
 
     const findContentControl = (x, y) => {
         const content = document.querySelector('.role-student .content');
@@ -413,6 +414,220 @@ function closeGlobalCalPanel() {
     _globalCalState = null;
 }
 
+/* ── Global DateTime Picker (calendar + time) ── */
+let _globalDtPanel = null;
+let _globalDtActivePicker = null;
+let _globalDtState = null;
+
+function getGlobalDtPanel() {
+    if (_globalDtPanel) return _globalDtPanel;
+    _globalDtPanel = document.createElement('div');
+    _globalDtPanel.className = 'global-datetime-panel';
+    _globalDtPanel.hidden = true;
+    document.body.appendChild(_globalDtPanel);
+
+    _globalDtPanel.addEventListener('mousedown', e => e.stopPropagation());
+    _globalDtPanel.addEventListener('click', e => {
+        e.stopPropagation();
+        if (!_globalDtState || !_globalDtActivePicker) return;
+        const { input, state, sync, picker } = _globalDtActivePicker;
+
+        const nav = e.target.closest('[data-date-nav]');
+        if (nav) {
+            state.view = new Date(state.view.getFullYear(), state.view.getMonth() + Number(nav.dataset.dateNav || 0), 1);
+            renderDtPanel(); return;
+        }
+        const action = e.target.closest('[data-date-action]');
+        if (action) {
+            if (action.dataset.dateAction === 'clear') {
+                state.selected = null; state.hour = 9; state.minute = 0; state.period = 'AM';
+                input.value = ''; sync();
+            }
+            if (action.dataset.dateAction === 'today') {
+                const today = stripTime(new Date());
+                state.selected = today; state.view = new Date(today.getFullYear(), today.getMonth(), 1);
+            }
+            renderDtPanel(); return;
+        }
+        const day = e.target.closest('[data-date-value]');
+        if (day) {
+            const d = parseCustomDateValue(day.dataset.dateValue || '');
+            if (!d) return;
+            state.selected = d;
+            state.view = new Date(d.getFullYear(), d.getMonth(), 1);
+            picker.classList.remove('date-required-error');
+            commitDtValue(); renderDtPanel(); return;
+        }
+        const hour = e.target.closest('[data-dt-hour]');
+        if (hour) { state.hour = Number(hour.dataset.dtHour); commitDtValue(); renderDtPanel(); scrollDtCol(hour); return; }
+        const minute = e.target.closest('[data-dt-minute]');
+        if (minute) { state.minute = Number(minute.dataset.dtMinute); commitDtValue(); renderDtPanel(); scrollDtCol(minute); return; }
+        const period = e.target.closest('[data-dt-period]');
+        if (period) { state.period = period.dataset.dtPeriod; commitDtValue(); renderDtPanel(); return; }
+        const confirm = e.target.closest('[data-dt-confirm]');
+        if (confirm) { closeGlobalDtPanel(); return; }
+    });
+    _globalDtPanel.addEventListener('change', e => {
+        const yearSelect = e.target.closest('[data-date-year]');
+        if (!yearSelect || !_globalDtState) return;
+        _globalDtState.view = new Date(Number(yearSelect.value), _globalDtState.view.getMonth(), 1);
+        renderDtPanel();
+    });
+    return _globalDtPanel;
+}
+
+function scrollDtCol(btn) {
+    const col = btn.closest('.datetime-time-col');
+    if (col) btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function commitDtValue() {
+    if (!_globalDtActivePicker || !_globalDtState) return;
+    const { input, sync, state } = _globalDtActivePicker;
+    if (!state.selected) return;
+    let h24 = state.hour % 12;
+    if (state.period === 'PM') h24 += 12;
+    if (state.period === 'AM' && state.hour === 12) h24 = 0;
+    const ds = formatCustomDateValue(state.selected);
+    const ts = String(h24).padStart(2, '0') + ':' + String(state.minute).padStart(2, '0');
+    input.value = ds + 'T' + ts;
+    sync();
+}
+
+function renderDtPanel() {
+    if (!_globalDtPanel || !_globalDtState) return;
+    _globalDtPanel.innerHTML = buildDateTimePanel(_globalDtState);
+    const panel = _globalDtPanel;
+    requestAnimationFrame(() => {
+        panel.querySelectorAll('.datetime-time-col').forEach(col => {
+            const sel = col.querySelector('.is-selected');
+            if (sel) sel.scrollIntoView({ block: 'center', behavior: 'instant' });
+        });
+    });
+}
+
+function buildDateTimePanel(state) {
+    const calendarHtml = buildCustomDatePanel(state);
+    const hours = [];
+    for (let h = 1; h <= 12; h++) {
+        hours.push(`<button class="datetime-time-item${state.hour === h ? ' is-selected' : ''}" type="button" data-dt-hour="${h}">${h}</button>`);
+    }
+    const minutes = [];
+    for (let m = 0; m < 60; m += 5) {
+        minutes.push(`<button class="datetime-time-item${state.minute === m ? ' is-selected' : ''}" type="button" data-dt-minute="${m}">${String(m).padStart(2, '0')}</button>`);
+    }
+    const periods = ['AM', 'PM'].map(p =>
+        `<button class="datetime-time-item${state.period === p ? ' is-selected' : ''}" type="button" data-dt-period="${p}">${p}</button>`
+    ).join('');
+
+    const previewTime = state.selected
+        ? `${state.hour}:${String(state.minute).padStart(2, '0')} ${state.period}`
+        : '--:--';
+
+    return `<div class="datetime-panel-layout">${calendarHtml}<div class="datetime-time-picker"><div class="datetime-time-header">Time · ${previewTime}</div><div class="datetime-time-cols"><div class="datetime-time-col">${hours.join('')}</div><div class="datetime-time-col">${minutes.join('')}</div><div class="datetime-time-period-col">${periods}</div></div><div class="datetime-confirm-row"><button class="btn btn-small" type="button" data-dt-confirm>Done</button></div></div></div>`;
+}
+
+function positionGlobalDtPanel(trigger) {
+    const panel = getGlobalDtPanel();
+    const rect = trigger.getBoundingClientRect();
+    const isMobile = window.innerWidth <= 520;
+    const panelW = isMobile ? Math.min(308, window.innerWidth - 16) : 470;
+    const panelH = isMobile ? 520 : 400;
+    const vpW = window.innerWidth;
+    const vpH = window.innerHeight;
+    let left = rect.left;
+    if (left + panelW > vpW - 8) left = vpW - panelW - 8;
+    if (left < 8) left = 8;
+    let top = rect.bottom + 6;
+    if (top + panelH > vpH - 8) top = rect.top - 6 - panelH;
+    if (top < 8) top = 8;
+    panel.style.top = top + 'px';
+    panel.style.left = left + 'px';
+}
+
+function openGlobalDtPanel(pickerCtx) {
+    _globalDtActivePicker = pickerCtx;
+    _globalDtState = pickerCtx.state;
+    const panel = getGlobalDtPanel();
+    renderDtPanel();
+    positionGlobalDtPanel(pickerCtx.trigger);
+    panel.hidden = false;
+    requestAnimationFrame(() => panel.classList.add('is-open'));
+}
+
+function closeGlobalDtPanel() {
+    if (!_globalDtPanel) return;
+    _globalDtPanel.classList.remove('is-open');
+    _globalDtPanel.hidden = true;
+    if (_globalDtActivePicker) {
+        _globalDtActivePicker.picker.classList.remove('is-open');
+        _globalDtActivePicker.picker.querySelector('.filter-date-trigger')?.setAttribute('aria-expanded', 'false');
+        _globalDtActivePicker = null;
+    }
+    _globalDtState = null;
+}
+
+function initDateTimePickers() {
+    document.querySelectorAll('.form-datetime-picker').forEach(picker => {
+        if (picker.dataset.enhanced === '1') return;
+        picker.dataset.enhanced = '1';
+
+        const input = picker.querySelector('input[type="hidden"]');
+        const trigger = picker.querySelector('.filter-date-trigger');
+        const value = picker.querySelector('.filter-date-value');
+        if (!input || !trigger || !value) return;
+
+        let initialDate = null;
+        let initialHour = 9, initialMinute = 0, initialPeriod = 'AM';
+        if (input.value) {
+            const parts = input.value.split('T');
+            initialDate = parseCustomDateValue(parts[0]);
+            if (parts[1]) {
+                const [h, m] = parts[1].split(':').map(Number);
+                initialPeriod = h >= 12 ? 'PM' : 'AM';
+                initialHour = h % 12 || 12;
+                initialMinute = Math.round(m / 5) * 5;
+                if (initialMinute >= 60) initialMinute = 55;
+            }
+        }
+
+        const state = {
+            selected: initialDate,
+            view: initialDate ? new Date(initialDate.getFullYear(), initialDate.getMonth(), 1) : new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+            max: null,
+            hour: initialHour,
+            minute: initialMinute,
+            period: initialPeriod,
+        };
+
+        const formatDisplay = () => {
+            if (!state.selected) return 'Select date & time';
+            const d = formatCustomDateDisplay(state.selected);
+            return `${d} ${state.hour}:${String(state.minute).padStart(2, '0')} ${state.period}`;
+        };
+
+        const sync = () => {
+            value.textContent = formatDisplay();
+            picker.classList.toggle('is-placeholder', !state.selected);
+        };
+
+        trigger.addEventListener('click', e => {
+            e.stopPropagation();
+            const isOpen = picker.classList.contains('is-open');
+            closeCustomSelects();
+            closeGlobalCalPanel();
+            closeGlobalDtPanel();
+            if (!isOpen) {
+                picker.classList.add('is-open');
+                trigger.setAttribute('aria-expanded', 'true');
+                openGlobalDtPanel({ picker, trigger, input, state, sync });
+            }
+        });
+
+        sync();
+    });
+}
+
 function initCustomDatePickers() {
     document.querySelectorAll('.filter-date-picker').forEach(picker => {
         if (picker.dataset.enhanced === '1') return;
@@ -430,10 +645,12 @@ function initCustomDatePickers() {
 
         const initialDate = parseCustomDateValue(input.value);
         const maxDate = parseCustomDateValue(picker.dataset.dateMax || '');
+        const minDate = parseCustomDateValue(picker.dataset.dateMin || '');
         const state = {
             selected: initialDate,
-            view: initialDate ? new Date(initialDate.getFullYear(), initialDate.getMonth(), 1) : (maxDate ? new Date(maxDate.getFullYear(), maxDate.getMonth(), 1) : new Date(new Date().getFullYear(), new Date().getMonth(), 1)),
+            view: initialDate ? new Date(initialDate.getFullYear(), initialDate.getMonth(), 1) : (minDate ? new Date(minDate.getFullYear(), minDate.getMonth(), 1) : (maxDate ? new Date(maxDate.getFullYear(), maxDate.getMonth(), 1) : new Date(new Date().getFullYear(), new Date().getMonth(), 1))),
             max: maxDate || null,
+            min: minDate || null,
         };
 
         const sync = () => {
@@ -524,7 +741,8 @@ function buildCustomDatePanel(state) {
     start.setDate(firstDay.getDate() - firstDay.getDay());
     const currentYear = today.getFullYear();
     const maxYear = state.max ? state.max.getFullYear() : currentYear + 10;
-    const minYear = Math.min(maxYear - 100, state.selected?.getFullYear() ?? maxYear, state.view.getFullYear());
+    const minYearBase = state.min ? state.min.getFullYear() : maxYear - 100;
+    const minYear = Math.min(minYearBase, state.selected?.getFullYear() ?? minYearBase, state.view.getFullYear());
     const years = [];
     for (let year = maxYear; year >= minYear; year -= 1) {
         years.push(`<option value="${year}" ${year === state.view.getFullYear() ? 'selected' : ''}>${year}</option>`);
@@ -539,7 +757,7 @@ function buildCustomDatePanel(state) {
         if (date.getMonth() !== state.view.getMonth()) classes.push('is-outside');
         if (isSameCustomDate(date, today)) classes.push('is-today');
         if (state.selected && isSameCustomDate(date, state.selected)) classes.push('is-selected');
-        const isDisabled = state.max && date > state.max;
+        const isDisabled = (state.max && date > state.max) || (state.min && date < state.min);
         if (isDisabled) classes.push('is-disabled');
 
         cells.push(`
@@ -570,7 +788,7 @@ function buildCustomDatePanel(state) {
             <div class="filter-date-grid">${cells.join('')}</div>
             <div class="filter-date-actions">
                 <button class="filter-date-action" type="button" data-date-action="clear">Clear</button>
-                ${!state.max || today <= state.max ? `<button class="filter-date-action" type="button" data-date-action="today">Today</button>` : ''}
+                ${(!state.max || today <= state.max) && (!state.min || today >= state.min) ? `<button class="filter-date-action" type="button" data-date-action="today">Today</button>` : ''}
             </div>
         </div>
     `;
@@ -1303,7 +1521,15 @@ function updateWizardSummary(form) {
     const start = form.querySelector('[name="term_start_date"]')?.value || '-';
     const end = form.querySelector('[name="term_end_date"]')?.value || '-';
     const hours = form.querySelector('[name="required_hours"]')?.value || '-';
-    box.innerHTML = `<h3>Confirm Enrollment</h3><p><strong>Student:</strong> ${escapeHtml(student)}</p><p><strong>Company:</strong> ${escapeHtml(company)}</p><p><strong>Schedule:</strong> ${escapeHtml(start)} to ${escapeHtml(end)}</p><p><strong>Required Hours:</strong> ${escapeHtml(hours)}</p><p class="muted">Submitting will send the student enrollment and company deployment emails.</p>`;
+    box.innerHTML = `
+        <h3><span class="confirm-icon"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>Confirm Enrollment</h3>
+        <div class="confirm-grid">
+            <div class="confirm-row"><span class="confirm-label">Student</span><span class="confirm-value">${escapeHtml(student)}</span></div>
+            <div class="confirm-row"><span class="confirm-label">Company</span><span class="confirm-value">${escapeHtml(company)}</span></div>
+            <div class="confirm-row"><span class="confirm-label">Schedule</span><span class="confirm-value">${escapeHtml(start)} to ${escapeHtml(end)}</span></div>
+            <div class="confirm-row"><span class="confirm-label">Required Hours</span><span class="confirm-value">${escapeHtml(hours)}</span></div>
+        </div>
+        <div class="confirm-note"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg><span>Submitting will send the student enrollment and company deployment emails.</span></div>`;
 }
 
 function initEnrollmentAutomation() {
@@ -1477,6 +1703,7 @@ function handleOutsideMenus(event) {
     });
     if (!event.target.closest('.custom-select')) closeCustomSelects();
     if (!event.target.closest('.filter-date-picker') && !event.target.closest('.global-cal-panel')) closeCustomDatePickers();
+    if (!event.target.closest('.form-datetime-picker') && !event.target.closest('.global-datetime-panel')) closeGlobalDtPanel();
     if (!event.target.closest('.dtr-time-panel') && !event.target.closest('[data-time-picker-trigger]')) closeDtrTimePicker();
     const panel = document.querySelector('.notif-panel');
     const btn   = document.getElementById('notifBtn');
@@ -2116,6 +2343,97 @@ function initRequirementReviewModals() {
     document.querySelectorAll('.requirement-review-modal').forEach(modal => {
         modal.querySelector('.requirement-review-modal-close')?.addEventListener('click', () => modal.classList.remove('open'));
         modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+    });
+
+    document.querySelectorAll('.js-review-form').forEach(form => {
+        form.addEventListener('submit', async e => {
+            e.preventDefault();
+            const btn = form.querySelector('button[type="submit"]');
+            if (!btn || btn.disabled) return;
+            const status = form.dataset.reviewStatus;
+            if (status === 'rejected') {
+                const note = form.querySelector('.requirement-review-note');
+                if (note && !note.value.trim()) {
+                    note.focus();
+                    note.classList.add('touched');
+                    return;
+                }
+            }
+            const origText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = status === 'approved' ? 'Approving...' : 'Rejecting...';
+            const allBtns = form.closest('[data-review-actions]')?.querySelectorAll('button');
+            allBtns?.forEach(b => b.disabled = true);
+            try {
+                const resp = await fetch(window.location.href, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: new FormData(form),
+                });
+                const data = await resp.json();
+                if (!data.ok) throw new Error(data.message || 'Review failed.');
+                const modal = form.closest('.requirement-review-modal');
+                const article = form.closest('.requirement-review-item');
+                if (article) {
+                    article.className = `requirement-review-item status-${data.requirement_status}`;
+                    const badge = article.querySelector('[data-req-status-badge]');
+                    if (badge) {
+                        badge.className = `badge ${data.requirement_status}`;
+                        badge.textContent = data.requirement_status;
+                    }
+                    const subtitle = article.querySelector('.requirement-review-head small');
+                    if (subtitle) {
+                        subtitle.textContent = data.requirement_status === 'approved'
+                            ? 'Reviewed and approved'
+                            : 'Rejected — needs revision';
+                    }
+                    const actions = article.querySelector('[data-review-actions]');
+                    if (actions) {
+                        const isApproved = data.requirement_status === 'approved';
+                        const rejectionNote = form.querySelector('.requirement-review-note')?.value || '';
+                        const icon = isApproved
+                            ? '<svg viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>'
+                            : '<svg viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"/></svg>';
+                        const label = isApproved ? 'Approved successfully' : 'Rejected';
+                        const noteHtml = !isApproved && rejectionNote
+                            ? `<span class="result-note">${escapeHtml(rejectionNote)}</span>`
+                            : '';
+                        actions.innerHTML = `<div class="requirement-review-result result-${data.requirement_status}">${icon}<span>${label}${noteHtml}</span></div>`;
+                    }
+                }
+                if (modal) {
+                    const modalBadge = modal.querySelector('[data-modal-status-badge]');
+                    if (modalBadge) {
+                        const ps = data.predeployment_status;
+                        modalBadge.className = `badge ${ps}`;
+                        modalBadge.textContent = ps.replace(/_/g, ' ');
+                    }
+                    const forwardBox = modal.querySelector('[data-forward-box]');
+                    if (forwardBox) {
+                        forwardBox.style.display = data.predeployment_status === 'approved' ? '' : 'none';
+                    }
+                }
+                const studentId = modal?.dataset.studentId;
+                if (studentId) {
+                    document.querySelectorAll('tr .student-predeployment-cell').forEach(cell => {
+                        const reviewBtn = cell.querySelector(`[data-review-modal="reviewModal-${studentId}"]`);
+                        if (!reviewBtn) return;
+                        const badge = cell.querySelector('.badge');
+                        if (badge) {
+                            badge.className = `badge ${data.predeployment_status}`;
+                            badge.textContent = data.predeployment_status.replace(/_/g, ' ');
+                        }
+                    });
+                }
+            } catch (err) {
+                allBtns?.forEach(b => b.disabled = false);
+                btn.textContent = origText;
+                showAlertModal(err.message || 'Something went wrong. Please try again.', {
+                    title: 'Review failed',
+                    confirmText: 'OK',
+                });
+            }
+        });
     });
 }
 

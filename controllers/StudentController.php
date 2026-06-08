@@ -54,6 +54,17 @@ class StudentController extends BaseController
         $this->render('student/settings', $this->studentPageData('Settings'));
     }
 
+    public function evaluation(): void
+    {
+        $data = $this->studentPageData('My Evaluation');
+        $evaluation = null;
+        if (!empty($data['enrollment']['id'])) {
+            $evaluation = (new Evaluation($this->db))->byEnrollment((int)$data['enrollment']['id']);
+        }
+        $data['evaluation'] = $evaluation;
+        $this->render('student/evaluation', $data);
+    }
+
     public function profileForm(): void
     {
         require_role('student');

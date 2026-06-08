@@ -83,7 +83,8 @@ class EndorsementLetter
                 oe.required_hours enrollment_required_hours,
                 coord_u.name coordinator_name,
                 coord_u.email coordinator_email,
-                c.department coordinator_dept
+                c.department coordinator_dept,
+                c.signature_file coordinator_signature
             FROM ojt_enrollments oe
             JOIN students s ON s.id = oe.student_id
             JOIN users u ON u.id = s.user_id
@@ -161,17 +162,35 @@ class EndorsementLetter
             border-bottom: 2px solid #000;
             padding-bottom: 5px;
         }
-        .header h1 {
+        .header-table {
+            margin: 0 auto;
+            border-collapse: collapse;
+        }
+        .header-table td {
+            vertical-align: middle;
+            padding: 0;
+        }
+        .header-logo {
+            padding-right: 10px;
+        }
+        .header-logo img {
+            width: 50px;
+            height: auto;
+        }
+        .header-text {
+            text-align: center;
+        }
+        .header-text h1 {
             font-size: 13pt;
             font-weight: bold;
             margin-bottom: 2px;
         }
-        .header h2 {
+        .header-text h2 {
             font-size: 10pt;
             font-weight: bold;
             margin-bottom: 2px;
         }
-        .header p {
+        .header-text p {
             font-size: 9pt;
             color: #333;
         }
@@ -207,6 +226,12 @@ class EndorsementLetter
         .sig-block {
             margin-top: 20px;
         }
+        .sig-block .signature {
+            display: block;
+            height: 80px;
+            width: auto;
+            margin-bottom: -25px;
+        }
         .sig-block .name {
             font-weight: bold;
         }
@@ -217,17 +242,26 @@ class EndorsementLetter
 </head>
 <body>
     <div class="header">
-        <h1>AMA COMPUTER COLLEGE</h1>
-        <h2>Recommendation / Endorsement Letter</h2>
-        <p>Office of the OJT Department</p>
+        <table class="header-table">
+            <tr>
+                <td class="header-logo">
+                    <img src="{{ LOGO_BASE64 }}" alt="AMA Logo">
+                </td>
+                <td class="header-text">
+                    <h1>AMA COMPUTER COLLEGE</h1>
+                    <h2>Recommendation / Endorsement Letter</h2>
+                    <p>Office of the OJT Department</p>
+                </td>
+            </tr>
+        </table>
     </div>
 
     <div class="date-section">{{ CURRENT_DATE }}</div>
 
     <div class="recipient">
-        <strong>Name:</strong> {{ CONTACT_PERSON }}<br>
-        <strong>Company:</strong> {{ COMPANY_NAME }}<br>
-        <strong>Address:</strong> {{ COMPANY_ADDRESS }}
+        {{ CONTACT_PERSON }}<br>
+        {{ COMPANY_NAME }}<br>
+        {{ COMPANY_ADDRESS }}
     </div>
 
     <div class="salutation">Dear {{ CONTACT_PERSON }},</div>
@@ -256,6 +290,7 @@ class EndorsementLetter
     <div class="closing">
         <p>Respectfully submitted,</p>
         <div class="sig-block">
+            {{ SIGNATURE_IMG }}
             <p class="name">{{ COORDINATOR_NAME }}</p>
             <p>{{ COORDINATOR_TITLE }}</p>
             <p class="email">{{ COORDINATOR_EMAIL }}</p>
@@ -265,8 +300,30 @@ class EndorsementLetter
 </html>
 HTML;
 
+        $logoPath = __DIR__ . '/../assets/image/main/logo/image.png';
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+        }
+
+        // Embed the coordinator's signature image, auto-trimming whitespace
+        $signatureImg = '';
+        $signatureRelPath = trim((string)($data['coordinator_signature'] ?? ''));
+        if ($signatureRelPath !== '') {
+            $signatureFullPath = __DIR__ . '/../' . ltrim($signatureRelPath, '/');
+            if (file_exists($signatureFullPath)) {
+                $trimmedPng = $this->trimSignatureWhitespace($signatureFullPath);
+                if ($trimmedPng !== null) {
+                    $signatureData = 'data:image/png;base64,' . base64_encode($trimmedPng);
+                    $signatureImg = '<img class="signature" src="' . $signatureData . '" alt="Signature">';
+                }
+            }
+        }
+
         // Replace all placeholders with actual data
         $replacements = [
+            '{{ LOGO_BASE64 }}' => $logoBase64,
+            '{{ SIGNATURE_IMG }}' => $signatureImg,
             '{{ CURRENT_DATE }}' => $currentDate,
             '{{ CONTACT_PERSON }}' => $safe($data['contact_person'] ?? 'Industry Partner'),
             '{{ COMPANY_NAME }}' => $safe($data['company_name'] ?? ''),
@@ -288,5 +345,85 @@ HTML;
         }
 
         return $html;
+    }
+
+    /**
+     * Loads a signature image and crops away surrounding whitespace
+     * so it sits tightly above the coordinator's name in the PDF.
+     */
+    private function trimSignatureWhitespace(string $path): ?string
+    {
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $src = $ext === 'png' ? @imagecreatefrompng($path) : @imagecreatefromjpeg($path);
+        if (!$src) {
+            return file_get_contents($path) ?: null;
+        }
+
+        $w = imagesx($src);
+        $h = imagesy($src);
+        $bg = imagecolorat($src, 0, 0);
+        $threshold = 30;
+        $bgR = ($bg >> 16) & 0xFF;
+        $bgG = ($bg >> 8) & 0xFF;
+        $bgB = $bg & 0xFF;
+
+        $isBackground = function (int $x, int $y) use ($src, $bgR, $bgG, $bgB, $threshold): bool {
+            $c = imagecolorat($src, $x, $y);
+            return abs((($c >> 16) & 0xFF) - $bgR) <= $threshold
+                && abs((($c >> 8) & 0xFF) - $bgG) <= $threshold
+                && abs(($c & 0xFF) - $bgB) <= $threshold;
+        };
+
+        $top = 0;
+        for ($y = 0; $y < $h; $y++) {
+            for ($x = 0; $x < $w; $x++) {
+                if (!$isBackground($x, $y)) { $top = $y; goto foundTop; }
+            }
+        }
+        foundTop:
+
+        $bottom = $h - 1;
+        for ($y = $h - 1; $y >= $top; $y--) {
+            for ($x = 0; $x < $w; $x++) {
+                if (!$isBackground($x, $y)) { $bottom = $y; goto foundBottom; }
+            }
+        }
+        foundBottom:
+
+        $left = 0;
+        for ($x = 0; $x < $w; $x++) {
+            for ($y = $top; $y <= $bottom; $y++) {
+                if (!$isBackground($x, $y)) { $left = $x; goto foundLeft; }
+            }
+        }
+        foundLeft:
+
+        $right = $w - 1;
+        for ($x = $w - 1; $x >= $left; $x--) {
+            for ($y = $top; $y <= $bottom; $y++) {
+                if (!$isBackground($x, $y)) { $right = $x; goto foundRight; }
+            }
+        }
+        foundRight:
+
+        $cropW = $right - $left + 1;
+        $cropH = $bottom - $top + 1;
+        if ($cropW < 1 || $cropH < 1) {
+            imagedestroy($src);
+            return file_get_contents($path) ?: null;
+        }
+
+        $cropped = imagecreatetruecolor($cropW, $cropH);
+        imagesavealpha($cropped, true);
+        imagefill($cropped, 0, 0, imagecolorallocatealpha($cropped, 255, 255, 255, 127));
+        imagecopy($cropped, $src, 0, 0, $left, $top, $cropW, $cropH);
+        imagedestroy($src);
+
+        ob_start();
+        imagepng($cropped);
+        $pngData = ob_get_clean();
+        imagedestroy($cropped);
+
+        return $pngData ?: null;
     }
 }
