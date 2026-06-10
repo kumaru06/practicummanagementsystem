@@ -2,6 +2,7 @@
 $required = (float)($enrollment['required_hours'] ?? 0);
 $rendered = (float)($hours ?? 0);
 $remaining = max(0, $required - $rendered);
+$hoursComplete = $remaining <= 0 && $required > 0;
 $percent = $required > 0 ? min(100, round(($rendered / $required) * 100, 1)) : 0;
 $ringOffset = 314 - (314 * $percent / 100);
 $predeployment = $enrollment['predeployment_status'] ?? 'not_submitted';
@@ -47,7 +48,11 @@ $nextAction = match (true) {
             <strong><?= e($enrollment['company_name'] ?? 'Awaiting deployment') ?></strong>
             <div class="student-panel-meta">
                 <span><?= e($enrollment['status'] ?? 'pending') ?></span>
-                <span><?= number_format($remaining, 2) ?> hrs left</span>
+                <?php if ($hoursComplete): ?>
+                    <span class="hours-complete-badge">Complete</span>
+                <?php else: ?>
+                    <span><?= number_format($remaining, 2) ?> hrs left</span>
+                <?php endif; ?>
             </div>
         </aside>
     </section>
@@ -73,7 +78,7 @@ $nextAction = match (true) {
         </article>
         <article class="student-stat-card">
             <span class="student-stat-icon"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 5v5l4 2-.8 1.8L11 13V7h2Z"/></svg></span>
-            <div><span>Remaining Hours</span><strong><?= number_format($remaining, 2) ?></strong></div>
+            <div><span>Remaining Hours</span><strong><?= $hoursComplete ? 'Complete' : number_format($remaining, 2) ?></strong></div>
         </article>
         <article class="student-stat-card">
             <span class="student-stat-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4V6Zm0 5h16v2H4v-2Zm0 5h10v2H4v-2Z"/></svg></span>

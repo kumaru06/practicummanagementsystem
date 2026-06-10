@@ -32,8 +32,27 @@ class EndorsementLetter
         // Build the HTML template
         $html = $this->buildHtmlTemplate($data);
 
+        // Use a writable temp/font directory inside the project so embedded
+        // images render on shared hosting where the system temp dir is locked down.
+        $projectRoot = realpath(__DIR__ . '/..') ?: dirname(__DIR__);
+        $tempDir = $projectRoot . '/uploads/dompdf_temp';
+        if (!is_dir($tempDir)) {
+            @mkdir($tempDir, 0755, true);
+        }
+
+        $options = new \Dompdf\Options();
+        $options->set('isPhpEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('chroot', $projectRoot);
+        if (is_dir($tempDir) && is_writable($tempDir)) {
+            $options->set('tempDir', $tempDir);
+            $options->set('fontDir', $tempDir);
+            $options->set('fontCache', $tempDir);
+        }
+
         // Generate PDF using Dompdf
-        $dompdf = new Dompdf(['isPhpEnabled' => true]);
+        $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html, 'UTF-8');
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->getOptions()->setIsFontSubsettingEnabled(true);

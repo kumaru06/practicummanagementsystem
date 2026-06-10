@@ -42,6 +42,7 @@ function route_url(string $route, array $params = []): string
         'coordinator.students' => 'index.php?r=coordinator_students',
         'coordinator.preview_endorsement' => 'index.php?r=coordinator_preview_endorsement',
         'coordinator.evaluations' => 'index.php?r=coordinator_evaluations',
+        'coordinator.student_final' => 'index.php?r=coordinator_student_final',
         'student.dashboard' => 'index.php?r=student',
         'student.portal' => 'index.php?r=student_documents',
         'student.records' => 'index.php?r=student_records',
@@ -102,6 +103,19 @@ function asset(string $path): string
         return $path;
     }
     return app_base_path() . '/' . ltrim($path, '/');
+}
+
+function student_profile_photo_url(?array $student): string
+{
+    if (!$student || empty($student['photo_file'])) {
+        return '';
+    }
+    $relative = ltrim((string)$student['photo_file'], '/\\');
+    if ($relative === '') {
+        return '';
+    }
+    $absolute = __DIR__ . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relative);
+    return is_file($absolute) ? asset($student['photo_file']) : '';
 }
 
 function csrf_token(): string

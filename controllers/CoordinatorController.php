@@ -42,17 +42,97 @@ class CoordinatorController extends BaseController
         $students = (new Student($this->db))->allByCoordinator(current_user()['id']);
         $studentModel = new Student($this->db);
         $requirementsByStudent = [];
+        $finalModel = new FinalRequirement($this->db);
+        $studentEvalModel = new StudentEvaluation($this->db);
+        $finalRequirementsByStudent = [];
+        $studentEvaluationsByStudent = [];
         foreach ($students as &$student) {
             $requirementsByStudent[(int)$student['id']] = $studentModel->requirements((int)$student['id']);
             $student['predeployment_status'] = $studentModel->effectivePredeploymentStatus((int)$student['id'], $student['predeployment_status'] ?? null, $requirementsByStudent[(int)$student['id']]);
+            $finalRequirementsByStudent[(int)$student['id']] = $finalModel->getByStudent((int)$student['id']);
+            $studentEvaluationsByStudent[(int)$student['id']] = $studentEvalModel->getByStudent((int)$student['id']);
         }
         unset($student);
         $this->render('coordinator/my_students', [
             'title' => 'My Students',
             'students' => $students,
             'requirementsByStudent' => $requirementsByStudent,
+            'finalRequirementsByStudent' => $finalRequirementsByStudent,
+            'studentEvaluationsByStudent' => $studentEvaluationsByStudent,
             'evaluations' => (new Evaluation($this->db))->byCoordinator(current_user()['id']),
         ]);
+    }
+
+    public function studentFinalRequirements(): void
+    {
+        require_role('coordinator');
+        $studentId = (int)($_GET['student_id'] ?? 0);
+        $coordinatorId = (int)current_user()['id'];
+        $studentModel = new Student($this->db);
+        if (!$studentModel->belongsToCoordinator($studentId, $coordinatorId)) {
+            flash('error', 'Student not found or not assigned to you.');
+            redirect('index.php?r=coordinator_students');
+        }
+        $student = $studentModel->find($studentId);
+        $finalModel = new FinalRequirement($this->db);
+        $evalModel = new StudentEvaluation($this->db);
+        $data = [
+            'title' => 'Final Requirements — ' . ($student['name'] ?? 'Student'),
+            'student' => $student,
+            'finalRequirement' => $finalModel->getByStudent($studentId),
+            'studentEvaluation' => $evalModel->getByStudent($studentId),
+            'finalSections' => FinalRequirement::SECTIONS,
+            'evaluationSections' => FinalRequirement::EVALUATION_SECTIONS,
+        ];
+
+        $doc = (string)($_GET['doc'] ?? '');
+        $eval = (string)($_GET['eval'] ?? '');
+        
+        // Handle document sections
+        if (array_key_exists($doc, FinalRequirement::SECTIONS)) {
+            $section = FinalRequirement::SECTIONS[$doc];
+            $status = (string)($data['finalRequirement'][$doc . '_status'] ?? 'pending');
+            if ($status !== 'submitted') {
+                flash('error', 'This document has not been submitted yet.');
+                redirect('index.php?r=coordinator_student_final&student_id=' . $studentId);
+            }
+            $data['title'] = $section['name'] . ' — ' . ($student['name'] ?? 'Student');
+            $data['finalDoc'] = $doc;
+            $view = match ($doc) {
+                'job_description' => 'coordinator/final/job_description',
+                'company_profile' => 'coordinator/final/company_profile',
+                'personal_observation' => 'coordinator/final/personal_observation',
+            };
+            $this->render($view, $data);
+            return;
+        }
+        
+        // Handle evaluation sections (coordinator-only access)
+        if ($eval === 'coordinator') {
+            $status = StudentEvaluation::statusFor($data['studentEvaluation'], 'coordinator');
+            if ($status !== 'submitted') {
+                flash('error', 'This evaluation has not been submitted yet.');
+                redirect('index.php?r=coordinator_student_final&student_id=' . $studentId);
+            }
+            $data['title'] = 'OJT Coordinator Evaluation — ' . ($student['name'] ?? 'Student');
+            $data['evalType'] = 'coordinator';
+            $this->render('coordinator/evaluations/coordinator', $data);
+            return;
+        }
+
+        if ($eval === 'industry_partner') {
+            $status = StudentEvaluation::statusFor($data['studentEvaluation'], 'industry_partner');
+            if ($status !== 'submitted') {
+                flash('error', 'This evaluation has not been submitted yet.');
+                redirect('index.php?r=coordinator_student_final&student_id=' . $studentId);
+            }
+            $data['title'] = 'Industry Partner Evaluation — ' . ($student['name'] ?? 'Student');
+            $data['evalType'] = 'industry_partner';
+            $this->render('coordinator/evaluations/industry_partner', $data);
+            return;
+        }
+
+        $this->render('coordinator/student_final_requirements', $data);
     }
 
     public function moaMouLibrary(): void

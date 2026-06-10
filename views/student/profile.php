@@ -1,18 +1,19 @@
 <?php
-$profilePhotoPath = !empty($student['photo_file']) ? __DIR__ . '/../../' . ltrim((string)$student['photo_file'], '/\\') : '';
-$profilePhotoUrl = ($profilePhotoPath !== '' && is_file($profilePhotoPath)) ? asset($student['photo_file']) : '';
+$profilePhotoUrl = student_profile_photo_url($student ?? null);
 $studentInitial = strtoupper(substr($student['name'] ?? 'S', 0, 1));
+$studentEmail = trim((string)($student['email'] ?? current_user()['email'] ?? ''));
 ?>
 <section class="card student-profile-card">
     <div class="student-profile-shell">
         <aside class="student-profile-sidebar" aria-label="Student profile summary">
             <span class="profile-eyebrow">Student Resume Profile</span>
             <div class="profile-photo-frame profile-photo-frame-lg">
-                <img class="<?= $profilePhotoUrl === '' ? 'is-hidden' : '' ?>" src="<?= e($profilePhotoUrl) ?>" alt="<?= e($student['name'] ?? 'Student') ?> profile photo" data-profile-photo-preview>
+                <img class="<?= $profilePhotoUrl === '' ? 'is-hidden' : '' ?>"<?= $profilePhotoUrl !== '' ? ' src="' . e($profilePhotoUrl) . '"' : '' ?> alt="<?= e($student['name'] ?? 'Student') ?> profile photo" data-profile-photo-preview>
                 <span class="profile-photo-fallback <?= $profilePhotoUrl !== '' ? 'is-hidden' : '' ?>" data-profile-photo-fallback><?= e($studentInitial) ?></span>
             </div>
             <div class="profile-identity">
                 <h2><?= e($student['name'] ?? 'Student') ?></h2>
+                <?php if ($studentEmail !== ''): ?><p class="profile-identity-email"><?= e($studentEmail) ?></p><?php endif; ?>
                 <span><?= e($student['course'] ?? 'Course not set') ?></span>
             </div>
             <div class="profile-id-card">
@@ -41,6 +42,16 @@ $studentInitial = strtoupper(substr($student['name'] ?? 'S', 0, 1));
 
                 <div class="profile-form-section">
                     <div class="profile-section-title"><span>01</span><div><strong>Student Information</strong><small>Verified account details</small></div></div>
+                    <div class="profile-account-identity app-user-identity app-user-identity--profile" aria-label="Signed-in account">
+                        <span class="app-user-identity__avatar <?= $profilePhotoUrl !== '' ? 'app-user-identity__avatar--photo' : '' ?>" data-profile-inline-avatar>
+                            <img class="<?= $profilePhotoUrl === '' ? 'is-hidden' : '' ?>"<?= $profilePhotoUrl !== '' ? ' src="' . e($profilePhotoUrl) . '"' : '' ?> alt="<?= e($student['name'] ?? 'Student') ?> profile photo" data-profile-photo-preview-inline>
+                            <span class="profile-inline-avatar-fallback <?= $profilePhotoUrl !== '' ? 'is-hidden' : '' ?>" data-profile-initial-inline><?= e($studentInitial) ?></span>
+                        </span>
+                        <div class="app-user-identity__meta">
+                            <strong><?= e($student['name'] ?? 'Student') ?></strong>
+                            <?php if ($studentEmail !== ''): ?><small><?= e($studentEmail) ?></small><?php endif; ?>
+                        </div>
+                    </div>
                     <div class="grid two student-profile-grid">
                         <label>Full Name<input required value="<?= e($student['name'] ?? '') ?>" disabled></label>
                         <label>Student ID Number<input required value="<?= e($student['student_no'] ?? '') ?>" disabled></label>

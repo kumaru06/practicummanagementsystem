@@ -1,41 +1,103 @@
 <section class="card student-list-card">
     <div class="section-head section-head-split">
-        <div><h2>My Students</h2><p class="muted">Switch between table and card view for a cleaner student overview.</p></div>
-        <div class="toolbar-inline"><input class="table-search" placeholder="Search students..."><button class="btn btn-small view-toggle" type="button" data-target="studentsView">Card View</button></div>
+        <div><h2>My Students</h2><p class="muted">Track pre-deployment, final requirements, and evaluations in one place.</p></div>
+        <div class="toolbar-inline"><input class="table-search" type="search" placeholder="Search by name or ID…" aria-label="Search students"><button class="btn btn-small view-toggle" type="button" data-target="studentsView">Card View</button></div>
     </div>
     <div id="studentsView" class="student-view-wrapper">
         <div class="student-cards-grid">
             <?php foreach ($students as $s): ?>
-                <?php $required = (float)($s['required_hours'] ?? 0); $rendered = (float)($s['rendered_hours'] ?? 0); $percent = $required > 0 ? min(100, round(($rendered / $required) * 100)) : 0; ?>
+                <?php
+                    $required = (float)($s['required_hours'] ?? 0);
+                    $rendered = (float)($s['rendered_hours'] ?? 0);
+                    $percent = $required > 0 ? min(100, round(($rendered / $required) * 100)) : 0;
+                    $cardPhotoUrl = student_profile_photo_url($s);
+                    $cardInitial = strtoupper(substr((string)($s['name'] ?? 'S'), 0, 1));
+                ?>
                 <article class="student-card" data-search="<?= e(strtolower($s['name'] . ' ' . $s['student_no'] . ' ' . $s['course'] . ' ' . ($s['company_name'] ?? ''))) ?>">
+                    <?php if ($cardPhotoUrl !== ''): ?>
+                        <span class="student-card-avatar student-card-avatar--photo"><img src="<?= e($cardPhotoUrl) ?>" alt="<?= e($s['name']) ?> profile photo"></span>
+                    <?php else: ?>
+                        <span class="student-card-avatar"><?= e($cardInitial) ?></span>
+                    <?php endif; ?>
                     <div class="mini-ring" style="--percent: <?= $percent ?>"><span><?= $percent ?>%</span></div>
                     <div><h3><?= e($s['name']) ?></h3><p><?= e($s['student_no']) ?> · <?= e($s['course'] . ' ' . $s['year_level']) ?></p><span class="badge <?= e($s['deployment_status'] ?? 'pending') ?>"><?= e($s['deployment_status'] ?? 'pending') ?></span></div>
                     <small><?= e($s['company_name'] ?? 'No company assigned') ?></small>
                 </article>
             <?php endforeach; ?>
         </div>
-        <div class="table-wrap"><table class="data-table no-row-details"><thead><tr><th data-sort>Name</th><th data-sort>Student ID</th><th>Pre-Deployment</th><th>Details</th></tr></thead><tbody>
+        <div class="table-wrap coord-students-table-wrap"><table class="data-table coord-students-table no-row-details" data-no-tools><thead><tr><th data-sort>Student</th><th data-sort>Student ID</th><th>Pre-Deployment</th><th>Final &amp; Evaluations</th><th>Actions</th></tr></thead><tbody>
             <?php foreach ($students as $s): ?>
-                <?php $required = (float)($s['required_hours'] ?? 0); $rendered = (float)($s['rendered_hours'] ?? 0); $percent = $required > 0 ? min(100, round(($rendered / $required) * 100)) : 0; ?>
+                <?php
+                    $required = (float)($s['required_hours'] ?? 0);
+                    $rendered = (float)($s['rendered_hours'] ?? 0);
+                    $percent = $required > 0 ? min(100, round(($rendered / $required) * 100)) : 0;
+                    $initial = strtoupper(substr((string)($s['name'] ?? 'S'), 0, 1));
+                    $studentPhotoUrl = student_profile_photo_url($s);
+                    $studentRequirements = $requirementsByStudent[(int)$s['id']] ?? [];
+                    $finalRow = $finalRequirementsByStudent[(int)$s['id']] ?? [];
+                    $finalSummary = (new FinalRequirement(db()))->overallSummary($finalRow);
+                    $finalPct = $finalSummary['total'] > 0 ? round(($finalSummary['submitted'] / $finalSummary['total']) * 100) : 0;
+                    $evalRow = $studentEvaluationsByStudent[(int)$s['id']] ?? [];
+                    $partnerEvalStatus = StudentEvaluation::statusFor($evalRow, 'industry_partner');
+                    $coordEvalStatus = StudentEvaluation::statusFor($evalRow, 'coordinator');
+                    $evalDone = ($partnerEvalStatus === 'submitted' ? 1 : 0) + ($coordEvalStatus === 'submitted' ? 1 : 0);
+                ?>
                 <tr>
-                    <td><?= e($s['name']) ?><br><small><?= e($s['email']) ?></small></td>
-                    <td><?= e($s['student_no']) ?></td>
-                    <td class="student-predeployment-cell">
-                        <span class="badge <?= e($s['predeployment_status'] ?? 'not_submitted') ?>"><?= e(str_replace('_', ' ', $s['predeployment_status'] ?? 'not_submitted')) ?></span>
-                        <?php $studentRequirements = $requirementsByStudent[(int)$s['id']] ?? []; ?>
-                        <?php if (in_array($s['predeployment_status'] ?? '', ['submitted', 'approved'], true)): ?>
-                            <button class="btn btn-small requirement-review-launch" type="button" data-review-modal="reviewModal-<?= (int)$s['id'] ?>">
-                                Review Documents
-                            </button>
-                            <small class="requirement-review-count"><?= count($studentRequirements) ?> file<?= count($studentRequirements) === 1 ? '' : 's' ?> ready for checking</small>
-                        <?php endif; ?>
-                        <?php if (($s['predeployment_status'] ?? '') === 'approved' && !empty($s['enrollment_id'])): ?>
-                            <small class="requirement-review-count requirement-review-ready">Ready for forwarding after final check</small>
-                        <?php endif; ?>
+                    <td>
+                        <div class="coord-student-identity">
+                            <?php if ($studentPhotoUrl !== ''): ?>
+                                <span class="coord-student-avatar coord-student-avatar--photo"><img src="<?= e($studentPhotoUrl) ?>" alt="<?= e($s['name']) ?> profile photo"></span>
+                            <?php else: ?>
+                                <span class="coord-student-avatar"><?= e($initial) ?></span>
+                            <?php endif; ?>
+                            <div class="coord-student-meta">
+                                <strong><?= e($s['name']) ?></strong>
+                                <small><?= e($s['email']) ?></small>
+                            </div>
+                        </div>
                     </td>
-                    <td><button class="btn btn-small student-view-btn"
+                    <td><span class="coord-student-id"><?= e($s['student_no']) ?></span></td>
+                    <td>
+                        <div class="coord-status-block">
+                            <span class="coord-status-pill <?= e($s['predeployment_status'] ?? 'not_submitted') ?>"><?= e(str_replace('_', ' ', $s['predeployment_status'] ?? 'not_submitted')) ?></span>
+                            <?php if (in_array($s['predeployment_status'] ?? '', ['submitted', 'approved'], true)): ?>
+                                <button class="coord-inline-action requirement-review-launch" type="button" data-review-modal="reviewModal-<?= (int)$s['id'] ?>">
+                                    Review <?= count($studentRequirements) ?> file<?= count($studentRequirements) === 1 ? '' : 's' ?>
+                                </button>
+                            <?php endif; ?>
+                            <?php if (($s['predeployment_status'] ?? '') === 'approved' && !empty($s['enrollment_id'])): ?>
+                                <span class="coord-status-hint">Ready to forward</span>
+                            <?php endif; ?>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="coord-final-panel">
+                            <div class="coord-final-row">
+                                <div class="coord-final-row-head">
+                                    <span>Final Requirements</span>
+                                    <strong><?= e($finalSummary['label']) ?></strong>
+                                </div>
+                                <div class="coord-progress-track"><span style="width: <?= (int)$finalPct ?>%"></span></div>
+                            </div>
+                            <div class="coord-final-row">
+                                <div class="coord-final-row-head">
+                                    <span>Student Evaluations</span>
+                                    <strong><?= (int)$evalDone ?>/2 done</strong>
+                                </div>
+                                <div class="coord-eval-chips">
+                                    <span class="coord-eval-chip <?= $partnerEvalStatus === 'submitted' ? 'is-done' : 'is-pending' ?>">Partner</span>
+                                    <span class="coord-eval-chip <?= $coordEvalStatus === 'submitted' ? 'is-done' : 'is-pending' ?>">Coordinator</span>
+                                </div>
+                            </div>
+                            <a class="coord-open-final" href="index.php?r=coordinator_student_final&amp;student_id=<?= (int)$s['id'] ?>">Open final section</a>
+                        </div>
+                    </td>
+                    <td class="coord-actions-cell">
+                        <button class="btn btn-small btn-ghost student-view-btn"
                             data-name="<?= e($s['name']) ?>"
                             data-email="<?= e($s['email']) ?>"
+                            data-photo-url="<?= e($studentPhotoUrl) ?>"
+                            data-initial="<?= e($initial) ?>"
                             data-student-no="<?= e($s['student_no']) ?>"
                             data-course="<?= e($s['course']) ?>"
                             data-year-level="<?= e($s['year_level']) ?>"
@@ -54,8 +116,10 @@
                             data-moa-mou="<?= e(!empty($s['company_moa_mou_file']) && !empty($s['company_id']) ? 'index.php?r=coordinator_partner_document&company_id=' . (int)$s['company_id'] : '') ?>"
                             data-student-id="<?= (int)$s['id'] ?>"
                             data-user-id="<?= (int)$s['user_id'] ?>"
+                            data-final-url="index.php?r=coordinator_student_final&amp;student_id=<?= (int)$s['id'] ?>"
                             data-csrf="<?= e(csrf_token()) ?>"
-                            type="button">View</button></td>
+                            type="button">View profile</button>
+                    </td>
                 </tr>
             <?php endforeach; ?>
         </tbody></table></div><div class="pagination"></div>
@@ -64,54 +128,83 @@
 
 <div class="modal" id="studentModal">
     <div class="modal-card student-panel-modal">
-        <button class="modal-close" id="studentModalClose">&times;</button>
-        <div class="student-panel-header">
-            <div>
-                <h2 id="sm-name"></h2>
-                <p id="sm-email" class="muted"></p>
+        <button class="modal-close student-panel-close" id="studentModalClose" type="button" aria-label="Close profile">&times;</button>
+        <div class="student-panel-hero">
+            <div class="student-panel-hero-content">
+                <span class="student-panel-avatar" id="sm-avatar-wrap">
+                    <img id="sm-photo" class="is-hidden" alt="">
+                    <span id="sm-initial" class="student-panel-avatar-fallback is-hidden"></span>
+                </span>
+                <div class="student-panel-hero-copy">
+                    <span class="student-panel-kicker">Student Profile</span>
+                    <h2 id="sm-name" class="student-panel-name"></h2>
+                    <p id="sm-email" class="student-panel-email"></p>
+                    <div class="student-panel-chips">
+                        <span class="student-panel-chip" id="sm-chip-id"></span>
+                        <span class="student-panel-chip" id="sm-chip-year"></span>
+                        <span class="student-panel-chip student-panel-chip-status" id="sm-chip-status"></span>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="sm-details-grid student-panel-grid">
-            <div class="student-panel-item"><span class="sm-label">Student ID</span><strong id="sm-student-no"></strong></div>
-            <div class="student-panel-item"><span class="sm-label">Birthdate</span><strong id="sm-birthdate"></strong></div>
-            <div class="student-panel-item"><span class="sm-label">Course</span><strong id="sm-course"></strong></div>
-            <div class="student-panel-item"><span class="sm-label">Year Level</span><strong id="sm-year-level"></strong></div>
-            <div class="student-panel-item"><span class="sm-label">Company</span><strong id="sm-company"></strong></div>
-            <div class="student-panel-item"><span class="sm-label">Status</span><div id="sm-status"></div></div>
-            <div class="student-panel-item student-panel-item-wide"><span class="sm-label">OJT Progress</span><strong id="sm-progress"></strong></div>
-            <div class="student-panel-item"><span class="sm-label">Pre-Deployment</span><strong id="sm-predeployment"></strong></div>
-            <div class="student-panel-item"><span class="sm-label">Orientation Date/Time</span><strong id="sm-orientation-datetime"></strong></div>
-            <div class="student-panel-item"><span class="sm-label">Official OJT Start</span><strong id="sm-official-start"></strong></div>
-            <div class="student-panel-item"><span class="sm-label">Projected End</span><strong id="sm-projected-end"></strong></div>
-            <div class="student-panel-item student-panel-item-wide"><span class="sm-label">Orientation Instructions / Notes</span><strong id="sm-orientation-notes"></strong></div>
+        <div class="student-panel-body">
+            <div class="student-panel-progress-card">
+                <div class="student-panel-progress-head">
+                    <span class="sm-label">OJT Progress</span>
+                    <strong id="sm-progress-text"></strong>
+                </div>
+                <div class="student-panel-progress-track"><span id="sm-progress-bar"></span></div>
+            </div>
+            <div class="student-panel-section">
+                <h3 class="student-panel-section-title">Academic Details</h3>
+                <div class="sm-details-grid student-panel-grid">
+                    <div class="student-panel-item student-panel-item-wide"><span class="sm-label">Course</span><strong id="sm-course"></strong></div>
+                    <div class="student-panel-item"><span class="sm-label">Birthdate</span><strong id="sm-birthdate"></strong></div>
+                    <div class="student-panel-item"><span class="sm-label">Year Level</span><strong id="sm-year-level"></strong></div>
+                </div>
+            </div>
+            <div class="student-panel-section">
+                <h3 class="student-panel-section-title">Deployment &amp; Orientation</h3>
+                <div class="sm-details-grid student-panel-grid">
+                    <div class="student-panel-item"><span class="sm-label">Company</span><strong id="sm-company"></strong></div>
+                    <div class="student-panel-item"><span class="sm-label">Pre-Deployment</span><div id="sm-predeployment"></div></div>
+                    <div class="student-panel-item"><span class="sm-label">Official OJT Start</span><strong id="sm-official-start"></strong></div>
+                    <div class="student-panel-item"><span class="sm-label">Projected End</span><strong id="sm-projected-end"></strong></div>
+                    <div class="student-panel-item student-panel-item-wide"><span class="sm-label">Orientation Date/Time</span><strong id="sm-orientation-datetime"></strong></div>
+                </div>
+            </div>
+            <div class="student-panel-section">
+                <h3 class="student-panel-section-title">Orientation Notes</h3>
+                <div class="student-panel-notes-box" id="sm-orientation-notes"></div>
+            </div>
+            <div class="student-panel-footer">
+                <div class="student-panel-doc-actions">
+                    <a id="sm-final-link" class="btn btn-small btn-primary" href="#">Open Final Section</a>
+                    <a id="sm-cor-link" class="btn btn-small btn-ghost is-hidden" target="_blank" href="#">View COR</a>
+                    <a id="sm-moa-link" class="btn btn-small btn-ghost is-hidden" target="_blank" href="#">View MOA/MOU</a>
+                </div>
+                <details class="student-panel-reset">
+                    <summary>Account Actions</summary>
+                    <div class="student-panel-reset-stack">
+                        <form method="post" class="student-panel-reset-form" id="sm-email-form">
+                            <input type="hidden" name="csrf_token" id="sm-email-csrf">
+                            <input type="hidden" name="action" value="coordinator_update_student_email">
+                            <input type="hidden" name="user_id" id="sm-email-user-id">
+                            <label class="student-panel-field-label">Update Email
+                                <input type="email" name="email" id="sm-email-input" required placeholder="Enter new email address">
+                            </label>
+                            <button class="btn btn-small" type="submit">Save Email</button>
+                        </form>
+                        <form method="post" class="student-panel-reset-form">
+                            <input type="hidden" name="csrf_token" id="sm-csrf">
+                            <input type="hidden" name="action" value="coordinator_reset_password">
+                            <input type="hidden" name="student_id" id="sm-student-id">
+                            <button class="btn btn-small btn-ghost" type="submit">Send Password Reset</button>
+                        </form>
+                    </div>
+                </details>
+            </div>
         </div>
-        <div id="sm-cor-wrap" class="student-panel-actions" style="display:none">
-            <a id="sm-cor-link" class="btn btn-small" target="_blank" href="#">View COR</a>
-        </div>
-        <div id="sm-moa-wrap" class="student-panel-actions" style="display:none">
-            <a id="sm-moa-link" class="btn btn-small" target="_blank" href="#">View MOA/MOU</a>
-        </div>
-        <details class="student-panel-reset">
-            <summary>Edit Email</summary>
-            <form method="post" class="student-panel-reset-form" id="sm-email-form">
-                <input type="hidden" name="csrf_token" id="sm-email-csrf">
-                <input type="hidden" name="action" value="coordinator_update_student_email">
-                <input type="hidden" name="user_id" id="sm-email-user-id">
-                <label style="margin-bottom:8px;display:block">New Email Address
-                    <input type="email" name="email" id="sm-email-input" required placeholder="Enter new email" style="margin-top:4px">
-                </label>
-                <button class="btn btn-small" type="submit">Update Email</button>
-            </form>
-        </details>
-        <details class="student-panel-reset">
-            <summary>Reset Password</summary>
-            <form method="post" class="student-panel-reset-form">
-                <input type="hidden" name="csrf_token" id="sm-csrf">
-                <input type="hidden" name="action" value="coordinator_reset_password">
-                <input type="hidden" name="student_id" id="sm-student-id">
-                <button class="btn btn-small" type="submit">Send Reset Email</button>
-            </form>
-        </details>
     </div>
 </div>
 

@@ -1,8 +1,8 @@
 <?php
 $headerInitial = strtoupper(substr($user['name'] ?? 'A', 0, 1));
 $headerPhotoSource = (($user['role'] ?? '') === 'student') ? (($student ?? null) ?: ($studentRecord ?? null)) : null;
-$headerPhotoPath = !empty($headerPhotoSource['photo_file']) ? __DIR__ . '/../../' . ltrim((string)$headerPhotoSource['photo_file'], '/\\') : '';
-$headerPhotoUrl = ($headerPhotoPath !== '' && is_file($headerPhotoPath)) ? asset($headerPhotoSource['photo_file']) : '';
+$headerPhotoUrl = student_profile_photo_url($headerPhotoSource);
+$studentProfileRoute = ($user['role'] ?? '') === 'student' ? route_url('student.profile') : '';
 ?>
 <!doctype html>
 <html lang="en">
@@ -13,7 +13,7 @@ $headerPhotoUrl = ($headerPhotoPath !== '' && is_file($headerPhotoPath)) ? asset
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260607-partner-approval-v4">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260610-student-modal-v2">
 </head>
 <body class="app-page role-<?= e($user['role'] ?? 'guest') ?>">
 <div class="app-shell">
@@ -53,10 +53,28 @@ $headerPhotoUrl = ($headerPhotoPath !== '' && is_file($headerPhotoPath)) ? asset
             <?php if ($role === 'student'): ?>
                 <?php if (!($studentProfileCompleted ?? true)): ?>
                     <a class="nav-link <?= $currentRoute === 'student_profile' ? 'active' : '' ?>" href="index.php?r=student_profile"><svg viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 8-4v6h2V8L12 3Zm-6 9v4c2 3 10 3 12 0v-4l-6 3-6-3Z"/></svg><span>Complete Profile</span></a>
+                <?php else: ?>
+                    <a class="nav-link <?= $currentRoute === 'student_profile' ? 'active' : '' ?>" href="index.php?r=student_profile"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg><span>My Profile</span></a>
                 <?php endif; ?>
                 <a class="nav-link <?= $currentRoute === 'student_records' ? 'active' : '' ?>" href="index.php?r=student_records"><svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm0 16H5V9h14v10Zm-9-8H7v3h3v3h3v-3h3v-3h-3V8h-3v3Z"/></svg><span>Submit Record</span></a>
+                <a class="nav-link <?= $currentRoute === 'student_reports' ? 'active' : '' ?>" href="index.php?r=student_reports"><svg viewBox="0 0 24 24"><path d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm8 1.5V8h3.5L13 4.5ZM8 13h2v5H8v-5Zm3.5-3h2v8h-2v-8ZM15 15h2v3h-2v-3Z"/></svg><span>Reports</span></a>
                 <a class="nav-link <?= $currentRoute === 'student_timeline' ? 'active' : '' ?>" href="index.php?r=student_timeline"><svg viewBox="0 0 24 24"><path d="M7 3a2 2 0 0 1 2 2v1h6V5a2 2 0 1 1 4 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm0 5v11h10V8H7Zm2 2h6v2H9v-2Zm0 4h4v2H9v-2Z"/></svg><span>Activity Timeline</span></a>
-                <a class="nav-link <?= $currentRoute === 'student_documents' ? 'active' : '' ?>" href="index.php?r=student_documents"><svg viewBox="0 0 24 24"><path d="M7 2h7l5 5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm7 1.5V8h4.5L14 3.5ZM9 12h6v2H9v-2Zm0 4h6v2H9v-2Z"/></svg><span>Documents</span></a>
+<?php
+                $docRoutes = ['student_documents', 'student_documents_final', 'student_documents_other'];
+                $docGroupOpen = in_array($currentRoute, $docRoutes, true);
+                ?>
+                <div class="nav-group <?= $docGroupOpen ? 'open' : '' ?>">
+                    <button class="nav-group-toggle" type="button">
+                        <svg viewBox="0 0 24 24"><path d="M7 2h7l5 5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm7 1.5V8h4.5L14 3.5ZM9 12h6v2H9v-2Zm0 4h6v2H9v-2Z"/></svg>
+                        <span>Documents</span>
+                        <svg class="chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+                    </button>
+                    <div class="nav-group-items">
+                        <a class="nav-link nav-sub <?= $currentRoute === 'student_documents' ? 'active' : '' ?>" href="index.php?r=student_documents"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z"/></svg><span>Pre-Deployment Requirements</span></a>
+                        <a class="nav-link nav-sub <?= $currentRoute === 'student_documents_final' ? 'active' : '' ?>" href="index.php?r=student_documents_final"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5ZM8 13h8v2H8v-2Zm0 4h8v2H8v-2Z"/></svg><span>Final Requirement</span></a>
+                        <a class="nav-link nav-sub <?= $currentRoute === 'student_documents_other' ? 'active' : '' ?>" href="index.php?r=student_documents_other"><svg viewBox="0 0 24 24"><path d="M4 4h7l2 2h7v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg><span>Other Documents</span></a>
+                    </div>
+                </div>
                 <a class="nav-link <?= $currentRoute === 'student_evaluation' ? 'active' : '' ?>" href="index.php?r=student_evaluation"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z"/></svg><span>Evaluation</span></a>
                 <a class="nav-link <?= in_array($currentRoute, ['student_settings', 'student_password'], true) ? 'active' : '' ?>" href="index.php?r=student_settings"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.49.42l-.36 2.54c-.58.23-1.12.54-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.31 8.48a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.51.4 1.05.71 1.63.94l.36 2.54a.5.5 0 0 0 .49.42h3.8a.5.5 0 0 0 .49-.42l.36-2.54c.58-.23 1.12-.54 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z"/></svg><span>Settings</span></a>
             <?php endif; ?>
@@ -66,13 +84,25 @@ $headerPhotoUrl = ($headerPhotoPath !== '' && is_file($headerPhotoPath)) ? asset
             <?php endif; ?>
         </nav>
         <div class="sidebar-user">
-            <div class="sidebar-user-info">
-                <span class="user-avatar"><?= e(strtoupper(substr($user['name'] ?? 'A', 0, 1))) ?></span>
-                <div>
+            <?php if ($studentProfileRoute !== ''): ?>
+                <a class="sidebar-user-info app-user-identity app-user-identity--sidebar sidebar-user-link" href="<?= e($studentProfileRoute) ?>" aria-label="Open my profile">
+            <?php else: ?>
+                <div class="sidebar-user-info app-user-identity app-user-identity--sidebar">
+            <?php endif; ?>
+                <?php if ($headerPhotoUrl !== ''): ?>
+                    <span class="app-user-identity__avatar app-user-identity__avatar--photo"><img src="<?= e($headerPhotoUrl) ?>" alt="<?= e($user['name'] ?? 'User') ?> profile photo"></span>
+                <?php else: ?>
+                    <span class="app-user-identity__avatar"><?= e($headerInitial) ?></span>
+                <?php endif; ?>
+                <div class="app-user-identity__meta">
                     <strong><?= e($user['name'] ?? '') ?></strong>
-                    <small><?= e(($user['role'] ?? '') === 'partner' ? 'Industry Partner' : ucwords(str_replace('_', ' ', $user['role'] ?? ''))) ?></small>
+                    <small><?= e(($user['role'] ?? '') === 'student' ? ($user['email'] ?? '') : (($user['role'] ?? '') === 'partner' ? 'Industry Partner' : ucwords(str_replace('_', ' ', $user['role'] ?? '')))) ?></small>
                 </div>
-            </div>
+            <?php if ($studentProfileRoute !== ''): ?>
+                </a>
+            <?php else: ?>
+                </div>
+            <?php endif; ?>
             <a class="nav-link sidebar-logout" href="logout.php" data-confirm="Are you sure you want to log out?" data-confirm-title="Log out of your account" data-confirm-ok="Yes, log out" data-confirm-cancel="Stay signed in">
                 <svg viewBox="0 0 24 24"><path d="M16 13v-2H7V8l-5 4 5 4v-3h9Zm1-9H9a2 2 0 0 0-2 2v3h2V6h8v12H9v-3H7v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z"/></svg>
                 <span>Logout</span>
@@ -89,14 +119,25 @@ $headerPhotoUrl = ($headerPhotoPath !== '' && is_file($headerPhotoPath)) ? asset
                         <?php if (($unreadNotifications ?? 0) > 0): ?><span class="notif-badge"><?= (int)$unreadNotifications ?></span><?php endif; ?>
                     </button>
                 </div>
-                <div class="user-chip">
+                <?php if ($studentProfileRoute !== ''): ?>
+                    <a class="user-chip app-user-identity app-user-identity--chip user-chip-link" href="<?= e($studentProfileRoute) ?>" aria-label="Open my profile">
+                <?php else: ?>
+                    <div class="user-chip app-user-identity app-user-identity--chip">
+                <?php endif; ?>
                     <?php if ($headerPhotoUrl !== ''): ?>
-                        <span class="user-avatar user-avatar-photo"><img src="<?= e($headerPhotoUrl) ?>" alt="<?= e($user['name'] ?? 'User') ?> profile photo"></span>
+                        <span class="app-user-identity__avatar app-user-identity__avatar--photo"><img src="<?= e($headerPhotoUrl) ?>" alt="<?= e($user['name'] ?? 'User') ?> profile photo"></span>
                     <?php else: ?>
-                        <span class="user-avatar"><?= e($headerInitial) ?></span>
+                        <span class="app-user-identity__avatar"><?= e($headerInitial) ?></span>
                     <?php endif; ?>
-                    <div><strong><?= e($user['name'] ?? '') ?></strong><small><?= e($user['email'] ?? '') ?></small></div>
-                </div>
+                    <div class="app-user-identity__meta">
+                        <strong><?= e($user['name'] ?? '') ?></strong>
+                        <small><?= e($user['email'] ?? '') ?></small>
+                    </div>
+                <?php if ($studentProfileRoute !== ''): ?>
+                    </a>
+                <?php else: ?>
+                    </div>
+                <?php endif; ?>
             </div>
         </header>
         <div class="notif-panel" id="notifPanel" role="dialog" aria-label="Notifications" hidden>

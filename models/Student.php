@@ -30,6 +30,13 @@ class Student
         return $stmt->fetch() ?: null;
     }
 
+    public function belongsToCoordinator(int $studentId, int $coordinatorUserId): bool
+    {
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM students WHERE id = ? AND coordinator_id = ?');
+        $stmt->execute([$studentId, $coordinatorUserId]);
+        return (int)$stmt->fetchColumn() > 0;
+    }
+
     public function findByUser(int $userId): ?array
     {
         $stmt = $this->db->prepare('SELECT s.*, u.name, u.email, c.name coordinator_name, c.email coordinator_email FROM students s JOIN users u ON u.id = s.user_id LEFT JOIN users c ON c.id = s.coordinator_id WHERE s.user_id = ?');

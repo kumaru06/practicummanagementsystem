@@ -36,16 +36,61 @@ function initStudentProfilePhotoPreview() {
     const input = document.querySelector('[data-profile-photo-input]');
     const preview = document.querySelector('[data-profile-photo-preview]');
     const fallback = document.querySelector('[data-profile-photo-fallback]');
-    if (!preview || !fallback) return;
+    const inlinePreview = document.querySelector('[data-profile-photo-preview-inline]');
+    const inlineFallback = document.querySelector('[data-profile-initial-inline]');
+    const inlineAvatar = document.querySelector('[data-profile-inline-avatar]');
 
-    const showFallback = () => {
-        preview.classList.add('is-hidden');
-        preview.removeAttribute('src');
-        fallback.classList.remove('is-hidden');
+    const setInlinePhoto = url => {
+        if (!inlinePreview) return;
+        if (!url) {
+            inlinePreview.classList.add('is-hidden');
+            inlinePreview.removeAttribute('src');
+            inlineFallback?.classList.remove('is-hidden');
+            inlineAvatar?.classList.remove('app-user-identity__avatar--photo');
+            return;
+        }
+        inlinePreview.src = url;
+        inlinePreview.classList.remove('is-hidden');
+        inlineFallback?.classList.add('is-hidden');
+        inlineAvatar?.classList.add('app-user-identity__avatar--photo');
     };
 
-    preview.addEventListener('error', showFallback, { once: true });
-    if (!preview.getAttribute('src')) showFallback();
+    const setSidebarPhoto = url => {
+        if (!preview || !fallback) return;
+        if (!url) {
+            preview.classList.add('is-hidden');
+            preview.removeAttribute('src');
+            fallback.classList.remove('is-hidden');
+            return;
+        }
+        preview.src = url;
+        preview.classList.remove('is-hidden');
+        fallback.classList.add('is-hidden');
+    };
+
+    const showPhoto = url => {
+        setSidebarPhoto(url);
+        setInlinePhoto(url);
+    };
+
+    const showFallback = () => showPhoto('');
+
+    if (preview && fallback) {
+        const previewSrc = (preview.getAttribute('src') || '').trim();
+        if (!previewSrc) {
+            setSidebarPhoto('');
+        } else {
+            preview.addEventListener('error', () => setSidebarPhoto(''), { once: true });
+        }
+    }
+
+    const inlineSrc = (inlinePreview?.getAttribute('src') || '').trim();
+    if (inlineSrc) {
+        setInlinePhoto(inlineSrc);
+        inlinePreview?.addEventListener('error', () => setInlinePhoto(''), { once: true });
+    } else {
+        setInlinePhoto('');
+    }
 
     input?.addEventListener('change', () => {
         const file = input.files?.[0];
@@ -54,9 +99,7 @@ function initStudentProfilePhotoPreview() {
             return;
         }
 
-        preview.src = URL.createObjectURL(file);
-        preview.classList.remove('is-hidden');
-        fallback.classList.add('is-hidden');
+        showPhoto(URL.createObjectURL(file));
     });
 }
 
@@ -1634,11 +1677,14 @@ function initViewToggles() {
 }
 
 function enhanceTable(table) {
+    if (table.hasAttribute('data-no-enhance')) return;
     const card = table.closest('.card');
     const search = card?.querySelector('.table-search');
     const tbody = table.tBodies[0];
     if (!tbody) return;
-    addTableTools(table);
+    if (!table.hasAttribute('data-no-tools')) {
+        addTableTools(table);
+    }
     let rows = [...tbody.rows];
     let page = 1;
     const perPage = 10;
@@ -1684,9 +1730,20 @@ function addTableTools(table) {
     if (!wrap || wrap.previousElementSibling?.classList.contains('table-tools')) return;
     const tools = document.createElement('div');
     tools.className = 'table-tools';
-    tools.innerHTML = '<button class="btn btn-small export-csv" type="button">Export CSV</button><div class="column-menu"><button class="btn btn-small column-toggle" type="button">Columns</button><div class="column-options"></div></div>';
+    const exportPdf = table.dataset.export === 'pdf';
+    const exportBtn = exportPdf
+        ? '<button class="btn btn-small export-pdf" type="button">Export PDF</button>'
+        : '<button class="btn btn-small export-csv" type="button">Export CSV</button>';
+    tools.innerHTML = exportBtn + '<div class="column-menu"><button class="btn btn-small column-toggle" type="button">Columns</button><div class="column-options"></div></div>';
     wrap.insertAdjacentElement('beforebegin', tools);
-    tools.querySelector('.export-csv').addEventListener('click', () => exportCsv(table));
+    if (exportPdf) {
+        tools.querySelector('.export-pdf').addEventListener('click', () => {
+            const url = table.dataset.exportUrl;
+            if (url) window.open(url, '_blank');
+        });
+    } else {
+        tools.querySelector('.export-csv').addEventListener('click', () => exportCsv(table));
+    }
     const options = tools.querySelector('.column-options');
     [...table.tHead.rows[0].cells].forEach((th, i) => {
         const label = document.createElement('label');
@@ -2466,47 +2523,73 @@ function initStudentModal() {
         closeRequirementReviewModals();
 
         const d = btn.dataset;
-        document.getElementById('sm-name').textContent        = d.name || '';
-        document.getElementById('sm-email').textContent       = d.email || '';
-        document.getElementById('sm-student-no').textContent  = d.studentNo || '';
-        document.getElementById('sm-course').textContent      = d.course || '';
-        document.getElementById('sm-year-level').textContent  = d.yearLevel || '';
+        const photoEl = document.getElementById('sm-photo');
+        const initialEl = document.getElementById('sm-initial');
+        const avatarWrap = document.getElementById('sm-avatar-wrap');
+        const photoUrl = (d.photoUrl || '').trim();
+        if (photoEl && initialEl && avatarWrap) {
+            if (photoUrl) {
+                photoEl.src = photoUrl;
+                photoEl.alt = `${d.name || 'Student'} profile photo`;
+                photoEl.classList.remove('is-hidden');
+                initialEl.classList.add('is-hidden');
+                avatarWrap.classList.add('has-photo');
+            } else {
+                photoEl.classList.add('is-hidden');
+                photoEl.removeAttribute('src');
+                initialEl.textContent = d.initial || (d.name || 'S').charAt(0).toUpperCase();
+                initialEl.classList.remove('is-hidden');
+                avatarWrap.classList.remove('has-photo');
+            }
+        }
+        document.getElementById('sm-name').textContent = d.name || '';
+        document.getElementById('sm-email').textContent = d.email || '';
+        document.getElementById('sm-chip-id').textContent = d.studentNo ? `ID ${d.studentNo}` : 'ID —';
+        document.getElementById('sm-chip-year').textContent = d.yearLevel ? `${d.yearLevel}` : 'Year —';
+        const statusChip = document.getElementById('sm-chip-status');
+        statusChip.textContent = formatLabel(d.status || 'pending');
+        statusChip.className = `student-panel-chip student-panel-chip-status is-${(d.status || 'pending').replaceAll('_', '-')}`;
+
+        document.getElementById('sm-course').textContent = d.course || '—';
+        document.getElementById('sm-year-level').textContent = d.yearLevel || '—';
         const bdRaw = d.birthdate || '';
-        document.getElementById('sm-birthdate').textContent   = bdRaw ? new Date(bdRaw + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
-        document.getElementById('sm-company').textContent     = d.company || '';
-        document.getElementById('sm-progress').textContent    = `${d.rendered} / ${d.required} hrs (${d.percent}%)`;
-        document.getElementById('sm-predeployment').textContent = d.predeploymentStatus || '—';
+        document.getElementById('sm-birthdate').textContent = bdRaw ? new Date(bdRaw + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
+        document.getElementById('sm-company').textContent = d.company || '—';
+
+        const percent = Math.max(0, Math.min(100, Number.parseInt(d.percent, 10) || 0));
+        document.getElementById('sm-progress-text').textContent = `${d.rendered} / ${d.required} hrs (${percent}%)`;
+        const progressBar = document.getElementById('sm-progress-bar');
+        if (progressBar) progressBar.style.width = `${percent}%`;
+
+        const predeployEl = document.getElementById('sm-predeployment');
+        const predeployKey = String(d.predeploymentStatus || 'not submitted').toLowerCase().replaceAll(' ', '_');
+        predeployEl.innerHTML = `<span class="coord-status-pill ${escapeHtml(predeployKey)}">${escapeHtml(formatLabel(d.predeploymentStatus || 'Not submitted'))}</span>`;
+
         document.getElementById('sm-orientation-datetime').textContent = formatDateTime(d.orientationDatetime || '');
         document.getElementById('sm-official-start').textContent = formatDate(d.officialStartDate || '');
         document.getElementById('sm-projected-end').textContent = formatDate(d.projectedEndDate || '');
         document.getElementById('sm-orientation-notes').textContent = d.orientationNotes || 'No orientation instructions recorded yet.';
 
-        // Status badge
-        const statusEl = document.getElementById('sm-status');
-        statusEl.innerHTML = '';
-        const badge = document.createElement('span');
-        badge.className = `badge ${d.status}`;
-        badge.textContent = d.status;
-        statusEl.appendChild(badge);
+        const finalLink = document.getElementById('sm-final-link');
+        if (finalLink && d.finalUrl) finalLink.href = d.finalUrl;
 
-        // COR link
-        const corWrap = document.getElementById('sm-cor-wrap');
         const corLink = document.getElementById('sm-cor-link');
-        if (d.cor && d.cor.trim() !== '') {
-            corLink.href = d.cor;
-            corWrap.style.display = '';
-        } else {
-            corWrap.style.display = 'none';
+        if (corLink) {
+            if (d.cor && d.cor.trim() !== '') {
+                corLink.href = d.cor;
+                corLink.classList.remove('is-hidden');
+            } else {
+                corLink.classList.add('is-hidden');
+            }
         }
 
-        const moaWrap = document.getElementById('sm-moa-wrap');
         const moaLink = document.getElementById('sm-moa-link');
-        if (moaWrap && moaLink) {
+        if (moaLink) {
             if (d.moaMou && d.moaMou.trim() !== '') {
                 moaLink.href = d.moaMou;
-                moaWrap.style.display = '';
+                moaLink.classList.remove('is-hidden');
             } else {
-                moaWrap.style.display = 'none';
+                moaLink.classList.add('is-hidden');
             }
         }
 

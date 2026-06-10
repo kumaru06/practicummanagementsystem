@@ -39,6 +39,119 @@ class StudentController extends BaseController
         $this->render('student/records', $this->studentPageData('Submit Record'));
     }
 
+    public function reports(): void
+    {
+        $this->render('student/reports', $this->studentPageData('Reports'));
+    }
+
+    public function exportReportPdf(): void
+    {
+        require_role('student');
+        $type = ($_GET['type'] ?? 'dtr') === 'weekly' ? 'weekly' : 'dtr';
+        $data = $this->studentPageData('Reports');
+        $student = $data['student'] ?? [];
+        $studentName = trim((string)($student['name'] ?? current_user()['name'] ?? 'Student'));
+
+        $statusLabel = static function ($status): string {
+            $status = strtolower(trim((string)$status));
+            if (!in_array($status, ['pending', 'approved', 'rejected'], true)) {
+                $status = 'pending';
+            }
+            return ucfirst($status);
+        };
+
+        if ($type === 'weekly') {
+            $heading = 'Weekly Reports';
+            $headers = ['Week', 'Date Covered', 'Accomplishments', 'Approval Status'];
+            $rows = [];
+            foreach (($data['weeklyReports'] ?? []) as $w) {
+                $dateRange = '-';
+                if (!empty($w['date_covered_start']) && !empty($w['date_covered_end'])) {
+                    $dateRange = date('M d', strtotime((string)$w['date_covered_start'])) . ' - ' . date('M d, Y', strtotime((string)$w['date_covered_end']));
+                }
+                $accomplishments = trim((string)($w['accomplishments'] ?? $w['report_text'] ?? '')) ?: '-';
+                $rows[] = [
+                    'Week ' . (int)$w['week_no'],
+                    $dateRange,
+                    $accomplishments,
+                    $statusLabel($w['verification_status'] ?? 'pending'),
+                ];
+            }
+        } else {
+            $heading = 'Daily Time Records';
+            $headers = ['Date', 'Time', 'Hours', 'Tasks', 'Approval Status'];
+            $rows = [];
+            foreach (($data['dtrs'] ?? []) as $d) {
+                $rows[] = [
+                    (string)($d['work_date'] ?? '-'),
+                    trim((string)($d['time_in'] ?? '') . ' - ' . (string)($d['time_out'] ?? '')),
+                    (string)($d['hours'] ?? '-'),
+                    (string)($d['tasks_done'] ?? '-'),
+                    $statusLabel($d['verification_status'] ?? 'pending'),
+                ];
+            }
+        }
+
+        $generatedAt = date('M d, Y g:i A');
+        $headHtml = '';
+        foreach ($headers as $h) {
+            $headHtml .= '<th>' . htmlspecialchars($h, ENT_QUOTES) . '</th>';
+        }
+        $bodyHtml = '';
+        if (!$rows) {
+            $bodyHtml = '<tr><td colspan="' . count($headers) . '" class="empty">No records submitted yet.</td></tr>';
+        } else {
+            foreach ($rows as $row) {
+                $bodyHtml .= '<tr>';
+                foreach ($row as $cell) {
+                    $bodyHtml .= '<td>' . nl2br(htmlspecialchars((string)$cell, ENT_QUOTES)) . '</td>';
+                }
+                $bodyHtml .= '</tr>';
+            }
+        }
+
+        $html = '<!doctype html><html><head><meta charset="utf-8"><style>'
+            . 'body{font-family:DejaVu Sans,Arial,sans-serif;color:#1f2937;font-size:11px;}'
+            . 'h1{font-size:18px;margin:0 0 2px;color:#7f1d1d;}'
+            . '.sub{color:#6b7280;font-size:11px;margin:0 0 14px;}'
+            . '.meta{margin:0 0 16px;font-size:11px;}'
+            . '.meta strong{color:#111827;}'
+            . 'table{width:100%;border-collapse:collapse;}'
+            . 'th{background:#fdecec;color:#7f1d1d;text-align:left;padding:8px;border:1px solid #f3c7c7;font-size:10px;text-transform:uppercase;}'
+            . 'td{padding:8px;border:1px solid #e5e7eb;vertical-align:top;}'
+            . 'tr:nth-child(even) td{background:#fafafa;}'
+            . '.empty{text-align:center;color:#6b7280;padding:18px;}'
+            . '</style></head><body>'
+            . '<h1>' . htmlspecialchars($heading, ENT_QUOTES) . '</h1>'
+            . '<p class="sub">AMA Computer College &mdash; OJT Management</p>'
+            . '<p class="meta"><strong>Student:</strong> ' . htmlspecialchars($studentName, ENT_QUOTES) . '<br>'
+            . '<strong>Generated:</strong> ' . htmlspecialchars($generatedAt, ENT_QUOTES) . '</p>'
+            . '<table><thead><tr>' . $headHtml . '</tr></thead><tbody>' . $bodyHtml . '</tbody></table>'
+            . '</body></html>';
+
+        $projectRoot = realpath(__DIR__ . '/..') ?: dirname(__DIR__);
+        $tempDir = $projectRoot . '/uploads/dompdf_temp';
+        if (!is_dir($tempDir)) {
+            @mkdir($tempDir, 0755, true);
+        }
+        $options = new \Dompdf\Options();
+        $options->set('isRemoteEnabled', true);
+        $options->set('tempDir', $tempDir);
+        $options->set('fontDir', $tempDir);
+        $options->set('fontCache', $tempDir);
+        $options->set('chroot', $projectRoot);
+
+        $dompdf = new \Dompdf\Dompdf($options);
+        $dompdf->loadHtml($html, 'UTF-8');
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        $safeName = preg_replace('/[^A-Za-z0-9]+/', '_', strtolower($studentName)) ?: 'student';
+        $fileName = $safeName . '_' . ($type === 'weekly' ? 'weekly_reports' : 'daily_time_records') . '_' . date('Ymd') . '.pdf';
+        $dompdf->stream($fileName, ['Attachment' => true]);
+        exit;
+    }
+
     public function timeline(): void
     {
         $this->render('student/timeline', $this->studentPageData('Activity Timeline'));
@@ -46,7 +159,218 @@ class StudentController extends BaseController
 
     public function documents(): void
     {
-        $this->render('student/documents', $this->studentPageData('Documents'));
+        $this->render('student/documents', $this->studentPageData('Pre-Deployment Requirements'));
+    }
+
+    public function documentsFinal(): void
+    {
+        require_role('student');
+        $data = $this->studentPageData('Final Requirement');
+        $student = $data['student'] ?? null;
+        $finalModel = new FinalRequirement($this->db);
+        $evalModel = new StudentEvaluation($this->db);
+        $data['finalRequirement'] = $student ? $finalModel->getByStudent((int)$student['id']) : [];
+        $data['studentEvaluation'] = $student ? $evalModel->getByStudent((int)$student['id']) : [];
+        $data['finalSections'] = FinalRequirement::SECTIONS;
+        $data['evaluationSections'] = FinalRequirement::EVALUATION_SECTIONS;
+
+        $doc = (string)($_GET['doc'] ?? '');
+        $eval = (string)($_GET['eval'] ?? '');
+        
+        // Handle document sections
+        if (array_key_exists($doc, FinalRequirement::SECTIONS)) {
+            $section = FinalRequirement::SECTIONS[$doc];
+            $data['title'] = $section['name'];
+            $data['finalDoc'] = $doc;
+            $view = match ($doc) {
+                'job_description' => 'student/final/job_description',
+                'company_profile' => 'student/final/company_profile',
+                'personal_observation' => 'student/final/personal_observation',
+            };
+            $this->render($view, $data);
+            return;
+        }
+        
+        // Handle evaluation sections
+        if (array_key_exists($eval, FinalRequirement::EVALUATION_SECTIONS)) {
+            $section = FinalRequirement::EVALUATION_SECTIONS[$eval];
+            $data['title'] = $section['name'];
+            $data['evalType'] = $eval;
+            $view = match ($eval) {
+                'industry_partner' => 'student/evaluations/industry_partner',
+                'coordinator' => 'student/evaluations/coordinator',
+            };
+            $this->render($view, $data);
+            return;
+        }
+
+        $this->render('student/documents_final', $data);
+    }
+
+    public function saveFinalJobDescription(): void
+    {
+        require_role('student');
+        $p = $this->post();
+        $student = (new Student($this->db))->findByUser((int)current_user()['id']);
+        if (!$student) {
+            flash('error', 'Student record not found.');
+            redirect('index.php?r=student_documents_final');
+        }
+        try {
+            (new FinalRequirement($this->db))->saveJobDescription(
+                (int)$student['id'],
+                (string)($p['position_held'] ?? ''),
+                (string)($p['job_description'] ?? '')
+            );
+            flash('success', 'Job description saved.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+            redirect('index.php?r=student_documents_final&doc=job_description');
+        }
+        redirect('index.php?r=student_documents_final');
+    }
+
+    public function saveFinalCompanyProfile(): void
+    {
+        require_role('student');
+        $p = $this->post();
+        $student = (new Student($this->db))->findByUser((int)current_user()['id']);
+        if (!$student) {
+            flash('error', 'Student record not found.');
+            redirect('index.php?r=student_documents_final');
+        }
+        try {
+            (new FinalRequirement($this->db))->saveCompanyProfile(
+                (int)$student['id'],
+                (string)($p['company_history'] ?? ''),
+                (string)($p['company_description'] ?? ''),
+                (string)($p['company_mission'] ?? ''),
+                (string)($p['company_vision'] ?? '')
+            );
+            flash('success', 'Company profile saved.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+            redirect('index.php?r=student_documents_final&doc=company_profile');
+        }
+        redirect('index.php?r=student_documents_final');
+    }
+
+    public function saveFinalPersonalObservation(): void
+    {
+        require_role('student');
+        $p = $this->post();
+        $student = (new Student($this->db))->findByUser((int)current_user()['id']);
+        if (!$student) {
+            flash('error', 'Student record not found.');
+            redirect('index.php?r=student_documents_final');
+        }
+        try {
+            $fields = [];
+            foreach (array_keys(FinalRequirement::PERSONAL_OBSERVATION_FIELDS) as $column) {
+                $fields[$column] = (string)($p[$column] ?? '');
+            }
+            (new FinalRequirement($this->db))->savePersonalObservation((int)$student['id'], $fields);
+            flash('success', 'Personal observations saved.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+            redirect('index.php?r=student_documents_final&doc=personal_observation');
+        }
+        redirect('index.php?r=student_documents_final');
+    }
+
+    public function saveStudentEvaluationPartner(): void
+    {
+        require_role('student');
+        $p = $this->post();
+        $student = (new Student($this->db))->findByUser((int)current_user()['id']);
+        if (!$student) {
+            flash('error', 'Student record not found.');
+            redirect('index.php?r=student_documents_final');
+        }
+        try {
+            $evalModel = new StudentEvaluation($this->db);
+            $wasSubmitted = StudentEvaluation::statusFor($evalModel->getByStudent((int)$student['id']), 'industry_partner') === 'submitted';
+            $ratings = [];
+            foreach (StudentEvaluation::industryPartnerCriteria() as $section => $criteria) {
+                foreach (array_keys($criteria) as $key) {
+                    $ratings[$key] = (int)($p[$key] ?? 0);
+                }
+            }
+            $evalModel->saveIndustryPartnerEvaluation(
+                (int)$student['id'],
+                $ratings,
+                (string)($p['partner_comments'] ?? '')
+            );
+            $coordinatorUserId = (int)($student['coordinator_id'] ?? 0);
+            if ($coordinatorUserId > 0) {
+                $studentName = (string)($student['name'] ?? 'A student');
+                $title = $wasSubmitted ? 'Industry partner evaluation updated' : 'Industry partner evaluation received';
+                $message = $wasSubmitted
+                    ? $studentName . ' updated their evaluation of the industry partner and OJT supervisor.'
+                    : $studentName . ' submitted an evaluation of the industry partner and OJT supervisor.';
+                (new Notification($this->db))->create(
+                    $coordinatorUserId,
+                    $title,
+                    $message,
+                    'index.php?r=coordinator_student_final&student_id=' . (int)$student['id'] . '&eval=industry_partner'
+                );
+            }
+            flash('success', 'Industry Partner evaluation saved.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+            redirect('index.php?r=student_documents_final&eval=industry_partner');
+        }
+        redirect('index.php?r=student_documents_final');
+    }
+
+    public function saveStudentEvaluationCoordinator(): void
+    {
+        require_role('student');
+        $p = $this->post();
+        $student = (new Student($this->db))->findByUser((int)current_user()['id']);
+        if (!$student) {
+            flash('error', 'Student record not found.');
+            redirect('index.php?r=student_documents_final');
+        }
+        try {
+            $evalModel = new StudentEvaluation($this->db);
+            $wasSubmitted = StudentEvaluation::statusFor($evalModel->getByStudent((int)$student['id']), 'coordinator') === 'submitted';
+            $ratings = [];
+            foreach (StudentEvaluation::coordinatorCriteria() as $section => $criteria) {
+                foreach (array_keys($criteria) as $key) {
+                    $ratings[$key] = (int)($p[$key] ?? 0);
+                }
+            }
+            $evalModel->saveCoordinatorEvaluation(
+                (int)$student['id'],
+                $ratings,
+                (string)($p['coordinator_comments'] ?? '')
+            );
+            $coordinatorUserId = (int)($student['coordinator_id'] ?? 0);
+            if ($coordinatorUserId > 0) {
+                $studentName = (string)($student['name'] ?? 'A student');
+                $title = $wasSubmitted ? 'Coordinator evaluation updated' : 'Coordinator evaluation received';
+                $message = $wasSubmitted
+                    ? $studentName . ' updated their evaluation of your OJT coordination.'
+                    : $studentName . ' submitted an evaluation of your OJT coordination.';
+                (new Notification($this->db))->create(
+                    $coordinatorUserId,
+                    $title,
+                    $message,
+                    'index.php?r=coordinator_student_final&student_id=' . (int)$student['id'] . '&eval=coordinator'
+                );
+            }
+            flash('success', 'OJT Coordinator evaluation saved.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+            redirect('index.php?r=student_documents_final&eval=coordinator');
+        }
+        redirect('index.php?r=student_documents_final');
+    }
+
+    public function documentsOther(): void
+    {
+        $this->render('student/documents_other', $this->studentPageData('Other Documents'));
     }
 
     public function settings(): void
