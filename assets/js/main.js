@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     initSidebar();
+    initStudentMobileNav();
     initToasts();
     initFloatingLabels();
     initCustomFilterSelects();
@@ -224,7 +225,7 @@ function initStudentMobileTapProxy() {
     let suppressUntil = 0;
     const isMobileStudentLayout = () => window.matchMedia('(max-width: 720px)').matches;
     const clickableSelector = 'button,a,input:not([type="hidden"]),textarea,select,[data-time-lock-toggle],[data-time-picker-trigger],.filter-date-trigger';
-    const skipSelector = '.notif-panel,.topbar,.sidebar,.global-cal-panel,.global-datetime-panel,.dtr-time-panel';
+    const skipSelector = '.notif-panel,.topbar,.sidebar,.student-bottom-nav-root,.global-cal-panel,.global-datetime-panel,.dtr-time-panel,.student-nav-sheet-backdrop,.nav-group-items';
 
     const findContentControl = (x, y) => {
         const content = document.querySelector('.role-student .content');
@@ -244,6 +245,7 @@ function initStudentMobileTapProxy() {
 
     const forwardTap = event => {
         if (proxying || !isMobileStudentLayout()) return;
+        if (event.target instanceof Element && event.target.closest(skipSelector)) return;
         if (Date.now() < suppressUntil) {
             event.preventDefault();
             event.stopImmediatePropagation();
@@ -255,7 +257,7 @@ function initStudentMobileTapProxy() {
         const topbar = document.querySelector('.role-student .topbar')?.getBoundingClientRect();
         const sidebar = document.querySelector('.role-student .sidebar')?.getBoundingClientRect();
         if (topbar && point.clientY <= topbar.bottom) return;
-        if (sidebar && point.clientY >= sidebar.top) return;
+        if (sidebar && point.clientY >= sidebar.top - 4) return;
 
         const control = findContentControl(point.clientX, point.clientY);
         if (!control) return;
@@ -1094,8 +1096,148 @@ function initSidebar() {
     // Collapsible nav groups
     document.querySelectorAll('.nav-group-toggle').forEach(btn => {
         btn.addEventListener('click', () => {
-            btn.closest('.nav-group').classList.toggle('open');
+            const group = btn.closest('.nav-group');
+            if (!group) return;
+            if (group.classList.contains('nav-group--student-docs') && window.matchMedia('(max-width: 720px)').matches) {
+                window.dispatchEvent(new CustomEvent('student-nav-docs-toggle', { detail: { group, open: !group.classList.contains('open') } }));
+                return;
+            }
+            group.classList.toggle('open');
+            btn.setAttribute('aria-expanded', group.classList.contains('open') ? 'true' : 'false');
         });
+    });
+}
+
+function initStudentMobileNav() {
+    if (!document.body.classList.contains('role-student')) return;
+
+    const sidebar = document.querySelector('.sidebar');
+    const docsGroup = document.querySelector('.nav-group--student-docs');
+    const mq = window.matchMedia('(max-width: 720px)');
+    const toggle = docsGroup?.querySelector('.nav-group-toggle');
+    let backdrop = document.querySelector('.student-nav-sheet-backdrop');
+    let navRoot = document.getElementById('student-bottom-nav-root');
+    let sidebarAnchor = sidebar ? { parent: sidebar.parentElement, next: sidebar.nextSibling } : null;
+
+    const ensureNavRoot = () => {
+        if (navRoot) return navRoot;
+        navRoot = document.createElement('div');
+        navRoot.id = 'student-bottom-nav-root';
+        navRoot.className = 'student-bottom-nav-root';
+        document.body.appendChild(navRoot);
+        return navRoot;
+    };
+
+    const mountBottomNav = () => {
+        if (!sidebar || !mq.matches) return;
+        const root = ensureNavRoot();
+        if (sidebar.parentElement !== root) {
+            sidebarAnchor = { parent: sidebar.parentElement, next: sidebar.nextSibling };
+            root.appendChild(sidebar);
+        }
+        syncNavRootPosition();
+        attachNavStripListener();
+    };
+
+    const unmountBottomNav = () => {
+        if (!sidebar || mq.matches) return;
+        if (sidebarAnchor?.parent && sidebar.parentElement !== sidebarAnchor.parent) {
+            sidebarAnchor.parent.insertBefore(sidebar, sidebarAnchor.next);
+        }
+        navRoot?.remove();
+        navRoot = null;
+        syncNavRootPosition();
+    };
+
+    const syncBottomNavMount = () => {
+        if (mq.matches) mountBottomNav();
+        else unmountBottomNav();
+    };
+
+    const syncNavRootPosition = () => {
+        if (!mq.matches) return;
+
+        const root = document.getElementById('student-bottom-nav-root');
+        const vv = window.visualViewport;
+        const left = vv?.offsetLeft || 0;
+        const width = vv?.width || window.innerWidth;
+
+        if (!root) return;
+
+        root.style.transform = 'none';
+        root.style.left = `${left}px`;
+        root.style.width = `${width}px`;
+        root.style.maxWidth = `${width}px`;
+    };
+
+    const attachNavStripListener = () => {
+        const navEl = document.querySelector('.student-bottom-nav-root .nav');
+        if (!navEl || navEl.dataset.scrollBound === '1') return;
+        navEl.dataset.scrollBound = '1';
+        navEl.addEventListener('scroll', syncNavRootPosition, { passive: true });
+    };
+
+    syncBottomNavMount();
+    mq.addEventListener('change', syncBottomNavMount);
+    window.addEventListener('scroll', syncNavRootPosition, { passive: true, capture: true });
+    document.addEventListener('scroll', syncNavRootPosition, { passive: true, capture: true });
+    window.addEventListener('resize', syncNavRootPosition, { passive: true });
+    window.visualViewport?.addEventListener('scroll', syncNavRootPosition);
+    window.visualViewport?.addEventListener('resize', syncNavRootPosition);
+    requestAnimationFrame(syncNavRootPosition);
+
+    if (!docsGroup) return;
+
+    if (!backdrop) {
+        backdrop = document.createElement('button');
+        backdrop.type = 'button';
+        backdrop.className = 'student-nav-sheet-backdrop';
+        backdrop.setAttribute('aria-label', 'Close documents menu');
+        document.body.appendChild(backdrop);
+    }
+
+    const closeDocsSheet = () => {
+        docsGroup.classList.remove('open');
+        toggle?.setAttribute('aria-expanded', 'false');
+        backdrop.classList.remove('is-visible');
+    };
+
+    const openDocsSheet = () => {
+        docsGroup.classList.add('open');
+        toggle?.setAttribute('aria-expanded', 'true');
+        backdrop.classList.add('is-visible');
+    };
+
+    const syncMobileDocsState = () => {
+        if (mq.matches) {
+            docsGroup.classList.remove('open');
+            toggle?.setAttribute('aria-expanded', 'false');
+            backdrop.classList.remove('is-visible');
+            return;
+        }
+        closeDocsSheet();
+    };
+
+    syncMobileDocsState();
+    mq.addEventListener('change', syncMobileDocsState);
+
+    window.addEventListener('student-nav-docs-toggle', event => {
+        if (!mq.matches) return;
+        const { group, open } = event.detail || {};
+        if (group !== docsGroup) return;
+        if (open) openDocsSheet();
+        else closeDocsSheet();
+    });
+
+    backdrop.addEventListener('click', closeDocsSheet);
+    docsGroup.querySelectorAll('.nav-group-items .nav-link').forEach(link => {
+        link.addEventListener('click', () => {
+            if (mq.matches) closeDocsSheet();
+        });
+    });
+
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && docsGroup.classList.contains('open') && mq.matches) closeDocsSheet();
     });
 }
 
@@ -1766,6 +1908,15 @@ function handleOutsideMenus(event) {
     const btn   = document.getElementById('notifBtn');
     if (panel && panel.classList.contains('is-open') && !panel.contains(event.target) && event.target !== btn && !btn?.contains(event.target)) {
         closeNotifications();
+    }
+    const docsGroup = document.querySelector('.role-student .nav-group--student-docs.open');
+    if (docsGroup && window.matchMedia('(max-width: 720px)').matches) {
+        const backdrop = document.querySelector('.student-nav-sheet-backdrop');
+        if (!docsGroup.contains(event.target) && event.target !== backdrop) {
+            docsGroup.classList.remove('open');
+            docsGroup.querySelector('.nav-group-toggle')?.setAttribute('aria-expanded', 'false');
+            backdrop?.classList.remove('is-visible');
+        }
     }
 }
 

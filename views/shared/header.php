@@ -10,10 +10,12 @@ $studentProfileRoute = ($user['role'] ?? '') === 'student' ? route_url('student.
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($title ?? 'AMA Practicum System') ?></title>
+    <link rel="icon" type="image/png" href="<?= e(asset('assets/image/main/logo/amalogo.png')) ?>">
+    <link rel="apple-touch-icon" href="<?= e(asset('assets/image/main/logo/amalogo.png')) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260610-student-modal-v2">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260611-student-nav-items">
 </head>
 <body class="app-page role-<?= e($user['role'] ?? 'guest') ?>">
 <div class="app-shell">
@@ -32,7 +34,7 @@ $studentProfileRoute = ($user['role'] ?? '') === 'student' ? route_url('student.
                 ? ''
                 : ($role === 'partner' ? 'Industry Partner' : ucwords(str_replace('_', ' ', $role ?: 'dashboard')));
             ?>
-            <a class="nav-link <?= in_array($currentRoute, ['admin', 'coordinator', 'student', 'partner'], true) ? 'active' : '' ?>" href="index.php?r=<?= e($homeRoute) ?>"><svg viewBox="0 0 24 24"><path d="M4 13h7V4H4v9Zm0 7h7v-5H4v5Zm9 0h7v-9h-7v9Zm0-16v5h7V4h-7Z"/></svg><span>Dashboard</span></a>
+            <a class="nav-link <?= in_array($currentRoute, ['admin', 'coordinator', 'student', 'partner'], true) ? 'active' : '' ?>" href="index.php?r=<?= e($homeRoute) ?>"><svg viewBox="0 0 24 24"><path d="M4 13h7V4H4v9Zm0 7h7v-5H4v5Zm9 0h7v-9h-7v9Zm0-16v5h7V4h-7Z"/></svg><?php if ($role === 'student'): ?><span class="nav-link-label nav-link-label--full">Dashboard</span><span class="nav-link-label nav-link-label--short" aria-hidden="true">Home</span><?php else: ?><span>Dashboard</span><?php endif; ?></a>
             <?php if ($role === 'admin'):
                 $userRoutes = ['admin_users', 'admin_coordinators', 'admin_partners'];
                 $userGroupOpen = in_array($currentRoute, $userRoutes, true);
@@ -52,31 +54,32 @@ $studentProfileRoute = ($user['role'] ?? '') === 'student' ? route_url('student.
             <?php if ($role === 'coordinator'): ?><a class="nav-link <?= $currentRoute === 'coordinator_manage' ? 'active' : '' ?>" href="index.php?r=coordinator_manage"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg><span>Student Enrollment</span></a><a class="nav-link <?= $currentRoute === 'coordinator_students' ? 'active' : '' ?>" href="index.php?r=coordinator_students"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4V6Zm0 5h16v2H4v-2Zm0 5h16v2H4v-2Z"/></svg><span>My Students</span></a><a class="nav-link <?= $currentRoute === 'coordinator_moa_mou' ? 'active' : '' ?>" href="index.php?r=coordinator_moa_mou"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5ZM8 13h8v2H8v-2Zm0 4h8v2H8v-2Zm0-8h5v2H8V9Z"/></svg><span>MOA/MOU</span></a><a class="nav-link <?= $currentRoute === 'coordinator_evaluations' ? 'active' : '' ?>" href="index.php?r=coordinator_evaluations"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z"/></svg><span>Evaluations</span></a><?php endif; ?>
             <?php if ($role === 'student'): ?>
                 <?php if (!($studentProfileCompleted ?? true)): ?>
-                    <a class="nav-link <?= $currentRoute === 'student_profile' ? 'active' : '' ?>" href="index.php?r=student_profile"><svg viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 8-4v6h2V8L12 3Zm-6 9v4c2 3 10 3 12 0v-4l-6 3-6-3Z"/></svg><span>Complete Profile</span></a>
+                    <a class="nav-link <?= $currentRoute === 'student_profile' ? 'active' : '' ?>" href="index.php?r=student_profile"><svg viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 8-4v6h2V8L12 3Zm-6 9v4c2 3 10 3 12 0v-4l-6 3-6-3Z"/></svg><span class="nav-link-label nav-link-label--full">Complete Profile</span><span class="nav-link-label nav-link-label--short" aria-hidden="true">Profile</span></a>
                 <?php else: ?>
-                    <a class="nav-link <?= $currentRoute === 'student_profile' ? 'active' : '' ?>" href="index.php?r=student_profile"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg><span>My Profile</span></a>
+                    <a class="nav-link nav-mobile-hide <?= $currentRoute === 'student_profile' ? 'active' : '' ?>" href="index.php?r=student_profile"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg><span>My Profile</span></a>
                 <?php endif; ?>
-                <a class="nav-link <?= $currentRoute === 'student_records' ? 'active' : '' ?>" href="index.php?r=student_records"><svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm0 16H5V9h14v10Zm-9-8H7v3h3v3h3v-3h3v-3h-3V8h-3v3Z"/></svg><span>Submit Record</span></a>
+                <a class="nav-link <?= $currentRoute === 'student_records' ? 'active' : '' ?>" href="index.php?r=student_records"><svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm0 16H5V9h14v10Zm-9-8H7v3h3v3h3v-3h3v-3h-3V8h-3v3Z"/></svg><span class="nav-link-label nav-link-label--full">Submit Record</span><span class="nav-link-label nav-link-label--short" aria-hidden="true">Record</span></a>
                 <a class="nav-link <?= $currentRoute === 'student_reports' ? 'active' : '' ?>" href="index.php?r=student_reports"><svg viewBox="0 0 24 24"><path d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm8 1.5V8h3.5L13 4.5ZM8 13h2v5H8v-5Zm3.5-3h2v8h-2v-8ZM15 15h2v3h-2v-3Z"/></svg><span>Reports</span></a>
-                <a class="nav-link <?= $currentRoute === 'student_timeline' ? 'active' : '' ?>" href="index.php?r=student_timeline"><svg viewBox="0 0 24 24"><path d="M7 3a2 2 0 0 1 2 2v1h6V5a2 2 0 1 1 4 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm0 5v11h10V8H7Zm2 2h6v2H9v-2Zm0 4h4v2H9v-2Z"/></svg><span>Activity Timeline</span></a>
+                <a class="nav-link <?= $currentRoute === 'student_timeline' ? 'active' : '' ?>" href="index.php?r=student_timeline"><svg viewBox="0 0 24 24"><path d="M7 3a2 2 0 0 1 2 2v1h6V5a2 2 0 1 1 4 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm0 5v11h10V8H7Zm2 2h6v2H9v-2Zm0 4h4v2H9v-2Z"/></svg><span class="nav-link-label nav-link-label--full">Activity Timeline</span><span class="nav-link-label nav-link-label--short" aria-hidden="true">Timeline</span></a>
 <?php
                 $docRoutes = ['student_documents', 'student_documents_final', 'student_documents_other'];
                 $docGroupOpen = in_array($currentRoute, $docRoutes, true);
                 ?>
-                <div class="nav-group <?= $docGroupOpen ? 'open' : '' ?>">
-                    <button class="nav-group-toggle" type="button">
+                <div class="nav-group nav-group--student-docs <?= $docGroupOpen ? 'nav-group--active open' : '' ?>">
+                    <button class="nav-group-toggle" type="button" aria-expanded="false" aria-haspopup="true">
                         <svg viewBox="0 0 24 24"><path d="M7 2h7l5 5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm7 1.5V8h4.5L14 3.5ZM9 12h6v2H9v-2Zm0 4h6v2H9v-2Z"/></svg>
-                        <span>Documents</span>
+                        <span class="nav-link-label nav-link-label--full">Documents</span>
+                        <span class="nav-link-label nav-link-label--short" aria-hidden="true">Docs</span>
                         <svg class="chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
                     </button>
-                    <div class="nav-group-items">
-                        <a class="nav-link nav-sub <?= $currentRoute === 'student_documents' ? 'active' : '' ?>" href="index.php?r=student_documents"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z"/></svg><span>Pre-Deployment Requirements</span></a>
-                        <a class="nav-link nav-sub <?= $currentRoute === 'student_documents_final' ? 'active' : '' ?>" href="index.php?r=student_documents_final"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5ZM8 13h8v2H8v-2Zm0 4h8v2H8v-2Z"/></svg><span>Final Requirement</span></a>
-                        <a class="nav-link nav-sub <?= $currentRoute === 'student_documents_other' ? 'active' : '' ?>" href="index.php?r=student_documents_other"><svg viewBox="0 0 24 24"><path d="M4 4h7l2 2h7v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg><span>Other Documents</span></a>
+                    <div class="nav-group-items" role="menu">
+                        <a class="nav-link nav-sub <?= $currentRoute === 'student_documents' ? 'active' : '' ?>" href="index.php?r=student_documents" role="menuitem"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z"/></svg><span>Pre-Deployment</span></a>
+                        <a class="nav-link nav-sub <?= $currentRoute === 'student_documents_final' ? 'active' : '' ?>" href="index.php?r=student_documents_final" role="menuitem"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5ZM8 13h8v2H8v-2Zm0 4h8v2H8v-2Z"/></svg><span>Final Requirement</span></a>
+                        <a class="nav-link nav-sub <?= $currentRoute === 'student_documents_other' ? 'active' : '' ?>" href="index.php?r=student_documents_other" role="menuitem"><svg viewBox="0 0 24 24"><path d="M4 4h7l2 2h7v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg><span>Other Documents</span></a>
                     </div>
                 </div>
-                <a class="nav-link <?= $currentRoute === 'student_evaluation' ? 'active' : '' ?>" href="index.php?r=student_evaluation"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z"/></svg><span>Evaluation</span></a>
-                <a class="nav-link <?= in_array($currentRoute, ['student_settings', 'student_password'], true) ? 'active' : '' ?>" href="index.php?r=student_settings"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.49.42l-.36 2.54c-.58.23-1.12.54-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.31 8.48a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.51.4 1.05.71 1.63.94l.36 2.54a.5.5 0 0 0 .49.42h3.8a.5.5 0 0 0 .49-.42l.36-2.54c.58-.23 1.12-.54 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z"/></svg><span>Settings</span></a>
+                <a class="nav-link <?= $currentRoute === 'student_evaluation' ? 'active' : '' ?>" href="index.php?r=student_evaluation"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z"/></svg><span class="nav-link-label nav-link-label--full">Evaluation</span><span class="nav-link-label nav-link-label--short" aria-hidden="true">Eval</span></a>
+                <a class="nav-link <?= in_array($currentRoute, ['student_settings', 'student_password'], true) ? 'active' : '' ?>" href="index.php?r=student_settings"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.49.42l-.36 2.54c-.58.23-1.12.54-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.31 8.48a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.51.4 1.05.71 1.63.94l.36 2.54a.5.5 0 0 0 .49.42h3.8a.5.5 0 0 0 .49-.42l.36-2.54c.58-.23 1.12-.54 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z"/></svg><span class="nav-link-label nav-link-label--full">Settings</span><span class="nav-link-label nav-link-label--short" aria-hidden="true">Setup</span></a>
             <?php endif; ?>
             <?php if ($role === 'partner'): ?>
                 <a class="nav-link <?= $currentRoute === 'partner_portal' ? 'active' : '' ?>" href="index.php?r=partner_portal"><svg viewBox="0 0 24 24"><path d="M3 21V7l6-4 6 4v14h-4v-5H7v5H3Zm14 0V9h4v12h-4ZM7 9h4v2H7V9Zm0 4h4v2H7v-2Z"/></svg><span>Industry Partner Portal</span></a>

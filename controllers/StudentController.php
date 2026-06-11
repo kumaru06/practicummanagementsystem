@@ -165,7 +165,7 @@ class StudentController extends BaseController
     public function documentsFinal(): void
     {
         require_role('student');
-        $data = $this->studentPageData('Final Requirement');
+        $data = $this->studentPageData('Final Requirements');
         $student = $data['student'] ?? null;
         $finalModel = new FinalRequirement($this->db);
         $evalModel = new StudentEvaluation($this->db);
@@ -176,32 +176,17 @@ class StudentController extends BaseController
 
         $doc = (string)($_GET['doc'] ?? '');
         $eval = (string)($_GET['eval'] ?? '');
-        
-        // Handle document sections
+        $data['activePanel'] = '';
+        $data['activeKind'] = '';
+
         if (array_key_exists($doc, FinalRequirement::SECTIONS)) {
-            $section = FinalRequirement::SECTIONS[$doc];
-            $data['title'] = $section['name'];
-            $data['finalDoc'] = $doc;
-            $view = match ($doc) {
-                'job_description' => 'student/final/job_description',
-                'company_profile' => 'student/final/company_profile',
-                'personal_observation' => 'student/final/personal_observation',
-            };
-            $this->render($view, $data);
-            return;
-        }
-        
-        // Handle evaluation sections
-        if (array_key_exists($eval, FinalRequirement::EVALUATION_SECTIONS)) {
-            $section = FinalRequirement::EVALUATION_SECTIONS[$eval];
-            $data['title'] = $section['name'];
-            $data['evalType'] = $eval;
-            $view = match ($eval) {
-                'industry_partner' => 'student/evaluations/industry_partner',
-                'coordinator' => 'student/evaluations/coordinator',
-            };
-            $this->render($view, $data);
-            return;
+            $data['activePanel'] = $doc;
+            $data['activeKind'] = 'doc';
+            $data['title'] = FinalRequirement::SECTIONS[$doc]['name'];
+        } elseif (array_key_exists($eval, FinalRequirement::EVALUATION_SECTIONS)) {
+            $data['activePanel'] = $eval;
+            $data['activeKind'] = 'eval';
+            $data['title'] = FinalRequirement::EVALUATION_SECTIONS[$eval]['name'];
         }
 
         $this->render('student/documents_final', $data);

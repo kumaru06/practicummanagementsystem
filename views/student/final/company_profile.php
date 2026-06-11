@@ -1,15 +1,12 @@
-<?php $finalRequirement = $finalRequirement ?? []; ?>
-<a class="final-form-back" href="index.php?r=student_documents_final">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-    Back to Final Requirement
-</a>
-
+<?php
+    $finalRequirement = $finalRequirement ?? [];
+    $svgAttrs = 'class="final-req-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+    $companyIcon = '<svg ' . $svgAttrs . '><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12h12"/><path d="M10 8h.01M14 8h.01M10 16h.01M14 16h.01"/></svg>';
+?>
 <section class="card final-form-card">
     <div class="final-form-head">
-        <span class="final-form-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg>
-        </span>
-        <div>
+        <span class="final-form-icon final-form-icon--company"><?= $companyIcon ?></span>
+        <div class="final-form-head-copy">
             <h2>Company's Profile</h2>
             <p class="muted">Provide information about your company's history, description, mission and vision.</p>
         </div>

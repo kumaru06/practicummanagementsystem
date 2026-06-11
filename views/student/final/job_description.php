@@ -1,15 +1,12 @@
-<?php $finalRequirement = $finalRequirement ?? []; ?>
-<a class="final-form-back" href="index.php?r=student_documents_final">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-    Back to Final Requirement
-</a>
-
+<?php
+    $finalRequirement = $finalRequirement ?? [];
+    $svgAttrs = 'class="final-req-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+    $jobIcon = '<svg ' . $svgAttrs . '><path d="M10 7V5a2 2 0 0 1 4 0v2"/><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 12h18"/><path d="M12 12v4"/></svg>';
+?>
 <section class="card final-form-card">
     <div class="final-form-head">
-        <span class="final-form-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
-        </span>
-        <div>
+        <span class="final-form-icon final-form-icon--job"><?= $jobIcon ?></span>
+        <div class="final-form-head-copy">
             <h2>Job Description</h2>
             <p class="muted">Provide a detailed description of duties and responsibilities.</p>
         </div>

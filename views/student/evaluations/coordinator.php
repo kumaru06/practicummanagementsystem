@@ -1,20 +1,14 @@
-<?php 
+<?php
     $studentEvaluation = $studentEvaluation ?? [];
     $coordinatorRatings = !empty($studentEvaluation['coordinator_ratings']) ? json_decode($studentEvaluation['coordinator_ratings'], true) : [];
     $criteria = StudentEvaluation::coordinatorCriteria();
-    $stars = static fn (int $n): string => str_repeat("\u{2605}", max(0, min(5, $n))) . str_repeat("\u{2606}", 5 - max(0, min(5, $n)));
+    $svgAttrs = 'class="final-req-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+    $coordinatorIcon = '<svg ' . $svgAttrs . '><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/></svg>';
 ?>
-<a class="final-form-back" href="index.php?r=student_documents_final">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-    Back to Final Requirements
-</a>
-
 <section class="card final-form-card eval-form-card">
     <div class="final-form-head">
-        <span class="final-form-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/></svg>
-        </span>
-        <div>
+        <span class="final-form-icon final-form-icon--eval"><?= $coordinatorIcon ?></span>
+        <div class="final-form-head-copy">
             <h2>OJT Coordinator Evaluation</h2>
             <p class="muted">Evaluate the support and guidance provided by your OJT Coordinator.</p>
         </div>
@@ -34,8 +28,7 @@
                 </div>
                 <?php foreach ($items as $key => $def): $rowIndex++; ?>
                     <div class="eval-row">
-                        <span class="eval-row-num"><?= $rowIndex ?>.</span>
-                        <span class="eval-row-label"><?= e($def['label']) ?></span>
+                        <span class="eval-row-label"><span class="eval-row-num"><?= $rowIndex ?>.</span> <?= e($def['label']) ?></span>
                         <span class="eval-row-weight"><?= e($def['weight']) ?>%</span>
                         <div class="eval-row-rating">
                             <span class="star-rating">

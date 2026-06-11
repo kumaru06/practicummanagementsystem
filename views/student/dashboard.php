@@ -34,26 +34,49 @@ $nextAction = match (true) {
 
 <div class="student-dashboard-page">
     <section class="student-dashboard-hero">
+        <div class="student-hero-glow student-hero-glow--one" aria-hidden="true"></div>
+        <div class="student-hero-glow student-hero-glow--two" aria-hidden="true"></div>
+        <div class="student-hero-pattern" aria-hidden="true"></div>
         <div class="student-hero-copy">
-            <span class="student-hero-kicker">Student Portal</span>
-            <h2>Welcome back, <?= e($user['name'] ?? 'Student') ?>.</h2>
+            <span class="student-hero-kicker">
+                <svg class="dashboard-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 8l10 5 8-4v6h2V8L12 3Zm-6 9v4c2 3 10 3 12 0v-4l-6 3-6-3Z"/></svg>
+                Student Portal
+            </span>
+            <h2>
+                <span class="student-hero-greeting">Welcome back,</span>
+                <span class="student-hero-name"><?= e($user['name'] ?? 'Student') ?></span>
+            </h2>
             <p>Monitor your OJT progress, requirements, deployment, and reports from one focused dashboard.</p>
             <div class="student-hero-actions">
-                <a class="btn btn-primary" href="<?= e($nextAction['route']) ?>"><?= e($nextAction['label']) ?></a>
+                <a class="btn btn-primary student-hero-btn-primary" href="<?= e($nextAction['route']) ?>"><?= e($nextAction['label']) ?></a>
                 <a class="btn btn-small student-ghost-btn" href="<?= e(route_url('student.timeline')) ?>">View Timeline</a>
             </div>
         </div>
         <aside class="student-hero-panel" aria-label="Deployment summary">
-            <span class="student-panel-label">Deployment Company</span>
+            <div class="student-hero-panel-top">
+                <span class="student-hero-panel-icon" aria-hidden="true">
+                    <svg class="dashboard-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 7V5a2 2 0 0 1 4 0v2"/><rect x="4" y="7" width="16" height="12" rx="2"/><path d="M4 12h16"/></svg>
+                </span>
+                <span class="student-panel-label">Deployment Company</span>
+            </div>
             <strong><?= e($enrollment['company_name'] ?? 'Awaiting deployment') ?></strong>
             <div class="student-panel-meta">
-                <span><?= e($enrollment['status'] ?? 'pending') ?></span>
+                <span class="student-panel-pill student-panel-pill--status"><?= e($enrollment['status'] ?? 'pending') ?></span>
                 <?php if ($hoursComplete): ?>
-                    <span class="hours-complete-badge">Complete</span>
+                    <span class="student-panel-pill student-panel-pill--complete">Hours complete</span>
                 <?php else: ?>
-                    <span><?= number_format($remaining, 2) ?> hrs left</span>
+                    <span class="student-panel-pill student-panel-pill--hours"><?= number_format($remaining, 2) ?> hrs left</span>
                 <?php endif; ?>
             </div>
+            <?php if ($required > 0): ?>
+                <div class="student-hero-panel-progress">
+                    <div class="student-hero-panel-progress-head">
+                        <span>OJT Progress</span>
+                        <strong><?= $percent ?>%</strong>
+                    </div>
+                    <div class="student-hero-panel-progress-track"><span style="width: <?= $percent ?>%"></span></div>
+                </div>
+            <?php endif; ?>
         </aside>
     </section>
 
@@ -122,37 +145,107 @@ $nextAction = match (true) {
     </div>
 
     <div class="student-status-grid">
-        <article class="student-status-card"><span>Profile</span><strong><?= $profileComplete ? 'Complete' : 'Incomplete' ?></strong></article>
-        <article class="student-status-card"><span>Approved Documents</span><strong><?= $approvedRequirements ?>/<?= $totalRequirements ?></strong></article>
-        <article class="student-status-card"><span>Deployment</span><strong><?= $deploymentComplete ? 'Started' : ucwords(str_replace('_', ' ', $predeployment)) ?></strong></article>
-        <article class="student-status-card"><span>Reports</span><strong><?= (int)$reportCount ?></strong></article>
+        <article class="student-status-card student-status-card--profile">
+            <span class="student-status-icon student-status-icon--profile" aria-hidden="true">
+                <svg class="dashboard-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-1a6 6 0 0 1 12 0v1"/><path d="m16 10 1.5 1.5L21 8"/></svg>
+            </span>
+            <div class="student-status-copy">
+                <span class="student-status-label">Profile</span>
+                <strong class="<?= $profileComplete ? 'is-positive' : 'is-warning' ?>"><?= $profileComplete ? 'Complete' : 'Incomplete' ?></strong>
+            </div>
+        </article>
+        <article class="student-status-card student-status-card--docs">
+            <span class="student-status-icon student-status-icon--docs" aria-hidden="true">
+                <svg class="dashboard-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8l3 3v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h2"/><path d="M16 4v4h4"/><path d="M9 13l2 2 4-4"/></svg>
+            </span>
+            <div class="student-status-copy">
+                <span class="student-status-label">Approved Documents</span>
+                <strong class="<?= $approvedRequirements >= $totalRequirements ? 'is-positive' : '' ?>"><?= $approvedRequirements ?>/<?= $totalRequirements ?></strong>
+            </div>
+        </article>
+        <article class="student-status-card student-status-card--deployment">
+            <span class="student-status-icon student-status-icon--deployment" aria-hidden="true">
+                <svg class="dashboard-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 7V5a2 2 0 0 1 4 0v2"/><rect x="4" y="7" width="16" height="12" rx="2"/><path d="M4 12h16"/><path d="M12 12v4"/></svg>
+            </span>
+            <div class="student-status-copy">
+                <span class="student-status-label">Deployment</span>
+                <strong class="<?= $deploymentComplete ? 'is-positive' : '' ?>"><?= $deploymentComplete ? 'Started' : ucwords(str_replace('_', ' ', $predeployment)) ?></strong>
+            </div>
+        </article>
+        <article class="student-status-card student-status-card--reports">
+            <span class="student-status-icon student-status-icon--reports" aria-hidden="true">
+                <svg class="dashboard-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9"/><path d="M8 3v6h8"/><path d="M8 13h2v6H8v-6Zm4-3h2v9h-2v-9Zm4 5h2v4h-2v-4Z"/></svg>
+            </span>
+            <div class="student-status-copy">
+                <span class="student-status-label">Reports</span>
+                <strong><?= (int)$reportCount ?></strong>
+            </div>
+        </article>
     </div>
 
     <div class="student-info-grid">
-        <section class="student-mini-card">
-            <div class="student-card-head"><h3>Today’s DTR</h3><span><?= e(date('M d, Y')) ?></span></div>
-            <?php if ($todayDtr): ?>
-                <strong><?= e($todayDtr['time_in']) ?> - <?= e($todayDtr['time_out']) ?></strong>
-                <p><?= e($todayDtr['hours']) ?> hours · <?= e($todayDtr['tasks_done']) ?></p>
-            <?php else: ?>
-                <p><?= ($canSubmitReports ?? false) ? 'No DTR submitted for today yet.' : e($reportLockMessage ?? 'DTR is locked.') ?></p>
-            <?php endif; ?>
+        <section class="student-mini-card student-mini-card--dtr">
+            <div class="student-mini-card-head">
+                <span class="student-mini-card-icon student-mini-card-icon--dtr" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                </span>
+                <div class="student-mini-card-head-copy">
+                    <h3>Today’s DTR</h3>
+                    <span class="student-mini-card-meta"><?= e(date('M d, Y')) ?></span>
+                </div>
+                <span class="student-mini-badge <?= $todayDtr ? 'student-mini-badge--success' : 'student-mini-badge--pending' ?>"><?= $todayDtr ? 'Logged' : 'Pending' ?></span>
+            </div>
+            <div class="student-mini-card-body">
+                <?php if ($todayDtr): ?>
+                    <div class="student-mini-highlight"><?= e($todayDtr['time_in']) ?> – <?= e($todayDtr['time_out']) ?></div>
+                    <div class="student-mini-stats">
+                        <span><strong><?= e($todayDtr['hours']) ?></strong> hours</span>
+                        <span class="student-mini-divider" aria-hidden="true">·</span>
+                        <span><?= e($todayDtr['tasks_done']) ?></span>
+                    </div>
+                <?php else: ?>
+                    <p class="student-mini-empty"><?= ($canSubmitReports ?? false) ? 'No DTR submitted for today yet.' : e($reportLockMessage ?? 'DTR is locked.') ?></p>
+                <?php endif; ?>
+            </div>
         </section>
-        <section class="student-mini-card">
-            <div class="student-card-head"><h3>Latest Weekly Report</h3><span>Narrative PDF</span></div>
-            <?php if ($latestWeekly): ?>
-                <strong>Week <?= (int)$latestWeekly['week_no'] ?></strong>
-                <p><?= e($latestWeekly['report_text'] ?: 'PDF report submitted.') ?></p>
-                <?php if (!empty($latestWeekly['file_path'])): ?><a class="btn btn-small" target="_blank" href="<?= e($latestWeekly['file_path']) ?>">View PDF</a><?php endif; ?>
-            <?php else: ?>
-                <p>No weekly report submitted yet.</p>
-            <?php endif; ?>
+        <section class="student-mini-card student-mini-card--report">
+            <div class="student-mini-card-head">
+                <span class="student-mini-card-icon student-mini-card-icon--report" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M10 13h4M10 17h4"/></svg>
+                </span>
+                <div class="student-mini-card-head-copy">
+                    <h3>Latest Weekly Report</h3>
+                    <span class="student-mini-card-meta">Narrative PDF</span>
+                </div>
+                <span class="student-mini-badge student-mini-badge--pdf">PDF</span>
+            </div>
+            <div class="student-mini-card-body">
+                <?php if ($latestWeekly): ?>
+                    <div class="student-mini-highlight">Week <?= (int)$latestWeekly['week_no'] ?></div>
+                    <p class="student-mini-note"><?= e($latestWeekly['report_text'] ?: 'PDF report submitted.') ?></p>
+                    <?php if (!empty($latestWeekly['file_path'])): ?>
+                        <a class="student-mini-link" target="_blank" href="<?= e($latestWeekly['file_path']) ?>">View PDF</a>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <p class="student-mini-empty">No weekly report submitted yet.</p>
+                <?php endif; ?>
+            </div>
         </section>
         <section class="student-mini-card student-actions-card">
-            <div class="student-card-head"><h3>Quick Actions</h3><span>Shortcuts</span></div>
-            <a class="btn btn-small" href="<?= e(route_url('student.records')) ?>">Submit Record</a>
-            <a class="btn btn-small" href="<?= e(route_url('student.timeline')) ?>">Activity Timeline</a>
-            <a class="btn btn-small" href="<?= e(route_url('student.settings')) ?>">Settings</a>
+            <div class="student-mini-card-head">
+                <span class="student-mini-card-icon student-mini-card-icon--actions" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                </span>
+                <div class="student-mini-card-head-copy">
+                    <h3>Quick Actions</h3>
+                    <span class="student-mini-card-meta">Shortcuts</span>
+                </div>
+            </div>
+            <div class="student-mini-card-body student-mini-card-body--actions">
+                <a class="student-mini-action" href="<?= e(route_url('student.records')) ?>">Submit Record</a>
+                <a class="student-mini-action" href="<?= e(route_url('student.timeline')) ?>">Activity Timeline</a>
+                <a class="student-mini-action" href="<?= e(route_url('student.settings')) ?>">Settings</a>
+            </div>
         </section>
     </div>
 
