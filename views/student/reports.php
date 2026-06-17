@@ -30,7 +30,7 @@ $statusBadge = static function (?string $status, ?string $notes = null): string 
                 <?php foreach ($dtrs as $d): ?>
                     <tr>
                         <td><?= e($d['work_date']) ?></td>
-                        <td><?= e($d['time_in']) ?> - <?= e($d['time_out']) ?></td>
+                        <td><?= e(format_dtr_schedule($d)) ?></td>
                         <td><?= e((string)$d['hours']) ?></td>
                         <td><?= e($d['tasks_done']) ?></td>
                         <td><?= $statusBadge($d['verification_status'] ?? 'pending', $d['verification_notes'] ?? null) ?></td>

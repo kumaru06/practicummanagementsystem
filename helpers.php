@@ -53,6 +53,8 @@ function route_url(string $route, array $params = []): string
         'student.evaluation' => 'index.php?r=student_evaluation',
         'student.profile' => 'index.php?r=student_profile',
         'student.password.edit' => 'index.php?r=student_password',
+        'student.chat' => 'index.php?r=chat',
+        'chat' => 'index.php?r=chat',
         'partner.dashboard' => 'index.php?r=partner',
         'partner.portal' => 'index.php?r=partner_portal',
         'partner.evaluate' => 'index.php?r=partner_evaluate',
@@ -326,4 +328,49 @@ function generate_endorsement_letter(array $student, array $company, array $coor
         . '</body></html>';
     file_put_contents($targetDir . DIRECTORY_SEPARATOR . $fileName, $content);
     return 'uploads/endorsements/' . $fileName;
+}
+
+function format_dtr_time_display(?string $time): string
+{
+    $time = trim((string)$time);
+    if ($time === '') {
+        return '--:--';
+    }
+    $timestamp = strtotime($time);
+    if ($timestamp === false) {
+        return $time;
+    }
+    return date('g:i A', $timestamp);
+}
+
+function format_dtr_schedule(array $dtr): string
+{
+    $morningIn = trim((string)($dtr['morning_time_in'] ?? $dtr['time_in'] ?? ''));
+    $morningOut = trim((string)($dtr['morning_time_out'] ?? ''));
+    $afternoonIn = trim((string)($dtr['afternoon_time_in'] ?? ''));
+    $afternoonOut = trim((string)($dtr['afternoon_time_out'] ?? $dtr['time_out'] ?? ''));
+
+    if ($morningIn !== '' && $morningOut !== '' && $afternoonIn !== '' && $afternoonOut !== '') {
+        return sprintf(
+            'AM %s–%s · PM %s–%s',
+            format_dtr_time_display($morningIn),
+            format_dtr_time_display($morningOut),
+            format_dtr_time_display($afternoonIn),
+            format_dtr_time_display($afternoonOut)
+        );
+    }
+
+    if ($morningIn !== '' && $morningOut !== '') {
+        return sprintf(
+            'AM %s–%s',
+            format_dtr_time_display($morningIn),
+            format_dtr_time_display($morningOut)
+        );
+    }
+
+    if ($morningIn !== '' && $afternoonOut !== '') {
+        return format_dtr_time_display($morningIn) . ' - ' . format_dtr_time_display($afternoonOut);
+    }
+
+    return '-';
 }

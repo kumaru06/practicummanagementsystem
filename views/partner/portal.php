@@ -234,8 +234,8 @@ $evaluationUnlocked = $selected && $requiredHours > 0 && $renderedHours >= $requ
                     <h2><?= e($selected['student_name']) ?> - Time Records</h2>
                     <div class="table-wrap">
                         <table class="data-table compact-table">
-                            <thead><tr><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Tasks</th></tr></thead>
-                            <tbody><?php foreach ($dtrs as $d): ?><tr><td><?= e($d['work_date']) ?></td><td><?= e($d['time_in']) ?></td><td><?= e($d['time_out']) ?></td><td><?= e($d['hours']) ?></td><td><?= e($d['tasks_done']) ?></td></tr><?php endforeach; ?></tbody>
+                            <thead><tr><th>Date</th><th>Schedule</th><th>Hours</th><th>Tasks</th></tr></thead>
+                            <tbody><?php foreach ($dtrs as $d): ?><tr><td><?= e($d['work_date']) ?></td><td><?= e(format_dtr_schedule($d)) ?></td><td><?= e($d['hours']) ?></td><td><?= e($d['tasks_done']) ?></td></tr><?php endforeach; ?></tbody>
                         </table>
                     </div>
                 </section>

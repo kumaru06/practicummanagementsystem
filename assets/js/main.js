@@ -1440,10 +1440,12 @@ function initDtrTimeLocks() {
             body.set('csrf_token', form.querySelector('input[name="csrf_token"]')?.value || '');
             body.set('action', 'student_save_dtr_draft');
             body.set('work_date', form.querySelector('input[name="work_date"]')?.value || '');
-            body.set('time_in', groups[0]?.input.value || '');
-            body.set('time_out', groups[1]?.input.value || '');
-            body.set('time_in_locked', groups[0]?.locked ? '1' : '0');
-            body.set('time_out_locked', groups[1]?.locked ? '1' : '0');
+            groups.forEach(item => {
+                const fieldName = item.input.name;
+                if (!fieldName) return;
+                body.set(fieldName, item.input.value || '');
+                body.set(`${fieldName}_locked`, item.locked ? '1' : '0');
+            });
             return fetch('index.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
@@ -1452,11 +1454,10 @@ function initDtrTimeLocks() {
         };
 
         const sync = () => {
-            const timeInLocked = groups[0]?.locked || false;
-            const timeOutLocked = groups[1]?.locked || false;
+            const allLocked = groups.every(item => item.locked);
 
             groups.forEach((item, index) => {
-                const mustWait = index === 1 && !timeInLocked;
+                const mustWait = index > 0 && !groups[index - 1]?.locked;
                 item.input.disabled = false;
                 item.trigger.disabled = false;
                 item.button.disabled = false;
@@ -1466,12 +1467,18 @@ function initDtrTimeLocks() {
                 item.group.classList.toggle('is-locked', item.locked);
                 item.group.classList.toggle('is-waiting', mustWait);
                 item.group.classList.toggle('has-time', !!item.input.value);
-                item.button.textContent = item.locked ? item.button.dataset.editLabel : item.button.dataset.applyLabel;
+                const labelSpan = item.button.querySelector('.dtr-time-lock-btn-text');
+                const nextLabel = item.locked ? item.button.dataset.editLabel : item.button.dataset.applyLabel;
+                if (labelSpan) labelSpan.textContent = nextLabel;
+                else item.button.textContent = nextLabel;
+                item.button.classList.toggle('is-edit-mode', item.locked);
+                item.button.setAttribute('aria-label', nextLabel);
+                item.group.querySelector('[data-time-lock-badge]')?.toggleAttribute('hidden', !item.locked);
             });
 
-            tasks.disabled = !timeOutLocked;
-            submit.disabled = !timeOutLocked;
-            form.classList.toggle('dtr-ready-for-tasks', timeOutLocked);
+            tasks.disabled = !allLocked;
+            submit.disabled = !allLocked;
+            form.classList.toggle('dtr-ready-for-tasks', allLocked);
         };
 
         const unlockFrom = startIndex => {
@@ -1479,6 +1486,18 @@ function initDtrTimeLocks() {
                 item.locked = false;
                 item.group.classList.remove('is-locked');
             });
+        };
+
+        const clearFrom = startIndex => {
+            groups.slice(startIndex).forEach(item => {
+                item.input.value = '';
+                item.locked = false;
+                item.group.classList.remove('is-locked');
+            });
+            if (startIndex <= groups.length - 1) {
+                tasks.value = '';
+                tasks.dispatchEvent(new Event('input', { bubbles: true }));
+            }
         };
 
         groups.forEach((item, index) => {
@@ -1502,11 +1521,7 @@ function initDtrTimeLocks() {
                 if (item.button.getAttribute('aria-disabled') === 'true') return;
                 if (item.locked) {
                     unlockFrom(index);
-                    if (index === 0) {
-                        groups[1].input.value = '';
-                        tasks.value = '';
-                        tasks.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
+                    clearFrom(index);
                     sync();
                     saveDraft();
                     item.trigger.focus();

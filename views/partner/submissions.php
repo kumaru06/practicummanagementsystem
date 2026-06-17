@@ -116,7 +116,7 @@ $statusBadge = static function (?string $status): string {
                                         <header class="ps-record-head">
                                             <div>
                                                 <strong><?= e(date('M d, Y', strtotime($d['work_date']))) ?></strong>
-                                                <small class="muted"><?= e($d['time_in']) ?> - <?= e($d['time_out']) ?> · <?= e((string)$d['hours']) ?> hrs</small>
+                                                <small class="muted"><?= e(format_dtr_schedule($d)) ?> · <?= e((string)$d['hours']) ?> hrs</small>
                                             </div>
                                             <?= $statusBadge($d['verification_status']) ?>
                                         </header>

@@ -3,9 +3,9 @@
     <div class="timeline<?= !$dtrs && !$weeklyReports ? ' is-empty' : '' ?>">
         <?php if (!$dtrs && !$weeklyReports): ?><p class="muted">No practicum activity submitted yet.</p><?php endif; ?>
         <?php foreach ($dtrs as $d): ?>
-            <article class="timeline-item" data-detail="<?= e($d['work_date'] . '|' . $d['time_in'] . ' - ' . $d['time_out'] . '|' . $d['hours'] . ' hours|' . $d['tasks_done']) ?>">
+            <article class="timeline-item" data-detail="<?= e($d['work_date'] . '|' . format_dtr_schedule($d) . '|' . $d['hours'] . ' hours|' . $d['tasks_done']) ?>">
                 <span class="timeline-dot"></span>
-                <div class="timeline-card"><strong><?= e($d['work_date']) ?></strong><small><?= e($d['time_in']) ?> - <?= e($d['time_out']) ?> · <?= e((string)$d['hours']) ?> hours</small><p><?= e($d['tasks_done']) ?></p></div>
+                <div class="timeline-card"><strong><?= e($d['work_date']) ?></strong><small><?= e(format_dtr_schedule($d)) ?> · <?= e((string)$d['hours']) ?> hours</small><p><?= e($d['tasks_done']) ?></p></div>
             </article>
         <?php endforeach; ?>
         <?php foreach ($weeklyReports as $r): ?>

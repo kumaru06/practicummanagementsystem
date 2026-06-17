@@ -34,6 +34,8 @@ class AuthController extends BaseController
                     'role' => $user['role'],
                     'password_changed' => (int)($user['password_changed'] ?? 1),
                 ];
+                $_SESSION['user_id'] = (int)$user['id'];
+                $_SESSION['role'] = (string)$user['role'];
                 redirect(route_for_role($user['role']));
             }
             flash('error', 'Invalid credentials or inactive account.');

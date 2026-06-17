@@ -18,12 +18,14 @@ $pathRoutes = [
     'admin/programs' => 'admin_programs',
     'admin/email-logs' => 'admin_email_logs',
     'admin/evaluations' => 'admin_evaluations',
+    'admin/chat' => 'chat',
     'coordinator' => 'coordinator',
     'coordinator/manage' => 'coordinator_manage',
     'coordinator/students' => 'coordinator_students',
     'coordinator/moa-mou' => 'coordinator_moa_mou',
     'coordinator/partners/document' => 'coordinator_partner_document',
     'coordinator/evaluations' => 'coordinator_evaluations',
+    'coordinator/chat' => 'chat',
     'coordinator/students/final-requirements' => 'coordinator_student_final',
     'student' => 'student',
     'student/dashboard' => 'student',
@@ -37,9 +39,12 @@ $pathRoutes = [
     'student/settings' => 'student_settings',
     'student/profile' => 'student_profile',
     'student/password' => 'student_password',
+    'student/chat' => 'chat',
+    'chat' => 'chat',
     'partner' => 'partner',
     'partner/portal' => 'partner_portal',
     'partner/submissions' => 'partner_submissions',
+    'partner/chat' => 'chat',
 ];
 $route = $_GET['r'] ?? ($pathRoutes[$path] ?? current_user()['role']);
 $method = $_SERVER['REQUEST_METHOD'];
@@ -81,6 +86,8 @@ if (($_GET['action'] ?? '') === 'read_notification') {
 
 $freshUser = (new User(db()))->find((int)current_user()['id']);
 $_SESSION['user']['password_changed'] = (int)($freshUser['password_changed'] ?? 1);
+$_SESSION['user_id'] = (int)current_user()['id'];
+$_SESSION['role'] = (string)current_user()['role'];
 
 if ((int)current_user()['password_changed'] === 0) {
     if ($method === 'POST' && ($_POST['action'] ?? '') === 'student_change_password') {
@@ -222,6 +229,7 @@ match ($route) {
     'student_evaluation' => (new StudentController())->evaluation(),
     'student_profile' => (new StudentController())->profileForm(),
     'student_password' => (new StudentController())->changePasswordForm(),
+    'chat' => (new ChatPageController())->interface(),
     'partner' => (new PartnerController())->dashboard(),
     'partner_portal' => (new PartnerController())->portal(),
     'partner_evaluate' => (new PartnerController())->evaluateForm(),

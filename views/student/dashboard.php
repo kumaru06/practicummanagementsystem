@@ -4,7 +4,12 @@ $rendered = (float)($hours ?? 0);
 $remaining = max(0, $required - $rendered);
 $hoursComplete = $remaining <= 0 && $required > 0;
 $percent = $required > 0 ? min(100, round(($rendered / $required) * 100, 1)) : 0;
-$ringOffset = 314 - (314 * $percent / 100);
+$progressRingRadius = 50;
+$progressRingCircumference = 2 * M_PI * $progressRingRadius;
+$ringOffset = $progressRingCircumference * (1 - ($percent / 100));
+$heroRingRadius = 36;
+$heroRingCircumference = 2 * M_PI * $heroRingRadius;
+$heroRingOffset = $heroRingCircumference * (1 - ($percent / 100));
 $predeployment = $enrollment['predeployment_status'] ?? 'not_submitted';
 $uploadedRequirements = count(array_filter($requirements ?? [], static fn ($req) => !empty($req['file_path'])));
 $approvedRequirements = count(array_filter($requirements ?? [], static fn ($req) => ($req['status'] ?? '') === 'approved'));
@@ -97,7 +102,7 @@ $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string)($enrollmen
                     <div class="sd-hero-ring" aria-hidden="true">
                         <svg viewBox="0 0 88 88">
                             <circle class="sd-ring-bg" cx="44" cy="44" r="36"></circle>
-                            <circle class="sd-ring-value" cx="44" cy="44" r="36" style="stroke-dashoffset: <?= 226 - (226 * $percent / 100) ?>"></circle>
+                            <circle class="sd-ring-value" cx="44" cy="44" r="36" style="stroke-dashoffset: <?= $heroRingOffset ?>"></circle>
                         </svg>
                         <span class="sd-hero-ring-label"><span class="sd-hero-ring-value"><?= $percent ?></span><span class="sd-hero-ring-unit">%</span></span>
                     </div>
@@ -184,7 +189,7 @@ $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string)($enrollmen
                         </linearGradient>
                     </defs>
                     <circle class="ring-bg" cx="60" cy="60" r="50"></circle>
-                    <circle class="ring-value sd-ring-value" cx="60" cy="60" r="50" style="stroke-dashoffset: <?= $ringOffset ?>"></circle>
+                    <circle class="ring-value sd-progress-ring-value" cx="60" cy="60" r="50" style="stroke-dashoffset: <?= $ringOffset ?>"></circle>
                 </svg>
                 <div class="ring-label"><strong><?= $percent ?>%</strong><span>Complete</span></div>
             </div>
@@ -255,7 +260,7 @@ $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string)($enrollmen
             </div>
             <div class="student-mini-card-body">
                 <?php if ($todayDtr): ?>
-                    <div class="student-mini-highlight"><?= e($todayDtr['time_in']) ?> – <?= e($todayDtr['time_out']) ?></div>
+                    <div class="student-mini-highlight"><?= e(format_dtr_schedule($todayDtr)) ?></div>
                     <div class="student-mini-stats">
                         <span><strong><?= e($todayDtr['hours']) ?></strong> hours</span>
                         <span class="student-mini-divider" aria-hidden="true">·</span>
@@ -330,7 +335,7 @@ $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string)($enrollmen
                             <strong><?= e($d['work_date']) ?></strong>
                             <span class="sd-timeline-hours"><?= e($d['hours']) ?> hrs</span>
                         </div>
-                        <small><?= e($d['time_in']) ?> – <?= e($d['time_out']) ?></small>
+                        <small><?= e(format_dtr_schedule($d)) ?></small>
                         <p><?= e($d['tasks_done']) ?></p>
                     </div>
                 </article>

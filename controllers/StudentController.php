@@ -84,7 +84,7 @@ class StudentController extends BaseController
             foreach (($data['dtrs'] ?? []) as $d) {
                 $rows[] = [
                     (string)($d['work_date'] ?? '-'),
-                    trim((string)($d['time_in'] ?? '') . ' - ' . (string)($d['time_out'] ?? '')),
+                    trim(format_dtr_schedule($d)),
                     (string)($d['hours'] ?? '-'),
                     (string)($d['tasks_done'] ?? '-'),
                     $statusLabel($d['verification_status'] ?? 'pending'),
@@ -552,7 +552,15 @@ class StudentController extends BaseController
             redirect('index.php?r=student_records');
         }
         try {
-            (new Report($this->db))->addDtr((int)$student['id'], $p['work_date'], $p['time_in'], $p['time_out'], trim($p['tasks_done']));
+            (new Report($this->db))->addDtr(
+                (int)$student['id'],
+                $p['work_date'],
+                $p['morning_time_in'],
+                $p['morning_time_out'],
+                $p['afternoon_time_in'],
+                $p['afternoon_time_out'],
+                trim($p['tasks_done'])
+            );
             (new Report($this->db))->clearDtrDraft((int)$student['id']);
             $enrollments->syncCompletion((int)$student['id']);
             $company = (new Company($this->db))->findByEnrollmentStudent((int)$student['id']);
@@ -629,10 +637,14 @@ class StudentController extends BaseController
         (new Report($this->db))->saveDtrDraft(
             (int)$student['id'],
             trim((string)($p['work_date'] ?? '')) ?: null,
-            trim((string)($p['time_in'] ?? '')) ?: null,
-            trim((string)($p['time_out'] ?? '')) ?: null,
-            !empty($p['time_in_locked']),
-            !empty($p['time_out_locked'])
+            trim((string)($p['morning_time_in'] ?? '')) ?: null,
+            trim((string)($p['morning_time_out'] ?? '')) ?: null,
+            trim((string)($p['afternoon_time_in'] ?? '')) ?: null,
+            trim((string)($p['afternoon_time_out'] ?? '')) ?: null,
+            !empty($p['morning_time_in_locked']),
+            !empty($p['morning_time_out_locked']),
+            !empty($p['afternoon_time_in_locked']),
+            !empty($p['afternoon_time_out_locked'])
         );
         echo json_encode(['ok' => true]);
     }
