@@ -58,11 +58,16 @@ class AuthController extends BaseController
             'partner' => ['label' => 'Industry Partner Login Portal', 'route' => route_url('partner.login')],
         ];
         $visible = array_filter($all, static fn ($key) => $key !== 'admin', ARRAY_FILTER_USE_KEY);
+        $loginPortals = $visible;
+        if ($role === 'admin') {
+            $loginPortals['admin'] = $all['admin'];
+        }
 
         return [
             'portalRole' => $role,
             'portalLabel' => $role && isset($all[$role]) ? $all[$role]['label'] : 'Choose Login Portal',
             'portals' => $visible,
+            'loginPortals' => $loginPortals,
         ];
     }
 }

@@ -5548,10 +5548,12 @@ small,
     align-items: center;
     justify-content: center;
     min-height: 30px;
-    padding: 0 12px;
+    padding: 6px 12px;
     border-radius: 999px;
     font-size: 0.76rem;
     font-weight: 800;
+    line-height: 1.25;
+    text-align: center;
     text-transform: capitalize;
 }
 
@@ -8489,10 +8491,13 @@ small,
     margin-bottom: 18px;
 }
 
-.student-card-head > span {
-    color: #667085;
-    font-size: 0.84rem;
-    font-weight: 800;
+.student-card-head .badge {
+    flex-shrink: 0;
+    align-self: flex-start;
+    width: fit-content;
+    max-width: 100%;
+    padding: 6px 14px;
+    white-space: nowrap;
 }
 
 .student-check-list {
@@ -9697,9 +9702,9 @@ small,
         font-size: 1rem;
     }
 
-    .role-student .student-card-head > span {
-        font-size: 0.74rem;
-        text-align: right;
+    .role-student .student-card-head .badge {
+        font-size: 0.72rem;
+        padding: 5px 12px;
     }
 
     .role-student .student-panel-meta span,
@@ -13198,5 +13203,708 @@ body.role-student .topbar .user-avatar-photo {
     .final-form-page,
     .final-form-page--wide {
         max-width: 100%;
+    }
+}
+
+/* ── Student Dashboard v2 ─────────────────────────────────────────── */
+.role-student .content:has(.student-dash-v2) {
+    background:
+        radial-gradient(ellipse 80% 50% at 10% -10%, rgba(139, 26, 26, 0.06), transparent 50%),
+        radial-gradient(ellipse 60% 40% at 95% 5%, rgba(249, 115, 22, 0.05), transparent 45%),
+        linear-gradient(180deg, #f8f9fc 0%, #f3f5f9 100%);
+}
+
+.student-dash-v2 {
+    --sd-radius: 28px;
+    --sd-shadow: 0 20px 50px rgba(15, 23, 42, 0.06);
+    --sd-shadow-hover: 0 28px 60px rgba(15, 23, 42, 0.1);
+    display: grid;
+    gap: 24px;
+    animation: sdFadeIn 0.5s ease both;
+}
+
+@keyframes sdFadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.student-dash-v2 > * {
+    animation: sdSlideUp 0.55s ease both;
+}
+
+.student-dash-v2 > *:nth-child(1) { animation-delay: 0.04s; }
+.student-dash-v2 > *:nth-child(2) { animation-delay: 0.08s; }
+.student-dash-v2 > *:nth-child(3) { animation-delay: 0.12s; }
+.student-dash-v2 > *:nth-child(4) { animation-delay: 0.16s; }
+.student-dash-v2 > *:nth-child(5) { animation-delay: 0.20s; }
+.student-dash-v2 > *:nth-child(6) { animation-delay: 0.24s; }
+.student-dash-v2 > *:nth-child(7) { animation-delay: 0.28s; }
+
+@keyframes sdSlideUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Hero */
+.student-dash-v2 .sd-hero {
+    grid-template-columns: minmax(0, 1.2fr) minmax(300px, 380px);
+    padding: clamp(32px, 4.5vw, 44px);
+    border-radius: calc(var(--sd-radius) + 4px);
+    background:
+        radial-gradient(circle at 8% 20%, rgba(255, 255, 255, 0.18), transparent 32%),
+        radial-gradient(circle at 92% 78%, rgba(255, 180, 120, 0.14), transparent 34%),
+        linear-gradient(128deg, #4a0e0e 0%, #7f1d1d 32%, #991b1b 58%, #c2410c 88%, #ea580c 100%);
+    box-shadow:
+        0 32px 70px rgba(74, 14, 14, 0.32),
+        inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    overflow: hidden;
+}
+
+.student-dash-v2 .sd-hero-mesh {
+    position: absolute;
+    inset: 0;
+    opacity: 0.45;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, #000 20%, transparent 75%);
+    pointer-events: none;
+}
+
+.student-dash-v2 .sd-hero-glow--three {
+    top: 50%;
+    right: 35%;
+    width: 260px;
+    height: 260px;
+    background: rgba(255, 140, 80, 0.12);
+    animation: sdPulse 6s ease-in-out infinite;
+}
+
+@keyframes sdPulse {
+    0%, 100% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.08); opacity: 1; }
+}
+
+.student-dash-v2 .sd-hero-date {
+    margin: 0 0 10px;
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.student-dash-v2 .sd-hero-sub {
+    max-width: 540px;
+    margin-top: 4px;
+}
+
+.student-dash-v2 .sd-hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 48px;
+    padding-inline: 24px;
+    border-radius: 14px;
+    font-weight: 800;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.student-dash-v2 .sd-hero-cta svg {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.2s ease;
+}
+
+.student-dash-v2 .sd-hero-cta:hover svg {
+    transform: translateX(3px);
+}
+
+.student-dash-v2 .sd-hero-panel {
+    gap: 16px;
+    padding: 24px;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    backdrop-filter: blur(20px) saturate(1.4);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        0 24px 48px rgba(30, 8, 8, 0.2);
+}
+
+.student-dash-v2 .sd-hero-panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.student-dash-v2 .sd-hero-panel-brand {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
+}
+
+.student-dash-v2 .sd-hero-panel-brand strong {
+    display: block;
+    font-size: clamp(1.1rem, 2vw, 1.45rem);
+    margin-top: 4px;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    word-break: break-word;
+}
+
+.student-dash-v2 .sd-hero-ring {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+}
+
+.student-dash-v2 .sd-hero-ring svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.student-dash-v2 .sd-ring-bg,
+.student-dash-v2 .sd-ring-value {
+    fill: none;
+    stroke-width: 6;
+}
+
+.student-dash-v2 .sd-ring-bg {
+    stroke: rgba(255, 255, 255, 0.18);
+}
+
+.student-dash-v2 .sd-ring-value {
+    stroke: #fff;
+    stroke-linecap: round;
+    stroke-dasharray: 226;
+    transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.4));
+}
+
+.student-dash-v2 .sd-hero-ring-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    color: #fff;
+    line-height: 1;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.student-dash-v2 .sd-hero-ring-value,
+.student-dash-v2 .sd-hero-ring-unit {
+    display: inline;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+}
+
+.student-dash-v2 .sd-hero-ring-unit {
+    font-size: 0.62rem;
+    font-weight: 700;
+    opacity: 0.92;
+}
+
+.student-dash-v2 .sd-progress-track span {
+    background: linear-gradient(90deg, #fff 0%, #fecaca 60%, #fed7aa 100%);
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0.35);
+}
+
+.student-dash-v2 .sd-status-pill--active {
+    background: rgba(34, 197, 94, 0.22);
+    border-color: rgba(134, 239, 172, 0.45);
+}
+
+/* Journey stepper */
+.student-dash-v2 .sd-journey {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 20px 24px;
+    border: 1px solid rgba(219, 228, 240, 0.95);
+    border-radius: var(--sd-radius);
+    background: #fff;
+    box-shadow: var(--sd-shadow);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.student-dash-v2 .sd-journey::-webkit-scrollbar {
+    display: none;
+}
+
+.student-dash-v2 .sd-journey-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-width: 72px;
+    flex-shrink: 0;
+}
+
+.student-dash-v2 .sd-journey-dot {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 2px solid #e2e8f0;
+    border-radius: 50%;
+    background: #f8fafc;
+    color: #94a3b8;
+    font-size: 0.78rem;
+    font-weight: 800;
+    transition: all 0.25s ease;
+}
+
+.student-dash-v2 .sd-journey-dot svg {
+    width: 14px;
+    height: 14px;
+}
+
+.student-dash-v2 .sd-journey-step.is-done .sd-journey-dot {
+    border-color: #86efac;
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    color: #166534;
+}
+
+.student-dash-v2 .sd-journey-step.is-current .sd-journey-dot {
+    border-color: #8B1A1A;
+    background: linear-gradient(135deg, #8B1A1A, #c2410c);
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(139, 26, 26, 0.15), 0 8px 20px rgba(139, 26, 26, 0.25);
+}
+
+.student-dash-v2 .sd-journey-label {
+    color: #64748b;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.student-dash-v2 .sd-journey-step.is-current .sd-journey-label {
+    color: #8B1A1A;
+}
+
+.student-dash-v2 .sd-journey-step.is-done .sd-journey-label {
+    color: #166534;
+}
+
+.student-dash-v2 .sd-journey-line {
+    flex: 1;
+    min-width: 24px;
+    height: 3px;
+    margin-bottom: 24px;
+    border-radius: 999px;
+    background: #e2e8f0;
+}
+
+.student-dash-v2 .sd-journey-line.is-done {
+    background: linear-gradient(90deg, #86efac, #4ade80);
+}
+
+/* Next step card */
+.student-dash-v2 .sd-next-card {
+    position: relative;
+    padding: 24px 28px;
+    border: 1px solid rgba(219, 228, 240, 0.95);
+    border-radius: var(--sd-radius);
+    background: #fff;
+    box-shadow: var(--sd-shadow);
+    overflow: hidden;
+}
+
+.student-dash-v2 .sd-next-glow {
+    position: absolute;
+    right: -40px;
+    top: -40px;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(139, 26, 26, 0.08), transparent 70%);
+    pointer-events: none;
+}
+
+.student-dash-v2 .sd-next-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #8B1A1A, #dc2626);
+    color: #fff;
+    box-shadow: 0 12px 28px rgba(139, 26, 26, 0.28);
+}
+
+.student-dash-v2 .sd-next-icon svg {
+    width: 26px;
+    height: 26px;
+}
+
+.student-dash-v2 .sd-next-btn {
+    border-radius: 14px;
+    min-height: 46px;
+    padding-inline: 22px;
+    font-weight: 800;
+    box-shadow: 0 12px 28px rgba(139, 26, 26, 0.22);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.student-dash-v2 .sd-next-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 34px rgba(139, 26, 26, 0.28);
+}
+
+/* Stat cards */
+.student-dash-v2 .sd-stat-card {
+    position: relative;
+    padding: 20px;
+    border-radius: 22px;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    background: #fff;
+    box-shadow: var(--sd-shadow);
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.student-dash-v2 .sd-stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--sd-shadow-hover);
+    border-color: rgba(203, 213, 225, 0.9);
+}
+
+.student-dash-v2 .sd-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+}
+
+.student-dash-v2 .sd-stat-card--company .sd-stat-icon { background: linear-gradient(135deg, #eff6ff, #dbeafe); color: #1d4ed8; }
+.student-dash-v2 .sd-stat-card--schedule .sd-stat-icon { background: linear-gradient(135deg, #f5f3ff, #ede9fe); color: #7c3aed; }
+.student-dash-v2 .sd-stat-card--hours .sd-stat-icon { background: linear-gradient(135deg, #fffbeb, #fef3c7); color: #b45309; }
+.student-dash-v2 .sd-stat-card--records .sd-stat-icon { background: linear-gradient(135deg, #fff1f2, #ffe4e6); color: #be123c; }
+
+.student-dash-v2 .sd-stat-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.student-dash-v2 .sd-stat-value-sm {
+    font-size: 0.88rem !important;
+    line-height: 1.35 !important;
+}
+
+.student-dash-v2 .sd-stat-card strong.is-positive {
+    color: #166534;
+}
+
+/* Bento grid */
+.student-dash-v2 .sd-bento {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.7fr);
+    grid-template-rows: auto auto;
+    gap: 18px;
+}
+
+.student-dash-v2 .sd-progress-card {
+    grid-row: span 2;
+    padding: 28px;
+    border-radius: var(--sd-radius);
+    border: 1px solid rgba(219, 228, 240, 0.95);
+    background: linear-gradient(160deg, #fff 0%, #fafbff 100%);
+    box-shadow: var(--sd-shadow);
+}
+
+.student-dash-v2 .sd-ring-wrap {
+    width: 180px;
+    height: 180px;
+}
+
+.student-dash-v2 .sd-ring-wrap .progress-ring {
+    width: 180px;
+    height: 180px;
+}
+
+.student-dash-v2 .sd-ring-value {
+    stroke: url(#sdRingGrad);
+    stroke-width: 11;
+}
+
+.student-dash-v2 .sd-ring-wrap .ring-label strong {
+    font-size: 2rem;
+    background: linear-gradient(135deg, #8B1A1A, #ea580c);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.student-dash-v2 .sd-progress-bar span {
+    background: linear-gradient(90deg, #8B1A1A 0%, #dc2626 50%, #f97316 100%);
+    box-shadow: 0 2px 8px rgba(139, 26, 26, 0.25);
+}
+
+.student-dash-v2 .sd-requirement-card {
+    padding: 24px;
+    border-radius: var(--sd-radius);
+    border: 1px solid rgba(219, 228, 240, 0.95);
+    background: #fff;
+    box-shadow: var(--sd-shadow);
+}
+
+.student-dash-v2 .sd-check-list {
+    gap: 10px;
+}
+
+.student-dash-v2 .sd-check-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    transition: background 0.18s ease;
+}
+
+.student-dash-v2 .sd-check-item:hover {
+    background: linear-gradient(135deg, #fff7f7, #fef2f2);
+}
+
+.student-dash-v2 .sd-manage-btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 42px;
+    border-radius: 12px;
+    margin-top: 4px;
+}
+
+.student-dash-v2 .sd-status-grid {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.student-dash-v2 .sd-status-card {
+    border-radius: 20px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.student-dash-v2 .sd-status-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--sd-shadow-hover);
+}
+
+/* Mini cards */
+.student-dash-v2 .sd-mini-card {
+    border-radius: var(--sd-radius);
+    border: 1px solid rgba(219, 228, 240, 0.95);
+    background: #fff;
+    box-shadow: var(--sd-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.student-dash-v2 .sd-mini-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--sd-shadow-hover);
+}
+
+.student-dash-v2 .sd-quick-actions .student-mini-action {
+    justify-content: space-between;
+    border-radius: 12px;
+}
+
+.student-dash-v2 .sd-quick-actions .student-mini-action svg {
+    width: 16px;
+    height: 16px;
+    opacity: 0.4;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.student-dash-v2 .sd-quick-actions .student-mini-action:hover svg {
+    opacity: 1;
+    transform: translateX(2px);
+}
+
+/* Activity */
+.student-dash-v2 .sd-activity-card {
+    padding: 28px;
+    border-radius: var(--sd-radius);
+    border: 1px solid rgba(219, 228, 240, 0.95);
+    background: #fff;
+    box-shadow: var(--sd-shadow);
+}
+
+.student-dash-v2 .sd-activity-head {
+    margin-bottom: 20px;
+}
+
+.student-dash-v2 .sd-activity-link {
+    color: #8B1A1A;
+    font-size: 0.86rem;
+    font-weight: 800;
+    text-decoration: none;
+    transition: color 0.18s ease;
+}
+
+.student-dash-v2 .sd-activity-link:hover {
+    color: #c2410c;
+}
+
+.student-dash-v2 .sd-timeline {
+    gap: 16px;
+}
+
+.student-dash-v2 .sd-timeline::before {
+    left: 11px;
+    background: linear-gradient(180deg, #8B1A1A, #fecaca);
+    width: 2px;
+}
+
+.student-dash-v2 .sd-timeline-dot {
+    width: 22px;
+    height: 22px;
+    border: 3px solid #fff;
+    background: linear-gradient(135deg, #8B1A1A, #dc2626);
+    box-shadow: 0 0 0 2px rgba(139, 26, 26, 0.2);
+}
+
+.student-dash-v2 .sd-timeline-card {
+    padding: 16px 18px;
+    border-radius: 16px;
+    border: 1px solid #eef2f6;
+    background: linear-gradient(135deg, #fafbfc, #fff);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.student-dash-v2 .sd-timeline-card:hover {
+    border-color: rgba(139, 26, 26, 0.15);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.student-dash-v2 .sd-timeline-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 2px;
+}
+
+.student-dash-v2 .sd-timeline-hours {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #fff1f2;
+    color: #be123c;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.student-dash-v2 .sd-timeline-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 32px 20px;
+    border-radius: 16px;
+    background: #f8fafc;
+    text-align: center;
+}
+
+.student-dash-v2 .sd-timeline-empty svg {
+    width: 40px;
+    height: 40px;
+    color: #cbd5e1;
+}
+
+.student-dash-v2 .sd-timeline-empty p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 1180px) {
+    .student-dash-v2 .sd-bento {
+        grid-template-columns: 1fr;
+    }
+
+    .student-dash-v2 .sd-progress-card {
+        grid-row: auto;
+    }
+}
+
+@media (max-width: 720px) {
+    .student-dash-v2 {
+        gap: 16px;
+    }
+
+    .student-dash-v2 .sd-hero {
+        padding: 22px 18px;
+    }
+
+    .student-dash-v2 .sd-journey {
+        padding: 16px 18px;
+        border-radius: 22px;
+    }
+
+    .student-dash-v2 .sd-journey-step {
+        min-width: 58px;
+    }
+
+    .student-dash-v2 .sd-journey-dot {
+        width: 32px;
+        height: 32px;
+        font-size: 0.72rem;
+    }
+
+    .student-dash-v2 .sd-next-card {
+        grid-template-columns: auto 1fr;
+        padding: 18px;
+    }
+
+    .student-dash-v2 .sd-next-card > .btn {
+        grid-column: 1 / -1;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .student-dash-v2 .sd-hero-panel-head {
+        flex-direction: column;
+    }
+
+    .student-dash-v2 .sd-hero-ring {
+        align-self: flex-end;
+    }
+
+    .student-dash-v2 .sd-status-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .student-dash-v2 .sd-progress-card {
+        justify-items: center;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .student-dash-v2 .sd-ring-wrap {
+        width: 150px;
+        height: 150px;
+    }
+
+    .student-dash-v2 .sd-ring-wrap .progress-ring {
+        width: 150px;
+        height: 150px;
+    }
+}
+
+@media (max-width: 420px) {
+    .student-dash-v2 .sd-status-grid {
+        grid-template-columns: 1fr;
     }
 }

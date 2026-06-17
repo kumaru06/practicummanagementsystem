@@ -41,8 +41,9 @@
                 ],
             ];
             $portalArrowIcon = '<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m7.5 5 5 5-5 5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            $loginPortals = $loginPortals ?? ($portals ?? []);
             $portalLabelsJson = json_encode(
-                array_map(static fn ($portal) => ['label' => $portal['label']], $portals ?? []),
+                array_map(static fn ($portal) => ['label' => $portal['label']], $loginPortals),
                 JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
             );
             $flashError = flash('error');
@@ -95,7 +96,7 @@
 
                         <div class="portal-badge"><span class="dot"></span><span class="js-portal-badge-label"><?= e($portalLabel ?? 'Portal') ?></span></div>
 
-                        <?php foreach (($portals ?? []) as $role => $portal): ?>
+                        <?php foreach ($loginPortals as $role => $portal): ?>
                             <form
                                 method="post"
                                 action="<?= e(route_url($role . '.login.post')) ?>"
