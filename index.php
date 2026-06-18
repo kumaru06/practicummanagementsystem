@@ -49,6 +49,11 @@ $pathRoutes = [
 $route = $_GET['r'] ?? ($pathRoutes[$path] ?? current_user()['role']);
 $method = $_SERVER['REQUEST_METHOD'];
 
+if ($route === 'chat_api') {
+    require __DIR__ . '/api/async_chat.php';
+    exit;
+}
+
 if ($method === 'POST' && ($_POST['action'] ?? '') === 'mark_all_notifications_read') {
     verify_csrf();
     (new Notification(db()))->markAllRead((int)current_user()['id']);

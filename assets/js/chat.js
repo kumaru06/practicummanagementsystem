@@ -2,13 +2,13 @@
  * AMA Practicum Live Chat
  * Vanilla JS + Fetch API with 3-second polling (no WebSockets).
  */
-(function () {
+function initLiveChat() {
     'use strict';
 
     const app = document.getElementById('chatApp');
     if (!app) return;
 
-    const endpoint = app.dataset.endpoint || 'api/async_chat.php';
+    const endpoint = app.dataset.endpoint || 'index.php?r=chat_api';
     const csrfToken = app.dataset.csrf || '';
     const currentUserId = Number(app.dataset.userId || 0);
     const currentUserRole = app.dataset.userRole || '';
@@ -277,21 +277,26 @@
         const requestPartnerId = partnerId;
         const requestPartnerRole = partnerRole;
 
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken,
-            },
-            body: JSON.stringify({
-                csrf_token: csrfToken,
-                partner_id: requestPartnerId,
-                partner_role: requestPartnerRole,
-                message_text: text,
-            }),
-        });
+        let response;
+        try {
+            response = await fetch(endpoint, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken,
+                },
+                body: JSON.stringify({
+                    csrf_token: csrfToken,
+                    partner_id: requestPartnerId,
+                    partner_role: requestPartnerRole,
+                    message_text: text,
+                }),
+            });
+        } catch (error) {
+            throw new Error('Unable to reach the chat server. Please refresh and try again.');
+        }
 
         const data = await response.json();
         if (!response.ok || !data.success) {
@@ -446,4 +451,4 @@
     if (partnerId && partnerRole) {
         startPolling();
     }
-})();
+}

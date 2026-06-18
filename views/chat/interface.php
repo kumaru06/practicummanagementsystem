@@ -1,5 +1,3 @@
-<link rel="stylesheet" href="<?= e(asset('assets/css/chat.css')) ?>?v=20260617-chat-ama-theme">
-
 <div class="chat-app" id="chatApp"
      data-endpoint="<?= e($chatEndpoint) ?>"
      data-csrf="<?= e($csrfToken) ?>"
@@ -109,7 +107,7 @@
                     <span id="chatTypingLabel"><?= e((string)$selectedPartner['name']) ?> is typing...</span>
                 </div>
 
-                <form class="chat-window__composer" id="chatComposer">
+                <form class="chat-window__composer" id="chatComposer" action="#" method="post" onsubmit="return false;">
                     <label class="sr-only" for="chatMessageInput">Message</label>
                     <textarea id="chatMessageInput"
                               rows="2"
@@ -130,5 +128,3 @@
         </section>
     </div>
 </div>
-
-<script src="<?= e($chatJsPath) ?>" defer></script>

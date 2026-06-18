@@ -8,6 +8,7 @@ class ChatController
     private PDO $db;
     private int $userId;
     private string $role;
+    private bool $messagesTableReady = false;
     private bool $typingTableReady = false;
 
     public function __construct(?PDO $db = null)
@@ -39,6 +40,7 @@ class ChatController
     public function sendMessage(int $receiverId, string $receiverRole, string $text): array
     {
         $this->requireAuth();
+        $this->ensureMessagesTable();
 
         $receiverRole = strtolower(trim($receiverRole));
         $text = $this->sanitizeMessage($text);
@@ -75,6 +77,7 @@ class ChatController
     public function getMessages(int $chatPartnerId, string $chatPartnerRole): array
     {
         $this->requireAuth();
+        $this->ensureMessagesTable();
 
         $chatPartnerRole = strtolower(trim($chatPartnerRole));
 
@@ -178,6 +181,7 @@ class ChatController
     public function getChatPartners(): array
     {
         $this->requireAuth();
+        $this->ensureMessagesTable();
 
         return match ($this->role) {
             'admin' => $this->partnersForAdmin(),
@@ -263,6 +267,32 @@ class ChatController
             $_SESSION['user_id'] = (int)($_SESSION['user']['id'] ?? 0);
             $_SESSION['role'] = (string)($_SESSION['user']['role'] ?? '');
         }
+    }
+
+    private function ensureMessagesTable(): void
+    {
+        if ($this->messagesTableReady) {
+            return;
+        }
+
+        $this->db->exec(
+            'CREATE TABLE IF NOT EXISTS messages (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                sender_id INT NOT NULL,
+                sender_role ENUM("admin","coordinator","student","partner") NOT NULL,
+                receiver_id INT NOT NULL,
+                receiver_role ENUM("admin","coordinator","student","partner") NOT NULL,
+                message_text TEXT NOT NULL,
+                is_read TINYINT(1) NOT NULL DEFAULT 0,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_messages_conversation (sender_id, sender_role, receiver_id, receiver_role, created_at),
+                INDEX idx_messages_inbox (receiver_id, receiver_role, is_read, created_at),
+                CONSTRAINT fk_messages_sender FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+                CONSTRAINT fk_messages_receiver FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+        );
+
+        $this->messagesTableReady = true;
     }
 
     private function ensureTypingTable(): void

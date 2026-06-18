@@ -12,7 +12,10 @@ Pure PHP 8 + PDO MySQL OJT management system with four roles: Admin, OJT Coordin
      - `database/migration_2026_05_02_features.sql`
      - `database/migration_2026_05_03_deployment_flow.sql`
    - `database/migration_2026_05_11_coordinator_id_number.sql`
+   - `database/migration_2026_06_17_chat_messages.sql`
+   - `database/migration_2026_06_17_chat_typing.sql`
    - On shared hosting like InfinityFree, select your database first, then import the SQL files. Do not use SQL files with `CREATE DATABASE` or `USE ...` statements.
+   - Live Chat also tries to create the `messages` table automatically on first use, but you should still import the chat migration files after deploying.
 3. Confirm database credentials in `config/database.php`.
 4. Configure real SMTP credentials in `config/mail.php`.
    - Gmail requires an App Password.

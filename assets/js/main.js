@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+﻿document.addEventListener('DOMContentLoaded', () => {
     initSidebar();
     initStudentMobileNav();
     initToasts();
@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeSlidePanel(); closeNotifications(); closeRequirementReviewModals(); closeCustomSelects(); closeCustomDatePickers(); closeDtrTimePicker(); } });
     initStudentModal();
     renderDashboardCharts();
+    initLiveChat();
 });
 
 function initStudentProfilePhotoPreview() {
@@ -225,7 +226,7 @@ function initStudentMobileTapProxy() {
     let suppressUntil = 0;
     const isMobileStudentLayout = () => window.matchMedia('(max-width: 720px)').matches;
     const clickableSelector = 'button,a,input:not([type="hidden"]),textarea,select,[data-time-lock-toggle],[data-time-picker-trigger],.filter-date-trigger';
-    const skipSelector = '.notif-panel,.topbar,.sidebar,.student-bottom-nav-root,.global-cal-panel,.global-datetime-panel,.dtr-time-panel,.student-nav-sheet-backdrop,.nav-group-items';
+    const skipSelector = '.notif-panel,.topbar,.sidebar,.student-bottom-nav-root,.global-cal-panel,.global-datetime-panel,.dtr-time-panel,.student-nav-sheet-backdrop,.nav-group-items,.chat-app';
 
     const findContentControl = (x, y) => {
         const content = document.querySelector('.role-student .content');
@@ -356,7 +357,7 @@ function initCoordinatorCardAlignment() {
     }
 }
 
-/* ── Global shared calendar panel (escapes all overflow/transform ancestors) ── */
+/* â”€â”€ Global shared calendar panel (escapes all overflow/transform ancestors) â”€â”€ */
 let _globalCalPanel = null;
 let _globalCalActivePicker = null;
 let _globalCalState = null;
@@ -459,7 +460,7 @@ function closeGlobalCalPanel() {
     _globalCalState = null;
 }
 
-/* ── Global DateTime Picker (calendar + time) ── */
+/* â”€â”€ Global DateTime Picker (calendar + time) â”€â”€ */
 let _globalDtPanel = null;
 let _globalDtActivePicker = null;
 let _globalDtState = null;
@@ -569,7 +570,7 @@ function buildDateTimePanel(state) {
         ? `${state.hour}:${String(state.minute).padStart(2, '0')} ${state.period}`
         : '--:--';
 
-    return `<div class="datetime-panel-layout">${calendarHtml}<div class="datetime-time-picker"><div class="datetime-time-header">Time · ${previewTime}</div><div class="datetime-time-cols"><div class="datetime-time-col">${hours.join('')}</div><div class="datetime-time-col">${minutes.join('')}</div><div class="datetime-time-period-col">${periods}</div></div><div class="datetime-confirm-row"><button class="btn btn-small" type="button" data-dt-confirm>Done</button></div></div></div>`;
+    return `<div class="datetime-panel-layout">${calendarHtml}<div class="datetime-time-picker"><div class="datetime-time-header">Time Â· ${previewTime}</div><div class="datetime-time-cols"><div class="datetime-time-col">${hours.join('')}</div><div class="datetime-time-col">${minutes.join('')}</div><div class="datetime-time-period-col">${periods}</div></div><div class="datetime-confirm-row"><button class="btn btn-small" type="button" data-dt-confirm>Done</button></div></div></div>`;
 }
 
 function positionGlobalDtPanel(trigger) {
@@ -704,7 +705,7 @@ function initCustomDatePickers() {
         };
 
         if (isFormPicker) {
-            // Remove the inline placeholder panel — all rendering is via global panel
+            // Remove the inline placeholder panel â€” all rendering is via global panel
             picker.querySelector('.filter-date-panel')?.remove();
 
             trigger.addEventListener('click', event => {
@@ -2065,7 +2066,7 @@ function renderDashboardCharts() {
         });
     }
 }
-// ─── Chart helpers ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Chart helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const CHART_COLORS = ['#8B1A1A', '#c0392b', '#16a34a', '#f59e0b', '#dc2626', '#8b5cf6', '#0891b2', '#64748b'];
 const CHART_BAR_COLOR = '#8B1A1A';
 
@@ -2122,7 +2123,7 @@ function roundRect(ctx, x, y, w, h, r) {
     ctx.closePath();
 }
 
-// ─── Donut / Pie ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Donut / Pie â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function drawPie(id, data) {
     const p = prepCanvas(id);
     if (!p) return;
@@ -2170,7 +2171,7 @@ function drawPie(id, data) {
     ctx.fillStyle = '#64748b';
     ctx.fillText('Total', cx, cy + 10);
 
-    // legend below donut — centred horizontally
+    // legend below donut â€” centred horizontally
     const legendTop = donutSpace + 8;
     const swatchW   = 12;
     const colW      = 110; // fixed column width for centering
@@ -2202,10 +2203,10 @@ function drawPie(id, data) {
     });
 }
 
-// ─── Bar chart (auto horizontal when many bars) ─────────────────────────────
+// â”€â”€â”€ Bar chart (auto horizontal when many bars) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function fmtBarLabel(lbl) {
-    // "2025-11" → "Nov '25"
+    // "2025-11" â†’ "Nov '25"
     const m = String(lbl).match(/^(\d{4})-(\d{2})$/);
     if (m) return MONTH_NAMES[parseInt(m[2], 10) - 1] + ' \'' + m[1].slice(2);
     return String(lbl);
@@ -2316,7 +2317,7 @@ function drawHBars(id, data, suffix = '') {
         const x    = padL;
         hitRegions.push({ y, h: barH, label: d.label, val });
 
-        // label — truncate by pixel width, not character count
+        // label â€” truncate by pixel width, not character count
         chartFont(ctx, 12, '600');
         ctx.fillStyle = '#172033';
         ctx.textAlign = 'right';
@@ -2327,7 +2328,7 @@ function drawHBars(id, data, suffix = '') {
         while (truncated.length > 1 && ctx.measureText(truncated).width > maxLabelW) {
             truncated = truncated.slice(0, -1);
         }
-        if (truncated !== labelStr) truncated = truncated.slice(0, -1) + '…';
+        if (truncated !== labelStr) truncated = truncated.slice(0, -1) + 'â€¦';
         ctx.fillText(truncated, padL - 10, y + barH / 2);
 
         // bar
@@ -2362,7 +2363,7 @@ function attachCourseChartInteraction() {
     if (!canvas || canvas._interactionAttached) return;
     canvas._interactionAttached = true;
 
-    // ── Tooltip element ──────────────────────────────────────────────────────
+    // â”€â”€ Tooltip element â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     let tip = document.getElementById('_courseTooltip');
     if (!tip) {
         tip = document.createElement('div');
@@ -2432,7 +2433,7 @@ function attachCourseChartInteraction() {
     });
 }
 
-// ─── Line chart ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ Line chart â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function drawLine(id, data) {
     const p = prepCanvas(id);
     if (!p) return;
@@ -2520,16 +2521,16 @@ function drawLine(id, data) {
         ctx.textBaseline = 'bottom';
         ctx.fillText(pt.d.value, pt.x, pt.y - 12);
 
-        // x label – draw after dots so we can do rotation outside the per-dot loop
+        // x label â€“ draw after dots so we can do rotation outside the per-dot loop
     });
 
-    // x-axis labels: skip any that would overlap, rotate -35°
+    // x-axis labels: skip any that would overlap, rotate -35Â°
     chartFont(ctx, 11, '500');
     ctx.fillStyle = '#64748b';
     const labelY = pad.top + gH + 10;
     const minGap = 52; // minimum px between label centres before skipping
     let lastDrawnX = -Infinity;
-    // decide step: draw every Nth label so neighbours are ≥ minGap apart
+    // decide step: draw every Nth label so neighbours are â‰¥ minGap apart
     const step = Math.ceil(minGap / (pts.length > 1 ? gW / (pts.length - 1) : 1));
     pts.forEach((pt, i) => {
         if (i % step !== 0 && i !== pts.length - 1) return;
@@ -2537,7 +2538,7 @@ function drawLine(id, data) {
         lastDrawnX = pt.x;
         ctx.save();
         ctx.translate(pt.x, labelY);
-        ctx.rotate(-Math.PI / 5); // -36°
+        ctx.rotate(-Math.PI / 5); // -36Â°
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
         ctx.fillText(String(pt.d.label), 0, 0);
@@ -2608,7 +2609,7 @@ function initRequirementReviewModals() {
                     if (subtitle) {
                         subtitle.textContent = data.requirement_status === 'approved'
                             ? 'Reviewed and approved'
-                            : 'Rejected — needs revision';
+                            : 'Rejected â€” needs revision';
                     }
                     const actions = article.querySelector('[data-review-actions]');
                     if (actions) {
@@ -2665,14 +2666,14 @@ function initStudentModal() {
     if (!modal) return;
 
     const formatDateTime = value => {
-        if (!value) return '—';
+        if (!value) return 'â€”';
         const normalized = String(value).replace(' ', 'T');
         const date = new Date(normalized);
         return Number.isNaN(date.getTime()) ? value : date.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
     };
 
     const formatDate = value => {
-        if (!value) return '—';
+        if (!value) return 'â€”';
         const date = new Date(`${value}T00:00:00`);
         return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     };
@@ -2681,7 +2682,7 @@ function initStudentModal() {
     document.getElementById('studentModalClose')?.addEventListener('click', closeStudentModal);
     modal.addEventListener('click', e => { if (e.target === modal) closeStudentModal(); });
 
-    // Open handler — event delegation on table body
+    // Open handler â€” event delegation on table body
     document.addEventListener('click', e => {
         const btn = e.target.closest('.student-view-btn');
         if (!btn) return;
@@ -2710,17 +2711,17 @@ function initStudentModal() {
         }
         document.getElementById('sm-name').textContent = d.name || '';
         document.getElementById('sm-email').textContent = d.email || '';
-        document.getElementById('sm-chip-id').textContent = d.studentNo ? `ID ${d.studentNo}` : 'ID —';
-        document.getElementById('sm-chip-year').textContent = d.yearLevel ? `${d.yearLevel}` : 'Year —';
+        document.getElementById('sm-chip-id').textContent = d.studentNo ? `ID ${d.studentNo}` : 'ID â€”';
+        document.getElementById('sm-chip-year').textContent = d.yearLevel ? `${d.yearLevel}` : 'Year â€”';
         const statusChip = document.getElementById('sm-chip-status');
         statusChip.textContent = formatLabel(d.status || 'pending');
         statusChip.className = `student-panel-chip student-panel-chip-status is-${(d.status || 'pending').replaceAll('_', '-')}`;
 
-        document.getElementById('sm-course').textContent = d.course || '—';
-        document.getElementById('sm-year-level').textContent = d.yearLevel || '—';
+        document.getElementById('sm-course').textContent = d.course || 'â€”';
+        document.getElementById('sm-year-level').textContent = d.yearLevel || 'â€”';
         const bdRaw = d.birthdate || '';
-        document.getElementById('sm-birthdate').textContent = bdRaw ? new Date(bdRaw + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
-        document.getElementById('sm-company').textContent = d.company || '—';
+        document.getElementById('sm-birthdate').textContent = bdRaw ? new Date(bdRaw + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'â€”';
+        document.getElementById('sm-company').textContent = d.company || 'â€”';
 
         const percent = Math.max(0, Math.min(100, Number.parseInt(d.percent, 10) || 0));
         document.getElementById('sm-progress-text').textContent = `${d.rendered} / ${d.required} hrs (${percent}%)`;
@@ -2926,4 +2927,459 @@ function initWeeklyReportUpload() {
             form.appendChild(dynamicInput);
         }
     });
+}
+
+/**
+ * AMA Practicum Live Chat
+ * Vanilla JS + Fetch API with 3-second polling (no WebSockets).
+ */
+function initLiveChat() {
+    'use strict';
+
+    const app = document.getElementById('chatApp');
+    if (!app) return;
+
+    const endpoint = app.dataset.endpoint || 'index.php?r=chat_api';
+    const csrfToken = app.dataset.csrf || '';
+    const currentUserId = Number(app.dataset.userId || 0);
+    const currentUserRole = app.dataset.userRole || '';
+
+    let partnerId = Number(app.dataset.partnerId || 0);
+    let partnerRole = app.dataset.partnerRole || '';
+    let partnerName = document.getElementById('chatActiveName')?.textContent?.trim() || 'Contact';
+
+    const messagesEl = document.getElementById('chatMessages');
+    const composerEl = document.getElementById('chatComposer');
+    const inputEl = document.getElementById('chatMessageInput');
+    const sendBtn = document.getElementById('chatSendBtn');
+    const partnerListEl = document.getElementById('chatPartnerList');
+    const searchEl = document.getElementById('chatPartnerSearch');
+    const activeNameEl = document.getElementById('chatActiveName');
+    const activeMetaEl = document.getElementById('chatActiveMeta');
+    const activeAvatarEl = document.getElementById('chatActiveAvatar');
+    const activeTagEl = document.getElementById('chatActiveTag');
+    const typingIndicatorEl = document.getElementById('chatTypingIndicator');
+    const typingLabelEl = document.getElementById('chatTypingLabel');
+
+    let pollTimer = null;
+    let typingPulseTimer = null;
+    let messageFetchController = null;
+    let isSending = false;
+    let isTypingActive = false;
+    let lastMessageCount = messagesEl ? messagesEl.querySelectorAll('.chat-message').length : 0;
+    let lastMessageSignature = '';
+
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function formatTime(dateString) {
+        const date = new Date(dateString.replace(' ', 'T'));
+        if (Number.isNaN(date.getTime())) return dateString;
+        return date.toLocaleString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+        });
+    }
+
+    function formatRoleLabel(role) {
+        return String(role || '')
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, function (char) { return char.toUpperCase(); });
+    }
+
+    function isCurrentConversation(id, role) {
+        return partnerId === Number(id) && partnerRole === String(role);
+    }
+
+    function scrollToBottom(force) {
+        if (!messagesEl) return;
+        const distanceFromBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight;
+        if (force || distanceFromBottom < 120) {
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+    }
+
+    function buildMessageNode(message) {
+        const isMine = Number(message.sender_id) === currentUserId
+            && String(message.sender_role) === currentUserRole;
+
+        const article = document.createElement('article');
+        article.className = 'chat-message' + (isMine ? ' is-mine' : ' is-theirs');
+        article.dataset.messageId = String(message.id || '');
+
+        article.innerHTML =
+            '<div class="chat-message__bubble"><p>' + escapeHtml(message.message_text || '') + '</p></div>' +
+            '<time datetime="' + escapeHtml(message.created_at || '') + '">' +
+            escapeHtml(formatTime(message.created_at || '')) +
+            '</time>';
+
+        return article;
+    }
+
+    function clearMessagesPanel(message) {
+        if (!messagesEl) return;
+
+        lastMessageSignature = '';
+        lastMessageCount = 0;
+        messagesEl.innerHTML =
+            '<div class="chat-empty-state chat-empty-state--inline" id="chatEmptyState">' +
+            '<p>' + escapeHtml(message || ('Loading conversation with ' + partnerName + '...')) + '</p>' +
+            '</div>';
+    }
+
+    function renderMessages(messages, force) {
+        if (!messagesEl) return;
+
+        const signature = messages.map(function (message) {
+            return String(message.id || '') + ':' + String(message.created_at || '');
+        }).join('|');
+
+        if (!force && signature === lastMessageSignature) {
+            return;
+        }
+
+        lastMessageSignature = signature;
+        messagesEl.innerHTML = '';
+
+        if (!messages.length) {
+            const empty = document.createElement('div');
+            empty.className = 'chat-empty-state chat-empty-state--inline';
+            empty.id = 'chatEmptyState';
+            empty.innerHTML = '<p>Start the conversation with ' + escapeHtml(partnerName) + '.</p>';
+            messagesEl.appendChild(empty);
+            lastMessageCount = 0;
+            return;
+        }
+
+        messages.forEach(function (message) {
+            messagesEl.appendChild(buildMessageNode(message));
+        });
+
+        if (force || messages.length !== lastMessageCount) {
+            scrollToBottom(true);
+        }
+        lastMessageCount = messages.length;
+    }
+
+    function updateTypingIndicator(typing) {
+        if (!typingIndicatorEl || !typingLabelEl) return;
+
+        const isTyping = Boolean(typing && typing.is_typing);
+        if (!isTyping) {
+            typingIndicatorEl.hidden = true;
+            return;
+        }
+
+        const name = typing.name || partnerName || 'Contact';
+        typingLabelEl.textContent = name + ' is typing...';
+        typingIndicatorEl.hidden = false;
+        scrollToBottom(false);
+    }
+
+    function abortPendingMessageFetch() {
+        if (messageFetchController) {
+            messageFetchController.abort();
+            messageFetchController = null;
+        }
+    }
+
+    async function sendTypingStatus(isTyping) {
+        if (!partnerId || !partnerRole) return;
+
+        await fetch(endpoint, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken,
+            },
+            body: JSON.stringify({
+                action: 'typing',
+                csrf_token: csrfToken,
+                partner_id: partnerId,
+                partner_role: partnerRole,
+                is_typing: isTyping,
+            }),
+        });
+    }
+
+    function pulseTypingStatus() {
+        if (!inputEl || !partnerId || !partnerRole) return;
+
+        const hasText = inputEl.value.trim().length > 0;
+        if (!hasText) {
+            if (isTypingActive) {
+                isTypingActive = false;
+                sendTypingStatus(false).catch(function (error) {
+                    console.error(error);
+                });
+            }
+            return;
+        }
+
+        if (!isTypingActive) {
+            isTypingActive = true;
+        }
+
+        sendTypingStatus(true).catch(function (error) {
+            console.error(error);
+        });
+    }
+
+    function startTypingPulse() {
+        stopTypingPulse();
+        typingPulseTimer = window.setInterval(pulseTypingStatus, 2000);
+    }
+
+    function stopTypingPulse() {
+        if (typingPulseTimer) {
+            window.clearInterval(typingPulseTimer);
+            typingPulseTimer = null;
+        }
+    }
+
+    function clearTypingStatus() {
+        if (!isTypingActive || !partnerId || !partnerRole) {
+            isTypingActive = false;
+            return;
+        }
+
+        isTypingActive = false;
+        sendTypingStatus(false).catch(function (error) {
+            console.error(error);
+        });
+    }
+
+    async function fetchMessages(force) {
+        if (!partnerId || !partnerRole) return;
+
+        abortPendingMessageFetch();
+        messageFetchController = new AbortController();
+
+        const requestPartnerId = partnerId;
+        const requestPartnerRole = partnerRole;
+        const signal = messageFetchController.signal;
+
+        const url = new URL(endpoint, window.location.origin);
+        url.searchParams.set('partner_id', String(requestPartnerId));
+        url.searchParams.set('partner_role', requestPartnerRole);
+
+        try {
+            const response = await fetch(url.toString(), {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json' },
+                signal: signal,
+            });
+
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Unable to fetch messages.');
+            }
+
+            if (!isCurrentConversation(requestPartnerId, requestPartnerRole)) {
+                return;
+            }
+
+            renderMessages(data.messages || [], Boolean(force));
+            updateTypingIndicator(data.typing || null);
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                return;
+            }
+            throw error;
+        } finally {
+            if (messageFetchController && messageFetchController.signal === signal) {
+                messageFetchController = null;
+            }
+        }
+    }
+
+    async function sendMessage(text) {
+        const requestPartnerId = partnerId;
+        const requestPartnerRole = partnerRole;
+
+        let response;
+        try {
+            response = await fetch(endpoint, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken,
+                },
+                body: JSON.stringify({
+                    csrf_token: csrfToken,
+                    partner_id: requestPartnerId,
+                    partner_role: requestPartnerRole,
+                    message_text: text,
+                }),
+            });
+        } catch (error) {
+            throw new Error('Unable to reach the chat server. Please refresh and try again.');
+        }
+
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Unable to send message.');
+        }
+
+        if (!isCurrentConversation(requestPartnerId, requestPartnerRole)) {
+            return;
+        }
+
+        await fetchMessages(true);
+        clearTypingStatus();
+    }
+
+    function updateConversationHeader(button) {
+        partnerName = button.dataset.partnerName || 'Contact';
+        const partnerEmail = button.dataset.partnerEmail || '';
+        const roleLabel = formatRoleLabel(button.dataset.partnerRole || partnerRole);
+
+        if (activeNameEl) activeNameEl.textContent = partnerName;
+        if (activeMetaEl) activeMetaEl.textContent = roleLabel + ' Â· ' + partnerEmail;
+        if (activeAvatarEl) activeAvatarEl.textContent = partnerName.charAt(0).toUpperCase();
+        if (activeTagEl) activeTagEl.textContent = String(button.dataset.partnerRole || partnerRole).toUpperCase();
+        if (typingLabelEl) typingLabelEl.textContent = partnerName + ' is typing...';
+    }
+
+    function setActivePartner(button) {
+        if (button.classList.contains('is-active')) {
+            return;
+        }
+
+        partnerListEl?.querySelectorAll('.chat-partner.is-active').forEach(function (el) {
+            el.classList.remove('is-active');
+        });
+        button.classList.add('is-active');
+
+        clearTypingStatus();
+        abortPendingMessageFetch();
+
+        partnerId = Number(button.dataset.partnerId || 0);
+        partnerRole = button.dataset.partnerRole || '';
+
+        app.dataset.partnerId = String(partnerId);
+        app.dataset.partnerRole = partnerRole;
+
+        updateConversationHeader(button);
+
+        const badge = button.querySelector('.chat-partner__badge');
+        if (badge) badge.remove();
+
+        if (typingIndicatorEl) typingIndicatorEl.hidden = true;
+        if (inputEl) inputEl.value = '';
+
+        clearMessagesPanel('Loading conversation with ' + partnerName + '...');
+
+        fetchMessages(true).catch(function (error) {
+            console.error(error);
+            if (isCurrentConversation(partnerId, partnerRole)) {
+                clearMessagesPanel('Unable to load this conversation. Please try again.');
+            }
+        });
+
+        startTypingPulse();
+    }
+
+    function startPolling() {
+        if (pollTimer) {
+            window.clearInterval(pollTimer);
+            pollTimer = null;
+        }
+
+        if (!partnerId || !partnerRole) return;
+
+        startTypingPulse();
+
+        pollTimer = window.setInterval(function () {
+            fetchMessages(false).catch(function (error) {
+                console.error(error);
+            });
+        }, 3000);
+    }
+
+    function stopPolling() {
+        if (pollTimer) {
+            window.clearInterval(pollTimer);
+            pollTimer = null;
+        }
+        abortPendingMessageFetch();
+        stopTypingPulse();
+        clearTypingStatus();
+    }
+
+    composerEl?.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        if (isSending || !inputEl) return;
+
+        const text = inputEl.value.trim();
+        if (!text) return;
+
+        isSending = true;
+        sendBtn?.setAttribute('disabled', 'disabled');
+
+        try {
+            await sendMessage(text);
+            inputEl.value = '';
+            inputEl.focus();
+        } catch (error) {
+            window.alert(error.message || 'Failed to send message.');
+        } finally {
+            isSending = false;
+            sendBtn?.removeAttribute('disabled');
+        }
+    });
+
+    inputEl?.addEventListener('input', pulseTypingStatus);
+
+    inputEl?.addEventListener('blur', function () {
+        clearTypingStatus();
+    });
+
+    inputEl?.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            composerEl?.requestSubmit();
+        }
+    });
+
+    partnerListEl?.addEventListener('click', function (event) {
+        const button = event.target.closest('.chat-partner');
+        if (!button) return;
+        setActivePartner(button);
+    });
+
+    searchEl?.addEventListener('input', function () {
+        const query = searchEl.value.trim().toLowerCase();
+        partnerListEl?.querySelectorAll('.chat-partner').forEach(function (button) {
+            const haystack = (
+                (button.dataset.partnerName || '') + ' ' +
+                (button.dataset.partnerRole || '') + ' ' +
+                (button.dataset.partnerEmail || '')
+            ).toLowerCase();
+            button.style.display = haystack.includes(query) ? '' : 'none';
+        });
+    });
+
+    window.addEventListener('beforeunload', stopPolling);
+
+    if (messagesEl) {
+        scrollToBottom(true);
+    }
+
+    if (partnerId && partnerRole) {
+        startPolling();
+    }
 }
