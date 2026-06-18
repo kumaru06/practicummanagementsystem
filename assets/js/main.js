@@ -22,6 +22,7 @@
     try { initWeeklyReportUpload(); } catch (err) { console.warn('Weekly report upload init failed:', err); }
     initMoaLibrary();
     initCoordinatorCardAlignment();
+    initCapitalizeWordInputs();
     initConfirmActions();
     initStudentMobileTapProxy();
     initStudentProfilePhotoPreview();
@@ -323,6 +324,26 @@ function initMoaLibrary() {
     });
 
     applyFilters();
+}
+
+function formatPersonNameValue(value) {
+    return value
+        .replace(/[^A-Za-z\s\-\.]/g, '')
+        .replace(/\b[a-z]/g, char => char.toUpperCase());
+}
+
+function initCapitalizeWordInputs() {
+    document.querySelectorAll('[data-capitalize-words]').forEach(input => {
+        input.addEventListener('input', () => {
+            const cursor = input.selectionStart;
+            const formatted = formatPersonNameValue(input.value);
+            if (formatted === input.value) return;
+            input.value = formatted;
+            if (cursor !== null) {
+                input.setSelectionRange(cursor, cursor);
+            }
+        });
+    });
 }
 
 function initCoordinatorCardAlignment() {
