@@ -111,32 +111,18 @@ Creates `C:\xampp\htdocs\amaccmanagementsystem_deploy.zip` with forward-slash pa
 
 Symptoms: Email Logs show `PHPMailer is not installed`, or Resend shows the red popup.
 
-**Option 1 — One-click installer (easiest, no zip extract)**
+The app loads PHPMailer from `lib/phpmailer/` via `bootstrap/mailer.php` (included in git). On Hostinger, `vendor/phpmailer/` may be missing even when `vendor/autoload.php` exists.
 
-Upload these **3 files** to `public_html` (keep folder structure):
+**Option 1 — FTP full deploy (recommended)**
 
-| Local file | Upload to |
-|------------|-----------|
-| `install-mailer.php` | `public_html/install-mailer.php` |
-| `init.php` | `public_html/init.php` (overwrite) |
-| `bootstrap/mailer.php` | `public_html/bootstrap/mailer.php` |
+Run **`setup-hostinger.bat`**, then **`deploy.bat`** — uploads `lib/`, `bootstrap/`, and all app files.
 
-Then open in your browser:
+**Option 2 — Mailer-only zip (~62 KB)**
 
-`https://ama-ojtportal.com/install-mailer.php?key=ama-ojt-mailer-2026`
-
-It downloads PHPMailer into `lib/phpmailer/` automatically. Refresh `vendor-check.php` → `"ok": true`. Delete `install-mailer.php` when done.
-
-**Option 2 — Tiny zip (62 KB)**
-
-Double-click **`deploy-mailer.bat`**, upload `mailer-only.zip` to `public_html`, extract. Also upload updated `init.php` and `bootstrap/mailer.php`.
+Double-click **`deploy-mailer.bat`**, upload `mailer-only.zip` to `public_html`, extract. Ensures `lib/phpmailer/` and `bootstrap/mailer.php` are present.
 
 **Option 3 — Full vendor zip (4 MB)**
 
 Double-click **`deploy-vendor.bat`** if you also need dompdf/PDF features.
 
-**Option 4 — FTP full deploy**
-
-Run **`setup-hostinger.bat`**, then **`deploy.bat`** — uploads everything with correct paths.
-
-After any option: Admin → **Resend** → Email Logs should show **Sent**.
+After deploy: Admin → **Resend** → Email Logs should show **Sent**.

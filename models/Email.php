@@ -6,22 +6,6 @@ class Email
 {
     public function __construct(private PDO $db) {}
 
-    private function mailDebugLog(string $hypothesisId, string $location, string $message, array $data = []): void
-    {
-        // #region agent log
-        $entry = json_encode([
-            'sessionId' => '824cc8',
-            'runId' => 'mail',
-            'hypothesisId' => $hypothesisId,
-            'location' => $location,
-            'message' => $message,
-            'data' => $data,
-            'timestamp' => (int) round(microtime(true) * 1000),
-        ], JSON_UNESCAPED_SLASHES);
-        @file_put_contents(dirname(__DIR__) . '/uploads/debug-824cc8.log', $entry . PHP_EOL, FILE_APPEND | LOCK_EX);
-        // #endregion
-    }
-
     private function configureMailer(PHPMailer $mail): void
     {
         $mail->isSMTP();
@@ -48,19 +32,10 @@ class Email
     {
         $status = 'failed';
         $error = null;
-        $this->mailDebugLog('A', 'Email.php:send:start', 'Send requested', [
-            'recipient_domain' => substr(strrchr($recipient, '@') ?: '', 1),
-            'type' => $type,
-            'smtp_host' => SMTP_HOST,
-            'smtp_port' => SMTP_PORT,
-            'smtp_secure' => SMTP_SECURE,
-        ]);
 
         try {
             if (!class_exists(PHPMailer::class)) {
-                throw new RuntimeException(
-                    'PHPMailer is not installed. Upload config/mail.php from your PC to public_html/config/ (auto-installs on next page load).'
-                );
+                throw new RuntimeException('PHPMailer is not installed on this server.');
             }
             $body = $this->renderTemplate($template, $data);
             $mail = new PHPMailer(true);
@@ -91,22 +66,12 @@ class Email
             }
             $mail->send();
             $status = 'sent';
-            $this->mailDebugLog('B', 'Email.php:send:success', 'PHPMailer send OK', [
-                'type' => $type,
-                'status' => $status,
-            ]);
             return true;
         } catch (Throwable $e) {
             $error = trim($e->getMessage());
             if (isset($mail) && $mail instanceof PHPMailer && $mail->ErrorInfo !== '') {
                 $error = trim($mail->ErrorInfo);
             }
-            $this->mailDebugLog('C', 'Email.php:send:fail', 'PHPMailer send failed', [
-                'type' => $type,
-                'error' => $error,
-                'host' => SMTP_HOST,
-                'port' => SMTP_PORT,
-            ]);
             return false;
         } finally {
             $stmt = $this->db->prepare('INSERT INTO email_logs (recipient_email, subject, type, sent_at, status, error_message) VALUES (?, ?, ?, NOW(), ?, ?)');

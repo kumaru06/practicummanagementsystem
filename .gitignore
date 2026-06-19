@@ -19,6 +19,7 @@ amaccmanagementsystem_deploy.zip
 # Debug / temp
 debug-*.log
 uploads/debug-*.log
+_zip_test/
 
 # OS & IDE
 Thumbs.db

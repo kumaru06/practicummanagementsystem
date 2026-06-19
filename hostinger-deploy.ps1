@@ -2,12 +2,14 @@ param(
     [switch]$ZipOnly,
     [switch]$SkipUpload,
     [switch]$IncludeProductionConfig,
+    [switch]$Setup,
     [string]$ConfigPath = ""
 )
 
 $ErrorActionPreference = "Stop"
-$localRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$localRoot = $PSScriptRoot
 $configFile = if ($ConfigPath -ne "") { $ConfigPath } else { Join-Path $localRoot "hostinger.deploy.json" }
+$exampleFile = Join-Path $localRoot "hostinger.deploy.json.example"
 $zipPath = Join-Path (Split-Path $localRoot -Parent) "amaccmanagementsystem_deploy.zip"
 
 $excludeDirNames = @('.git', '.idea', '.vscode')
@@ -16,10 +18,17 @@ $excludeFileNames = @(
     'hostinger.deploy.json.example',
     'hostinger-deploy.ps1',
     'deploy.ps1',
+    'deploy.bat',
+    'deploy-zip.bat',
+    'setup-hostinger.ps1',
     'upload.ps1',
     'HOSTINGER_DEPLOY.md'
 )
 $excludeFilePatterns = @('*.zip', 'debug-*.log', 'hostinger_export.sql')
+
+function Write-Step([string]$Message, [string]$Color = 'White') {
+    Write-Host $Message -ForegroundColor $Color
+}
 
 function Test-DeployExcluded {
     param([string]$RelativePath, [string]$FileName)
@@ -46,7 +55,7 @@ function Test-DeployExcluded {
         return $true
     }
 
-    if ($RelativePath -match '^uploads[\\/]' -and $FileName -ne '.htaccess' -and $FileName -ne '.gitkeep') {
+    if ($RelativePath -match '^uploads/' -and $FileName -ne '.htaccess' -and $FileName -ne '.gitkeep') {
         return $true
     }
 
@@ -69,29 +78,69 @@ function Get-DeployFiles {
 
 function Read-DeployConfig {
     if (-not (Test-Path $configFile)) {
-        throw "Missing $configFile. Copy hostinger.deploy.json.example to hostinger.deploy.json and fill in FTP details from hPanel → Files → FTP Accounts."
+        Write-Host ""
+        Write-Step "ERROR: Missing hostinger.deploy.json" Red
+        Write-Step "Run setup first:" Yellow
+        Write-Step "  .\setup-hostinger.ps1" Cyan
+        Write-Step "Or:" Yellow
+        Write-Step "  copy hostinger.deploy.json.example hostinger.deploy.json" Cyan
+        Write-Step "Then edit hostinger.deploy.json with FTP details from hPanel." Yellow
+        Write-Host ""
+        throw "hostinger.deploy.json not found"
     }
 
     $json = Get-Content $configFile -Raw | ConvertFrom-Json
     foreach ($key in @('ftpHost', 'ftpUser', 'ftpPass', 'remotePath')) {
-        if (-not $json.$key) {
-            throw "hostinger.deploy.json is missing '$key'."
+        if (-not $json.$key -or $json.$key -match 'YOUR_FTP') {
+            throw "hostinger.deploy.json: set a real value for '$key'."
         }
     }
     return $json
 }
 
+function Invoke-FtpUpload {
+    param(
+        [string]$LocalFile,
+        [string]$RemoteUrl,
+        [string]$User,
+        [string]$Pass
+    )
+
+    $output = & curl.exe --show-error --max-time 120 --ftp-pasv --disable-epsv `
+        --user "${User}:${Pass}" `
+        --ftp-create-dirs `
+        --upload-file $LocalFile `
+        $RemoteUrl 2>&1
+
+    return @{
+        Ok = ($LASTEXITCODE -eq 0)
+        Output = ($output | Out-String).Trim()
+    }
+}
+
+if ($Setup) {
+    & (Join-Path $localRoot "setup-hostinger.ps1")
+    exit $LASTEXITCODE
+}
+
 Write-Host ""
-Write-Host "==========================================" -ForegroundColor Cyan
-Write-Host "  AMA OJT Portal - Hostinger Deploy" -ForegroundColor Cyan
-Write-Host "==========================================" -ForegroundColor Cyan
+Write-Step "==========================================" Cyan
+Write-Step "  AMA OJT Portal - Hostinger Deploy" Cyan
+Write-Step "==========================================" Cyan
 Write-Host ""
+
+if (-not $ZipOnly -and -not $SkipUpload) {
+    Write-Step "[0/2] Checking FTP config..." Yellow
+    $null = Read-DeployConfig
+    Write-Step "  Config OK" Green
+    Write-Host ""
+}
 
 $files = @(Get-DeployFiles)
-Write-Host "Files to deploy: $($files.Count)" -ForegroundColor Gray
+Write-Step "Files to deploy: $($files.Count)" Gray
 Write-Host ""
 
-Write-Host "[1/2] Building zip (forward-slash paths)..." -ForegroundColor Yellow
+Write-Step "[1/2] Building zip (forward-slash paths)..." Yellow
 if (Test-Path $zipPath) {
     Remove-Item $zipPath -Force
 }
@@ -105,56 +154,69 @@ foreach ($file in $files) {
 $zip.Dispose()
 
 $sizeMb = [math]::Round((Get-Item $zipPath).Length / 1MB, 2)
-Write-Host "  Created: $zipPath ($sizeMb MB)" -ForegroundColor Green
+Write-Step "  Created: $zipPath ($sizeMb MB)" Green
 
 if ($ZipOnly -or $SkipUpload) {
     Write-Host ""
-    Write-Host "Zip ready. Upload via File Manager or run without -ZipOnly after configuring FTP." -ForegroundColor Yellow
+    Write-Step "Zip ready. Upload and extract in Hostinger File Manager -> public_html" Yellow
     exit 0
 }
 
 Write-Host ""
-Write-Host "[2/2] Uploading via FTP..." -ForegroundColor Yellow
+Write-Step "[2/2] Uploading via FTP..." Yellow
 $config = Read-DeployConfig
 $remoteRoot = ($config.remotePath -replace '^/|/$', '')
 $uploaded = 0
 $failed = 0
+$lastError = ""
 
-foreach ($file in $files) {
+Write-Step "  Testing FTP connection..." Gray
+$test = Invoke-FtpUpload -LocalFile $files[0].FullName -RemoteUrl "ftp://$($config.ftpHost)/$remoteRoot/$($files[0].Relative)" -User $config.ftpUser -Pass $config.ftpPass
+if (-not $test.Ok) {
+    Write-Step "  FTP connection failed on first file." Red
+    Write-Step "  $($test.Output)" Red
+    Write-Host ""
+    Write-Step "Check hostinger.deploy.json:" Yellow
+    Write-Step "  ftpHost  = from hPanel -> FTP Accounts (e.g. ftp.ama-ojtportal.com)" White
+    Write-Step "  ftpUser  = your FTP username (e.g. u859158056)" White
+    Write-Step "  ftpPass  = FTP account password (not always same as hPanel login)" White
+    Write-Step "  remotePath = public_html" White
+    exit 1
+}
+$uploaded++
+Write-Step "  [OK] $($files[0].Relative)" Green
+
+for ($i = 1; $i -lt $files.Count; $i++) {
+    $file = $files[$i]
     $remotePath = "$remoteRoot/$($file.Relative)"
     $url = "ftp://$($config.ftpHost)/$remotePath"
 
-    $ok = $false
-    for ($attempt = 1; $attempt -le 3; $attempt++) {
-        $null = & curl.exe --silent --show-error --max-time 60 --ftp-pasv --disable-epsv `
-            --user "$($config.ftpUser):$($config.ftpPass)" `
-            --ftp-create-dirs `
-            --upload-file $file.FullName `
-            $url 2>&1
-        if ($LASTEXITCODE -eq 0) {
-            $ok = $true
-            break
-        }
-        Start-Sleep -Seconds 1
-    }
-
-    if ($ok) {
+    $result = Invoke-FtpUpload -LocalFile $file.FullName -RemoteUrl $url -User $config.ftpUser -Pass $config.ftpPass
+    if ($result.Ok) {
         $uploaded++
-        Write-Host "  [OK] $($file.Relative)" -ForegroundColor Green
+        if ($uploaded % 50 -eq 0) {
+            Write-Step "  ... $uploaded / $($files.Count)" Gray
+        }
     } else {
         $failed++
-        Write-Host "  [FAIL] $($file.Relative)" -ForegroundColor Red
+        $lastError = $result.Output
+        Write-Step "  [FAIL] $($file.Relative)" Red
+        if ($result.Output) {
+            Write-Step "         $($result.Output)" DarkRed
+        }
     }
 }
 
 Write-Host ""
-Write-Host "Uploaded: $uploaded | Failed: $failed" -ForegroundColor $(if ($failed -eq 0) { 'Green' } else { 'Yellow' })
+Write-Step "Uploaded: $uploaded | Failed: $failed" $(if ($failed -eq 0) { 'Green' } else { 'Yellow' })
 
 if ($failed -eq 0 -and $config.websiteUrl) {
-    Write-Host "Live site: $($config.websiteUrl)" -ForegroundColor Green
+    Write-Step "Live site: $($config.websiteUrl)" Green
 }
 
 if ($failed -gt 0) {
-    Write-Host "Some files failed. Check FTP password in hostinger.deploy.json (hPanel → FTP Accounts)." -ForegroundColor Yellow
+    if ($lastError) {
+        Write-Step "Last error: $lastError" Red
+    }
     exit 1
 }

@@ -28,4 +28,4 @@ $zip.Dispose()
 
 $kb = [math]::Round((Get-Item $zipPath).Length / 1KB, 0)
 Write-Host "Created $zipPath ($kb KB)" -ForegroundColor Green
-Write-Host "Or skip zip: upload install-mailer.php + init.php + bootstrap/mailer.php and open install-mailer.php in browser." -ForegroundColor Yellow
+Write-Host "Upload to public_html and extract (includes lib/phpmailer/)." -ForegroundColor Yellow
