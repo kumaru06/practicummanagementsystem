@@ -59,7 +59,7 @@ class Email
         try {
             if (!class_exists(PHPMailer::class)) {
                 throw new RuntimeException(
-                    'PHPMailer is not installed. Upload lib/phpmailer/ or open install-mailer.php?key=ama-ojt-mailer-2026 once.'
+                    'PHPMailer is not installed. Upload config/mail.php from your PC to public_html/config/ (auto-installs on next page load).'
                 );
             }
             $body = $this->renderTemplate($template, $data);

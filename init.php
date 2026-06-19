@@ -13,7 +13,10 @@ if (file_exists($autoload)) {
     require_once $autoload;
 }
 
-require_once __DIR__ . '/bootstrap/mailer.php';
+$mailerBootstrap = __DIR__ . '/bootstrap/mailer.php';
+if (is_file($mailerBootstrap)) {
+    require_once $mailerBootstrap;
+}
 
 spl_autoload_register(function (string $class): void {
     foreach (['models', 'controllers'] as $dir) {
