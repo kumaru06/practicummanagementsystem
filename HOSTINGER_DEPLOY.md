@@ -50,10 +50,16 @@ Uploads every file with correct folder structure (no zip extract issues).
 
 ### Deploy
 
+**Easiest:** double-click **`deploy.bat`** in the project folder.
+
+Or in PowerShell (note the `.\` prefix):
+
 ```powershell
 cd C:\xampp\htdocs\amaccmanagementsystem
 .\hostinger-deploy.ps1
 ```
+
+**First time only:** double-click **`setup-hostinger.bat`** to create `hostinger.deploy.json` and enter your FTP password.
 
 This uploads all app files to `public_html` via FTP. It **skips**:
 
@@ -95,6 +101,42 @@ Creates `C:\xampp\htdocs\amaccmanagementsystem_deploy.zip` with forward-slash pa
 | Problem | Fix |
 |---------|-----|
 | Unstyled login / broken UI | `assets/` missing — run `hostinger-deploy.ps1` again |
+| **Email failed / PHPMailer not installed** | **`vendor/` is incomplete on server** — see below |
+| "Password was reset, but the email failed" | Password *did* change in DB; email did not send — fix `vendor/` first, then click **Resend** |
 | HTTP 500 | Check `config/database.production.php` credentials |
 | FTP fails | Reset FTP password in hPanel, update `hostinger.deploy.json` |
 | Git deploy overwrites DB config | Keep `database.production.php` only on server (gitignored) |
+
+### Fix missing PHPMailer (email not sending)
+
+Symptoms: Email Logs show `PHPMailer is not installed`, or Resend shows the red popup.
+
+**Option 1 — One-click installer (easiest, no zip extract)**
+
+Upload these **3 files** to `public_html` (keep folder structure):
+
+| Local file | Upload to |
+|------------|-----------|
+| `install-mailer.php` | `public_html/install-mailer.php` |
+| `init.php` | `public_html/init.php` (overwrite) |
+| `bootstrap/mailer.php` | `public_html/bootstrap/mailer.php` |
+
+Then open in your browser:
+
+`https://ama-ojtportal.com/install-mailer.php?key=ama-ojt-mailer-2026`
+
+It downloads PHPMailer into `lib/phpmailer/` automatically. Refresh `vendor-check.php` → `"ok": true`. Delete `install-mailer.php` when done.
+
+**Option 2 — Tiny zip (62 KB)**
+
+Double-click **`deploy-mailer.bat`**, upload `mailer-only.zip` to `public_html`, extract. Also upload updated `init.php` and `bootstrap/mailer.php`.
+
+**Option 3 — Full vendor zip (4 MB)**
+
+Double-click **`deploy-vendor.bat`** if you also need dompdf/PDF features.
+
+**Option 4 — FTP full deploy**
+
+Run **`setup-hostinger.bat`**, then **`deploy.bat`** — uploads everything with correct paths.
+
+After any option: Admin → **Resend** → Email Logs should show **Sent**.

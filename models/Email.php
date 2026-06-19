@@ -6,23 +6,65 @@ class Email
 {
     public function __construct(private PDO $db) {}
 
+    private function mailDebugLog(string $hypothesisId, string $location, string $message, array $data = []): void
+    {
+        // #region agent log
+        $entry = json_encode([
+            'sessionId' => '824cc8',
+            'runId' => 'mail',
+            'hypothesisId' => $hypothesisId,
+            'location' => $location,
+            'message' => $message,
+            'data' => $data,
+            'timestamp' => (int) round(microtime(true) * 1000),
+        ], JSON_UNESCAPED_SLASHES);
+        @file_put_contents(dirname(__DIR__) . '/uploads/debug-824cc8.log', $entry . PHP_EOL, FILE_APPEND | LOCK_EX);
+        // #endregion
+    }
+
+    private function configureMailer(PHPMailer $mail): void
+    {
+        $mail->isSMTP();
+        $mail->Host = SMTP_HOST;
+        $mail->SMTPAuth = true;
+        $mail->Username = SMTP_USERNAME;
+        $mail->Password = SMTP_PASSWORD;
+        $mail->SMTPSecure = SMTP_SECURE;
+        $mail->Port = SMTP_PORT;
+        $mail->CharSet = PHPMailer::CHARSET_UTF8;
+        $mail->Timeout = 30;
+        $mail->SMTPKeepAlive = false;
+        // Shared hosts (Hostinger) sometimes need relaxed SSL for outbound SMTP.
+        $mail->SMTPOptions = [
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true,
+            ],
+        ];
+    }
+
     public function send(string $recipient, string $subject, string $type, string $template, array $data, array $attachments = []): bool
     {
         $status = 'failed';
         $error = null;
+        $this->mailDebugLog('A', 'Email.php:send:start', 'Send requested', [
+            'recipient_domain' => substr(strrchr($recipient, '@') ?: '', 1),
+            'type' => $type,
+            'smtp_host' => SMTP_HOST,
+            'smtp_port' => SMTP_PORT,
+            'smtp_secure' => SMTP_SECURE,
+        ]);
+
         try {
             if (!class_exists(PHPMailer::class)) {
-                throw new RuntimeException('PHPMailer is not installed. Run composer install.');
+                throw new RuntimeException(
+                    'PHPMailer is not installed. Upload lib/phpmailer/ or open install-mailer.php?key=ama-ojt-mailer-2026 once.'
+                );
             }
             $body = $this->renderTemplate($template, $data);
             $mail = new PHPMailer(true);
-            $mail->isSMTP();
-            $mail->Host = SMTP_HOST;
-            $mail->SMTPAuth = true;
-            $mail->Username = SMTP_USERNAME;
-            $mail->Password = SMTP_PASSWORD;
-            $mail->SMTPSecure = SMTP_SECURE;
-            $mail->Port = SMTP_PORT;
+            $this->configureMailer($mail);
             $mail->setFrom(MAIL_FROM_EMAIL, MAIL_FROM_NAME);
             $mail->addAddress($recipient);
             $mail->isHTML(true);
@@ -49,9 +91,22 @@ class Email
             }
             $mail->send();
             $status = 'sent';
+            $this->mailDebugLog('B', 'Email.php:send:success', 'PHPMailer send OK', [
+                'type' => $type,
+                'status' => $status,
+            ]);
             return true;
         } catch (Throwable $e) {
-            $error = $e->getMessage();
+            $error = trim($e->getMessage());
+            if (isset($mail) && $mail instanceof PHPMailer && $mail->ErrorInfo !== '') {
+                $error = trim($mail->ErrorInfo);
+            }
+            $this->mailDebugLog('C', 'Email.php:send:fail', 'PHPMailer send failed', [
+                'type' => $type,
+                'error' => $error,
+                'host' => SMTP_HOST,
+                'port' => SMTP_PORT,
+            ]);
             return false;
         } finally {
             $stmt = $this->db->prepare('INSERT INTO email_logs (recipient_email, subject, type, sent_at, status, error_message) VALUES (?, ?, ?, NOW(), ?, ?)');

@@ -1,0 +1,11 @@
+<?php
+// Copy to config/mail.local.php on Hostinger if Gmail SMTP is blocked.
+// Use an email account created in hPanel → Emails (e.g. noreply@ama-ojtportal.com).
+//
+// define('SMTP_HOST', 'smtp.hostinger.com');
+// define('SMTP_PORT', 465);
+// define('SMTP_SECURE', 'ssl');
+// define('SMTP_USERNAME', 'noreply@ama-ojtportal.com');
+// define('SMTP_PASSWORD', 'your_email_password');
+// define('MAIL_FROM_EMAIL', 'noreply@ama-ojtportal.com');
+// define('MAIL_FROM_NAME', 'AMA Computer College OJT Department');

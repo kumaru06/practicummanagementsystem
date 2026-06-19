@@ -7,6 +7,11 @@ define('SMTP_SECURE',     'tls');
 define('MAIL_FROM_EMAIL', 'markandreyperez@gmail.com');
 define('MAIL_FROM_NAME',  'AMA Computer College OJT Department');
 
+// Optional override on the server: create config/mail.local.php (not in git).
+if (is_file(__DIR__ . '/mail.local.php')) {
+    require __DIR__ . '/mail.local.php';
+}
+
 $isLocal = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1', ''], true);
 $host = strtolower((string)($_SERVER['SERVER_NAME'] ?? ''));
 if ($isLocal) {
