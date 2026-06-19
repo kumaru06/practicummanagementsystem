@@ -1,0 +1,30 @@
+# Secrets — keep only on the server or in hostinger.deploy.json (local)
+config/database.production.php
+hostinger.deploy.json
+
+# User uploads (keep folder structure via .gitkeep)
+uploads/*
+!uploads/.htaccess
+!uploads/**/.gitkeep
+
+# Database exports & local dumps
+database/hostinger_export.sql
+database/*.dump.sql
+
+# Deployment artifacts
+*.zip
+amaccmanagementsystem_deploy.zip
+
+# Debug / temp
+debug-*.log
+uploads/debug-*.log
+
+# OS & IDE
+Thumbs.db
+.Desktop.ini
+.idea/
+.vscode/
+*.swp
+
+# Old InfinityFree deploy credentials (use hostinger-deploy.ps1 instead)
+# deploy.ps1 and upload.ps1 remain for reference but are not used for Hostinger

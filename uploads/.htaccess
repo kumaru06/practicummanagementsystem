@@ -1,0 +1,6 @@
+# Block script execution in upload directories (shared hosting safety).
+<FilesMatch "\.(php|phtml|php3|php4|php5|phps|cgi|pl|asp|aspx)$">
+    Require all denied
+</FilesMatch>
+
+

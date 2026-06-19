@@ -1,0 +1,7 @@
+{
+  "ftpHost": "ftp.ama-ojtportal.com",
+  "ftpUser": "u859158056",
+  "ftpPass": "YOUR_FTP_PASSWORD_FROM_HPANEL",
+  "remotePath": "public_html",
+  "websiteUrl": "https://ama-ojtportal.com/"
+}
