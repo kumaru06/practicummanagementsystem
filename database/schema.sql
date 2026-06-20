@@ -146,6 +146,7 @@ CREATE TABLE daily_time_records (
   id INT AUTO_INCREMENT PRIMARY KEY,
   student_id INT NOT NULL,
   work_date DATE NOT NULL,
+  day_type ENUM('full','half_am','half_pm','sick','absent') NOT NULL DEFAULT 'full',
   time_in TIME NOT NULL,
   time_out TIME NOT NULL,
   morning_time_in TIME NULL,

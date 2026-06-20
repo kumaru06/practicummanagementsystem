@@ -330,6 +330,29 @@ function generate_endorsement_letter(array $student, array $company, array $coor
     return 'uploads/endorsements/' . $fileName;
 }
 
+function dtr_day_types(): array
+{
+    return [
+        'full' => 'Full day',
+        'half_am' => 'Half day (Morning)',
+        'half_pm' => 'Half day (Afternoon)',
+        'sick' => 'Sick leave',
+        'absent' => 'Absent',
+    ];
+}
+
+function normalize_dtr_day_type(?string $dayType): string
+{
+    $dayType = strtolower(trim((string)$dayType));
+    return array_key_exists($dayType, dtr_day_types()) ? $dayType : 'full';
+}
+
+function format_dtr_day_type_label(?string $dayType): string
+{
+    $dayType = normalize_dtr_day_type($dayType);
+    return dtr_day_types()[$dayType];
+}
+
 function format_dtr_time_display(?string $time): string
 {
     $time = trim((string)$time);
@@ -345,10 +368,41 @@ function format_dtr_time_display(?string $time): string
 
 function format_dtr_schedule(array $dtr): string
 {
-    $morningIn = trim((string)($dtr['morning_time_in'] ?? $dtr['time_in'] ?? ''));
+    $dayType = normalize_dtr_day_type($dtr['day_type'] ?? 'full');
+
+    if ($dayType === 'sick') {
+        return 'Sick leave — no attendance';
+    }
+    if ($dayType === 'absent') {
+        return 'Absent — no attendance';
+    }
+
+    $morningIn = trim((string)($dtr['morning_time_in'] ?? ''));
+    if ($morningIn === '' && $dayType !== 'half_pm') {
+        $morningIn = trim((string)($dtr['time_in'] ?? ''));
+    }
     $morningOut = trim((string)($dtr['morning_time_out'] ?? ''));
     $afternoonIn = trim((string)($dtr['afternoon_time_in'] ?? ''));
-    $afternoonOut = trim((string)($dtr['afternoon_time_out'] ?? $dtr['time_out'] ?? ''));
+    $afternoonOut = trim((string)($dtr['afternoon_time_out'] ?? ''));
+    if ($afternoonOut === '' && $dayType !== 'half_am') {
+        $afternoonOut = trim((string)($dtr['time_out'] ?? ''));
+    }
+
+    if ($dayType === 'half_am' && $morningIn !== '' && $morningOut !== '') {
+        return sprintf(
+            'Half AM %s–%s',
+            format_dtr_time_display($morningIn),
+            format_dtr_time_display($morningOut)
+        );
+    }
+
+    if ($dayType === 'half_pm' && $afternoonIn !== '' && $afternoonOut !== '') {
+        return sprintf(
+            'Half PM %s–%s',
+            format_dtr_time_display($afternoonIn),
+            format_dtr_time_display($afternoonOut)
+        );
+    }
 
     if ($morningIn !== '' && $morningOut !== '' && $afternoonIn !== '' && $afternoonOut !== '') {
         return sprintf(
@@ -365,6 +419,14 @@ function format_dtr_schedule(array $dtr): string
             'AM %s–%s',
             format_dtr_time_display($morningIn),
             format_dtr_time_display($morningOut)
+        );
+    }
+
+    if ($afternoonIn !== '' && $afternoonOut !== '') {
+        return sprintf(
+            'PM %s–%s',
+            format_dtr_time_display($afternoonIn),
+            format_dtr_time_display($afternoonOut)
         );
     }
 

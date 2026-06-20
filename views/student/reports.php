@@ -22,14 +22,15 @@ $statusBadge = static function (?string $status, ?string $notes = null): string 
     <div class="section-head"><h2>Recent Daily Time Records</h2><span class="muted">Submitted DTR entries</span></div>
     <div class="table-wrap">
         <table class="data-table" data-export="pdf" data-export-url="index.php?r=student_report_pdf&amp;type=dtr">
-            <thead><tr><th>Date</th><th>Time</th><th>Hours</th><th>Tasks</th><th>Approval Status</th></tr></thead>
+            <thead><tr><th>Date</th><th>Day Type</th><th>Time</th><th>Hours</th><th>Tasks</th><th>Approval Status</th></tr></thead>
             <tbody>
                 <?php if (!$dtrs): ?>
-                    <tr><td colspan="5" class="muted">No daily time records submitted yet.</td></tr>
+                    <tr><td colspan="6" class="muted">No daily time records submitted yet.</td></tr>
                 <?php endif; ?>
                 <?php foreach ($dtrs as $d): ?>
                     <tr>
                         <td><?= e($d['work_date']) ?></td>
+                        <td><?= e(format_dtr_day_type_label($d['day_type'] ?? 'full')) ?></td>
                         <td><?= e(format_dtr_schedule($d)) ?></td>
                         <td><?= e((string)$d['hours']) ?></td>
                         <td><?= e($d['tasks_done']) ?></td>

@@ -115,6 +115,7 @@ $statusBadge = static function (?string $status): string {
                                     <article class="ps-record-item">
                                         <header class="ps-record-head">
                                             <div>
+                                                <span class="dtr-day-type-pill"><?= e(format_dtr_day_type_label($d['day_type'] ?? 'full')) ?></span>
                                                 <strong><?= e(date('M d, Y', strtotime($d['work_date']))) ?></strong>
                                                 <small class="muted"><?= e(format_dtr_schedule($d)) ?> · <?= e((string)$d['hours']) ?> hrs</small>
                                             </div>

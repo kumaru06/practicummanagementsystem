@@ -52,6 +52,15 @@ function initPortalLogin() {
         activePortal ? `${baseUrl}?portal=${encodeURIComponent(activePortal)}` : baseUrl
     );
 
+    function syncStageHeight() {
+        if (!stage || !selectView || !formView) return;
+        const lockedHeight = Math.max(selectView.offsetHeight, formView.offsetHeight, 280);
+        stage.style.minHeight = `${lockedHeight}px`;
+        stage.style.setProperty('--portal-stage-height', `${lockedHeight}px`);
+    }
+
+    syncStageHeight();
+
     function parsePortalLabels(raw) {
         if (!raw) return {};
         try {
@@ -87,7 +96,7 @@ function initPortalLogin() {
         animating = true;
 
         if (stage) {
-            stage.style.setProperty('--portal-stage-height', `${Math.max(fromView.offsetHeight, toView.offsetHeight, 280)}px`);
+            syncStageHeight();
             stage.classList.add('is-transitioning');
         }
 
@@ -100,7 +109,7 @@ function initPortalLogin() {
         toView.classList.remove('is-entering', 'is-entering-back');
 
         stage?.classList.remove('is-transitioning');
-        stage?.style.removeProperty('--portal-stage-height');
+        syncStageHeight();
         animating = false;
     }
 

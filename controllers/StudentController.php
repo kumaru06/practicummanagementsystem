@@ -555,10 +555,11 @@ class StudentController extends BaseController
             (new Report($this->db))->addDtr(
                 (int)$student['id'],
                 $p['work_date'],
-                $p['morning_time_in'],
-                $p['morning_time_out'],
-                $p['afternoon_time_in'],
-                $p['afternoon_time_out'],
+                (string)($p['day_type'] ?? 'full'),
+                $p['morning_time_in'] ?? '',
+                $p['morning_time_out'] ?? '',
+                $p['afternoon_time_in'] ?? '',
+                $p['afternoon_time_out'] ?? '',
                 trim($p['tasks_done'])
             );
             (new Report($this->db))->clearDtrDraft((int)$student['id']);
@@ -637,6 +638,7 @@ class StudentController extends BaseController
         (new Report($this->db))->saveDtrDraft(
             (int)$student['id'],
             trim((string)($p['work_date'] ?? '')) ?: null,
+            (string)($p['day_type'] ?? 'full'),
             trim((string)($p['morning_time_in'] ?? '')) ?: null,
             trim((string)($p['morning_time_out'] ?? '')) ?: null,
             trim((string)($p['afternoon_time_in'] ?? '')) ?: null,

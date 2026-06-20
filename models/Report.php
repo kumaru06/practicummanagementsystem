@@ -6,6 +6,7 @@ class Report
     public function addDtr(
         int $studentId,
         string $date,
+        string $dayType,
         string $morningIn,
         string $morningOut,
         string $afternoonIn,
@@ -28,18 +29,21 @@ class Report
         }
 
         $this->ensureDtrSessionColumns();
-        $times = $this->validateDtrSessionTimes($morningIn, $morningOut, $afternoonIn, $afternoonOut);
+        $this->ensureDtrDayTypeColumn();
+        $dayType = normalize_dtr_day_type($dayType);
+        $times = $this->validateDtrTimes($dayType, $morningIn, $morningOut, $afternoonIn, $afternoonOut);
 
         $stmt = $this->db->prepare(
             'INSERT INTO daily_time_records (
-                student_id, work_date, time_in, time_out,
+                student_id, work_date, day_type, time_in, time_out,
                 morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out,
                 hours, tasks_done
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $studentId,
             date('Y-m-d', strtotime($date)),
+            $dayType,
             $times['time_in'],
             $times['time_out'],
             $times['morning_in'],
@@ -55,7 +59,7 @@ class Report
     {
         $this->ensureDtrDraftTable();
         $stmt = $this->db->prepare(
-            'SELECT work_date,
+            'SELECT work_date, day_type,
                 morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out,
                 morning_time_in_locked, morning_time_out_locked, afternoon_time_in_locked, afternoon_time_out_locked,
                 time_in, time_out, time_in_locked, time_out_locked
@@ -83,12 +87,15 @@ class Report
             $draft['morning_time_out_locked'] = $draft['time_out_locked'];
         }
 
+        $draft['day_type'] = normalize_dtr_day_type($draft['day_type'] ?? 'full');
+
         return $draft;
     }
 
     public function saveDtrDraft(
         int $studentId,
         ?string $workDate,
+        string $dayType,
         ?string $morningIn,
         ?string $morningOut,
         ?string $afternoonIn,
@@ -100,6 +107,7 @@ class Report
     ): void {
         $this->ensureDtrDraftTable();
         $date = $workDate && strtotime($workDate) !== false ? date('Y-m-d', strtotime($workDate)) : null;
+        $dayType = normalize_dtr_day_type($dayType);
         $morningInNorm = $this->normalizeDraftTime($morningIn);
         $morningOutNorm = $this->normalizeDraftTime($morningOut);
         $afternoonInNorm = $this->normalizeDraftTime($afternoonIn);
@@ -107,14 +115,15 @@ class Report
 
         $stmt = $this->db->prepare(
             'INSERT INTO dtr_drafts (
-                student_id, work_date,
+                student_id, work_date, day_type,
                 time_in, time_out, time_in_locked, time_out_locked,
                 morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out,
                 morning_time_in_locked, morning_time_out_locked, afternoon_time_in_locked, afternoon_time_out_locked,
                 updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
             ON DUPLICATE KEY UPDATE
                 work_date = VALUES(work_date),
+                day_type = VALUES(day_type),
                 time_in = VALUES(time_in),
                 time_out = VALUES(time_out),
                 time_in_locked = VALUES(time_in_locked),
@@ -132,6 +141,7 @@ class Report
         $stmt->execute([
             $studentId,
             $date,
+            $dayType,
             $morningInNorm,
             $afternoonOutNorm ?: $morningOutNorm,
             $morningInLocked ? 1 : 0,
@@ -330,6 +340,7 @@ class Report
             CONSTRAINT fk_dtr_drafts_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
         ) ENGINE=InnoDB');
         $this->ensureDtrDraftSessionColumns();
+        $this->ensureDtrDraftDayTypeColumn();
     }
 
     private function ensureDtrSessionColumns(): void
@@ -378,53 +389,107 @@ class Report
         return (int)$stmt->fetchColumn() > 0;
     }
 
-    private function validateDtrSessionTimes(
+    private function ensureDtrDayTypeColumn(): void
+    {
+        if (!$this->columnExists('daily_time_records', 'day_type')) {
+            $this->db->exec(
+                "ALTER TABLE daily_time_records ADD COLUMN day_type ENUM('full','half_am','half_pm','sick','absent') NOT NULL DEFAULT 'full' AFTER work_date"
+            );
+        }
+    }
+
+    private function ensureDtrDraftDayTypeColumn(): void
+    {
+        if (!$this->columnExists('dtr_drafts', 'day_type')) {
+            $this->db->exec(
+                "ALTER TABLE dtr_drafts ADD COLUMN day_type VARCHAR(20) NOT NULL DEFAULT 'full' AFTER work_date"
+            );
+        }
+    }
+
+    private function validateDtrTimes(
+        string $dayType,
         string $morningIn,
         string $morningOut,
         string $afternoonIn,
         string $afternoonOut
     ): array {
+        $dayType = normalize_dtr_day_type($dayType);
+
+        if (in_array($dayType, ['sick', 'absent'], true)) {
+            return [
+                'morning_in' => null,
+                'morning_out' => null,
+                'afternoon_in' => null,
+                'afternoon_out' => null,
+                'time_in' => '00:00:00',
+                'time_out' => '00:00:00',
+                'hours' => 0,
+            ];
+        }
+
         $morningStart = 8 * 60;
         $morningEnd = 12 * 60;
         $afternoonStart = 13 * 60;
         $afternoonEnd = 17 * 60;
+        $needsMorning = in_array($dayType, ['full', 'half_am'], true);
+        $needsAfternoon = in_array($dayType, ['full', 'half_pm'], true);
 
-        $tsMorningIn = $this->parseDtrTime($morningIn);
-        $tsMorningOut = $this->parseDtrTime($morningOut);
-        $tsAfternoonIn = $this->parseDtrTime($afternoonIn);
-        $tsAfternoonOut = $this->parseDtrTime($afternoonOut);
+        $morningInVal = null;
+        $morningOutVal = null;
+        $afternoonInVal = null;
+        $afternoonOutVal = null;
+        $hours = 0.0;
 
-        $checks = [
-            [$tsMorningIn, 'Morning time in', $morningStart, $morningEnd, '8:00 AM and 12:00 NN'],
-            [$tsMorningOut, 'Morning time out', $morningStart, $morningEnd, '8:00 AM and 12:00 NN'],
-            [$tsAfternoonIn, 'Afternoon time in', $afternoonStart, $afternoonEnd, '1:00 PM and 5:00 PM'],
-            [$tsAfternoonOut, 'Afternoon time out', $afternoonStart, $afternoonEnd, '1:00 PM and 5:00 PM'],
-        ];
-        foreach ($checks as [$timestamp, $label, $min, $max, $window]) {
-            $minutes = $this->minutesOfDay($timestamp);
-            if ($minutes < $min || $minutes > $max) {
-                throw new RuntimeException("$label must be between $window.");
+        if ($needsMorning) {
+            if (!trim($morningIn) || !trim($morningOut)) {
+                throw new RuntimeException('Morning time in and time out are required for this day type.');
             }
+            $tsMorningIn = $this->parseDtrTime($morningIn);
+            $tsMorningOut = $this->parseDtrTime($morningOut);
+            $this->assertTimeWindow($tsMorningIn, 'Morning time in', $morningStart, $morningEnd, '8:00 AM and 12:00 NN');
+            $this->assertTimeWindow($tsMorningOut, 'Morning time out', $morningStart, $morningEnd, '8:00 AM and 12:00 NN');
+            if ($tsMorningOut <= $tsMorningIn) {
+                throw new RuntimeException('Morning time out must be after morning time in.');
+            }
+            $morningInVal = date('H:i:s', $tsMorningIn);
+            $morningOutVal = date('H:i:s', $tsMorningOut);
+            $hours += ($tsMorningOut - $tsMorningIn) / 3600;
         }
 
-        if ($tsMorningOut <= $tsMorningIn) {
-            throw new RuntimeException('Morning time out must be after morning time in.');
+        if ($needsAfternoon) {
+            if (!trim($afternoonIn) || !trim($afternoonOut)) {
+                throw new RuntimeException('Afternoon time in and time out are required for this day type.');
+            }
+            $tsAfternoonIn = $this->parseDtrTime($afternoonIn);
+            $tsAfternoonOut = $this->parseDtrTime($afternoonOut);
+            $this->assertTimeWindow($tsAfternoonIn, 'Afternoon time in', $afternoonStart, $afternoonEnd, '1:00 PM and 5:00 PM');
+            $this->assertTimeWindow($tsAfternoonOut, 'Afternoon time out', $afternoonStart, $afternoonEnd, '1:00 PM and 5:00 PM');
+            if ($tsAfternoonOut <= $tsAfternoonIn) {
+                throw new RuntimeException('Afternoon time out must be after afternoon time in.');
+            }
+            $afternoonInVal = date('H:i:s', $tsAfternoonIn);
+            $afternoonOutVal = date('H:i:s', $tsAfternoonOut);
+            $hours += ($tsAfternoonOut - $tsAfternoonIn) / 3600;
         }
-        if ($tsAfternoonOut <= $tsAfternoonIn) {
-            throw new RuntimeException('Afternoon time out must be after afternoon time in.');
-        }
-
-        $hours = round((($tsMorningOut - $tsMorningIn) + ($tsAfternoonOut - $tsAfternoonIn)) / 3600, 2);
 
         return [
-            'morning_in' => date('H:i:s', $tsMorningIn),
-            'morning_out' => date('H:i:s', $tsMorningOut),
-            'afternoon_in' => date('H:i:s', $tsAfternoonIn),
-            'afternoon_out' => date('H:i:s', $tsAfternoonOut),
-            'time_in' => date('H:i:s', $tsMorningIn),
-            'time_out' => date('H:i:s', $tsAfternoonOut),
-            'hours' => $hours,
+            'morning_in' => $morningInVal,
+            'morning_out' => $morningOutVal,
+            'afternoon_in' => $afternoonInVal,
+            'afternoon_out' => $afternoonOutVal,
+            'time_in' => $morningInVal ?? $afternoonInVal ?? '00:00:00',
+            'time_out' => $afternoonOutVal ?? $morningOutVal ?? '00:00:00',
+            'hours' => round($hours, 2),
         ];
+    }
+
+    private function assertTimeWindow(int $timestamp, string $label, int $min, int $max, string $window): void
+    {
+        $minutes = $this->minutesOfDay($timestamp);
+        if ($minutes < $min || $minutes > $max) {
+            throw new RuntimeException("$label must be between $window.");
+        }
     }
 
     private function parseDtrTime(string $time): int

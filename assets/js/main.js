@@ -405,11 +405,15 @@ function getGlobalCalPanel() {
             const { input, state, sync } = _globalCalActivePicker;
             if (action.dataset.dateAction === 'clear') {
                 state.selected = null; input.value = ''; sync();
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                input.dispatchEvent(new Event('input', { bubbles: true }));
             }
             if (action.dataset.dateAction === 'today') {
                 const today = stripTime(new Date());
                 state.selected = today; state.view = new Date(today.getFullYear(), today.getMonth(), 1);
                 input.value = formatCustomDateValue(today); sync();
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                input.dispatchEvent(new Event('input', { bubbles: true }));
             }
             closeGlobalCalPanel();
             return;
@@ -424,6 +428,8 @@ function getGlobalCalPanel() {
             input.value = formatCustomDateValue(selectedDate);
             picker.classList.remove('date-required-error');
             sync();
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+            input.dispatchEvent(new Event('input', { bubbles: true }));
             closeGlobalCalPanel();
         }
     });
@@ -764,11 +770,13 @@ function initCustomDatePickers() {
                 }
                 const action = event.target.closest('[data-date-action]');
                 if (action) {
-                    if (action.dataset.dateAction === 'clear') { state.selected = null; input.value = ''; sync(); closeCustomDatePickers(); }
+                    if (action.dataset.dateAction === 'clear') { state.selected = null; input.value = ''; sync(); closeCustomDatePickers(); input.dispatchEvent(new Event('change', { bubbles: true })); input.dispatchEvent(new Event('input', { bubbles: true })); }
                     if (action.dataset.dateAction === 'today') {
                         const today = stripTime(new Date());
                         state.selected = today; state.view = new Date(today.getFullYear(), today.getMonth(), 1);
                         input.value = formatCustomDateValue(today); sync(); closeCustomDatePickers();
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
                     }
                     return;
                 }
@@ -781,6 +789,8 @@ function initCustomDatePickers() {
                 input.value = formatCustomDateValue(selectedDate);
                 picker.classList.remove('date-required-error');
                 sync(); closeCustomDatePickers();
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                input.dispatchEvent(new Event('input', { bubbles: true }));
             });
 
             panel.addEventListener('change', event => {
@@ -1444,6 +1454,74 @@ function closeDtrTimePicker() {
 }
 
 function initDtrTimeLocks() {
+    const dayTypeConfig = {
+        full: {
+            morning: true,
+            afternoon: true,
+            needsTimes: true,
+            requiredIndices: [0, 1, 2, 3],
+            intro: 'Record your morning and afternoon attendance, then describe the tasks you completed today.',
+            tasksLabel: 'Tasks Done',
+            tasksHint: 'Summarize your practicum activities for this work day.',
+            tasksPlaceholder: 'Describe the tasks you completed today...',
+            confirmTitle: 'Submit DTR',
+            confirmMessage: 'Please verify the work date, session times, and tasks before submitting.',
+            summaryLabel: 'Full Day',
+        },
+        half_am: {
+            morning: true,
+            afternoon: false,
+            needsTimes: true,
+            requiredIndices: [0, 1],
+            intro: 'Log your morning session only, then describe what you accomplished.',
+            tasksLabel: 'Tasks Done',
+            tasksHint: 'Summarize what you completed during your morning practicum session.',
+            tasksPlaceholder: 'Describe the tasks you completed this morning...',
+            confirmTitle: 'Confirm Half Day (Morning) DTR',
+            confirmMessage: 'You are submitting a half-day morning DTR only. Afternoon attendance will not be recorded.',
+            summaryLabel: 'Half Day — Morning Only',
+        },
+        half_pm: {
+            morning: false,
+            afternoon: true,
+            needsTimes: true,
+            requiredIndices: [2, 3],
+            intro: 'Log your afternoon session only, then describe what you accomplished.',
+            tasksLabel: 'Tasks Done',
+            tasksHint: 'Summarize what you completed during your afternoon practicum session.',
+            tasksPlaceholder: 'Describe the tasks you completed this afternoon...',
+            confirmTitle: 'Confirm Half Day (Afternoon) DTR',
+            confirmMessage: 'You are submitting a half-day afternoon DTR only. Morning attendance will not be recorded.',
+            summaryLabel: 'Half Day — Afternoon Only',
+        },
+        sick: {
+            morning: false,
+            afternoon: false,
+            needsTimes: false,
+            requiredIndices: [],
+            intro: 'No time log is required. Briefly explain your sick leave for partner review.',
+            tasksLabel: 'Reason for Sick Leave',
+            tasksHint: 'Provide a brief explanation of your absence (e.g. medical reason).',
+            tasksPlaceholder: 'Explain why you were on sick leave today...',
+            confirmTitle: 'Confirm Sick Leave DTR',
+            confirmMessage: 'You are submitting a sick leave record with 0 hours. This will not count toward rendered OJT hours.',
+            summaryLabel: 'Sick Leave',
+        },
+        absent: {
+            morning: false,
+            afternoon: false,
+            needsTimes: false,
+            requiredIndices: [],
+            intro: 'No time log is required. Briefly explain your absence for partner review.',
+            tasksLabel: 'Reason for Absence',
+            tasksHint: 'Provide a brief explanation of why you did not report today.',
+            tasksPlaceholder: 'Explain why you were absent today...',
+            confirmTitle: 'Confirm Absence DTR',
+            confirmMessage: 'You are submitting an absence record with 0 hours. This will not count toward rendered OJT hours.',
+            summaryLabel: 'Absent',
+        },
+    };
+
     document.querySelectorAll('[data-dtr-lock-flow]').forEach(form => {
         const groups = [...form.querySelectorAll('[data-time-lock-group]')].map(group => ({
             group,
@@ -1451,22 +1529,79 @@ function initDtrTimeLocks() {
             trigger: group.querySelector('[data-time-picker-trigger]'),
             display: group.querySelector('[data-time-display]'),
             button: group.querySelector('[data-time-lock-toggle]'),
-            locked: group.dataset.savedLocked === '1' && !!group.querySelector('[data-lockable-time]')?.value,
+            locked: group.dataset.savedLocked === '1' && !!group.querySelector('[data-lockable-time]')?.value?.trim(),
         })).filter(item => item.input && item.button && item.trigger && item.display);
         const tasks = form.querySelector('[data-dtr-tasks]');
         const submit = form.querySelector('[data-dtr-submit]');
-        if (!groups.length || !tasks || !submit) return;
+        const dayTypeSelect = form.querySelector('[data-dtr-day-type]');
+        const morningSession = form.querySelector('[data-dtr-session="morning"]');
+        const afternoonSession = form.querySelector('[data-dtr-session="afternoon"]');
+        const sessionsWrap = form.querySelector('[data-dtr-sessions]');
+        const formIntro = form.querySelector('[data-dtr-form-intro]');
+        const tasksLabel = form.querySelector('[data-dtr-tasks-label]');
+        const tasksHint = form.querySelector('[data-dtr-tasks-hint]');
+        const submitHint = form.querySelector('[data-dtr-submit-hint]');
+        const submitSummary = form.querySelector('[data-dtr-submit-summary]');
+        const datePicker = form.querySelector('.dtr-date-section .filter-date-picker');
+        const workDateInput = form.querySelector('input[name="work_date"]');
+        const useTodayBtn = form.querySelector('[data-dtr-date-today]');
+        if (!groups.length || !tasks || !submit || !dayTypeSelect) return;
+
+        const getDayType = () => dayTypeConfig[dayTypeSelect.value] ? dayTypeSelect.value : 'full';
+        const getConfig = () => dayTypeConfig[getDayType()] || dayTypeConfig.full;
+
+        const formatWorkDateDisplay = value => {
+            const parsed = parseCustomDateValue(value);
+            return parsed ? formatCustomDateDisplay(parsed) : '';
+        };
+
+        const buildScheduleSummary = () => {
+            const dayType = getDayType();
+            const amIn = groups[0]?.input?.value || '';
+            const amOut = groups[1]?.input?.value || '';
+            const pmIn = groups[2]?.input?.value || '';
+            const pmOut = groups[3]?.input?.value || '';
+
+            if (dayType === 'half_am') {
+                return `Morning: ${formatDtrTimeDisplay(amIn)} – ${formatDtrTimeDisplay(amOut)} · Afternoon: not included`;
+            }
+            if (dayType === 'half_pm') {
+                return `Morning: not included · Afternoon: ${formatDtrTimeDisplay(pmIn)} – ${formatDtrTimeDisplay(pmOut)}`;
+            }
+            if (dayType === 'sick' || dayType === 'absent') {
+                return 'No attendance times — 0 hours';
+            }
+            return `Morning: ${formatDtrTimeDisplay(amIn)} – ${formatDtrTimeDisplay(amOut)} · Afternoon: ${formatDtrTimeDisplay(pmIn)} – ${formatDtrTimeDisplay(pmOut)}`;
+        };
+
+        const setWorkDate = date => {
+            if (!workDateInput) return;
+            workDateInput.value = formatCustomDateValue(date);
+            const pickerValue = form.querySelector('.filter-date-value');
+            if (pickerValue) pickerValue.textContent = formatCustomDateDisplay(date);
+            datePicker?.classList.remove('is-placeholder', 'date-required-error');
+            workDateInput.dispatchEvent(new Event('change', { bubbles: true }));
+            workDateInput.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+
+        if (useTodayBtn) {
+            useTodayBtn.addEventListener('click', () => {
+                setWorkDate(stripTime(new Date()));
+                saveDraft();
+            });
+        }
 
         const saveDraft = () => {
             const body = new URLSearchParams();
             body.set('csrf_token', form.querySelector('input[name="csrf_token"]')?.value || '');
             body.set('action', 'student_save_dtr_draft');
-            body.set('work_date', form.querySelector('input[name="work_date"]')?.value || '');
+            body.set('work_date', workDateInput?.value || '');
+            body.set('day_type', getDayType());
             groups.forEach(item => {
                 const fieldName = item.input.name;
                 if (!fieldName) return;
                 body.set(fieldName, item.input.value || '');
-                body.set(`${fieldName}_locked`, item.locked ? '1' : '0');
+                body.set(`${fieldName}_locked`, item.locked && item.input.value ? '1' : '0');
             });
             return fetch('index.php', {
                 method: 'POST',
@@ -1475,14 +1610,55 @@ function initDtrTimeLocks() {
             }).catch(() => null);
         };
 
+        const clearGroup = (item, resetTasks = false) => {
+            item.input.value = '';
+            item.locked = false;
+            item.group.classList.remove('is-locked', 'needs-time');
+        };
+
+        const resetInactiveSessions = () => {
+            const config = getConfig();
+            groups.forEach((item, index) => {
+                if (!config.requiredIndices.includes(index)) {
+                    clearGroup(item);
+                }
+            });
+        };
+
         const sync = () => {
-            const allLocked = groups.every(item => item.locked);
+            const config = getConfig();
+            const required = config.requiredIndices;
+
+            if (formIntro) formIntro.textContent = config.intro;
+            if (tasksLabel) tasksLabel.textContent = config.tasksLabel;
+            if (tasksHint) tasksHint.textContent = config.tasksHint;
+            if (tasks.dataset.dtrTasksPlaceholder) {
+                tasks.placeholder = config.tasksPlaceholder;
+            }
+
+            morningSession?.toggleAttribute('hidden', !config.morning);
+            afternoonSession?.toggleAttribute('hidden', !config.afternoon);
+            sessionsWrap?.toggleAttribute('hidden', !config.needsTimes);
+            form.classList.toggle('dtr-leave-mode', !config.needsTimes);
 
             groups.forEach((item, index) => {
-                const mustWait = index > 0 && !groups[index - 1]?.locked;
+                const isRequired = required.includes(index);
+                const reqPos = required.indexOf(index);
+                const mustWait = isRequired && reqPos > 0 && !groups[required[reqPos - 1]]?.locked;
+
+                item.group.toggleAttribute('hidden', !isRequired);
                 item.input.disabled = false;
-                item.trigger.disabled = false;
-                item.button.disabled = false;
+                item.trigger.disabled = !isRequired;
+                item.button.disabled = !isRequired;
+
+                if (!isRequired) {
+                    item.trigger.setAttribute('aria-disabled', 'true');
+                    item.button.setAttribute('aria-disabled', 'true');
+                    item.group.classList.remove('is-locked', 'is-waiting', 'has-time', 'needs-time');
+                    item.group.querySelector('[data-time-lock-badge]')?.setAttribute('hidden', '');
+                    return;
+                }
+
                 item.trigger.setAttribute('aria-disabled', String(mustWait || item.locked));
                 item.button.setAttribute('aria-disabled', String(mustWait));
                 item.display.textContent = formatDtrTimeDisplay(item.input.value);
@@ -1498,9 +1674,57 @@ function initDtrTimeLocks() {
                 item.group.querySelector('[data-time-lock-badge]')?.toggleAttribute('hidden', !item.locked);
             });
 
-            tasks.disabled = !allLocked;
-            submit.disabled = !allLocked;
-            form.classList.toggle('dtr-ready-for-tasks', allLocked);
+            const timesReady = !config.needsTimes || required.every(index => groups[index]?.locked && groups[index]?.input?.value);
+            const dateReady = !!workDateInput?.value?.trim();
+            const tasksReady = !!tasks.value.trim();
+            const canSubmit = dateReady && tasksReady && timesReady;
+
+            tasks.disabled = false;
+            submit.disabled = !canSubmit;
+            form.classList.toggle('dtr-ready-for-tasks', config.needsTimes ? timesReady : true);
+
+            datePicker?.classList.toggle('date-required-error', !dateReady);
+
+            if (canSubmit) {
+                form.dataset.confirmTitle = config.confirmTitle || 'Submit DTR';
+                form.dataset.confirmSubmit = `${config.confirmMessage || 'Please verify before submitting.'} Work date: ${formatWorkDateDisplay(workDateInput?.value) || '—'}. ${buildScheduleSummary()}.`;
+                form.dataset.confirmOk = 'Yes, submit DTR';
+            }
+
+            if (submitSummary) {
+                if (canSubmit && getDayType() !== 'full') {
+                    submitSummary.innerHTML = `
+                        <strong>${escapeHtml(config.summaryLabel || 'Ready to submit')}</strong>
+                        <span>Work date: ${escapeHtml(formatWorkDateDisplay(workDateInput?.value) || '—')}</span>
+                        <span>${escapeHtml(buildScheduleSummary())}</span>
+                        <span class="dtr-submit-summary-note">Please review the summary above before submitting.</span>
+                    `;
+                    submitSummary.hidden = false;
+                } else {
+                    submitSummary.hidden = true;
+                    submitSummary.innerHTML = '';
+                }
+            }
+
+            if (submitHint) {
+                if (canSubmit) {
+                    submitHint.textContent = '';
+                    submitHint.hidden = true;
+                } else {
+                    const missing = [];
+                    if (!dateReady) missing.push('work date');
+                    if (config.needsTimes && !timesReady) {
+                        missing.push(config.requiredIndices.length === 4
+                            ? 'all required time entries (save each one)'
+                            : 'required session times (save each one)');
+                    }
+                    if (!tasksReady) {
+                        missing.push(config.needsTimes ? 'tasks done' : 'reason for absence');
+                    }
+                    submitHint.textContent = `To submit: ${missing.join(', ')}.`;
+                    submitHint.hidden = false;
+                }
+            }
         };
 
         const unlockFrom = startIndex => {
@@ -1511,16 +1735,22 @@ function initDtrTimeLocks() {
         };
 
         const clearFrom = startIndex => {
-            groups.slice(startIndex).forEach(item => {
-                item.input.value = '';
-                item.locked = false;
-                item.group.classList.remove('is-locked');
-            });
+            groups.slice(startIndex).forEach(item => clearGroup(item));
             if (startIndex <= groups.length - 1) {
                 tasks.value = '';
                 tasks.dispatchEvent(new Event('input', { bubbles: true }));
             }
         };
+
+        dayTypeSelect.addEventListener('change', () => {
+            resetInactiveSessions();
+            sync();
+            saveDraft();
+        });
+
+        workDateInput?.addEventListener('change', sync);
+        workDateInput?.addEventListener('input', sync);
+        tasks.addEventListener('input', sync);
 
         groups.forEach((item, index) => {
             let lastTap = 0;
@@ -1558,8 +1788,12 @@ function initDtrTimeLocks() {
                 item.locked = true;
                 sync();
                 saveDraft();
-                const nextInput = groups[index + 1]?.input || tasks;
-                const nextTrigger = groups[index + 1]?.trigger || null;
+                const config = getConfig();
+                const required = config.requiredIndices;
+                const reqPos = required.indexOf(index);
+                const nextRequiredIndex = reqPos >= 0 ? required[reqPos + 1] : undefined;
+                const nextInput = nextRequiredIndex !== undefined ? groups[nextRequiredIndex]?.input : tasks;
+                const nextTrigger = nextRequiredIndex !== undefined ? groups[nextRequiredIndex]?.trigger : null;
                 (nextTrigger || nextInput)?.focus();
             };
 
@@ -1581,6 +1815,12 @@ function initDtrTimeLocks() {
             });
         });
 
+        if (!workDateInput?.value?.trim()) {
+            setWorkDate(stripTime(new Date()));
+            saveDraft();
+        }
+
+        resetInactiveSessions();
         sync();
     });
 }
