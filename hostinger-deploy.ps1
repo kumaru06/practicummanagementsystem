@@ -76,6 +76,32 @@ function Get-DeployFiles {
     }
 }
 
+function Resolve-FtpHost {
+    param([string]$HostName)
+
+    if ($HostName -match '^\d{1,3}(\.\d{1,3}){3}$') {
+        return $HostName
+    }
+
+    try {
+        $null = [System.Net.Dns]::GetHostEntry($HostName)
+        return $HostName
+    } catch {
+        if ($HostName -match '^ftp\.(.+)$') {
+            try {
+                $siteHost = $Matches[1]
+                $entry = [System.Net.Dns]::GetHostEntry($siteHost)
+                $ipv4 = @($entry.AddressList | Where-Object { $_.AddressFamily -eq 'InterNetwork' })
+                if ($ipv4.Count -gt 0) {
+                    Write-Step "  ftpHost '$HostName' not in DNS; using site IP $($ipv4[0].IPAddressToString)" Yellow
+                    return $ipv4[0].IPAddressToString
+                }
+            } catch {}
+        }
+        throw "Cannot resolve FTP host '$HostName'. Use the FTP IP from hPanel (e.g. 153.92.10.160)."
+    }
+}
+
 function Read-DeployConfig {
     if (-not (Test-Path $configFile)) {
         Write-Host ""
@@ -90,12 +116,27 @@ function Read-DeployConfig {
     }
 
     $json = Get-Content $configFile -Raw | ConvertFrom-Json
-    foreach ($key in @('ftpHost', 'ftpUser', 'ftpPass', 'remotePath')) {
+    foreach ($key in @('ftpHost', 'ftpUser', 'ftpPass')) {
         if (-not $json.$key -or $json.$key -match 'YOUR_FTP') {
             throw "hostinger.deploy.json: set a real value for '$key'."
         }
     }
+    if ($null -eq $json.remotePath) {
+        $json | Add-Member -NotePropertyName remotePath -NotePropertyValue '' -Force
+    }
+    $json.ftpHost = Resolve-FtpHost $json.ftpHost
     return $json
+}
+
+function Build-FtpRemoteUrl {
+    param(
+        [string]$HostName,
+        [string]$RemotePath
+    )
+
+    $segments = $RemotePath -split '/'
+    $encoded = ($segments | ForEach-Object { [uri]::EscapeDataString($_) }) -join '/'
+    return "ftp://$HostName/$encoded"
 }
 
 function Invoke-FtpUpload {
@@ -106,14 +147,22 @@ function Invoke-FtpUpload {
         [string]$Pass
     )
 
-    $output = & curl.exe --show-error --max-time 120 --ftp-pasv --disable-epsv `
-        --user "${User}:${Pass}" `
-        --ftp-create-dirs `
-        --upload-file $LocalFile `
-        $RemoteUrl 2>&1
+    # curl writes progress to stderr; PowerShell treats that as a terminating error unless suppressed.
+    $prevErrorAction = $ErrorActionPreference
+    $ErrorActionPreference = 'SilentlyContinue'
+    try {
+        $output = & curl.exe --silent --show-error --no-progress-meter --max-time 120 --ftp-pasv --disable-epsv `
+            --user "${User}:${Pass}" `
+            --ftp-create-dirs `
+            --upload-file $LocalFile `
+            $RemoteUrl 2>&1
+        $exitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $prevErrorAction
+    }
 
     return @{
-        Ok = ($LASTEXITCODE -eq 0)
+        Ok = ($exitCode -eq 0)
         Output = ($output | Out-String).Trim()
     }
 }
@@ -166,12 +215,18 @@ Write-Host ""
 Write-Step "[2/2] Uploading via FTP..." Yellow
 $config = Read-DeployConfig
 $remoteRoot = ($config.remotePath -replace '^/|/$', '')
+if ($remoteRoot) {
+    Write-Step "  Remote folder: $remoteRoot" Gray
+} else {
+    Write-Step "  Remote folder: (FTP account root - usually public_html)" Gray
+}
 $uploaded = 0
 $failed = 0
 $lastError = ""
 
 Write-Step "  Testing FTP connection..." Gray
-$test = Invoke-FtpUpload -LocalFile $files[0].FullName -RemoteUrl "ftp://$($config.ftpHost)/$remoteRoot/$($files[0].Relative)" -User $config.ftpUser -Pass $config.ftpPass
+$firstRemote = if ($remoteRoot) { "$remoteRoot/$($files[0].Relative)" } else { $files[0].Relative }
+$test = Invoke-FtpUpload -LocalFile $files[0].FullName -RemoteUrl (Build-FtpRemoteUrl -HostName $config.ftpHost -RemotePath $firstRemote) -User $config.ftpUser -Pass $config.ftpPass
 if (-not $test.Ok) {
     Write-Step "  FTP connection failed on first file." Red
     Write-Step "  $($test.Output)" Red
@@ -188,8 +243,8 @@ Write-Step "  [OK] $($files[0].Relative)" Green
 
 for ($i = 1; $i -lt $files.Count; $i++) {
     $file = $files[$i]
-    $remotePath = "$remoteRoot/$($file.Relative)"
-    $url = "ftp://$($config.ftpHost)/$remotePath"
+    $remotePath = if ($remoteRoot) { "$remoteRoot/$($file.Relative)" } else { $file.Relative }
+    $url = Build-FtpRemoteUrl -HostName $config.ftpHost -RemotePath $remotePath
 
     $result = Invoke-FtpUpload -LocalFile $file.FullName -RemoteUrl $url -User $config.ftpUser -Pass $config.ftpPass
     if ($result.Ok) {
