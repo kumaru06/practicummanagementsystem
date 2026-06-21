@@ -1,8 +1,9 @@
 <?php
 // Auto-detect local vs production environment
-$isLocal = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1', '']);
+$host = strtolower((string)($_SERVER['SERVER_NAME'] ?? ''));
+define('APP_IS_LOCAL', in_array($host, ['localhost', '127.0.0.1', ''], true) || str_ends_with($host, '.test'));
 
-if ($isLocal) {
+if (APP_IS_LOCAL) {
     define('_DB_HOST', 'localhost');
     define('_DB_NAME', 'practicum_system');
     define('_DB_USER', 'root');
@@ -31,7 +32,7 @@ function db(): PDO
             PDO::ATTR_EMULATE_PREPARES => false,
         ]);
     } catch (PDOException $e) {
-        if (!in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1', ''], true)) {
+        if (!APP_IS_LOCAL) {
             http_response_code(503);
             exit(
                 'Database connection failed. Edit config/database.production.php with your current '
@@ -39,7 +40,8 @@ function db(): PDO
             );
         }
 
-        throw $e;
+        http_response_code(503);
+        exit('Database connection failed. Make sure Laragon MySQL is running, then refresh this page.');
     }
 
     return $pdo;

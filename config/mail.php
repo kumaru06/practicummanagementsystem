@@ -12,10 +12,10 @@ if (is_file(__DIR__ . '/mail.local.php')) {
     require __DIR__ . '/mail.local.php';
 }
 
-$isLocal = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1', ''], true);
 $host = strtolower((string)($_SERVER['SERVER_NAME'] ?? ''));
+$isLocal = in_array($host, ['localhost', '127.0.0.1', ''], true) || str_ends_with($host, '.test');
 if ($isLocal) {
-    define('SYSTEM_URL', 'http://localhost/amaccmanagementsystem/');
+    define('SYSTEM_URL', str_ends_with($host, '.test') ? 'http://' . $host . '/' : 'http://localhost/amaccmanagementsystem/');
 } elseif ($host === 'ama-ojtportal.com' || str_ends_with($host, '.ama-ojtportal.com')) {
     define('SYSTEM_URL', 'https://ama-ojtportal.com/');
 } else {

@@ -13,7 +13,8 @@ function redirect(string $route): never
 function app_base_path(): string
 {
     $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
-    $dir = rtrim(dirname($scriptName), '/');
+    $dir = str_replace('\\', '/', dirname($scriptName));
+    $dir = rtrim($dir, '/');
     return $dir === '' || $dir === '.' || $dir === '/' ? '' : $dir;
 }
 
