@@ -14,6 +14,7 @@ $zipPath = Join-Path (Split-Path $localRoot -Parent) "amaccmanagementsystem_depl
 
 $excludeDirNames = @('.git', '.idea', '.vscode')
 $excludeFileNames = @(
+    '.env',
     'hostinger.deploy.json',
     'hostinger.deploy.json.example',
     'hostinger-deploy.ps1',

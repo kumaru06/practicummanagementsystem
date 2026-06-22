@@ -1,28 +1,35 @@
 <?php
+if (!function_exists('env')) {
+    require_once __DIR__ . '/../bootstrap/env.php';
+}
+
 $host = strtolower((string)($_SERVER['SERVER_NAME'] ?? ''));
 $isLocal = in_array($host, ['localhost', '127.0.0.1', ''], true)
     || str_ends_with($host, '.test')
     || str_ends_with($host, '.loc')
     || str_ends_with($host, '.localhost');
 
-if ($isLocal && is_file(__DIR__ . '/mail.local.dev.php')) {
-    require __DIR__ . '/mail.local.dev.php';
-} elseif (is_file(__DIR__ . '/mail.local.php')) {
-    require __DIR__ . '/mail.local.php';
+// Legacy PHP config files (optional fallback if .env is missing).
+if ((env('SMTP_PASSWORD') ?? '') === '') {
+    if ($isLocal && is_file(__DIR__ . '/mail.local.dev.php')) {
+        require __DIR__ . '/mail.local.dev.php';
+    } elseif (is_file(__DIR__ . '/mail.local.php')) {
+        require __DIR__ . '/mail.local.php';
+    }
 }
 
 if (!defined('SMTP_HOST')) {
-    define('SMTP_HOST',       'smtp.hostinger.com');
-    define('SMTP_PORT',       465);
-    define('SMTP_SECURE',     'ssl');
-    define('SMTP_USERNAME',   'betatesting@ama-ojtportal.com');
-    define('SMTP_PASSWORD',   '');
+    define('SMTP_HOST', env('SMTP_HOST', 'smtp.hostinger.com') ?? 'smtp.hostinger.com');
+    define('SMTP_PORT', (int)(env('SMTP_PORT', '465') ?? '465'));
+    define('SMTP_SECURE', env('SMTP_SECURE', 'ssl') ?? 'ssl');
+    define('SMTP_USERNAME', env('SMTP_USERNAME', 'betatesting@ama-ojtportal.com') ?? 'betatesting@ama-ojtportal.com');
+    define('SMTP_PASSWORD', env('SMTP_PASSWORD', '') ?? '');
 }
 if (!defined('MAIL_FROM_EMAIL')) {
-    define('MAIL_FROM_EMAIL', 'betatesting@ama-ojtportal.com');
+    define('MAIL_FROM_EMAIL', env('MAIL_FROM_EMAIL', 'betatesting@ama-ojtportal.com') ?? 'betatesting@ama-ojtportal.com');
 }
 if (!defined('MAIL_FROM_NAME')) {
-    define('MAIL_FROM_NAME',  'AMA Education System - College Department');
+    define('MAIL_FROM_NAME', env('MAIL_FROM_NAME', 'AMA Computer College OJT Department') ?? 'AMA Computer College OJT Department');
 }
 
 if ($isLocal) {

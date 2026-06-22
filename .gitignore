@@ -1,7 +1,9 @@
 # Secrets — keep only on the server or in hostinger.deploy.json (local)
+.env
 config/database.production.php
 hostinger.deploy.json
 config/mail.local.php
+config/mail.local.dev.php
 
 # User uploads (keep folder structure via .gitkeep)
 uploads/*

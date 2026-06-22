@@ -1,6 +1,5 @@
 <?php
-// Copy to config/mail.local.php on Hostinger (not committed to git).
-// Create the mailbox in hPanel → Emails → Manage → Create email account.
+// Prefer .env (copy .env.example → .env). This file is an optional legacy fallback.
 //
 // define('SMTP_HOST', 'smtp.hostinger.com');
 // define('SMTP_PORT', 465);
