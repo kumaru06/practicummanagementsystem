@@ -22,11 +22,11 @@ if (!defined('SMTP_HOST')) {
     define('SMTP_HOST', env('SMTP_HOST', 'smtp.hostinger.com') ?? 'smtp.hostinger.com');
     define('SMTP_PORT', (int)(env('SMTP_PORT', '465') ?? '465'));
     define('SMTP_SECURE', env('SMTP_SECURE', 'ssl') ?? 'ssl');
-    define('SMTP_USERNAME', env('SMTP_USERNAME', 'betatesting@ama-ojtportal.com') ?? 'betatesting@ama-ojtportal.com');
+    define('SMTP_USERNAME', env('SMTP_USERNAME', 'amaccdavaobeta@ama-ojtportal.com') ?? 'amaccdavaobeta@ama-ojtportal.com');
     define('SMTP_PASSWORD', env('SMTP_PASSWORD', '') ?? '');
 }
 if (!defined('MAIL_FROM_EMAIL')) {
-    define('MAIL_FROM_EMAIL', env('MAIL_FROM_EMAIL', 'betatesting@ama-ojtportal.com') ?? 'betatesting@ama-ojtportal.com');
+    define('MAIL_FROM_EMAIL', env('MAIL_FROM_EMAIL', 'amaccdavaobeta@ama-ojtportal.com') ?? 'amaccdavaobeta@ama-ojtportal.com');
 }
 if (!defined('MAIL_FROM_NAME')) {
     define('MAIL_FROM_NAME', env('MAIL_FROM_NAME', 'AMA Computer College OJT Department') ?? 'AMA Computer College OJT Department');

@@ -374,7 +374,7 @@ class CoordinatorController extends BaseController
                     'type' => 'application/pdf'
                 ];
 
-                (new Email($this->db))->send($company['contact_email'], 'Student Deployment Documents Forwarded', 'deployment_forwarded', 'company_deployment', [
+                $emailData = [
                     'student' => $student,
                     'company' => $company,
                     'academicTerm' => $enrollment['academic_term'] ?? '',
@@ -382,8 +382,14 @@ class CoordinatorController extends BaseController
                     'termEndDate' => $enrollment['term_end_date'] ?? '',
                     'requiredHours' => (int)$enrollment['required_hours'],
                     'coordinator' => current_user(),
-                ], $attachments);
+                ];
+
+                $email = new Email($this->db);
+                $email->send($company['contact_email'], 'Student Deployment Documents Forwarded', 'deployment_forwarded', 'company_deployment', $emailData, $attachments);
+                $email->send($student['email'], 'Your OJT Documents Have Been Forwarded', 'student_deployment_forwarded', 'student_deployment_forwarded', $emailData);
+
                 (new Notification($this->db))->create((int)$company['user_id'], 'Student deployment forwarded', $student['name'] . ' has been forwarded to your Industry Partner Portal for review.', route_url('partner.portal', ['enrollment' => (int)$enrollment['id']]));
+                (new Notification($this->db))->create((int)$student['user_id'], 'Documents forwarded to Industry Partner', 'Your approved pre-deployment documents and endorsement letter were sent to ' . ($company['name'] ?? 'your Industry Partner') . '. They will review and schedule your orientation.', route_url('student.documents'));
             }
             flash('success', 'Documents approved and Endorsement Letter generated and forwarded to the Industry Partner.');
         } catch (Throwable $e) {

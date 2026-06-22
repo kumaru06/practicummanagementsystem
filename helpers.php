@@ -183,8 +183,12 @@ function temporary_report_unlock_enabled(): bool
 
 function mail_error_hint(string $error): string
 {
-    if (stripos($error, 'Disabled by user') !== false || stripos($error, '554') !== false) {
-        return 'Hostinger mailbox betatesting@ama-ojtportal.com is suspended or disabled. Re-enable it in hPanel → Emails → Manage mailboxes.';
+    $from = defined('MAIL_FROM_EMAIL') ? MAIL_FROM_EMAIL : 'your mailbox';
+    if (stripos($error, 'Disabled by user') !== false || stripos($error, '554') !== false || stripos($error, 'suspended') !== false) {
+        return 'Hostinger mailbox ' . $from . ' is suspended or disabled. Create or re-enable a mailbox in hPanel → Emails, then update SMTP_USERNAME, SMTP_PASSWORD, and MAIL_FROM_EMAIL in .env.';
+    }
+    if (stripos($error, 'Could not authenticate') !== false) {
+        return 'SMTP authentication failed for ' . $from . '. Check SMTP_USERNAME and SMTP_PASSWORD in .env (use the full email address and mailbox password).';
     }
     return $error;
 }

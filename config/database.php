@@ -11,10 +11,11 @@ define('APP_IS_LOCAL', in_array($host, ['localhost', '127.0.0.1', ''], true)
     || str_ends_with($host, '.localhost'));
 
 if (APP_IS_LOCAL) {
-    define('_DB_HOST', env('DB_HOST', 'localhost') ?? 'localhost');
-    define('_DB_NAME', env('DB_NAME', 'practicum_system') ?? 'practicum_system');
-    define('_DB_USER', env('DB_USER', 'root') ?? 'root');
-    define('_DB_PASS', env('DB_PASS', '') ?? '');
+    // Laragon defaults — do not use production DB_* from .env on .test / localhost.
+    define('_DB_HOST', 'localhost');
+    define('_DB_NAME', 'practicum_system');
+    define('_DB_USER', 'root');
+    define('_DB_PASS', '');
 } else {
     $dbName = env('DB_NAME');
     if ($dbName !== null && $dbName !== '') {
@@ -59,7 +60,7 @@ function db(): PDO
         }
 
         http_response_code(503);
-        exit('Database connection failed. Make sure Laragon MySQL is running, then refresh this page.');
+        exit('Database connection failed. Make sure Laragon MySQL is running and the database "practicum_system" exists, then refresh this page.');
     }
 
     return $pdo;

@@ -6,6 +6,23 @@ class Email
 {
     public function __construct(private PDO $db) {}
 
+    private function archiveLocalDevCopy(string $recipient, string $subject, string $body): ?string
+    {
+        if (!defined('APP_IS_LOCAL') || !APP_IS_LOCAL) {
+            return null;
+        }
+
+        $dir = dirname(__DIR__) . '/uploads/dev-mail';
+        if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+            return null;
+        }
+
+        $safeRecipient = preg_replace('/[^a-z0-9@._-]+/i', '_', $recipient) ?: 'recipient';
+        $file = $dir . '/' . date('Ymd-His') . '-' . $safeRecipient . '.html';
+        $html = '<!-- To: ' . htmlspecialchars($recipient) . ' | Subject: ' . htmlspecialchars($subject) . " -->\n" . $body;
+        return file_put_contents($file, $html) !== false ? $file : null;
+    }
+
     private function configureMailer(PHPMailer $mail): void
     {
         $mail->isSMTP();
@@ -18,6 +35,12 @@ class Email
         $mail->CharSet = PHPMailer::CHARSET_UTF8;
         $mail->Timeout = 30;
         $mail->SMTPKeepAlive = false;
+        if (defined('MAIL_FROM_EMAIL') && str_contains(MAIL_FROM_EMAIL, '@')) {
+            $fromDomain = substr(MAIL_FROM_EMAIL, strrpos(MAIL_FROM_EMAIL, '@') + 1);
+            // Local .test hosts otherwise produce Message-IDs like @amaccmanagementsystem.test, which Gmail drops.
+            $mail->Hostname = $fromDomain;
+            $mail->Helo = $fromDomain;
+        }
         // Shared hosts (Hostinger) sometimes need relaxed SSL for outbound SMTP.
         $mail->SMTPOptions = [
             'ssl' => [
@@ -32,6 +55,7 @@ class Email
     {
         $status = 'failed';
         $error = null;
+        $logType = $type;
 
         try {
             if (!class_exists(PHPMailer::class)) {
@@ -57,18 +81,23 @@ class Email
             $mail = new PHPMailer(true);
             $this->configureMailer($mail);
             $mail->setFrom(MAIL_FROM_EMAIL, MAIL_FROM_NAME);
+        $mail->addReplyTo(MAIL_FROM_EMAIL, MAIL_FROM_NAME);
+        $mail->XMailer = ' ';
+        $mail->Priority = 3;
             $mail->addAddress($recipient);
             $mail->isHTML(true);
             $mail->Subject = $subject;
             $mail->Body = $body;
             $mail->AltBody = trim(strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $body)));
+            $this->archiveLocalDevCopy($recipient, $subject, $body);
+
             foreach ($attachments as $attachment) {
                 // Support for string attachments (e.g., dynamically generated PDFs)
                 if (is_array($attachment) && isset($attachment['string'])) {
                     $content = $attachment['string'];
                     $name = $attachment['name'] ?? 'attachment';
-                    $type = $attachment['type'] ?? 'application/octet-stream';
-                    $mail->addStringAttachment($content, $name, PHPMailer::ENCODING_BASE64, $type);
+                    $attachmentMime = $attachment['type'] ?? 'application/octet-stream';
+                    $mail->addStringAttachment($content, $name, PHPMailer::ENCODING_BASE64, $attachmentMime);
                 }
                 // Standard file attachment handling
                 else {
@@ -92,7 +121,7 @@ class Email
             return false;
         } finally {
             $stmt = $this->db->prepare('INSERT INTO email_logs (recipient_email, subject, type, sent_at, status, error_message) VALUES (?, ?, ?, NOW(), ?, ?)');
-            $stmt->execute([$recipient, $subject, $type, $status, $error]);
+            $stmt->execute([$recipient, $subject, $logType, $status, $error]);
         }
     }
 

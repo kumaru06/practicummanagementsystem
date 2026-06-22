@@ -2589,7 +2589,7 @@ function drawHBars(id, data, suffix = '') {
         while (truncated.length > 1 && ctx.measureText(truncated).width > maxLabelW) {
             truncated = truncated.slice(0, -1);
         }
-        if (truncated !== labelStr) truncated = truncated.slice(0, -1) + 'â€¦';
+        if (truncated !== labelStr) truncated = truncated.slice(0, -1) + '\u2026';
         ctx.fillText(truncated, padL - 10, y + barH / 2);
 
         // bar
@@ -2870,7 +2870,7 @@ function initRequirementReviewModals() {
                     if (subtitle) {
                         subtitle.textContent = data.requirement_status === 'approved'
                             ? 'Reviewed and approved'
-                            : 'Rejected â€” needs revision';
+                            : 'Rejected \u2014 needs revision';
                     }
                     const actions = article.querySelector('[data-review-actions]');
                     if (actions) {
@@ -2927,14 +2927,14 @@ function initStudentModal() {
     if (!modal) return;
 
     const formatDateTime = value => {
-        if (!value) return 'â€”';
+        if (!value) return '\u2014';
         const normalized = String(value).replace(' ', 'T');
         const date = new Date(normalized);
         return Number.isNaN(date.getTime()) ? value : date.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
     };
 
     const formatDate = value => {
-        if (!value) return 'â€”';
+        if (!value) return '\u2014';
         const date = new Date(`${value}T00:00:00`);
         return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     };
@@ -2972,17 +2972,17 @@ function initStudentModal() {
         }
         document.getElementById('sm-name').textContent = d.name || '';
         document.getElementById('sm-email').textContent = d.email || '';
-        document.getElementById('sm-chip-id').textContent = d.studentNo ? `ID ${d.studentNo}` : 'ID â€”';
-        document.getElementById('sm-chip-year').textContent = d.yearLevel ? `${d.yearLevel}` : 'Year â€”';
+        document.getElementById('sm-chip-id').textContent = d.studentNo ? `ID ${d.studentNo}` : 'ID \u2014';
+        document.getElementById('sm-chip-year').textContent = d.yearLevel ? `${d.yearLevel}` : 'Year \u2014';
         const statusChip = document.getElementById('sm-chip-status');
         statusChip.textContent = formatLabel(d.status || 'pending');
         statusChip.className = `student-panel-chip student-panel-chip-status is-${(d.status || 'pending').replaceAll('_', '-')}`;
 
-        document.getElementById('sm-course').textContent = d.course || 'â€”';
-        document.getElementById('sm-year-level').textContent = d.yearLevel || 'â€”';
+        document.getElementById('sm-course').textContent = d.course || '\u2014';
+        document.getElementById('sm-year-level').textContent = d.yearLevel || '\u2014';
         const bdRaw = d.birthdate || '';
-        document.getElementById('sm-birthdate').textContent = bdRaw ? new Date(bdRaw + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'â€”';
-        document.getElementById('sm-company').textContent = d.company || 'â€”';
+        document.getElementById('sm-birthdate').textContent = bdRaw ? new Date(bdRaw + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '\u2014';
+        document.getElementById('sm-company').textContent = d.company || '\u2014';
 
         const percent = Math.max(0, Math.min(100, Number.parseInt(d.percent, 10) || 0));
         document.getElementById('sm-progress-text').textContent = `${d.rendered} / ${d.required} hrs (${percent}%)`;

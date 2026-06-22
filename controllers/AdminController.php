@@ -474,7 +474,7 @@ class AdminController extends BaseController
                 'roleLabel' => 'Industry Partner',
                 'loginUrl' => absolute_route_url('partner.login'),
             ]);
-            flash($sent ? 'success' : 'error', $sent ? 'Industry Partner credentials were resent to ' . $company['contact_email'] . '.' : 'Credentials were reset, but the email failed. Check Email Logs.');
+            flash($sent ? 'success' : 'error', $sent ? 'Industry Partner credentials were resent to ' . $company['contact_email'] . (defined('APP_IS_LOCAL') && APP_IS_LOCAL ? ' Check uploads/dev-mail/ for a local copy (Gmail may filter SMTP mail on .test).' : '.') : 'Credentials were reset, but the email failed. Check Email Logs.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
@@ -513,7 +513,7 @@ class AdminController extends BaseController
                 'roleLabel' => $roleLabel,
                 'loginUrl' => absolute_route_url($loginRoute),
             ]);
-            flash($sent ? 'success' : 'error', $sent ? 'Temporary credentials were sent to ' . $target['email'] . '.' : 'Password was reset, but the email failed. Check Email Logs.');
+            flash($sent ? 'success' : 'error', $sent ? 'Temporary credentials were sent to ' . $target['email'] . (defined('APP_IS_LOCAL') && APP_IS_LOCAL ? ' On local .test, also open uploads/dev-mail/ for the password if Gmail/Yahoo does not show it.' : '.') : 'Password was reset, but the email failed. Check Email Logs.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
