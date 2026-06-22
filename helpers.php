@@ -181,6 +181,14 @@ function temporary_report_unlock_enabled(): bool
     return defined('TEMPORARY_REPORT_UNLOCK') && TEMPORARY_REPORT_UNLOCK;
 }
 
+function mail_error_hint(string $error): string
+{
+    if (stripos($error, 'Disabled by user') !== false || stripos($error, '554') !== false) {
+        return 'Hostinger mailbox betatesting@ama-ojtportal.com is suspended or disabled. Re-enable it in hPanel → Emails → Manage mailboxes.';
+    }
+    return $error;
+}
+
 function random_password(int $length = 12): string
 {
     $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@$%';

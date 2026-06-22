@@ -1,7 +1,10 @@
 <?php
 // Auto-detect local vs production environment
 $host = strtolower((string)($_SERVER['SERVER_NAME'] ?? ''));
-define('APP_IS_LOCAL', in_array($host, ['localhost', '127.0.0.1', ''], true) || str_ends_with($host, '.test'));
+define('APP_IS_LOCAL', in_array($host, ['localhost', '127.0.0.1', ''], true)
+    || str_ends_with($host, '.test')
+    || str_ends_with($host, '.loc')
+    || str_ends_with($host, '.localhost'));
 
 if (APP_IS_LOCAL) {
     define('_DB_HOST', 'localhost');

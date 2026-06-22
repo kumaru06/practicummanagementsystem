@@ -38,6 +38,22 @@ class Email
                 throw new RuntimeException('PHPMailer is not installed on this server.');
             }
             $body = $this->renderTemplate($template, $data);
+
+            if (defined('MAIL_DRIVER') && MAIL_DRIVER === 'file') {
+                $dir = defined('MAIL_FILE_DIR') ? MAIL_FILE_DIR : dirname(__DIR__) . '/uploads/dev-mail';
+                if (!is_dir($dir)) {
+                    mkdir($dir, 0755, true);
+                }
+                $safeType = preg_replace('/[^a-z0-9_-]+/i', '_', $type) ?: 'mail';
+                $file = $dir . '/' . date('Ymd-His') . '-' . $safeType . '.html';
+                $html = '<!-- To: ' . htmlspecialchars($recipient) . ' | Subject: ' . htmlspecialchars($subject) . " -->\n" . $body;
+                if (file_put_contents($file, $html) === false) {
+                    throw new RuntimeException('Could not write dev mail file.');
+                }
+                $status = 'sent';
+                return true;
+            }
+
             $mail = new PHPMailer(true);
             $this->configureMailer($mail);
             $mail->setFrom(MAIL_FROM_EMAIL, MAIL_FROM_NAME);
@@ -72,6 +88,7 @@ class Email
             if (isset($mail) && $mail instanceof PHPMailer && $mail->ErrorInfo !== '') {
                 $error = trim($mail->ErrorInfo);
             }
+            $error = mail_error_hint($error);
             return false;
         } finally {
             $stmt = $this->db->prepare('INSERT INTO email_logs (recipient_email, subject, type, sent_at, status, error_message) VALUES (?, ?, ?, NOW(), ?, ?)');
