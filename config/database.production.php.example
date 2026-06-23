@@ -1,0 +1,7 @@
+<?php
+// Copy to database.production.php on the server only (never commit the real file).
+// hPanel → Databases → MySQL Databases. PHP uses host "localhost".
+define('_DB_HOST', 'localhost');
+define('_DB_NAME', 'u859158056_your_database');
+define('_DB_USER', 'u859158056_your_user');
+define('_DB_PASS', 'your_mysql_password');

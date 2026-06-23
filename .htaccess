@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# Native replacements for the Laravel role-specific login portals.
+RewriteRule ^(admin|coordinator|student|partner)/login/?$ auth.php?portal=$1 [L,QSA]
+
+# Route clean dashboard URLs to the native front controller.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [L,QSA]
