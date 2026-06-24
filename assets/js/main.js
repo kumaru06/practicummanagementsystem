@@ -229,7 +229,7 @@ function initStudentMobileTapProxy() {
     let suppressUntil = 0;
     const isMobileStudentLayout = () => window.matchMedia('(max-width: 720px)').matches;
     const clickableSelector = 'button,a,input:not([type="hidden"]),textarea,select,[data-time-lock-toggle],[data-time-picker-trigger],.filter-date-trigger';
-    const skipSelector = '.notif-panel,.topbar,.sidebar,.student-bottom-nav-root,.global-cal-panel,.global-datetime-panel,.dtr-time-panel,.student-nav-sheet-backdrop,.nav-group-items,.chat-app';
+    const skipSelector = '.notif-panel,.topbar,.sidebar,.student-bottom-nav-root,.global-cal-panel,.global-datetime-panel,.dtr-time-panel,.student-nav-sheet-backdrop,.nav-group-items,[data-docs-sheet="1"],.student-docs-sheet-item,.chat-app';
 
     const findContentControl = (x, y) => {
         const content = document.querySelector('.role-student .content');
@@ -1230,7 +1230,35 @@ function initStudentMobileNav() {
         document.body.appendChild(backdrop);
     }
 
+    const docsItemsEl = docsGroup.querySelector('.nav-group-items');
+    let docsItemsAnchor = docsItemsEl
+        ? { parent: docsItemsEl.parentElement, next: docsItemsEl.nextSibling }
+        : null;
+
+    const portalDocsItems = () => {
+        const items = docsGroup.querySelector('.nav-group-items')
+            || document.querySelector('.nav-group-items[data-docs-sheet="1"]');
+        if (!items || items.dataset.docsSheet === '1') return;
+        docsItemsAnchor = { parent: items.parentElement, next: items.nextSibling };
+        items.dataset.docsSheet = '1';
+        items.classList.add('nav-group-items--sheet-open');
+        document.body.appendChild(items);
+    };
+
+    const unportalDocsItems = () => {
+        const items = document.querySelector('.nav-group-items[data-docs-sheet="1"]');
+        if (!items) return;
+        items.classList.remove('nav-group-items--sheet-open');
+        delete items.dataset.docsSheet;
+        if (docsItemsAnchor?.parent) {
+            docsItemsAnchor.parent.insertBefore(items, docsItemsAnchor.next);
+        } else {
+            docsGroup.appendChild(items);
+        }
+    };
+
     const closeDocsSheet = () => {
+        unportalDocsItems();
         docsGroup.classList.remove('open');
         toggle?.setAttribute('aria-expanded', 'false');
         backdrop.classList.remove('is-visible');
@@ -1239,11 +1267,13 @@ function initStudentMobileNav() {
     const openDocsSheet = () => {
         docsGroup.classList.add('open');
         toggle?.setAttribute('aria-expanded', 'true');
+        portalDocsItems();
         backdrop.classList.add('is-visible');
     };
 
     const syncMobileDocsState = () => {
         if (mq.matches) {
+            unportalDocsItems();
             docsGroup.classList.remove('open');
             toggle?.setAttribute('aria-expanded', 'false');
             backdrop.classList.remove('is-visible');
@@ -1344,6 +1374,10 @@ function initCharacterCounters() {
 let _dtrTimePanel = null;
 let _dtrTimeContext = null;
 let _dtrTimeState = null;
+
+function hasDtrTimeValue(value) {
+    return /^\d{1,2}:\d{2}/.test(String(value || '').trim());
+}
 
 function formatDtrTimeDisplay(value) {
     const match = String(value || '').match(/^(\d{1,2}):(\d{2})/);
@@ -1531,7 +1565,7 @@ function initDtrTimeLocks() {
             trigger: group.querySelector('[data-time-picker-trigger]'),
             display: group.querySelector('[data-time-display]'),
             button: group.querySelector('[data-time-lock-toggle]'),
-            locked: group.dataset.savedLocked === '1' && !!group.querySelector('[data-lockable-time]')?.value?.trim(),
+            locked: group.dataset.savedLocked === '1' && hasDtrTimeValue(group.querySelector('[data-lockable-time]')?.value),
         })).filter(item => item.input && item.button && item.trigger && item.display);
         const tasks = form.querySelector('[data-dtr-tasks]');
         const submit = form.querySelector('[data-dtr-submit]');
@@ -1603,7 +1637,7 @@ function initDtrTimeLocks() {
                 const fieldName = item.input.name;
                 if (!fieldName) return;
                 body.set(fieldName, item.input.value || '');
-                body.set(`${fieldName}_locked`, item.locked && item.input.value ? '1' : '0');
+                body.set(`${fieldName}_locked`, item.locked && hasDtrTimeValue(item.input.value) ? '1' : '0');
             });
             return fetch('index.php', {
                 method: 'POST',
@@ -1644,9 +1678,14 @@ function initDtrTimeLocks() {
             form.classList.toggle('dtr-leave-mode', !config.needsTimes);
 
             groups.forEach((item, index) => {
+                if (!hasDtrTimeValue(item.input.value)) {
+                    item.locked = false;
+                }
+
                 const isRequired = required.includes(index);
                 const reqPos = required.indexOf(index);
                 const mustWait = isRequired && reqPos > 0 && !groups[required[reqPos - 1]]?.locked;
+                const isSaved = item.locked && hasDtrTimeValue(item.input.value);
 
                 item.group.toggleAttribute('hidden', !isRequired);
                 item.input.disabled = false;
@@ -1661,22 +1700,22 @@ function initDtrTimeLocks() {
                     return;
                 }
 
-                item.trigger.setAttribute('aria-disabled', String(mustWait || item.locked));
+                item.trigger.setAttribute('aria-disabled', String(mustWait || isSaved));
                 item.button.setAttribute('aria-disabled', String(mustWait));
                 item.display.textContent = formatDtrTimeDisplay(item.input.value);
-                item.group.classList.toggle('is-locked', item.locked);
+                item.group.classList.toggle('is-locked', isSaved);
                 item.group.classList.toggle('is-waiting', mustWait);
-                item.group.classList.toggle('has-time', !!item.input.value);
+                item.group.classList.toggle('has-time', hasDtrTimeValue(item.input.value));
                 const labelSpan = item.button.querySelector('.dtr-time-lock-btn-text');
-                const nextLabel = item.locked ? item.button.dataset.editLabel : item.button.dataset.applyLabel;
+                const nextLabel = isSaved ? item.button.dataset.editLabel : item.button.dataset.applyLabel;
                 if (labelSpan) labelSpan.textContent = nextLabel;
                 else item.button.textContent = nextLabel;
-                item.button.classList.toggle('is-edit-mode', item.locked);
+                item.button.classList.toggle('is-edit-mode', isSaved);
                 item.button.setAttribute('aria-label', nextLabel);
-                item.group.querySelector('[data-time-lock-badge]')?.toggleAttribute('hidden', !item.locked);
+                item.group.querySelector('[data-time-lock-badge]')?.toggleAttribute('hidden', !isSaved);
             });
 
-            const timesReady = !config.needsTimes || required.every(index => groups[index]?.locked && groups[index]?.input?.value);
+            const timesReady = !config.needsTimes || required.every(index => groups[index]?.locked && hasDtrTimeValue(groups[index]?.input?.value));
             const dateReady = !!workDateInput?.value?.trim();
             const tasksReady = !!tasks.value.trim();
             const canSubmit = dateReady && tasksReady && timesReady;
@@ -1781,7 +1820,7 @@ function initDtrTimeLocks() {
                     item.trigger.focus();
                     return;
                 }
-                if (!item.input.value) {
+                if (!hasDtrTimeValue(item.input.value)) {
                     item.group.classList.add('needs-time');
                     openPicker();
                     return;
@@ -2309,10 +2348,14 @@ function handleOutsideMenus(event) {
     const docsGroup = document.querySelector('.role-student .nav-group--student-docs.open');
     if (docsGroup && window.matchMedia('(max-width: 720px)').matches) {
         const backdrop = document.querySelector('.student-nav-sheet-backdrop');
-        if (!docsGroup.contains(event.target) && event.target !== backdrop) {
-            docsGroup.classList.remove('open');
-            docsGroup.querySelector('.nav-group-toggle')?.setAttribute('aria-expanded', 'false');
-            backdrop?.classList.remove('is-visible');
+        const portaledItems = document.querySelector('.nav-group-items[data-docs-sheet="1"]');
+        const clickedInside = docsGroup.contains(event.target)
+            || portaledItems?.contains(event.target)
+            || event.target === backdrop;
+        if (!clickedInside) {
+            window.dispatchEvent(new CustomEvent('student-nav-docs-toggle', {
+                detail: { group: docsGroup, open: false },
+            }));
         }
     }
 }

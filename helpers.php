@@ -372,6 +372,16 @@ function format_dtr_day_type_label(?string $dayType): string
     return dtr_day_types()[$dayType];
 }
 
+function dtr_time_has_value(?string $time): bool
+{
+    return (bool) preg_match('/^\d{1,2}:\d{2}/', trim((string)$time));
+}
+
+function dtr_field_is_locked(array $draft, string $field): bool
+{
+    return !empty($draft[$field . '_locked']) && dtr_time_has_value($draft[$field] ?? null);
+}
+
 function format_dtr_time_display(?string $time): string
 {
     $time = trim((string)$time);

@@ -87,6 +87,13 @@ class Report
             $draft['morning_time_out_locked'] = $draft['time_out_locked'];
         }
 
+        foreach (['morning_time_in', 'morning_time_out', 'afternoon_time_in', 'afternoon_time_out'] as $field) {
+            if (!dtr_time_has_value($draft[$field] ?? null)) {
+                $draft[$field] = '';
+                $draft[$field . '_locked'] = 0;
+            }
+        }
+
         $draft['day_type'] = normalize_dtr_day_type($draft['day_type'] ?? 'full');
 
         return $draft;
@@ -112,6 +119,10 @@ class Report
         $morningOutNorm = $this->normalizeDraftTime($morningOut);
         $afternoonInNorm = $this->normalizeDraftTime($afternoonIn);
         $afternoonOutNorm = $this->normalizeDraftTime($afternoonOut);
+        $morningInLocked = $morningInLocked && $morningInNorm !== null;
+        $morningOutLocked = $morningOutLocked && $morningOutNorm !== null;
+        $afternoonInLocked = $afternoonInLocked && $afternoonInNorm !== null;
+        $afternoonOutLocked = $afternoonOutLocked && $afternoonOutNorm !== null;
 
         $stmt = $this->db->prepare(
             'INSERT INTO dtr_drafts (

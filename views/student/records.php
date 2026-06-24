@@ -6,9 +6,6 @@
     <?php $dtrDraft = $dtrDraft ?? []; ?>
     <?php $dtrDayType = normalize_dtr_day_type($dtrDraft['day_type'] ?? 'full'); ?>
     <?php
-    $dtrTimeLocked = static function (array $draft, string $field): bool {
-        return !empty($draft[$field . '_locked']) && trim((string)($draft[$field] ?? '')) !== '';
-    };
     $renderDtrTimeLock = static function (
         string $label,
         string $name,
@@ -104,7 +101,7 @@
                             'Time In',
                             'morning_time_in',
                             $dtrDraft['morning_time_in'] ?? '',
-                            $dtrTimeLocked($dtrDraft, 'morning_time_in'),
+                            dtr_field_is_locked($dtrDraft, 'morning_time_in'),
                             'Save',
                             'Undo'
                         ); ?>
@@ -112,7 +109,7 @@
                             'Time Out',
                             'morning_time_out',
                             $dtrDraft['morning_time_out'] ?? '',
-                            $dtrTimeLocked($dtrDraft, 'morning_time_out'),
+                            dtr_field_is_locked($dtrDraft, 'morning_time_out'),
                             'Save',
                             'Undo'
                         ); ?>
@@ -137,7 +134,7 @@
                             'Time In',
                             'afternoon_time_in',
                             $dtrDraft['afternoon_time_in'] ?? '',
-                            $dtrTimeLocked($dtrDraft, 'afternoon_time_in'),
+                            dtr_field_is_locked($dtrDraft, 'afternoon_time_in'),
                             'Save',
                             'Undo'
                         ); ?>
@@ -145,7 +142,7 @@
                             'Time Out',
                             'afternoon_time_out',
                             $dtrDraft['afternoon_time_out'] ?? '',
-                            $dtrTimeLocked($dtrDraft, 'afternoon_time_out'),
+                            dtr_field_is_locked($dtrDraft, 'afternoon_time_out'),
                             'Save',
                             'Undo'
                         ); ?>

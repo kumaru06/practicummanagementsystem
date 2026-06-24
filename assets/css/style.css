@@ -4842,6 +4842,10 @@ small,
     color: #64748b;
 }
 
+.dtr-time-lock-badge[hidden] {
+    display: none !important;
+}
+
 .dtr-time-lock-badge {
     display: inline-flex;
     align-items: center;
@@ -10450,7 +10454,7 @@ small,
         margin-left: 0;
         overflow-x: hidden;
         padding-top: calc(72px + env(safe-area-inset-top));
-        padding-bottom: 106px;
+        padding-bottom: calc(112px + env(safe-area-inset-bottom));
     }
 
     .role-student .topbar {
@@ -10815,7 +10819,7 @@ small,
         color: #fff;
     }
 
-    .role-student .nav-group--student-docs.nav-group--active:not(.open) .nav-group-items {
+    .role-student .nav-group--student-docs.nav-group--active:not(.open) .nav-group-items:not(.nav-group-items--sheet-open) {
         display: none;
     }
 
@@ -10833,10 +10837,10 @@ small,
         border-radius: 20px;
         background: linear-gradient(135deg, rgba(111,17,17,0.98), rgba(162,29,29,0.98));
         box-shadow: 0 18px 45px rgba(73, 19, 19, 0.32);
-        backdrop-filter: blur(18px);
     }
 
-    .role-student .nav-group.open .nav-group-items {
+    .role-student .nav-group.open .nav-group-items,
+    .role-student .nav-group-items.nav-group-items--sheet-open {
         display: flex;
     }
 
@@ -10848,18 +10852,71 @@ small,
         padding: 10px 12px;
         border-radius: 14px;
         text-align: left;
+        color: #fff;
+        overflow: visible;
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    .role-student .nav-group-items .nav-link:hover,
+    .role-student .nav-group-items .nav-link:focus-visible {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.14);
     }
 
     .role-student .nav-group-items .nav-link span {
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
-        font-size: 0.76rem;
+        display: block;
+        overflow: visible;
+        white-space: normal;
+        -webkit-line-clamp: unset;
+        line-clamp: unset;
+        -webkit-box-orient: unset;
+        font-size: 0.84rem;
+        font-weight: 700;
+        line-height: 1.35;
+        color: #fff;
+        -webkit-text-fill-color: #fff;
+        opacity: 1;
     }
 
     .role-student .nav-group-items .nav-link svg {
         width: 18px;
         height: 18px;
         flex-shrink: 0;
+        fill: currentColor;
+        color: #fff;
+        opacity: 1;
+    }
+
+    .role-student .student-docs-sheet-item,
+    .role-student .student-docs-sheet-item:hover,
+    .role-student .student-docs-sheet-item:focus-visible,
+    .role-student .student-docs-sheet-item.active {
+        color: #fff !important;
+        overflow: visible !important;
+        -webkit-tap-highlight-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .role-student .student-docs-sheet-item span {
+        display: block !important;
+        overflow: visible !important;
+        white-space: normal !important;
+        -webkit-line-clamp: unset !important;
+        line-clamp: unset !important;
+        -webkit-box-orient: unset !important;
+        font-size: 0.88rem !important;
+        font-weight: 700 !important;
+        line-height: 1.35 !important;
+        color: #fff !important;
+        -webkit-text-fill-color: #fff !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    .role-student .student-docs-sheet-item svg,
+    .role-student .student-docs-sheet-item svg path {
+        fill: #fff !important;
+        color: #fff !important;
+        opacity: 1 !important;
     }
 
     .role-student .student-nav-sheet-backdrop {
@@ -10941,9 +10998,9 @@ small,
     }
 
     .role-student .student-hero-copy h2 {
-        max-width: 12ch;
-        font-size: clamp(2rem, 12vw, 2.75rem);
-        letter-spacing: -0.07em;
+        max-width: none;
+        font-size: clamp(1.65rem, 8vw, 2.25rem);
+        letter-spacing: -0.05em;
     }
 
     .role-student .student-hero-copy p {
@@ -15376,6 +15433,10 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
     .student-dash-v2 .sd-progress-card {
         grid-row: auto;
     }
+
+    .student-dash-v2 .sd-hero {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 720px) {
@@ -15384,7 +15445,55 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
     }
 
     .student-dash-v2 .sd-hero {
-        padding: 22px 18px;
+        grid-template-columns: 1fr;
+        gap: 18px;
+        padding: 20px 16px;
+    }
+
+    .student-dash-v2 .sd-hero-copy {
+        order: 1;
+        min-width: 0;
+    }
+
+    .student-dash-v2 .sd-hero-panel {
+        order: 2;
+        width: 100%;
+        min-height: 0;
+        padding: 18px;
+    }
+
+    .student-dash-v2 .sd-hero-copy h2,
+    .role-student .student-dash-v2 .student-hero-copy h2 {
+        max-width: none;
+        font-size: clamp(1.65rem, 8vw, 2.25rem);
+        line-height: 1.12;
+    }
+
+    .student-dash-v2 .sd-hero-sub,
+    .role-student .student-dash-v2 .student-hero-copy p {
+        max-width: none;
+        font-size: 0.9rem;
+        line-height: 1.55;
+    }
+
+    .student-dash-v2 .sd-hero-actions {
+        margin-top: 16px;
+    }
+
+    .student-dash-v2 .sd-hero-panel-head {
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .student-dash-v2 .sd-hero-panel-brand strong {
+        margin-top: 2px;
+        font-size: 1.15rem;
+    }
+
+    .student-dash-v2 .sd-hero-ring {
+        width: 72px;
+        height: 72px;
     }
 
     .student-dash-v2 .sd-journey {
@@ -15411,14 +15520,6 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
         grid-column: 1 / -1;
         width: 100%;
         justify-content: center;
-    }
-
-    .student-dash-v2 .sd-hero-panel-head {
-        flex-direction: column;
-    }
-
-    .student-dash-v2 .sd-hero-ring {
-        align-self: flex-end;
     }
 
     .student-dash-v2 .sd-status-grid {

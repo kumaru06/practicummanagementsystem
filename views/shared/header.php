@@ -15,7 +15,7 @@ $studentProfileRoute = ($user['role'] ?? '') === 'student' ? route_url('student.
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260618-coordinator-modal">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260624-student-dashboard">
 </head>
 <body class="app-page role-<?= e($user['role'] ?? 'guest') ?>">
 <div class="app-shell">
@@ -68,9 +68,9 @@ $studentProfileRoute = ($user['role'] ?? '') === 'student' ? route_url('student.
                         <svg class="chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
                     </button>
                     <div class="nav-group-items" role="menu">
-                        <a class="nav-link nav-sub <?= $currentRoute === 'student_documents' ? 'active' : '' ?>" href="index.php?r=student_documents" role="menuitem"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z"/></svg><span>Pre-Deployment</span></a>
-                        <a class="nav-link nav-sub <?= $currentRoute === 'student_documents_final' ? 'active' : '' ?>" href="index.php?r=student_documents_final" role="menuitem"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5ZM8 13h8v2H8v-2Zm0 4h8v2H8v-2Z"/></svg><span>Final Requirement</span></a>
-                        <a class="nav-link nav-sub <?= $currentRoute === 'student_documents_other' ? 'active' : '' ?>" href="index.php?r=student_documents_other" role="menuitem"><svg viewBox="0 0 24 24"><path d="M4 4h7l2 2h7v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg><span>Other Documents</span></a>
+                        <a class="nav-link nav-sub student-docs-sheet-item <?= $currentRoute === 'student_documents' ? 'active' : '' ?>" href="index.php?r=student_documents" role="menuitem"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z"/></svg><span>Pre-Deployment</span></a>
+                        <a class="nav-link nav-sub student-docs-sheet-item <?= $currentRoute === 'student_documents_final' ? 'active' : '' ?>" href="index.php?r=student_documents_final" role="menuitem"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5ZM8 13h8v2H8v-2Zm0 4h8v2H8v-2Z"/></svg><span>Final Requirement</span></a>
+                        <a class="nav-link nav-sub student-docs-sheet-item <?= $currentRoute === 'student_documents_other' ? 'active' : '' ?>" href="index.php?r=student_documents_other" role="menuitem"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 4h7l2 2h7v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg><span>Other Documents</span></a>
                     </div>
                 </div>
                 <a class="nav-link <?= $currentRoute === 'student_evaluation' ? 'active' : '' ?>" href="index.php?r=student_evaluation"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z"/></svg><span class="nav-link-label nav-link-label--full">Evaluation</span><span class="nav-link-label nav-link-label--short" aria-hidden="true">Eval</span></a>
