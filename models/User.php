@@ -167,6 +167,25 @@ class User
         $stmt->execute([password_hash($password, PASSWORD_DEFAULT), $passwordChanged, $id]);
     }
 
+    public function verifyPassword(int $id, string $password): bool
+    {
+        $user = $this->find($id);
+        if (!$user) {
+            return false;
+        }
+        return password_verify($password, (string)$user['password_hash']);
+    }
+
+    public function updateName(int $id, string $name): void
+    {
+        $name = trim($name);
+        if ($name === '') {
+            throw new RuntimeException('Company name is required.');
+        }
+        $stmt = $this->db->prepare('UPDATE users SET name = ? WHERE id = ?');
+        $stmt->execute([$name, $id]);
+    }
+
     public function updateEmail(int $id, string $email): void
     {
         $email = strtolower(trim($email));

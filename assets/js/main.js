@@ -28,6 +28,7 @@
     initConfirmActions();
     initStudentMobileTapProxy();
     initStudentProfilePhotoPreview();
+    initPartnerPasswordChange();
     document.querySelectorAll('.data-table').forEach(table => enhanceTable(table));
     document.querySelector('#modal .modal-close')?.addEventListener('click', closeSlidePanel);
     document.addEventListener('click', handleOutsideMenus);
@@ -1309,6 +1310,176 @@ function initToasts() {
     document.querySelectorAll('.toast').forEach((toast, i) => {
         setTimeout(() => toast.classList.add('show'), 80 + i * 120);
         setTimeout(() => toast.classList.remove('show'), 4200 + i * 150);
+    });
+}
+
+function pushAppToast(message, type = 'success') {
+    const stack = document.querySelector('.toast-stack');
+    if (!stack || !message) return;
+    const toast = document.createElement('div');
+    toast.className = `toast ${type === 'error' ? 'danger' : 'success'}`;
+    toast.textContent = message;
+    stack.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('show'));
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 220);
+    }, 4200);
+}
+
+function setPartnerPasswordFeedback(form, message, isError = true) {
+    const feedback = form?.querySelector('[data-password-feedback]');
+    if (!feedback) return;
+    if (!message) {
+        feedback.hidden = true;
+        feedback.textContent = '';
+        feedback.classList.remove('is-error', 'is-success');
+        return;
+    }
+    feedback.hidden = false;
+    feedback.textContent = message;
+    feedback.classList.toggle('is-error', isError);
+    feedback.classList.toggle('is-success', !isError);
+}
+
+async function parseJsonResponse(response, fallbackMessage = 'Something went wrong. Please try again.') {
+    const raw = await response.text();
+    try {
+        return JSON.parse(raw);
+    } catch {
+        throw new Error(fallbackMessage);
+    }
+}
+
+function initPartnerPasswordChange() {
+    const root = document.querySelector('[data-partner-password-flow]');
+    if (!root) return;
+
+    const verifyStep = root.querySelector('[data-password-step="verify"]');
+    const changeStep = root.querySelector('[data-password-step="change"]');
+    const verifyForm = root.querySelector('[data-partner-verify-password]');
+    const changeForm = root.querySelector('[data-partner-change-password]');
+    const backBtn = root.querySelector('[data-partner-password-back]');
+    let verifiedCurrentPassword = '';
+
+    const showVerifyStep = () => {
+        verifiedCurrentPassword = '';
+        changeStep?.classList.remove('is-visible');
+        changeStep?.setAttribute('hidden', '');
+        verifyStep?.removeAttribute('hidden');
+        requestAnimationFrame(() => verifyStep?.classList.add('is-visible'));
+        changeForm?.reset();
+        setPartnerPasswordFeedback(changeForm, '');
+        verifyForm?.querySelector('[data-partner-current-password]')?.focus();
+    };
+
+    const showChangeStep = () => {
+        verifyStep?.classList.remove('is-visible');
+        verifyStep?.setAttribute('hidden', '');
+        changeStep?.removeAttribute('hidden');
+        requestAnimationFrame(() => {
+            changeStep?.classList.add('is-visible');
+            changeForm?.querySelector('input[name="password"]')?.focus();
+        });
+        setPartnerPasswordFeedback(verifyForm, '');
+    };
+
+    verifyStep?.classList.add('is-visible');
+
+    verifyForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const submitBtn = verifyForm.querySelector('button[type="submit"]');
+        const currentInput = verifyForm.querySelector('[data-partner-current-password]');
+        const currentPassword = currentInput?.value || '';
+        if (!currentPassword) {
+            currentInput?.focus();
+            setPartnerPasswordFeedback(verifyForm, 'Enter your current password.');
+            return;
+        }
+
+        submitBtn?.classList.add('loading');
+        submitBtn && (submitBtn.disabled = true);
+        setPartnerPasswordFeedback(verifyForm, '');
+
+        try {
+            const response = await fetch('index.php', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: new FormData(verifyForm),
+            });
+            const data = await parseJsonResponse(response, 'Unable to verify your password. Please try again.');
+            if (!response.ok || !data.ok) {
+                throw new Error(data.message || 'Current password is incorrect.');
+            }
+            verifiedCurrentPassword = currentPassword;
+            showChangeStep();
+        } catch (error) {
+            setPartnerPasswordFeedback(verifyForm, error.message || 'Unable to verify your password.');
+            currentInput?.focus();
+            currentInput?.select();
+        } finally {
+            submitBtn?.classList.remove('loading');
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    });
+
+    changeForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const submitBtn = changeForm.querySelector('button[type="submit"]');
+        const password = changeForm.querySelector('input[name="password"]')?.value || '';
+        const confirmPassword = changeForm.querySelector('input[name="confirm_password"]')?.value || '';
+
+        if (!verifiedCurrentPassword) {
+            showVerifyStep();
+            setPartnerPasswordFeedback(verifyForm, 'Please verify your current password first.');
+            return;
+        }
+        if (password.length < 8) {
+            setPartnerPasswordFeedback(changeForm, 'Password must be at least 8 characters.');
+            return;
+        }
+        if (password !== confirmPassword) {
+            setPartnerPasswordFeedback(changeForm, 'Passwords do not match.');
+            return;
+        }
+
+        submitBtn?.classList.add('loading');
+        submitBtn && (submitBtn.disabled = true);
+        setPartnerPasswordFeedback(changeForm, '');
+
+        const formData = new FormData(changeForm);
+        formData.set('current_password', verifiedCurrentPassword);
+
+        try {
+            const response = await fetch('index.php', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData,
+            });
+            const data = await parseJsonResponse(response, 'Unable to change your password. Please try again.');
+            if (!response.ok || !data.ok) {
+                throw new Error(data.message || 'Unable to change your password.');
+            }
+            pushAppToast(data.message || 'Password changed successfully.');
+            const redirectTo = data.redirect || 'index.php?r=partner_settings';
+            setTimeout(() => {
+                window.location.href = redirectTo;
+            }, 700);
+        } catch (error) {
+            if ((error.message || '').toLowerCase().includes('current password')) {
+                showVerifyStep();
+                setPartnerPasswordFeedback(verifyForm, error.message);
+            } else {
+                setPartnerPasswordFeedback(changeForm, error.message || 'Unable to change your password.');
+            }
+        } finally {
+            submitBtn?.classList.remove('loading');
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    });
+
+    backBtn?.addEventListener('click', () => {
+        showVerifyStep();
     });
 }
 

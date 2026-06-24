@@ -517,4 +517,171 @@ class PartnerController extends BaseController
             exit('Error generating endorsement letter: ' . $e->getMessage());
         }
     }
+
+    public function settings(): void
+    {
+        require_role('partner');
+        $company = (new Company($this->db))->findByUser((int)current_user()['id']);
+        $this->render('partner/settings', [
+            'title' => 'Settings',
+            'company' => $company,
+        ]);
+    }
+
+    public function profileForm(): void
+    {
+        require_role('partner');
+        $company = (new Company($this->db))->findByUser((int)current_user()['id']);
+        if (!$company) {
+            flash('error', 'Industry Partner profile not found.');
+            redirect('index.php?r=partner_settings');
+        }
+        $this->render('partner/profile', [
+            'title' => 'Edit Profile',
+            'company' => $company,
+        ]);
+    }
+
+    public function saveProfile(): void
+    {
+        require_role('partner');
+        $p = $this->post();
+        $company = (new Company($this->db))->findByUser((int)current_user()['id']);
+        if (!$company) {
+            flash('error', 'Industry Partner profile not found.');
+            redirect('index.php?r=partner_settings');
+        }
+        try {
+            $companyName = trim((string)($p['company_name'] ?? ''));
+            $contactPerson = trim((string)($p['contact_person'] ?? ''));
+            $contactEmail = strtolower(trim((string)($p['contact_email'] ?? '')));
+            $address = trim((string)($p['address'] ?? ''));
+            $contactNumberRaw = trim((string)($p['contact_number'] ?? ''));
+
+            if ($companyName === '' || $contactPerson === '' || $contactEmail === '' || $address === '' || $contactNumberRaw === '') {
+                throw new RuntimeException('Please complete all required profile fields.');
+            }
+            if (!filter_var($contactEmail, FILTER_VALIDATE_EMAIL)) {
+                throw new RuntimeException('Enter a valid email address.');
+            }
+
+            $contactNumberDigits = preg_replace('/\D+/', '', $contactNumberRaw);
+            if (str_starts_with($contactNumberDigits, '63')) {
+                $contactNumberDigits = substr($contactNumberDigits, 2);
+            }
+            if (str_starts_with($contactNumberDigits, '0')) {
+                $contactNumberDigits = substr($contactNumberDigits, 1);
+            }
+            if (!preg_match('/^9\d{9}$/', $contactNumberDigits)) {
+                throw new RuntimeException('Contact number must be a valid Philippine mobile number.');
+            }
+            $contactNumber = '+63 ' . substr($contactNumberDigits, 0, 3) . ' ' . substr($contactNumberDigits, 3, 3) . ' ' . substr($contactNumberDigits, 6, 4);
+
+            $userId = (int)current_user()['id'];
+            $this->db->beginTransaction();
+            (new User($this->db))->updateName($userId, $companyName);
+            (new User($this->db))->updateEmail($userId, $contactEmail);
+            (new Company($this->db))->updateProfile(
+                (int)$company['id'],
+                $companyName,
+                $address,
+                $contactPerson,
+                $contactEmail,
+                $contactNumber
+            );
+            $this->db->commit();
+            $_SESSION['user']['name'] = $companyName;
+            $_SESSION['user']['email'] = $contactEmail;
+            flash('success', 'Profile updated successfully.');
+            redirect('index.php?r=partner_profile');
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            $msg = str_contains($e->getMessage(), '1062') || str_contains($e->getMessage(), 'Duplicate entry')
+                ? 'That email address is already in use by another account.'
+                : $e->getMessage();
+            flash('error', $msg);
+            redirect('index.php?r=partner_profile');
+        }
+    }
+
+    public function changePasswordForm(): void
+    {
+        require_role('partner');
+        $this->render('partner/change_password', [
+            'title' => 'Change Password',
+            'csrfToken' => csrf_token(),
+        ]);
+    }
+
+    public function verifyCurrentPassword(): void
+    {
+        require_role('partner');
+        verify_csrf();
+        header('Content-Type: application/json; charset=utf-8');
+
+        $currentPassword = (string)($_POST['current_password'] ?? '');
+        if ($currentPassword === '') {
+            http_response_code(422);
+            echo json_encode(['ok' => false, 'message' => 'Enter your current password.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $verified = (new User($this->db))->verifyPassword((int)current_user()['id'], $currentPassword);
+        if (!$verified) {
+            http_response_code(401);
+            echo json_encode(['ok' => false, 'message' => 'Current password is incorrect.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    public function changePassword(): void
+    {
+        require_role('partner');
+        header('Content-Type: application/json; charset=utf-8');
+
+        try {
+            $p = $this->post();
+            $currentPassword = (string)($p['current_password'] ?? '');
+            $password = (string)($p['password'] ?? '');
+            $confirm = (string)($p['confirm_password'] ?? '');
+            $userId = (int)current_user()['id'];
+
+            if ($currentPassword === '') {
+                throw new RuntimeException('Current password is required.');
+            }
+            if (!(new User($this->db))->verifyPassword($userId, $currentPassword)) {
+                http_response_code(401);
+                throw new RuntimeException('Current password is incorrect.');
+            }
+            if (strlen($password) < 8) {
+                throw new RuntimeException('Password must be at least 8 characters.');
+            }
+            if ($password !== $confirm) {
+                throw new RuntimeException('Passwords do not match.');
+            }
+            if (password_verify($password, (string)((new User($this->db))->find($userId)['password_hash'] ?? ''))) {
+                throw new RuntimeException('New password must be different from your current password.');
+            }
+
+            (new User($this->db))->updatePassword($userId, $password, 1);
+            $_SESSION['user']['password_changed'] = 1;
+
+            echo json_encode([
+                'ok' => true,
+                'message' => 'Password changed successfully.',
+                'redirect' => route_url('partner.settings'),
+            ], JSON_UNESCAPED_UNICODE);
+        } catch (Throwable $e) {
+            if (http_response_code() === 200) {
+                http_response_code(400);
+            }
+            echo json_encode(['ok' => false, 'message' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+        }
+        exit;
+    }
 }

@@ -63,6 +63,20 @@ class Company
         return $stmt->fetch() ?: null;
     }
 
+    public function updateProfile(int $companyId, string $name, string $address, string $contactPerson, string $contactEmail, string $contactNumber): void
+    {
+        $this->ensureMoaMouSupport();
+        $stmt = $this->db->prepare('UPDATE partner_companies SET name = ?, address = ?, contact_person = ?, contact_email = ?, contact_number = ? WHERE id = ?');
+        $stmt->execute([
+            trim($name),
+            trim($address),
+            trim($contactPerson),
+            strtolower(trim($contactEmail)),
+            trim($contactNumber),
+            $companyId,
+        ]);
+    }
+
     public function count(): int
     {
         return (int)$this->db->query('SELECT COUNT(*) FROM partner_companies')->fetchColumn();

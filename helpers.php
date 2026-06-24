@@ -61,6 +61,9 @@ function route_url(string $route, array $params = []): string
         'partner.evaluate' => 'index.php?r=partner_evaluate',
         'partner.submissions' => 'index.php?r=partner_submissions',
         'partner.view_endorsement' => 'index.php?r=partner_view_endorsement',
+        'partner.settings' => 'index.php?r=partner_settings',
+        'partner.profile' => 'index.php?r=partner_profile',
+        'partner.password.edit' => 'index.php?r=partner_password',
     ];
     $url = $map[$route] ?? $route;
     if ($params) {

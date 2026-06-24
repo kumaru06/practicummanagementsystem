@@ -44,6 +44,9 @@ $pathRoutes = [
     'partner' => 'partner',
     'partner/portal' => 'partner_portal',
     'partner/submissions' => 'partner_submissions',
+    'partner/settings' => 'partner_settings',
+    'partner/profile' => 'partner_profile',
+    'partner/password' => 'partner_password',
     'partner/chat' => 'chat',
 ];
 $route = $_GET['r'] ?? ($pathRoutes[$path] ?? current_user()['role']);
@@ -153,6 +156,9 @@ if ($method === 'POST') {
         'partner/evaluations' => 'partner_submit_evaluation',
         'partner/submissions/dtr/review' => 'partner_review_dtr',
         'partner/submissions/weekly/review' => 'partner_review_weekly',
+        'partner/profile' => 'partner_save_profile',
+        'partner/verify-password' => 'partner_verify_current_password',
+        'partner/change-password' => 'partner_change_password',
     ];
     $action = $_POST['action'] ?? ($pathActionMap[$path] ?? '');
     match ($action) {
@@ -200,6 +206,9 @@ if ($method === 'POST') {
         'partner_submit_evaluation' => (new PartnerController())->submitEvaluation(),
         'partner_review_dtr' => (new PartnerController())->reviewDtr(),
         'partner_review_weekly' => (new PartnerController())->reviewWeekly(),
+        'partner_save_profile' => (new PartnerController())->saveProfile(),
+        'partner_verify_current_password' => (new PartnerController())->verifyCurrentPassword(),
+        'partner_change_password' => (new PartnerController())->changePassword(),
         default => exit('Unknown action'),
     };
 }
@@ -242,5 +251,8 @@ match ($route) {
     'partner_evaluate' => (new PartnerController())->evaluateForm(),
     'partner_submissions' => (new PartnerController())->submissions(),
     'partner_view_endorsement' => (new PartnerController())->viewEndorsementLetter(),
+    'partner_settings' => (new PartnerController())->settings(),
+    'partner_profile' => (new PartnerController())->profileForm(),
+    'partner_password' => (new PartnerController())->changePasswordForm(),
     default => redirect('index.php?r=' . current_user()['role']),
 };
