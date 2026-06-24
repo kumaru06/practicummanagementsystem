@@ -29,6 +29,7 @@
     initStudentMobileTapProxy();
     initStudentProfilePhotoPreview();
     initPartnerPasswordChange();
+    initPartnerPortalRoster();
     document.querySelectorAll('.data-table').forEach(table => enhanceTable(table));
     document.querySelector('#modal .modal-close')?.addEventListener('click', closeSlidePanel);
     document.addEventListener('click', handleOutsideMenus);
@@ -1481,6 +1482,45 @@ function initPartnerPasswordChange() {
     backBtn?.addEventListener('click', () => {
         showVerifyStep();
     });
+}
+
+function initPartnerPortalRoster() {
+    const root = document.querySelector('.partner-portal-v2');
+    if (!root) return;
+
+    const filters = root.querySelectorAll('.pp-filter');
+    const searchInput = root.querySelector('.pp-search-input');
+    const cards = [...root.querySelectorAll('.pp-roster-card')];
+    let activeFilter = 'all';
+
+    const applyRosterFilter = () => {
+        const q = (searchInput?.value || '').trim().toLowerCase();
+        cards.forEach(card => {
+            const groups = (card.dataset.ppGroups || '').split(/\s+/);
+            const matchesFilter = activeFilter === 'all' || groups.includes(activeFilter);
+            const matchesSearch = !q || (card.dataset.ppSearch || '').includes(q);
+            card.classList.toggle('is-hidden', !(matchesFilter && matchesSearch));
+        });
+    };
+
+    filters.forEach(btn => {
+        btn.addEventListener('click', () => {
+            activeFilter = btn.dataset.ppFilter || 'all';
+            filters.forEach(b => {
+                const isActive = b === btn;
+                b.classList.toggle('is-active', isActive);
+                b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            });
+            applyRosterFilter();
+        });
+    });
+
+    searchInput?.addEventListener('input', applyRosterFilter);
+
+    if (location.hash === '#student-workspace') {
+        const workspace = document.getElementById('student-workspace');
+        workspace?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
 function initFloatingLabels() {
