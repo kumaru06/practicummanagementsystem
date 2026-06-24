@@ -47,10 +47,11 @@ class CoordinatorController extends BaseController
         $finalRequirementsByStudent = [];
         $studentEvaluationsByStudent = [];
         foreach ($students as &$student) {
-            $requirementsByStudent[(int)$student['id']] = $studentModel->requirements((int)$student['id']);
-            $student['predeployment_status'] = $studentModel->effectivePredeploymentStatus((int)$student['id'], $student['predeployment_status'] ?? null, $requirementsByStudent[(int)$student['id']]);
-            $finalRequirementsByStudent[(int)$student['id']] = $finalModel->getByStudent((int)$student['id']);
-            $studentEvaluationsByStudent[(int)$student['id']] = $studentEvalModel->getByStudent((int)$student['id']);
+            $studentId = (int)$student['id'];
+            $requirementsByStudent[$studentId] = $studentModel->requirements($studentId);
+            $student['predeployment_status'] = $studentModel->effectivePredeploymentStatus($studentId, $student['predeployment_status'] ?? null, $requirementsByStudent[$studentId]);
+            $finalRequirementsByStudent[$studentId] = $finalModel->getByStudent($studentId);
+            $studentEvaluationsByStudent[$studentId] = $studentEvalModel->getByStudent($studentId);
         }
         unset($student);
         $this->render('coordinator/my_students', [

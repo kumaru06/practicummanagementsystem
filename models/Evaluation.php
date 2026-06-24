@@ -1,6 +1,7 @@
 <?php
 class Evaluation
 {
+    private ?bool $tableReady = null;
     private ?bool $detailReady = null;
 
     public function __construct(private PDO $db) {}
@@ -68,6 +69,32 @@ class Evaluation
     }
 
     /**
+     * Ensures the evaluations table exists (older deployments may be missing it).
+     */
+    private function ensureTable(): void
+    {
+        if ($this->tableReady === true) {
+            return;
+        }
+
+        $this->db->exec('CREATE TABLE IF NOT EXISTS evaluations (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            enrollment_id INT NOT NULL UNIQUE,
+            company_id INT NOT NULL,
+            rating TINYINT NOT NULL,
+            criteria_ratings TEXT NULL,
+            final_grade DECIMAL(5,2) NULL,
+            comments TEXT NOT NULL,
+            certificate_file VARCHAR(255) NULL,
+            submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT fk_eval_enrollment FOREIGN KEY (enrollment_id) REFERENCES ojt_enrollments(id) ON DELETE CASCADE,
+            CONSTRAINT fk_eval_company FOREIGN KEY (company_id) REFERENCES partner_companies(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB');
+
+        $this->tableReady = true;
+    }
+
+    /**
      * Ensures the evaluations table has the extended columns for the
      * detailed criteria ratings, computed grade, and certificate file.
      */
@@ -76,6 +103,8 @@ class Evaluation
         if ($this->detailReady === true) {
             return;
         }
+
+        $this->ensureTable();
 
         $columns = [
             'criteria_ratings' => 'ALTER TABLE evaluations ADD COLUMN criteria_ratings TEXT NULL AFTER rating',
