@@ -62,31 +62,41 @@ $inactiveCoordinators = $totalCoordinators - $activeCoordinators;
 
                 <div class="partner-form-section">
                     <div class="partner-form-section-head">Account Details</div>
-                    <div class="partner-form-fields">
-                        <label class="partner-field">
-                            <span class="partner-field-label">ID Number <em>*</em></span>
-                            <input required name="id_number" autocomplete="off" placeholder="e.g. 20240001"
-                                inputmode="numeric" pattern="[0-9]+"
-                                title="ID Number must contain digits only"
-                                oninput="this.value=this.value.replace(/[^0-9]/g,'')">
-                        </label>
-                        <label class="partner-field">
-                            <span class="partner-field-label">Full Name <em>*</em></span>
-                            <input required name="name" autocomplete="name" placeholder="e.g. Maria Santos"
-                                data-capitalize-words
-                                pattern="[A-Za-z\s\-\.]+"
-                                title="Full Name must contain letters only">
-                        </label>
-                        <label class="partner-field">
-                            <span class="partner-field-label">Email <em>*</em></span>
-                            <input required type="email" name="email" autocomplete="email" placeholder="coordinator@ama.edu.ph"
-                                pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
-                                title="Please enter a valid email address">
-                        </label>
-                        <label class="partner-field">
-                            <span class="partner-field-label">Department <em>*</em></span>
-                            <input required name="department" value="OJT Department">
-                        </label>
+                    <div class="coordinator-form-rows">
+                        <div class="coordinator-form-row">
+                            <label class="partner-field">
+                                <span class="partner-field-label">ID Number <em>*</em></span>
+                                <input required name="id_number" autocomplete="off" placeholder="e.g. 20240001"
+                                    inputmode="numeric" pattern="[0-9]+"
+                                    title="ID Number must contain digits only"
+                                    oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                                    data-coordinator-id-check>
+                                <span class="field-check-message" data-coordinator-id-message hidden aria-live="polite"></span>
+                            </label>
+                            <label class="partner-field">
+                                <span class="partner-field-label">Full Name <em>*</em></span>
+                                <input required name="name" autocomplete="name" placeholder="e.g. Maria Santos"
+                                    data-capitalize-words
+                                    pattern="[A-Za-z\s\-\.]+"
+                                    title="Full Name must contain letters only">
+                                <span class="field-check-message field-check-message--reserve" aria-hidden="true"></span>
+                            </label>
+                        </div>
+                        <div class="coordinator-form-row">
+                            <label class="partner-field">
+                                <span class="partner-field-label">Email <em>*</em></span>
+                                <input required type="email" name="email" autocomplete="email" placeholder="coordinator@ama.edu.ph"
+                                    pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
+                                    title="Please enter a valid email address"
+                                    data-coordinator-email-check>
+                                <span class="field-check-message" data-coordinator-email-message hidden aria-live="polite"></span>
+                            </label>
+                            <label class="partner-field">
+                                <span class="partner-field-label">Department <em>*</em></span>
+                                <input required name="department" value="OJT Department" autocomplete="organization">
+                                <span class="field-check-message field-check-message--reserve" aria-hidden="true"></span>
+                            </label>
+                        </div>
                     </div>
 
                     <label class="partner-field partner-field--full coordinator-upload-field">

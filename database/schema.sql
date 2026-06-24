@@ -55,6 +55,8 @@ CREATE TABLE programs (
 CREATE TABLE program_terms (
   id INT AUTO_INCREMENT PRIMARY KEY,
   term_label VARCHAR(120) NOT NULL UNIQUE,
+  term_start_date DATE NULL,
+  term_end_date DATE NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 

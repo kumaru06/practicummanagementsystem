@@ -110,20 +110,39 @@ class AdminController extends BaseController
         return $term;
     }
 
+    private function validateTermDate(string $value, string $fieldLabel): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            throw new RuntimeException($fieldLabel . ' is required.');
+        }
+        $date = DateTime::createFromFormat('Y-m-d', $value);
+        if (!$date || $date->format('Y-m-d') !== $value) {
+            throw new RuntimeException('Invalid ' . strtolower($fieldLabel) . '. Use the date picker.');
+        }
+        return $value;
+    }
+
     public function saveTerm(): void
     {
         require_role('admin');
         $p = $this->post();
         try {
             $termLabel = $this->validateAcademicTerm((string)($p['term_label'] ?? ''));
+            $startDate = $this->validateTermDate((string)($p['term_start_date'] ?? ''), 'Term start date');
+            $endDate = $this->validateTermDate((string)($p['term_end_date'] ?? ''), 'Term end date');
+            if ($endDate < $startDate) {
+                throw new RuntimeException('Term end date must be on or after the start date.');
+            }
+
             $terms = new Term($this->db);
             $termId = (int)($p['term_id'] ?? 0);
 
             if ($termId > 0) {
-                $terms->update($termId, $termLabel);
+                $terms->update($termId, $termLabel, $startDate, $endDate);
                 flash('success', 'Term updated.');
             } else {
-                $terms->create($termLabel);
+                $terms->create($termLabel, $startDate, $endDate);
                 flash('success', 'Term added.');
             }
         } catch (Throwable $e) {
@@ -249,6 +268,74 @@ class AdminController extends BaseController
             flash('error', $msg);
         }
         redirect('index.php?r=admin_coordinators');
+    }
+
+    public function checkCoordinatorIdNumber(): void
+    {
+        require_role('admin');
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store, no-cache, must-revalidate');
+
+        $idNumber = trim((string)($_GET['id_number'] ?? ''));
+        if ($idNumber === '') {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'message' => 'ID number is required.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if (!ctype_digit($idNumber)) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'message' => 'ID number must contain digits only.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        (new User($this->db))->ensureCoordinatorIdNumberSupport();
+        $excludeUserId = (int)($_GET['exclude_user_id'] ?? 0);
+        $sql = 'SELECT COUNT(*) FROM coordinators c JOIN users u ON u.id = c.user_id WHERE c.id_number = ?';
+        $params = [$idNumber];
+        if ($excludeUserId > 0) {
+            $sql .= ' AND u.id <> ?';
+            $params[] = $excludeUserId;
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        $exists = (int)$stmt->fetchColumn() > 0;
+
+        echo json_encode([
+            'ok' => true,
+            'exists' => $exists,
+            'available' => !$exists,
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    public function checkCoordinatorEmail(): void
+    {
+        require_role('admin');
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store, no-cache, must-revalidate');
+
+        $email = strtolower(trim((string)($_GET['email'] ?? '')));
+        if ($email === '') {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'message' => 'Email is required.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'message' => 'Enter a valid email address.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $excludeUserId = (int)($_GET['exclude_user_id'] ?? 0);
+        $existing = (new User($this->db))->findByEmail($email);
+        $exists = $existing !== null && ($excludeUserId <= 0 || (int)$existing['id'] !== $excludeUserId);
+
+        echo json_encode([
+            'ok' => true,
+            'exists' => $exists,
+            'available' => !$exists,
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
     }
 
     public function updateCoordinator(): void
@@ -392,6 +479,36 @@ class AdminController extends BaseController
         redirect('index.php?r=admin_partners');
     }
 
+    public function checkPartnerEmail(): void
+    {
+        require_role('admin');
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store, no-cache, must-revalidate');
+
+        $email = strtolower(trim((string)($_GET['email'] ?? '')));
+        if ($email === '') {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'message' => 'Email is required.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'message' => 'Enter a valid email address.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $excludeUserId = (int)($_GET['exclude_user_id'] ?? 0);
+        $existing = (new User($this->db))->findByEmail($email);
+        $exists = $existing !== null && ($excludeUserId <= 0 || (int)$existing['id'] !== $excludeUserId);
+
+        echo json_encode([
+            'ok' => true,
+            'exists' => $exists,
+            'available' => !$exists,
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     public function updateCompanyPrograms(): void
     {
         require_role('admin');
@@ -427,14 +544,12 @@ class AdminController extends BaseController
         $p = $this->post();
         try {
             $programs = new Program($this->db);
-            $term = $this->validateAcademicTerm((string)($p['term'] ?? ''));
-            (new Term($this->db))->createIfMissing($term);
 
             if (!empty($p['program_id'])) {
-                $programs->update((int)$p['program_id'], trim($p['code']), trim($p['name']), $term, (int)$p['required_hours'], (int)($p['is_active'] ?? 1));
+                $programs->update((int)$p['program_id'], trim($p['code']), trim($p['name']), (int)$p['required_hours'], (int)($p['is_active'] ?? 1));
                 flash('success', 'Program updated.');
             } else {
-                $programs->create(trim($p['code']), trim($p['name']), $term, (int)$p['required_hours']);
+                $programs->create(trim($p['code']), trim($p['name']), (int)$p['required_hours']);
                 flash('success', 'Program created.');
             }
         } catch (Throwable $e) {

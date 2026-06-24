@@ -92,7 +92,9 @@ $totalPrograms = count($programs);
                     </label>
                     <label class="partner-field">
                         <span class="partner-field-label">Email Address <em>*</em></span>
-                        <input form="create-partner-form" required type="email" name="contact_email" placeholder="partner@company.com" autocomplete="email">
+                        <input form="create-partner-form" required type="email" name="contact_email" placeholder="partner@company.com" autocomplete="email"
+                            data-partner-email-check>
+                        <span class="field-check-message" data-partner-email-message hidden aria-live="polite"></span>
                     </label>
                     <label class="partner-field">
                         <span class="partner-field-label">Contact Number <em>*</em></span>

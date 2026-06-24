@@ -2,9 +2,6 @@
 $totalPrograms = count($programs);
 $activePrograms = count(array_filter($programs, static fn ($program) => (int)($program['is_active'] ?? 0) === 1));
 $inactivePrograms = $totalPrograms - $activePrograms;
-$termSuggestions = array_values(array_unique(array_filter(array_map(static fn(array $term): string => trim((string)($term['term_label'] ?? '')), $terms ?? []))));
-sort($termSuggestions, SORT_NATURAL | SORT_FLAG_CASE);
-$termFormatPattern = '\d{4} \((1st|2nd|3rd) Tri\) - SY \d{4}-\d{4}';
 $totalTerms = count($terms ?? []);
 ?>
 
@@ -13,7 +10,7 @@ $totalTerms = count($terms ?? []);
     <div class="programs-page-intro">
         <div class="programs-page-intro-copy">
             <p class="programs-page-eyebrow">Academic Setup</p>
-            <p class="programs-page-desc">Configure OJT programs, required hours, and academic terms before partners and students are assigned.</p>
+            <p class="programs-page-desc">Configure OJT programs and required hours. Academic terms are managed separately for coordinator enrollment.</p>
         </div>
     </div>
 
@@ -91,29 +88,11 @@ $totalTerms = count($terms ?? []);
                         <input required name="name" placeholder="e.g. Bachelor of Science in Information Technology" autocomplete="off">
                     </label>
 
-                    <div class="programs-form-row">
-                        <label class="programs-field">
-                            <span class="programs-field-label">Required OJT Hours <em>*</em></span>
-                            <input required type="number" min="1" name="required_hours" placeholder="486" inputmode="numeric">
-                        </label>
-                        <label class="programs-field">
-                            <span class="programs-field-label">Term <em>*</em></span>
-                            <select required name="term" data-native-select="1">
-                                <option value="">Select term…</option>
-                                <?php foreach ($termSuggestions as $ts): ?>
-                                    <option value="<?= e($ts) ?>"><?= e($ts) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </label>
-                    </div>
+                    <label class="programs-field">
+                        <span class="programs-field-label">Required OJT Hours <em>*</em></span>
+                        <input required type="number" min="1" name="required_hours" placeholder="486" inputmode="numeric">
+                    </label>
                 </div>
-
-                <?php if (empty($termSuggestions)): ?>
-                    <div class="programs-inline-hint">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                        No terms yet — add one in the Term panel first.
-                    </div>
-                <?php endif; ?>
 
                 <button class="btn programs-add-btn programs-add-btn--secondary" type="submit">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -133,7 +112,7 @@ $totalTerms = count($terms ?? []);
                         <h2>Academic Terms</h2>
                         <span class="programs-count-badge"><?= (int)$totalTerms ?> saved</span>
                     </div>
-                    <p>Create and manage the term list used by programs and courses.</p>
+                    <p>Create terms and date ranges coordinators use when enrolling students.</p>
                 </div>
             </div>
 
@@ -149,6 +128,28 @@ $totalTerms = count($terms ?? []);
                         maxlength="120"
                     >
                 </label>
+                <div class="programs-term-date-row">
+                    <label class="programs-field">
+                        <span class="programs-field-label">Term Start Date <em>*</em></span>
+                        <span class="filter-date-picker form-date-picker is-placeholder" data-date-required="1">
+                            <input type="hidden" name="term_start_date" value="">
+                            <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select term start date">
+                                <span class="filter-date-value">mm/dd/yyyy</span>
+                                <span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span>
+                            </button>
+                        </span>
+                    </label>
+                    <label class="programs-field">
+                        <span class="programs-field-label">Term End Date <em>*</em></span>
+                        <span class="filter-date-picker form-date-picker is-placeholder" data-date-required="1">
+                            <input type="hidden" name="term_end_date" value="">
+                            <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select term end date">
+                                <span class="filter-date-value">mm/dd/yyyy</span>
+                                <span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span>
+                            </button>
+                        </span>
+                    </label>
+                </div>
                 <button class="btn programs-add-btn programs-add-btn--secondary" type="submit">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                     <span class="btn-text">Save Term</span>
@@ -168,20 +169,66 @@ $totalTerms = count($terms ?? []);
                         </div>
                     <?php else: ?>
                         <?php foreach ($terms as $term): ?>
-                            <div class="programs-term-row">
-                                <div class="programs-term-chip">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                    <span class="programs-term-label-text"><?= e($term['term_label']) ?></span>
-                                </div>
-                                <form method="post" class="programs-term-delete-form" onsubmit="return confirm('Delete this term? Programs currently using it will have their term cleared.')">
+                            <?php
+                            $termFormId = 'term-form-' . (int)$term['id'];
+                            $termStart = trim((string)($term['term_start_date'] ?? ''));
+                            $termEnd = trim((string)($term['term_end_date'] ?? ''));
+                            $hasDates = $termStart !== '' && $termEnd !== '';
+                            $displayStart = $hasDates ? date('M j, Y', strtotime($termStart)) : '';
+                            $displayEnd = $hasDates ? date('M j, Y', strtotime($termEnd)) : '';
+                            ?>
+                            <article class="programs-term-item<?= $hasDates ? '' : ' programs-term-item--incomplete' ?>">
+                                <form method="post" id="<?= e($termFormId) ?>" class="programs-term-edit-form">
                                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                    <input type="hidden" name="action" value="admin_delete_term">
+                                    <input type="hidden" name="action" value="admin_save_term">
                                     <input type="hidden" name="term_id" value="<?= (int)$term['id'] ?>">
-                                    <button class="programs-term-delete-btn" type="submit" title="Delete term" aria-label="Delete term">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                                    </button>
+                                    <input type="hidden" name="term_label" value="<?= e($term['term_label']) ?>">
                                 </form>
-                            </div>
+                                <div class="programs-term-item-head">
+                                    <div class="programs-term-chip">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                        <div class="programs-term-copy">
+                                            <span class="programs-term-label-text"><?= e($term['term_label']) ?></span>
+                                            <?php if ($hasDates): ?>
+                                                <small class="programs-term-range"><?= e($displayStart) ?> — <?= e($displayEnd) ?></small>
+                                            <?php else: ?>
+                                                <small class="programs-term-range programs-term-range--warn">Dates not set — add below</small>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <form method="post" class="programs-term-delete-form" onsubmit="return confirm('Delete this term? Coordinators will no longer see it when enrolling students.')">
+                                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                        <input type="hidden" name="action" value="admin_delete_term">
+                                        <input type="hidden" name="term_id" value="<?= (int)$term['id'] ?>">
+                                        <button class="programs-term-delete-btn" type="submit" title="Delete term" aria-label="Delete term">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                                        </button>
+                                    </form>
+                                </div>
+                                <div class="programs-term-date-edit">
+                                    <label class="programs-field programs-field--compact">
+                                        <span class="programs-field-label">Start</span>
+                                        <span class="filter-date-picker form-date-picker <?= $termStart === '' ? 'is-placeholder' : '' ?>" data-date-required="1">
+                                            <input form="<?= e($termFormId) ?>" type="hidden" name="term_start_date" value="<?= e($termStart) ?>">
+                                            <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select term start date">
+                                                <span class="filter-date-value"><?= $termStart !== '' ? e(date('m/d/Y', strtotime($termStart))) : 'mm/dd/yyyy' ?></span>
+                                                <span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span>
+                                            </button>
+                                        </span>
+                                    </label>
+                                    <label class="programs-field programs-field--compact">
+                                        <span class="programs-field-label">End</span>
+                                        <span class="filter-date-picker form-date-picker <?= $termEnd === '' ? 'is-placeholder' : '' ?>" data-date-required="1">
+                                            <input form="<?= e($termFormId) ?>" type="hidden" name="term_end_date" value="<?= e($termEnd) ?>">
+                                            <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select term end date">
+                                                <span class="filter-date-value"><?= $termEnd !== '' ? e(date('m/d/Y', strtotime($termEnd))) : 'mm/dd/yyyy' ?></span>
+                                                <span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span>
+                                            </button>
+                                        </span>
+                                    </label>
+                                    <button form="<?= e($termFormId) ?>" class="programs-term-save-btn" type="submit">Save</button>
+                                </div>
+                            </article>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
@@ -203,7 +250,6 @@ $totalTerms = count($terms ?? []);
             <div class="programs-table-head" aria-hidden="true">
                 <span>Code</span>
                 <span>Program Name</span>
-                <span>Term</span>
                 <span>Hours</span>
                 <span>Status</span>
                 <span>Actions</span>
@@ -234,15 +280,6 @@ $totalTerms = count($terms ?? []);
                         <div class="program-row-inline">
                             <input form="<?= e($formId) ?>" class="pf-input pf-code" name="code" value="<?= e($p['code']) ?>" placeholder="Code" required aria-label="Program code">
                             <input form="<?= e($formId) ?>" class="pf-input pf-name" name="name" value="<?= e($p['name']) ?>" placeholder="Program Name" required aria-label="Program name">
-                            <select form="<?= e($formId) ?>" class="pf-input pf-term pf-native-select" name="term" data-native-select="1" required aria-label="Term">
-                                <option value="">Select term…</option>
-                                <?php foreach ($termSuggestions as $ts): ?>
-                                    <option value="<?= e($ts) ?>" <?= ($p['term'] === $ts) ? 'selected' : '' ?>><?= e($ts) ?></option>
-                                <?php endforeach; ?>
-                                <?php if (!in_array($p['term'], $termSuggestions, true) && $p['term'] !== ''): ?>
-                                    <option value="<?= e($p['term']) ?>" selected><?= e($p['term']) ?></option>
-                                <?php endif; ?>
-                            </select>
                             <div class="pf-hours-wrap">
                                 <input form="<?= e($formId) ?>" class="pf-input pf-hours" type="number" min="1" name="required_hours" value="<?= (int)$p['required_hours'] ?>" placeholder="0" required aria-label="Required hours">
                                 <span class="pf-hours-suffix">hrs</span>

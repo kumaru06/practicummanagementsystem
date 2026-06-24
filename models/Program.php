@@ -20,17 +20,17 @@ class Program
         return $stmt->fetch() ?: null;
     }
 
-    public function create(string $code, string $name, string $term, int $requiredHours): int
+    public function create(string $code, string $name, int $requiredHours): int
     {
-        $stmt = $this->db->prepare('INSERT INTO programs (code, name, term, required_hours) VALUES (?, ?, ?, ?)');
-        $stmt->execute([strtoupper(trim($code)), trim($name), trim($term), $requiredHours]);
+        $stmt = $this->db->prepare('INSERT INTO programs (code, name, required_hours) VALUES (?, ?, ?)');
+        $stmt->execute([strtoupper(trim($code)), trim($name), $requiredHours]);
         return (int)$this->db->lastInsertId();
     }
 
-    public function update(int $id, string $code, string $name, string $term, int $requiredHours, int $active): void
+    public function update(int $id, string $code, string $name, int $requiredHours, int $active): void
     {
-        $stmt = $this->db->prepare('UPDATE programs SET code = ?, name = ?, term = ?, required_hours = ?, is_active = ? WHERE id = ?');
-        $stmt->execute([strtoupper(trim($code)), trim($name), trim($term), $requiredHours, $active, $id]);
+        $stmt = $this->db->prepare('UPDATE programs SET code = ?, name = ?, required_hours = ?, is_active = ? WHERE id = ?');
+        $stmt->execute([strtoupper(trim($code)), trim($name), $requiredHours, $active, $id]);
     }
 
     public function delete(int $id): void

@@ -335,7 +335,23 @@ class CoordinatorController extends BaseController
                 throw new RuntimeException('Selected Industry Partner does not accept the student\'s program/course.');
             }
             $requiredHours = (int)$program['required_hours'];
-            (new Enrollment($this->db))->create($studentId, $companyId, null, null, $requiredHours, trim($p['academic_term'] ?? ''), $p['term_start_date'] ?? '', $p['term_end_date'] ?? '');
+            $academicTerm = trim($p['academic_term'] ?? '');
+            $termStartDate = trim($p['term_start_date'] ?? '');
+            $termEndDate = trim($p['term_end_date'] ?? '');
+            $termRow = $academicTerm !== '' ? (new Term($this->db))->findByLabel($academicTerm) : null;
+            if (!$termRow) {
+                throw new RuntimeException('Please select a valid academic term.');
+            }
+            if (empty($termRow['term_start_date']) || empty($termRow['term_end_date'])) {
+                throw new RuntimeException('The selected academic term is missing start/end dates. Ask the admin to complete it in Programs / Courses.');
+            }
+            if ($termStartDate === '') {
+                $termStartDate = (string)$termRow['term_start_date'];
+            }
+            if ($termEndDate === '') {
+                $termEndDate = (string)$termRow['term_end_date'];
+            }
+            (new Enrollment($this->db))->create($studentId, $companyId, null, null, $requiredHours, $academicTerm, $termStartDate, $termEndDate);
             $company = (new Company($this->db))->find($companyId);
             $tempPassword = random_password();
             (new User($this->db))->updatePassword((int)$student['user_id'], $tempPassword, 0);
@@ -343,9 +359,9 @@ class CoordinatorController extends BaseController
             $email->send($student['email'], 'You are now enrolled in OJT – AMA Computer College', 'student_enrollment', 'student_enrollment', [
                 'student' => $student,
                 'company' => $company,
-                'academicTerm' => trim($p['academic_term'] ?? ''),
-                'termStartDate' => $p['term_start_date'] ?? '',
-                'termEndDate' => $p['term_end_date'] ?? '',
+                'academicTerm' => $academicTerm,
+                'termStartDate' => $termStartDate,
+                'termEndDate' => $termEndDate,
                 'requiredHours' => $requiredHours,
                 'password' => $tempPassword,
                 'coordinator' => current_user(),

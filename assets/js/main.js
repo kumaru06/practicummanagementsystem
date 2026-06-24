@@ -12,6 +12,8 @@
     initForms();
     initStudentNoAvailability();
     initEmailAvailability();
+    initCoordinatorAvailability();
+    initPartnerAvailability();
     initCounters();
     initWizards();
     initEnrollmentAutomation();
@@ -708,6 +710,11 @@ function initDateTimePickers() {
 function initCustomDatePickers() {
     document.querySelectorAll('.filter-date-picker').forEach(picker => {
         if (picker.dataset.enhanced === '1') return;
+        if (picker.dataset.dateReadonly === '1') {
+            picker.dataset.enhanced = '1';
+            picker.classList.add('is-readonly');
+            return;
+        }
         picker.dataset.enhanced = '1';
 
         const input = picker.querySelector('input[type="hidden"]');
@@ -889,6 +896,52 @@ function formatCustomDateValue(date) {
 
 function formatCustomDateDisplay(date) {
     return `${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}/${date.getFullYear()}`;
+}
+
+function setFormDatePickerValue(picker, isoDate) {
+    if (!picker) return;
+    const input = picker.querySelector('input[type="hidden"]');
+    const valueEl = picker.querySelector('.filter-date-value');
+    if (!input || !valueEl) return;
+    if (!isoDate) {
+        input.value = '';
+        valueEl.textContent = picker.dataset.emptyLabel || 'mm/dd/yyyy';
+        picker.classList.add('is-placeholder');
+        picker.classList.remove('date-required-error');
+        return;
+    }
+    const date = parseCustomDateValue(isoDate);
+    if (!date) return;
+    input.value = formatCustomDateValue(date);
+    valueEl.textContent = formatCustomDateDisplay(date);
+    picker.classList.remove('is-placeholder', 'date-required-error');
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function syncAcademicTermDates(form) {
+    const termSelect = form?.querySelector('[name="academic_term"][data-term-autofill]');
+    if (!termSelect) return;
+    const selected = termSelect.selectedOptions[0];
+    const startPicker = form.querySelector('[data-term-start-picker]');
+    const endPicker = form.querySelector('[data-term-end-picker]');
+    const start = selected?.dataset.termStart || '';
+    const end = selected?.dataset.termEnd || '';
+    if (!selected?.value || !start || !end) {
+        setFormDatePickerValue(startPicker, '');
+        setFormDatePickerValue(endPicker, '');
+        if (startPicker) {
+            startPicker.querySelector('.filter-date-value').textContent = 'Select academic term first';
+            startPicker.classList.add('is-placeholder');
+        }
+        if (endPicker) {
+            endPicker.querySelector('.filter-date-value').textContent = 'Select academic term first';
+            endPicker.classList.add('is-placeholder');
+        }
+        return;
+    }
+    setFormDatePickerValue(startPicker, start);
+    setFormDatePickerValue(endPicker, end);
 }
 
 function stripTime(date) {
@@ -2288,6 +2341,50 @@ function initEmailAvailability() {
     });
 }
 
+function initCoordinatorAvailability() {
+    const createForm = document.querySelector('.coordinator-create-form');
+    if (!createForm) return;
+
+    initLiveFieldAvailability({
+        input: createForm.querySelector('input[name="id_number"][data-coordinator-id-check]'),
+        route: 'admin_check_coordinator_id',
+        paramName: 'id_number',
+        messageSelector: '[data-coordinator-id-message]',
+        sanitize: value => value.replace(/\D/g, ''),
+        canCheck: value => /^\d+$/.test(value),
+        takenMessage: 'This ID number is already registered.',
+        availableMessage: 'ID number is available.',
+    });
+
+    initLiveFieldAvailability({
+        input: createForm.querySelector('input[name="email"][data-coordinator-email-check]'),
+        route: 'admin_check_coordinator_email',
+        paramName: 'email',
+        messageSelector: '[data-coordinator-email-message]',
+        sanitize: value => value.trim().toLowerCase(),
+        canCheck: value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
+        takenMessage: 'This email address is already registered.',
+        availableMessage: 'Email address is available.',
+    });
+}
+
+function initPartnerAvailability() {
+    const createForm = document.getElementById('create-partner-form');
+    if (!createForm) return;
+
+    initLiveFieldAvailability({
+        input: createForm.querySelector('input[name="contact_email"][data-partner-email-check]')
+            || document.querySelector('input[name="contact_email"][data-partner-email-check]'),
+        route: 'admin_check_partner_email',
+        paramName: 'email',
+        messageSelector: '[data-partner-email-message]',
+        sanitize: value => value.trim().toLowerCase(),
+        canCheck: value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
+        takenMessage: 'This email address is already registered.',
+        availableMessage: 'Email address is available.',
+    });
+}
+
 function initCounters() {
     document.querySelectorAll('.metric strong').forEach(el => {
         const raw = el.textContent.replace(/,/g, '').trim();
@@ -2350,6 +2447,7 @@ function updateWizardSummary(form) {
     if (!box) return;
     const student = form.querySelector('[name="student_id"]')?.selectedOptions[0]?.textContent || '-';
     const company = form.querySelector('[name="company_id"]')?.selectedOptions[0]?.textContent || '-';
+    const term = form.querySelector('[name="academic_term"]')?.selectedOptions[0]?.textContent || '-';
     const start = form.querySelector('[name="term_start_date"]')?.value || '-';
     const end = form.querySelector('[name="term_end_date"]')?.value || '-';
     const hours = form.querySelector('[name="required_hours"]')?.value || '-';
@@ -2358,6 +2456,7 @@ function updateWizardSummary(form) {
         <div class="confirm-grid">
             <div class="confirm-row"><span class="confirm-label">Student</span><span class="confirm-value">${escapeHtml(student)}</span></div>
             <div class="confirm-row"><span class="confirm-label">Company</span><span class="confirm-value">${escapeHtml(company)}</span></div>
+            <div class="confirm-row"><span class="confirm-label">Academic Term</span><span class="confirm-value">${escapeHtml(term)}</span></div>
             <div class="confirm-row"><span class="confirm-label">Schedule</span><span class="confirm-value">${escapeHtml(start)} to ${escapeHtml(end)}</span></div>
             <div class="confirm-row"><span class="confirm-label">Required Hours</span><span class="confirm-value">${escapeHtml(hours)}</span></div>
         </div>
@@ -2428,6 +2527,11 @@ function initEnrollmentAutomation() {
             updateWizardSummary(form);
             syncCompanyDocument();
         });
+        const termSelect = form.querySelector('[name="academic_term"][data-term-autofill]');
+        termSelect?.addEventListener('change', () => {
+            syncAcademicTermDates(form);
+            updateWizardSummary(form);
+        });
         if (studentSelect.selectedOptions[0]?.dataset.isEnrolled === '1') {
             clearSelection();
             resetCompanies();
@@ -2437,6 +2541,7 @@ function initEnrollmentAutomation() {
         }
         sync();
         syncCompanyDocument();
+        syncAcademicTermDates(form);
     });
 }
 

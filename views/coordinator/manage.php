@@ -60,31 +60,40 @@ $unenrolledCount = count($students) - $enrolledCount;
                     <a class="btn btn-small" data-company-doc-link target="_blank" href="#">View MOA/MOU</a>
                 </div>
                 <label>Academic Term
-                    <select required name="academic_term">
+                    <select required name="academic_term" data-term-autofill="1">
                         <option value="">— Select Term —</option>
                         <?php foreach (($terms ?? []) as $t): ?>
-                            <option value="<?= e($t['term_label']) ?>"><?= e($t['term_label']) ?></option>
+                            <?php
+                            $tStart = trim((string)($t['term_start_date'] ?? ''));
+                            $tEnd = trim((string)($t['term_end_date'] ?? ''));
+                            $tReady = $tStart !== '' && $tEnd !== '';
+                            ?>
+                            <option
+                                value="<?= e($t['term_label']) ?>"
+                                data-term-start="<?= e($tStart) ?>"
+                                data-term-end="<?= e($tEnd) ?>"
+                                <?= $tReady ? '' : 'disabled' ?>
+                            ><?= e($t['term_label']) ?><?= $tReady ? '' : ' (dates not set)' ?></option>
                         <?php endforeach; ?>
                     </select>
                 </label>
+                <p class="enroll-term-hint muted">Term dates are set by the admin and fill in automatically.</p>
                 <label>Term Start Date
-                    <span class="filter-date-picker form-date-picker is-placeholder" data-date-required="1">
+                    <span class="filter-date-picker form-date-picker is-placeholder is-readonly" data-date-required="1" data-date-readonly="1" data-term-start-picker="1">
                         <input type="hidden" name="term_start_date" value="">
-                        <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select term start date">
-                            <span class="filter-date-value">mm/dd/yyyy</span>
+                        <button class="filter-date-trigger" type="button" tabindex="-1" aria-hidden="true" disabled>
+                            <span class="filter-date-value">Select academic term first</span>
                             <span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span>
                         </button>
-                        <div class="filter-date-panel" hidden></div>
                     </span>
                 </label>
                 <label>Term End Date
-                    <span class="filter-date-picker form-date-picker is-placeholder" data-date-required="1">
+                    <span class="filter-date-picker form-date-picker is-placeholder is-readonly" data-date-required="1" data-date-readonly="1" data-term-end-picker="1">
                         <input type="hidden" name="term_end_date" value="">
-                        <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select term end date">
-                            <span class="filter-date-value">mm/dd/yyyy</span>
+                        <button class="filter-date-trigger" type="button" tabindex="-1" aria-hidden="true" disabled>
+                            <span class="filter-date-value">Select academic term first</span>
                             <span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span>
                         </button>
-                        <div class="filter-date-panel" hidden></div>
                     </span>
                 </label>
                 <label>Required Hours<input required readonly type="number" min="1" name="required_hours"></label>

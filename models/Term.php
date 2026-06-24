@@ -15,11 +15,21 @@ class Term
             'CREATE TABLE IF NOT EXISTS program_terms (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 term_label VARCHAR(120) NOT NULL UNIQUE,
+                term_start_date DATE NULL,
+                term_end_date DATE NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB'
         );
 
         $this->db->exec('ALTER TABLE programs MODIFY term VARCHAR(120) NOT NULL DEFAULT ""');
+
+        foreach (['term_start_date DATE NULL', 'term_end_date DATE NULL'] as $column) {
+            try {
+                $this->db->exec('ALTER TABLE program_terms ADD COLUMN ' . $column);
+            } catch (Throwable) {
+                // Column already exists.
+            }
+        }
 
         $this->storageReady = true;
     }
@@ -31,11 +41,20 @@ class Term
         return $this->db->query('SELECT * FROM program_terms ORDER BY term_label ASC')->fetchAll();
     }
 
-    public function create(string $label): int
+    public function findByLabel(string $label): ?array
     {
         $this->ensureStorage();
-        $stmt = $this->db->prepare('INSERT INTO program_terms (term_label) VALUES (?)');
+        $stmt = $this->db->prepare('SELECT * FROM program_terms WHERE term_label = ? LIMIT 1');
         $stmt->execute([trim($label)]);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    }
+
+    public function create(string $label, string $startDate, string $endDate): int
+    {
+        $this->ensureStorage();
+        $stmt = $this->db->prepare('INSERT INTO program_terms (term_label, term_start_date, term_end_date) VALUES (?, ?, ?)');
+        $stmt->execute([trim($label), $startDate, $endDate]);
         return (int)$this->db->lastInsertId();
     }
 
@@ -50,51 +69,30 @@ class Term
         $stmt->execute([$label]);
     }
 
-    public function update(int $id, string $label): void
+    public function update(int $id, string $label, string $startDate, string $endDate): void
     {
         $this->ensureStorage();
         $label = trim($label);
 
-        $find = $this->db->prepare('SELECT term_label FROM program_terms WHERE id = ?');
+        $find = $this->db->prepare('SELECT id FROM program_terms WHERE id = ?');
         $find->execute([$id]);
-        $row = $find->fetch();
-        if (!$row) {
+        if (!$find->fetch()) {
             throw new RuntimeException('Term not found.');
         }
 
-        $oldLabel = (string)$row['term_label'];
-        $this->db->beginTransaction();
-        try {
-            $update = $this->db->prepare('UPDATE program_terms SET term_label = ? WHERE id = ?');
-            $update->execute([$label, $id]);
-
-            $syncPrograms = $this->db->prepare('UPDATE programs SET term = ? WHERE term = ?');
-            $syncPrograms->execute([$label, $oldLabel]);
-
-            $this->db->commit();
-        } catch (Throwable $e) {
-            if ($this->db->inTransaction()) {
-                $this->db->rollBack();
-            }
-            throw $e;
-        }
+        $stmt = $this->db->prepare('UPDATE program_terms SET term_label = ?, term_start_date = ?, term_end_date = ? WHERE id = ?');
+        $stmt->execute([$label, $startDate, $endDate, $id]);
     }
 
     public function delete(int $id): void
     {
         $this->ensureStorage();
 
-        $find = $this->db->prepare('SELECT term_label FROM program_terms WHERE id = ?');
+        $find = $this->db->prepare('SELECT id FROM program_terms WHERE id = ?');
         $find->execute([$id]);
-        $row = $find->fetch();
-        if (!$row) {
+        if (!$find->fetch()) {
             throw new RuntimeException('Term not found.');
         }
-
-        $label = (string)$row['term_label'];
-        // Clear the term on any programs that were using this label
-        $clear = $this->db->prepare("UPDATE programs SET term = '' WHERE term = ?");
-        $clear->execute([$label]);
 
         $del = $this->db->prepare('DELETE FROM program_terms WHERE id = ?');
         $del->execute([$id]);
