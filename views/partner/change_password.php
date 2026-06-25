@@ -56,12 +56,19 @@
 
                 <label class="no-floating-label ip-field">
                     <span class="ip-field__label">New Password</span>
-                    <input required minlength="8" type="password" name="password" autocomplete="new-password" placeholder="Enter new password">
+                    <input required minlength="8" type="password" name="password" autocomplete="new-password" placeholder="Enter new password" data-partner-new-password>
                 </label>
+                <div class="password-gate-strength" data-partner-password-strength aria-live="polite" hidden>
+                    <div class="password-gate-strength__track" aria-hidden="true">
+                        <span class="password-gate-strength__fill" data-partner-strength-fill></span>
+                    </div>
+                    <span class="password-gate-strength__label" data-partner-strength-label></span>
+                </div>
                 <label class="no-floating-label ip-field">
                     <span class="ip-field__label">Confirm New Password</span>
-                    <input required minlength="8" type="password" name="confirm_password" autocomplete="new-password" placeholder="Re-enter new password">
+                    <input required minlength="8" type="password" name="confirm_password" autocomplete="new-password" placeholder="Re-enter new password" data-partner-confirm-password>
                 </label>
+                <p class="password-gate-match" data-partner-password-match aria-live="polite" hidden></p>
 
                 <ul class="ip-password-tips">
                     <li>At least 8 characters long</li>
@@ -71,8 +78,7 @@
                 <p class="ip-password-feedback" data-password-feedback hidden></p>
 
                 <div class="ip-profile-actions ip-profile-actions--single">
-                    <button class="btn btn-ghost" type="button" data-partner-password-back>Re-enter current password</button>
-                    <button class="btn btn-primary" type="submit"><span class="btn-text">Save New Password</span><span class="spinner"></span></button>
+                    <button class="btn btn-primary ip-password-submit" type="submit"><span class="btn-text">Save New Password</span><span class="spinner"></span></button>
                 </div>
             </form>
         </div>

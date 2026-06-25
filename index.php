@@ -98,8 +98,14 @@ $_SESSION['user_id'] = (int)current_user()['id'];
 $_SESSION['role'] = (string)current_user()['role'];
 
 if ((int)current_user()['password_changed'] === 0) {
-    if ($method === 'POST' && ($_POST['action'] ?? '') === 'student_change_password') {
-        (new StudentController())->changePassword();
+    if ($method === 'POST') {
+        $gateAction = $_POST['action'] ?? '';
+        if ($gateAction === 'student_change_password') {
+            (new StudentController())->changePassword();
+        }
+        if ($gateAction === 'student_verify_current_password') {
+            (new StudentController())->verifyCurrentPassword();
+        }
     }
     (new StudentController())->changePasswordForm();
     exit;
@@ -137,6 +143,7 @@ if ($method === 'POST') {
         'coordinator/deployments/forward' => 'coordinator_forward_deployment',
         'student/profile' => 'student_save_profile',
         'student/change-password' => 'student_change_password',
+        'student/verify-password' => 'student_verify_current_password',
         'student/requirements/upload' => 'student_upload_requirement',
         'student/requirements/upload-bulk' => 'student_upload_requirements_bulk',
         'student/requirements/submit' => 'student_submit_requirements',
@@ -185,6 +192,7 @@ if ($method === 'POST') {
         'coordinator_reset_password' => (new CoordinatorController())->resetStudentPassword(),
         'coordinator_update_student_email' => (new CoordinatorController())->updateStudentEmail(),
         'student_change_password' => (new StudentController())->changePassword(),
+        'student_verify_current_password' => (new StudentController())->verifyCurrentPassword(),
         'student_save_profile' => (new StudentController())->saveProfile(),
         'student_upload_requirement' => (new StudentController())->uploadRequirement(),
         'student_upload_requirements_bulk' => (new StudentController())->uploadRequirementsBulk(),

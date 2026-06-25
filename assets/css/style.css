@@ -8594,6 +8594,152 @@ small,
     text-align: left;
 }
 
+.password-gate-flow {
+    max-width: 640px;
+    margin-inline: auto;
+}
+
+.password-gate-step[hidden] {
+    display: none;
+}
+
+.password-gate-step {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.password-gate-step.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.gate-icon--verify svg {
+    fill: none;
+    stroke: currentColor;
+}
+
+.password-gate-verified-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #e8f7ee;
+    color: #1a7a3e;
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.password-gate-verified-pill svg {
+    width: 18px;
+    height: 18px;
+}
+
+.password-gate-feedback {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.password-gate-feedback.is-error {
+    background: #fff0f0;
+    color: #b42318;
+    border: 1px solid #fecdca;
+}
+
+.password-gate-feedback.is-success {
+    background: #ecfdf3;
+    color: #027a48;
+    border: 1px solid #abefc6;
+}
+
+.password-gate-submit {
+    width: 100%;
+}
+
+.password-gate-strength {
+    display: grid;
+    gap: 8px;
+    margin-top: -8px;
+}
+
+.password-gate-strength__track {
+    height: 6px;
+    border-radius: 999px;
+    background: #eef2f7;
+    overflow: hidden;
+}
+
+.password-gate-strength__fill {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: #dc2626;
+    transition: width 0.2s ease, background 0.2s ease;
+}
+
+.password-gate-strength[data-level="1"] .password-gate-strength__fill {
+    width: 25%;
+    background: #dc2626;
+}
+
+.password-gate-strength[data-level="2"] .password-gate-strength__fill {
+    width: 50%;
+    background: #f59e0b;
+}
+
+.password-gate-strength[data-level="3"] .password-gate-strength__fill {
+    width: 75%;
+    background: #2563eb;
+}
+
+.password-gate-strength[data-level="4"] .password-gate-strength__fill {
+    width: 100%;
+    background: #16a34a;
+}
+
+.password-gate-strength__label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.password-gate-strength[data-level="1"] .password-gate-strength__label {
+    color: #dc2626;
+}
+
+.password-gate-strength[data-level="2"] .password-gate-strength__label {
+    color: #d97706;
+}
+
+.password-gate-strength[data-level="3"] .password-gate-strength__label {
+    color: #2563eb;
+}
+
+.password-gate-strength[data-level="4"] .password-gate-strength__label {
+    color: #16a34a;
+}
+
+.password-gate-match {
+    margin: -8px 0 0;
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.password-gate-match.is-match {
+    color: #16a34a;
+}
+
+.password-gate-match.is-mismatch {
+    color: #dc2626;
+}
+
 .login-page {
     background:
         radial-gradient(ellipse 80% 60% at 15% 20%, rgba(255, 255, 255, 0.08), transparent 55%),
@@ -16945,6 +17091,18 @@ body.role-partner .content:has(.ip-settings) {
     display: grid;
     gap: 14px;
     max-width: 420px;
+}
+
+.ip-password-form .password-gate-strength {
+    margin-top: -6px;
+}
+
+.ip-password-form .password-gate-match {
+    margin-top: -6px;
+}
+
+.ip-password-submit {
+    width: 100%;
 }
 
 .ip-password-tips {

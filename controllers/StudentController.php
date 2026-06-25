@@ -4,29 +4,90 @@ class StudentController extends BaseController
     public function changePasswordForm(): void
     {
         require_role(['student', 'coordinator', 'partner']);
+        $isFirstLogin = (int)(current_user()['password_changed'] ?? 1) === 0;
         $this->render('student/change_password', [
-            'title' => 'Change Temporary Password',
+            'title' => $isFirstLogin ? 'Change Temporary Password' : 'Change Password',
+            'csrfToken' => csrf_token(),
+            'isFirstLogin' => $isFirstLogin,
         ]);
+    }
+
+    public function verifyCurrentPassword(): void
+    {
+        require_role(['student', 'coordinator', 'partner']);
+        verify_csrf();
+        header('Content-Type: application/json; charset=utf-8');
+
+        $currentPassword = (string)($_POST['current_password'] ?? '');
+        $isFirstLogin = (int)(current_user()['password_changed'] ?? 1) === 0;
+        $passwordLabel = $isFirstLogin ? 'temporary password' : 'current password';
+        if ($currentPassword === '') {
+            http_response_code(422);
+            echo json_encode(['ok' => false, 'message' => 'Enter your ' . $passwordLabel . '.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $verified = (new User($this->db))->verifyPassword((int)current_user()['id'], $currentPassword);
+        if (!$verified) {
+            http_response_code(401);
+            echo json_encode(['ok' => false, 'message' => ucfirst($passwordLabel) . ' is incorrect.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+        exit;
     }
 
     public function changePassword(): void
     {
         require_role(['student', 'coordinator', 'partner']);
-        $p = $this->post();
-        $password = (string)($p['password'] ?? '');
-        $confirm = (string)($p['confirm_password'] ?? '');
-        if (strlen($password) < 8) {
-            flash('error', 'Password must be at least 8 characters.');
-            redirect('index.php');
+        header('Content-Type: application/json; charset=utf-8');
+
+        try {
+            $p = $this->post();
+            $currentPassword = (string)($p['current_password'] ?? '');
+            $password = (string)($p['password'] ?? '');
+            $confirm = (string)($p['confirm_password'] ?? '');
+            $userId = (int)current_user()['id'];
+            $wasTemporary = (int)(current_user()['password_changed'] ?? 1) === 0;
+            $passwordLabel = $wasTemporary ? 'temporary password' : 'current password';
+
+            if ($currentPassword === '') {
+                throw new RuntimeException(ucfirst($passwordLabel) . ' is required.');
+            }
+            if (!(new User($this->db))->verifyPassword($userId, $currentPassword)) {
+                http_response_code(401);
+                throw new RuntimeException(ucfirst($passwordLabel) . ' is incorrect.');
+            }
+            if (strlen($password) < 8) {
+                throw new RuntimeException('Password must be at least 8 characters.');
+            }
+            if ($password !== $confirm) {
+                throw new RuntimeException('Passwords do not match.');
+            }
+            if (password_verify($password, (string)((new User($this->db))->find($userId)['password_hash'] ?? ''))) {
+                throw new RuntimeException('New password must be different from your current password.');
+            }
+
+            (new User($this->db))->updatePassword($userId, $password, 1);
+            $_SESSION['user']['password_changed'] = 1;
+
+            echo json_encode([
+                'ok' => true,
+                'message' => $wasTemporary
+                    ? 'Password changed successfully. You can now access your dashboard.'
+                    : 'Password changed successfully.',
+                'redirect' => $wasTemporary
+                    ? route_url('student.dashboard')
+                    : route_url('student.settings'),
+            ], JSON_UNESCAPED_UNICODE);
+        } catch (Throwable $e) {
+            if (http_response_code() === 200) {
+                http_response_code(400);
+            }
+            echo json_encode(['ok' => false, 'message' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
         }
-        if ($password !== $confirm) {
-            flash('error', 'Passwords do not match.');
-            redirect('index.php');
-        }
-        (new User($this->db))->updatePassword((int)current_user()['id'], $password, 1);
-        $_SESSION['user']['password_changed'] = 1;
-        flash('success', 'Password changed successfully. You can now access your dashboard.');
-        redirect('index.php?r=' . current_user()['role']);
+        exit;
     }
 
     public function dashboard(): void
