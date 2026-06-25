@@ -1,5 +1,6 @@
 ﻿document.addEventListener('DOMContentLoaded', () => {
     initSidebar();
+    initTextMarquees();
     initStudentMobileNav();
     initToasts();
     initFloatingLabels();
@@ -1176,11 +1177,160 @@ function closeNotifications() {
     btn?.setAttribute('aria-expanded', 'false');
 }
 
+function getTextMarqueeElements() {
+    const selectors = [
+        '[data-marquee]',
+        '.sidebar .nav-link > span:not(.nav-link-label--short):not(.chevron)',
+        '.sidebar .nav-group-toggle > span:not(.nav-link-label--short):not(.chevron)',
+    ];
+    const nodes = new Set();
+    selectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(el => nodes.add(el));
+    });
+    return [...nodes];
+}
+
+function refreshTextMarquees() {
+    getTextMarqueeElements().forEach(refreshTextMarquee);
+}
+
+function refreshTextMarquee(el) {
+    if (!el) return;
+    const track = el.querySelector('.text-marquee__track');
+    const primary = track?.querySelector('.text-marquee__text:not(.text-marquee__clone)');
+    if (!track || !primary) return;
+
+    const overflowing = el.clientWidth > 0 && primary.scrollWidth > el.clientWidth + 1;
+    el.classList.toggle('is-active', overflowing);
+    if (overflowing) {
+        const seconds = Math.max(5, Math.min(18, primary.scrollWidth / 35));
+        el.style.setProperty('--marquee-duration', `${seconds}s`);
+    } else {
+        el.style.removeProperty('--marquee-duration');
+    }
+}
+
+function isSidebarLabelMarquee(el) {
+    if (!el?.closest('.sidebar')) return false;
+    return !!(
+        el.closest('.brand > div')
+        || el.closest('.sidebar-user-info')
+        || el.matches('.nav-link > span')
+        || el.closest('.nav-group-toggle')
+    );
+}
+
+function setupTextMarquee(el) {
+    if (!el) return;
+    if (el.dataset.marqueeReady === '1') {
+        refreshTextMarquee(el);
+        return;
+    }
+
+    if (document.body.classList.contains('sidebar-collapsed') && isSidebarLabelMarquee(el)) {
+        return;
+    }
+
+    const text = el.textContent.trim();
+    if (!text || el.clientWidth === 0 || getComputedStyle(el).display === 'none') return;
+
+    el.classList.add('text-marquee');
+    el.setAttribute('title', text);
+
+    const track = document.createElement('span');
+    track.className = 'text-marquee__track';
+
+    const primary = document.createElement('span');
+    primary.className = 'text-marquee__text';
+    primary.textContent = text;
+
+    const clone = document.createElement('span');
+    clone.className = 'text-marquee__text text-marquee__clone';
+    clone.setAttribute('aria-hidden', 'true');
+    clone.textContent = text;
+
+    track.append(primary, clone);
+    el.textContent = '';
+    el.append(track);
+    el.dataset.marqueeReady = '1';
+
+    refreshTextMarquee(el);
+    new ResizeObserver(() => refreshTextMarquee(el)).observe(el);
+}
+
+function isDesktopSidebarMode() {
+    return window.matchMedia('(min-width: 721px)').matches;
+}
+
+function readSidebarCollapsedPreference() {
+    try {
+        if (localStorage.getItem('sidebarCollapsed') === '1') return true;
+    } catch (e) {}
+    if (document.body?.dataset.sidebarCollapsed === '1') return true;
+    if (document.cookie.split(';').some(part => part.trim() === 'sidebarCollapsed=1')) return true;
+    return document.body?.classList.contains('sidebar-collapsed') === true;
+}
+
+function persistSidebarCollapsed(collapsed) {
+    const value = collapsed ? '1' : '0';
+    try { localStorage.setItem('sidebarCollapsed', value); } catch (e) {}
+    document.cookie = `sidebarCollapsed=${value}; path=/; max-age=31536000; SameSite=Lax`;
+    if (document.body) document.body.dataset.sidebarCollapsed = value;
+}
+
+function syncSidebarCollapseForViewport() {
+    const wantsCollapsed = readSidebarCollapsedPreference();
+    const desktop = isDesktopSidebarMode();
+    document.documentElement.classList.remove('is-sidebar-collapsed-init');
+    if (desktop && wantsCollapsed) {
+        document.body.classList.add('sidebar-collapsed');
+        persistSidebarCollapsed(true);
+    } else if (!wantsCollapsed) {
+        document.body.classList.remove('sidebar-collapsed');
+        persistSidebarCollapsed(false);
+    } else {
+        document.body.classList.remove('sidebar-collapsed');
+    }
+}
+
+function initSidebarMarqueesIfNeeded() {
+    if (document.body.classList.contains('sidebar-collapsed')) return;
+    getTextMarqueeElements().forEach(el => {
+        if (isSidebarLabelMarquee(el)) setupTextMarquee(el);
+    });
+    refreshTextMarquees();
+}
+
+function initTextMarquees() {
+    requestAnimationFrame(() => {
+        getTextMarqueeElements().forEach(setupTextMarquee);
+    });
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(refreshTextMarquees, 150);
+    });
+}
+
 function initSidebar() {
-    if (localStorage.getItem('sidebarCollapsed') === '1') document.body.classList.add('sidebar-collapsed');
+    syncSidebarCollapseForViewport();
     document.querySelector('.sidebar-toggle')?.addEventListener('click', () => {
+        if (!isDesktopSidebarMode()) return;
+        const willCollapse = !document.body.classList.contains('sidebar-collapsed');
         document.body.classList.toggle('sidebar-collapsed');
-        localStorage.setItem('sidebarCollapsed', document.body.classList.contains('sidebar-collapsed') ? '1' : '0');
+        persistSidebarCollapsed(document.body.classList.contains('sidebar-collapsed'));
+        if (!willCollapse) {
+            initSidebarMarqueesIfNeeded();
+        }
+        window.setTimeout(refreshTextMarquees, 300);
+    });
+    window.addEventListener('resize', () => {
+        syncSidebarCollapseForViewport();
+        if (!document.body.classList.contains('sidebar-collapsed')) {
+            initSidebarMarqueesIfNeeded();
+        }
+        window.setTimeout(refreshTextMarquees, 150);
     });
     // Collapsible nav groups
     document.querySelectorAll('.nav-group-toggle').forEach(btn => {
@@ -2223,6 +2373,19 @@ function initForms() {
     });
 }
 
+function buildAppRouteUrl(route, params = {}) {
+    const base = (document.body?.dataset?.appBase || '').replace(/\/$/, '');
+    const pathname = `${base}/index.php`.replace(/\/{2,}/g, '/');
+    const url = new URL(pathname, window.location.origin);
+    url.searchParams.set('r', route);
+    Object.entries(params).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && value !== '') {
+            url.searchParams.set(key, value);
+        }
+    });
+    return url;
+}
+
 function initLiveFieldAvailability({
     input,
     route,
@@ -2259,20 +2422,28 @@ function initLiveFieldAvailability({
         setMessage('Checking availability...', 'checking');
 
         try {
-            const url = new URL('index.php', window.location.href);
-            url.searchParams.set('r', route);
-            url.searchParams.set(paramName, value);
+            const url = buildAppRouteUrl(route, { [paramName]: value });
 
             const response = await fetch(url.toString(), {
+                credentials: 'same-origin',
                 headers: { Accept: 'application/json' },
                 cache: 'no-store',
             });
-            const data = await response.json();
+            const responseText = await response.text();
+
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch {
+                if (currentRequest !== requestId) return;
+                setMessage('Unable to verify right now. Refresh and try again.', 'error');
+                return;
+            }
 
             if (currentRequest !== requestId) return;
 
             if (!response.ok || !data.ok) {
-                setMessage('', '');
+                setMessage('Unable to verify right now. Refresh and try again.', 'error');
                 return;
             }
 
@@ -2286,7 +2457,7 @@ function initLiveFieldAvailability({
             }
         } catch {
             if (currentRequest !== requestId) return;
-            setMessage('', '');
+            setMessage('Unable to verify right now. Refresh and try again.', 'error');
         }
     };
 
@@ -2345,8 +2516,11 @@ function initCoordinatorAvailability() {
     const createForm = document.querySelector('.coordinator-create-form');
     if (!createForm) return;
 
+    const idInput = createForm.querySelector('input[name="id_number"][data-coordinator-id-check]');
+    const emailInput = createForm.querySelector('input[name="email"][data-coordinator-email-check]');
+
     initLiveFieldAvailability({
-        input: createForm.querySelector('input[name="id_number"][data-coordinator-id-check]'),
+        input: idInput,
         route: 'admin_check_coordinator_id',
         paramName: 'id_number',
         messageSelector: '[data-coordinator-id-message]',
@@ -2357,7 +2531,7 @@ function initCoordinatorAvailability() {
     });
 
     initLiveFieldAvailability({
-        input: createForm.querySelector('input[name="email"][data-coordinator-email-check]'),
+        input: emailInput,
         route: 'admin_check_coordinator_email',
         paramName: 'email',
         messageSelector: '[data-coordinator-email-message]',

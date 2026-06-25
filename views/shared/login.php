@@ -2,13 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title><?= e($portalLabel ?? 'Login') ?> - AMA Practicum System</title>
-    <link rel="icon" type="image/png" href="<?= e(asset('assets/image/main/logo/amalogo.png')) ?>">
-    <link rel="apple-touch-icon" href="<?= e(asset('assets/image/main/logo/amalogo.png')) ?>">
+    <link rel="icon" type="image/jpeg" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">
+    <link rel="apple-touch-icon" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260611-portal-spa">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/login.css')) ?>?v=20260620-icons">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/login.css')) ?>?v=20260625-login-mobile-v4">
+    <style>
+        @media (min-width: 900px) {
+            .login-page .login-mobile-hero {
+                display: none !important;
+                height: 0 !important;
+                overflow: hidden !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+        }
+    </style>
 </head>
 <body class="login-page">
     <div class="login-bg-decor" aria-hidden="true">
@@ -17,36 +28,66 @@
         <div class="login-orb login-orb--3"></div>
     </div>
 
+    <div class="login-mobile-hero" id="js-login-mobile-hero" hidden>
+        <div class="login-mobile-hero-inner">
+            <img src="<?= e(asset('assets/image/main/logo/amalogo.png')) ?>" alt="AMA Computer College" class="login-mobile-hero-logo">
+            <div class="login-mobile-hero-text">
+                <span class="login-mobile-hero-badge">OJT Management Platform</span>
+                <p class="login-mobile-hero-title">AMA Practicum Management System</p>
+            </div>
+        </div>
+    </div>
+
     <div class="login-split">
         <div class="login-image-panel">
-            <img src="<?= e(asset('assets/image/login/image.jpg')) ?>" alt="AMA Practicum" class="login-hero-img">
+            <img src="<?= e(asset('assets/image/login/amamain.jpg')) ?>" alt="AMA University and Colleges" class="login-hero-img">
+            <div class="login-image-vignette" aria-hidden="true"></div>
             <div class="login-image-overlay">
-                <div class="login-image-text">
-                    <div class="login-hero-badge">
-                        <span class="login-hero-badge-dot"></span>
-                        OJT Management Platform
-                    </div>
-                    <h1>AMA Practicum<br>Management System</h1>
-                    <p>Track your OJT journey — from deployment to completion, all in one place.</p>
-                    <div class="login-hero-stats">
-                        <div class="login-hero-stat">
-                            <strong>360°</strong>
-                            <span>OJT Tracking</span>
+                <div class="login-image-content">
+                    <div class="login-image-text">
+                        <div class="login-hero-badge">
+                            <span class="login-hero-badge-dot"></span>
+                            OJT Management Platform
                         </div>
-                        <div class="login-hero-stat">
-                            <strong>Real-time</strong>
-                            <span>Progress Updates</span>
-                        </div>
-                        <div class="login-hero-stat">
-                            <strong>Secure</strong>
-                            <span>Role-based Access</span>
-                        </div>
+                        <h1>AMA Practicum<br>Management System</h1>
+                        <p>Your complete OJT companion — from deployment to completion, guided every step of the way.</p>
+                        <ul class="login-hero-stats" aria-label="Platform highlights">
+                            <li class="login-hero-stat">
+                                <span class="login-hero-stat-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                                </span>
+                                <span class="login-hero-stat-copy">
+                                    <strong>360°</strong>
+                                    <span>OJT Tracking</span>
+                                </span>
+                            </li>
+                            <li class="login-hero-stat">
+                                <span class="login-hero-stat-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none"><path d="M4 13h3l2-5 4 10 2-5h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </span>
+                                <span class="login-hero-stat-copy">
+                                    <strong>Real-time</strong>
+                                    <span>Progress Updates</span>
+                                </span>
+                            </li>
+                            <li class="login-hero-stat">
+                                <span class="login-hero-stat-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4 7v6c0 4.2 3.4 8.1 8 9.5 4.6-1.4 8-5.3 8-9.5V7l-8-4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </span>
+                                <span class="login-hero-stat-copy">
+                                    <strong>Secure</strong>
+                                    <span>Role-based Access</span>
+                                </span>
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>
+            <div class="login-panel-divider" aria-hidden="true"></div>
         </div>
 
         <div class="login-form-panel">
+            <div class="login-form-shell">
             <?php
             $activePortal = $portalRole ?? '';
             $showFormView = !empty($activePortal);
@@ -88,7 +129,10 @@
                 <div class="portal-login-card-inner">
                     <div class="brand login-brand">
                         <img src="<?= e(asset('assets/image/main/logo/amalogo.png')) ?>" alt="AMA Logo" class="login-logo">
-                        <div><strong>Computer College</strong></div>
+                        <div class="login-brand-copy">
+                            <strong>Computer College</strong>
+                            <span>Practicum Management System</span>
+                        </div>
                     </div>
 
                     <div class="alert danger js-portal-alert<?= $flashError ? '' : ' is-hidden' ?>"><?= e($flashError ?: '') ?></div>
@@ -96,10 +140,11 @@
                     <div class="portal-stage">
                         <div class="portal-view portal-view--select<?= $showFormView ? '' : ' is-active' ?>" data-portal-view="select">
                             <div class="portal-copy">
-                                <span class="portal-eyebrow">Welcome</span>
-                                <h1 class="portal-heading">Choose your login portal</h1>
-                                <p class="portal-sub">Select the portal that matches your account role. Other account types will be blocked.</p>
+                                <span class="portal-eyebrow">Welcome back</span>
+                                <h1 class="portal-heading">Choose your portal</h1>
+                                <p class="portal-sub">Sign in with the account type that matches your role. We'll keep everything secure and on track.</p>
                             </div>
+                            <p class="portal-section-label">Select your role</p>
                             <div class="portal-grid">
                                 <?php foreach (($portals ?? []) as $role => $portal): ?>
                                     <a
@@ -116,6 +161,10 @@
                                     </a>
                                 <?php endforeach; ?>
                             </div>
+                            <p class="portal-trust-note">
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 4 7v6c0 4.2 3.4 8.1 8 9.5 4.6-1.4 8-5.3 8-9.5V7l-8-4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                Secure, role-based access for students, coordinators, and partners.
+                            </p>
                         </div>
 
                         <div class="portal-view portal-view--form<?= $showFormView ? ' is-active' : '' ?>" data-portal-view="form">
@@ -161,9 +210,27 @@
                     <p>&copy; <?= date('Y') ?> AMA Computer College &middot; Practicum Management System</p>
                 </div>
             </div>
+            </div>
         </div>
     </div>
 <script src="<?= e(asset('assets/js/main.js')) ?>?v=20260509-native-login"></script>
-<script src="<?= e(asset('assets/js/login-portal.js')) ?>?v=20260620-portal-layout"></script>
+<script src="<?= e(asset('assets/js/login-portal.js')) ?>?v=20260625-mobile-fix"></script>
+<script>
+(function () {
+    const el = document.getElementById('js-login-mobile-hero');
+    const mq = window.matchMedia('(max-width: 899px)');
+    const syncMobileHero = function () {
+        if (el) {
+            el.hidden = !mq.matches;
+        }
+    };
+    syncMobileHero();
+    if (typeof mq.addEventListener === 'function') {
+        mq.addEventListener('change', syncMobileHero);
+    } else if (typeof mq.addListener === 'function') {
+        mq.addListener(syncMobileHero);
+    }
+})();
+</script>
 </body>
 </html>

@@ -54,12 +54,12 @@ function initPortalLogin() {
 
     function syncStageHeight() {
         if (!stage || !selectView || !formView) return;
-        const lockedHeight = Math.max(selectView.offsetHeight, formView.offsetHeight, 280);
-        stage.style.minHeight = `${lockedHeight}px`;
-        stage.style.setProperty('--portal-stage-height', `${lockedHeight}px`);
+        stage.style.minHeight = '';
+        stage.style.removeProperty('--portal-stage-height');
     }
 
     syncStageHeight();
+    window.addEventListener('resize', syncStageHeight);
 
     function parsePortalLabels(raw) {
         if (!raw) return {};

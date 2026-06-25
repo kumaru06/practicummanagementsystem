@@ -3,36 +3,53 @@ $headerInitial = strtoupper(substr($user['name'] ?? 'A', 0, 1));
 $headerPhotoSource = (($user['role'] ?? '') === 'student') ? (($student ?? null) ?: ($studentRecord ?? null)) : null;
 $headerPhotoUrl = student_profile_photo_url($headerPhotoSource);
 $studentProfileRoute = ($user['role'] ?? '') === 'student' ? route_url('student.profile') : '';
+$sidebarCollapsed = isset($_COOKIE['sidebarCollapsed']) && $_COOKIE['sidebarCollapsed'] === '1';
 ?>
 <!doctype html>
-<html lang="en">
+<html lang="en"<?= $sidebarCollapsed ? ' class="is-sidebar-collapsed-init"' : '' ?>>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($title ?? 'AMA Practicum System') ?></title>
-    <link rel="icon" type="image/png" href="<?= e(asset('assets/image/main/logo/amalogo.png')) ?>">
-    <link rel="apple-touch-icon" href="<?= e(asset('assets/image/main/logo/amalogo.png')) ?>">
+    <link rel="icon" type="image/jpeg" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">
+    <link rel="apple-touch-icon" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260624-coordinator-form">
+    <script>
+    try {
+        if (localStorage.getItem('sidebarCollapsed') === '1' || document.documentElement.classList.contains('is-sidebar-collapsed-init')) {
+            if (window.matchMedia('(min-width: 721px)').matches) {
+                document.documentElement.classList.add('is-sidebar-collapsed-init');
+            }
+            localStorage.setItem('sidebarCollapsed', '1');
+        }
+    } catch (e) {}
+    </script>
+    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260625-sidebar-fix4">
 </head>
-<body class="app-page role-<?= e($user['role'] ?? 'guest') ?>">
+<body class="app-page role-<?= e($user['role'] ?? 'guest') ?><?= $sidebarCollapsed ? ' sidebar-collapsed' : '' ?>" data-app-base="<?= e(app_base_path()) ?>" data-sidebar-collapsed="<?= $sidebarCollapsed ? '1' : '0' ?>">
+<script>try{if((localStorage.getItem('sidebarCollapsed')==='1'||document.body.dataset.sidebarCollapsed==='1')&&window.matchMedia('(min-width: 721px)').matches){document.body.classList.add('sidebar-collapsed');localStorage.setItem('sidebarCollapsed','1');}}catch(e){}</script>
 <div class="app-shell">
     <aside class="sidebar">
         <button class="sidebar-toggle" type="button" aria-label="Collapse sidebar"><svg viewBox="0 0 24 24"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4L10.8 12l4.6-4.6ZM20 4h-2v16h2V4Z"/></svg></button>
         <div class="brand">
             <span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Zm0 3.2 5.8 3.2-5.8 3.2-5.8-3.2L12 5.2Zm-6 5.9 4.5 2.5v4.9L6 16v-4.9Zm12 0V16l-4.5 2.5v-4.9L18 11.1Z"/></svg></span>
-            <div><strong>AMA Computer College</strong><small>OJT Management</small></div>
+            <div><strong data-marquee>AMA Computer College</strong><small data-marquee>OJT Management</small></div>
         </div>
         <nav class="nav">
             <?php
             $role = $user['role'] ?? '';
             $homeRoute = $role ?: 'admin';
             $currentRoute = $_GET['r'] ?? $homeRoute;
-            $pageSubtitle = in_array($role, ['admin', 'coordinator'], true)
+            $rawPageSubtitle = in_array($role, ['admin', 'coordinator'], true)
                 ? ''
                 : ($role === 'partner' ? 'Industry Partner' : ucwords(str_replace('_', ' ', $role ?: 'dashboard')));
+            $pageTitle = $title ?? 'Dashboard';
+            $pageSubtitle = '';
+            if ($rawPageSubtitle !== '' && stripos($pageTitle, $rawPageSubtitle) === false) {
+                $pageSubtitle = $rawPageSubtitle;
+            }
             ?>
             <a class="nav-link <?= in_array($currentRoute, ['admin', 'coordinator', 'student', 'partner'], true) ? 'active' : '' ?>" href="index.php?r=<?= e($homeRoute) ?>"><svg viewBox="0 0 24 24"><path d="M4 13h7V4H4v9Zm0 7h7v-5H4v5Zm9 0h7v-9h-7v9Zm0-16v5h7V4h-7Z"/></svg><?php if ($role === 'student'): ?><span class="nav-link-label nav-link-label--full">Dashboard</span><span class="nav-link-label nav-link-label--short" aria-hidden="true">Home</span><?php else: ?><span>Dashboard</span><?php endif; ?></a>
             <?php if ($role === 'admin'):
@@ -96,8 +113,8 @@ $studentProfileRoute = ($user['role'] ?? '') === 'student' ? route_url('student.
                     <span class="app-user-identity__avatar"><?= e($headerInitial) ?></span>
                 <?php endif; ?>
                 <div class="app-user-identity__meta">
-                    <strong><?= e($user['name'] ?? '') ?></strong>
-                    <small><?= e(($user['role'] ?? '') === 'student' ? ($user['email'] ?? '') : (($user['role'] ?? '') === 'partner' ? 'Industry Partner' : ucwords(str_replace('_', ' ', $user['role'] ?? '')))) ?></small>
+                    <strong data-marquee><?= e($user['name'] ?? '') ?></strong>
+                    <small data-marquee><?= e(($user['role'] ?? '') === 'student' ? ($user['email'] ?? '') : (($user['role'] ?? '') === 'partner' ? 'Industry Partner' : ucwords(str_replace('_', ' ', $user['role'] ?? '')))) ?></small>
                 </div>
             <?php if ($studentProfileRoute !== ''): ?>
                 </a>
@@ -112,33 +129,44 @@ $studentProfileRoute = ($user['role'] ?? '') === 'student' ? route_url('student.
     </aside>
     <main class="main">
         <header class="topbar">
-            <div class="topbar-copy"><h1><?= e($title ?? 'Dashboard') ?></h1><?php if ($pageSubtitle !== ''): ?><span><?= e($pageSubtitle) ?></span><?php endif; ?></div>
-            <div class="top-actions">
-                <div class="notification-menu" id="notifMenu">
-                    <button class="notif-trigger" id="notifBtn" type="button" aria-label="Notifications" aria-controls="notifPanel" aria-expanded="false">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-                        <?php if (($unreadNotifications ?? 0) > 0): ?><span class="notif-badge"><?= (int)$unreadNotifications ?></span><?php endif; ?>
-                    </button>
+            <div class="topbar-leading">
+                <div class="topbar-copy">
+                    <?php if ($pageSubtitle !== ''): ?><span class="topbar-eyebrow"><?= e($pageSubtitle) ?></span><?php endif; ?>
+                    <h1><?= e($pageTitle) ?></h1>
                 </div>
-                <?php if ($studentProfileRoute !== ''): ?>
-                    <a class="user-chip app-user-identity app-user-identity--chip user-chip-link" href="<?= e($studentProfileRoute) ?>" aria-label="Open my profile">
-                <?php else: ?>
-                    <div class="user-chip app-user-identity app-user-identity--chip">
-                <?php endif; ?>
-                    <?php if ($headerPhotoUrl !== ''): ?>
-                        <span class="app-user-identity__avatar app-user-identity__avatar--photo"><img src="<?= e($headerPhotoUrl) ?>" alt="<?= e($user['name'] ?? 'User') ?> profile photo"></span>
+            </div>
+            <div class="top-actions">
+                <div class="topbar-toolbar">
+                    <div class="notification-menu" id="notifMenu">
+                        <button class="notif-trigger" id="notifBtn" type="button" aria-label="Notifications" aria-controls="notifPanel" aria-expanded="false">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                            <?php if (($unreadNotifications ?? 0) > 0): ?><span class="notif-badge"><?= (int)$unreadNotifications ?></span><?php endif; ?>
+                        </button>
+                    </div>
+                    <span class="topbar-toolbar-divider" aria-hidden="true"></span>
+                    <?php if ($studentProfileRoute !== ''): ?>
+                        <a class="user-chip app-user-identity app-user-identity--chip user-chip-link" href="<?= e($studentProfileRoute) ?>" aria-label="Open my profile">
                     <?php else: ?>
-                        <span class="app-user-identity__avatar"><?= e($headerInitial) ?></span>
+                        <div class="user-chip app-user-identity app-user-identity--chip">
                     <?php endif; ?>
-                    <div class="app-user-identity__meta">
-                        <strong><?= e($user['name'] ?? '') ?></strong>
-                        <small><?= e($user['email'] ?? '') ?></small>
-                    </div>
-                <?php if ($studentProfileRoute !== ''): ?>
-                    </a>
-                <?php else: ?>
-                    </div>
-                <?php endif; ?>
+                        <?php if ($headerPhotoUrl !== ''): ?>
+                            <span class="app-user-identity__avatar app-user-identity__avatar--photo"><img src="<?= e($headerPhotoUrl) ?>" alt="<?= e($user['name'] ?? 'User') ?> profile photo"></span>
+                        <?php else: ?>
+                            <span class="app-user-identity__avatar"><?= e($headerInitial) ?></span>
+                        <?php endif; ?>
+                        <div class="app-user-identity__meta">
+                            <strong data-marquee><?= e($user['name'] ?? '') ?></strong>
+                            <small data-marquee><?= e($user['email'] ?? '') ?></small>
+                        </div>
+                        <?php if ($studentProfileRoute !== ''): ?>
+                            <svg class="user-chip-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                        <?php endif; ?>
+                    <?php if ($studentProfileRoute !== ''): ?>
+                        </a>
+                    <?php else: ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
         </header>
         <div class="notif-panel" id="notifPanel" role="dialog" aria-label="Notifications" hidden>
