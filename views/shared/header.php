@@ -26,7 +26,7 @@ $sidebarCollapsed = isset($_COOKIE['sidebarCollapsed']) && $_COOKIE['sidebarColl
         }
     } catch (e) {}
     </script>
-    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260625-sidebar-fix4">
+    <link rel="stylesheet" href="<?= e(asset_url('assets/css/style.css')) ?>">
 </head>
 <body class="app-page role-<?= e($user['role'] ?? 'guest') ?><?= $sidebarCollapsed ? ' sidebar-collapsed' : '' ?>" data-app-base="<?= e(app_base_path()) ?>" data-sidebar-collapsed="<?= $sidebarCollapsed ? '1' : '0' ?>">
 <script>try{if((localStorage.getItem('sidebarCollapsed')==='1'||document.body.dataset.sidebarCollapsed==='1')&&window.matchMedia('(min-width: 721px)').matches){document.body.classList.add('sidebar-collapsed');localStorage.setItem('sidebarCollapsed','1');}}catch(e){}</script>

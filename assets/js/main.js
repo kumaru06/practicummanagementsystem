@@ -34,6 +34,7 @@
     initPartnerPasswordChange();
     initStudentPasswordChange();
     initPartnerPortalRoster();
+    initPartnerSubmissions();
     document.querySelectorAll('.data-table').forEach(table => enhanceTable(table));
     document.querySelector('#modal .modal-close')?.addEventListener('click', closeSlidePanel);
     document.addEventListener('click', handleOutsideMenus);
@@ -1989,6 +1990,110 @@ function initPartnerPortalRoster() {
         const workspace = document.getElementById('student-workspace');
         workspace?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+}
+
+function initPartnerSubmissions() {
+    const root = document.querySelector('[data-ps-submissions]');
+    const detailHost = root?.querySelector('[data-ps-v2-detail]');
+    if (!root || !detailHost) return;
+
+    let loading = false;
+
+    const searchInput = root.querySelector('[data-ps-student-search]');
+    const studentList = root.querySelector('.ps-v2-student-list');
+    const searchEmpty = root.querySelector('[data-ps-student-search-empty]');
+    const filterStudents = () => {
+        const q = (searchInput?.value || '').trim().toLowerCase();
+        const items = root.querySelectorAll('[data-ps-student-item]');
+        let visible = 0;
+        items.forEach(item => {
+            const match = q === '' || (item.dataset.search || '').includes(q);
+            item.hidden = !match;
+            if (match) visible++;
+        });
+        const showNotFound = q !== '' && visible === 0;
+        if (studentList) {
+            studentList.hidden = showNotFound;
+        }
+        if (searchEmpty) {
+            searchEmpty.hidden = !showNotFound;
+        }
+    };
+    searchInput?.addEventListener('input', filterStudents);
+
+    const setupMetaMarquees = () => {
+        root.querySelectorAll('[data-ps-meta-marquee]').forEach(marquee => {
+            const track = marquee.querySelector('.ps-v2-student-meta-track');
+            const first = track?.querySelector('small:first-child');
+            if (!track || !first) return;
+
+            marquee.classList.remove('is-overflow');
+            track.style.removeProperty('--ps-marquee-distance');
+            track.style.removeProperty('--ps-marquee-duration');
+
+            if (first.scrollWidth > marquee.clientWidth + 2) {
+                const gap = 32;
+                const distance = first.scrollWidth + gap;
+                marquee.classList.add('is-overflow');
+                track.style.setProperty('--ps-marquee-distance', `-${distance}px`);
+                track.style.setProperty('--ps-marquee-duration', `${Math.max(7, distance / 24)}s`);
+            }
+        });
+    };
+    setupMetaMarquees();
+    window.addEventListener('resize', setupMetaMarquees);
+
+    const setSelectedStudent = studentId => {
+        root.querySelectorAll('[data-student-id]').forEach(card => {
+            card.classList.toggle('is-selected', card.dataset.studentId === String(studentId));
+        });
+    };
+
+    const loadDetail = async (url, { pushState = true, studentId = null } = {}) => {
+        if (loading) return;
+        loading = true;
+        detailHost.classList.add('is-loading');
+        try {
+            const response = await fetch(url, {
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                cache: 'no-store',
+            });
+            if (!response.ok) {
+                throw new Error('Failed to load submissions.');
+            }
+            detailHost.innerHTML = await response.text();
+            if (studentId !== null) {
+                setSelectedStudent(studentId);
+            }
+            if (pushState) {
+                history.pushState({ psSubmissions: true }, '', url);
+            }
+        } catch {
+            window.location.assign(url);
+        } finally {
+            loading = false;
+            detailHost.classList.remove('is-loading');
+        }
+    };
+
+    root.addEventListener('click', event => {
+        const link = event.target.closest('[data-ps-ajax]');
+        if (!link || !root.contains(link)) return;
+        event.preventDefault();
+        link.closest('details')?.removeAttribute('open');
+        const studentId = link.dataset.studentId || null;
+        loadDetail(link.href, { studentId });
+    });
+
+    window.addEventListener('popstate', () => {
+        if (!document.querySelector('[data-ps-submissions]')) return;
+        const params = new URLSearchParams(window.location.search);
+        loadDetail(window.location.href, {
+            pushState: false,
+            studentId: params.get('student_id'),
+        });
+    });
 }
 
 function initFloatingLabels() {

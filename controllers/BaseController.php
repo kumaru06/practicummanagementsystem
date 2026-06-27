@@ -40,4 +40,16 @@ abstract class BaseController
         verify_csrf();
         return $_POST;
     }
+
+    protected function isAjaxRequest(): bool
+    {
+        return !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
+            && strtolower((string)$_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    }
+
+    protected function renderPartial(string $view, array $data = []): void
+    {
+        extract($data, EXTR_SKIP);
+        require __DIR__ . '/../views/' . $view . '.php';
+    }
 }

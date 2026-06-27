@@ -114,6 +114,18 @@ function asset(string $path): string
     return app_base_path() . '/' . ltrim($path, '/');
 }
 
+function asset_version(string $path): string
+{
+    $relative = ltrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path), DIRECTORY_SEPARATOR);
+    $absolute = __DIR__ . DIRECTORY_SEPARATOR . $relative;
+    return is_file($absolute) ? (string) filemtime($absolute) : '1';
+}
+
+function asset_url(string $path): string
+{
+    return asset($path) . '?v=' . asset_version($path);
+}
+
 function student_profile_photo_url(?array $student): string
 {
     if (!$student || empty($student['photo_file'])) {

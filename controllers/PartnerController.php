@@ -47,18 +47,33 @@ class PartnerController extends BaseController
     public function submissions(): void
     {
         require_role('partner');
+        $data = $this->submissionsViewData();
+
+        if ($this->isAjaxRequest()) {
+            header('Content-Type: text/html; charset=utf-8');
+            $this->renderPartial('partner/submissions_detail', $data);
+            return;
+        }
+
+        $this->render('partner/submissions', array_merge($data, [
+            'title' => 'Student Submissions',
+        ]));
+    }
+
+    /** @return array<string, mixed> */
+    private function submissionsViewData(): array
+    {
         $company = (new Company($this->db))->findByUser(current_user()['id']);
         if (!$company) {
-            $this->render('partner/submissions', [
-                'title' => 'Student Submissions',
+            return [
                 'company' => null,
                 'studentSummaries' => [],
                 'selectedStudent' => null,
                 'studentDtrs' => [],
                 'studentWeeklies' => [],
                 'activeTab' => 'dtr',
-            ]);
-            return;
+                'statusFilter' => 'pending',
+            ];
         }
 
         $reportModel = new Report($this->db);
@@ -88,15 +103,21 @@ class PartnerController extends BaseController
 
         $activeTab = ($_GET['tab'] ?? 'dtr') === 'weekly' ? 'weekly' : 'dtr';
 
-        $this->render('partner/submissions', [
-            'title' => 'Student Submissions',
+        return [
             'company' => $company,
             'studentSummaries' => $studentSummaries,
             'selectedStudent' => $selectedStudent,
             'studentDtrs' => $studentDtrs,
             'studentWeeklies' => $studentWeeklies,
             'activeTab' => $activeTab,
-        ]);
+            'statusFilter' => $this->submissionsStatusFilter(),
+        ];
+    }
+
+    private function submissionsStatusFilter(): string
+    {
+        $status = strtolower(trim((string)($_GET['status'] ?? 'pending')));
+        return in_array($status, ['all', 'pending', 'approved', 'rejected'], true) ? $status : 'pending';
     }
 
     public function reviewDtr(): void
@@ -153,7 +174,73 @@ class PartnerController extends BaseController
         redirect('index.php?r=partner_submissions&student_id=' . $studentId . '&tab=weekly');
     }
 
-    private function ensureRecordOwnership(int $studentId, int $recordId, string $type): void
+    public function bulkReviewDtr(): void
+    {
+        require_role('partner');
+        $p = $this->post();
+        $action = $p['decision'] ?? '';
+        $studentId = (int)($p['student_id'] ?? 0);
+
+        try {
+            if (!in_array($action, ['approved', 'rejected'], true)) {
+                throw new RuntimeException('Invalid decision.');
+            }
+            $this->ensureStudentAccess($studentId);
+
+            $report = new Report($this->db);
+            $count = 0;
+            foreach ($report->dtrByStudent($studentId) as $d) {
+                if (($d['verification_status'] ?? '') !== 'pending') {
+                    continue;
+                }
+                $report->setDtrVerification((int)$d['id'], $action, (int)current_user()['id'], null);
+                $count++;
+            }
+            if ($count === 0) {
+                throw new RuntimeException('No pending daily time records to review.');
+            }
+            $this->notifyStudentBulkReview($studentId, 'dtr', $action, $count);
+            flash('success', $count . ' daily time record(s) ' . $action . '.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+        redirect('index.php?r=partner_submissions&student_id=' . $studentId . '&tab=dtr');
+    }
+
+    public function bulkReviewWeekly(): void
+    {
+        require_role('partner');
+        $p = $this->post();
+        $action = $p['decision'] ?? '';
+        $studentId = (int)($p['student_id'] ?? 0);
+
+        try {
+            if (!in_array($action, ['approved', 'rejected'], true)) {
+                throw new RuntimeException('Invalid decision.');
+            }
+            $this->ensureStudentAccess($studentId);
+
+            $report = new Report($this->db);
+            $count = 0;
+            foreach ($report->weeklyByStudent($studentId) as $w) {
+                if (($w['verification_status'] ?? '') !== 'pending') {
+                    continue;
+                }
+                $report->setWeeklyVerification((int)$w['id'], $action, (int)current_user()['id'], null);
+                $count++;
+            }
+            if ($count === 0) {
+                throw new RuntimeException('No pending weekly reports to review.');
+            }
+            $this->notifyStudentBulkReview($studentId, 'weekly', $action, $count);
+            flash('success', $count . ' weekly report(s) ' . $action . '.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+        redirect('index.php?r=partner_submissions&student_id=' . $studentId . '&tab=weekly');
+    }
+
+    private function ensureStudentAccess(int $studentId): void
     {
         $company = (new Company($this->db))->findByUser(current_user()['id']);
         if (!$company) {
@@ -166,6 +253,33 @@ class PartnerController extends BaseController
         if ((int)$stmt->fetchColumn() === 0) {
             throw new RuntimeException('You do not have access to this student.');
         }
+    }
+
+    private function notifyStudentBulkReview(int $studentId, string $type, string $action, int $count): void
+    {
+        $student = (new Student($this->db))->find($studentId);
+        if (!$student) {
+            return;
+        }
+        $notifications = new Notification($this->db);
+        $label = $type === 'dtr' ? 'Daily Time Records' : 'Weekly Reports';
+        $title = $count . ' ' . $label . ' ' . ($action === 'approved' ? 'approved' : 'rejected');
+        $message = $count . ' ' . strtolower($label) . ' were ' . $action . ' by your Industry Partner.';
+        $notifications->create((int)$student['user_id'], $title, $message, route_url('student.records'));
+
+        if ($action === 'approved' && !empty($student['coordinator_id'])) {
+            $notifications->create(
+                (int)$student['coordinator_id'],
+                $label . ' approved by Industry Partner',
+                $count . ' ' . strtolower($label) . ' for ' . $student['name'] . ' were approved by the Industry Partner.',
+                route_url('coordinator.students')
+            );
+        }
+    }
+
+    private function ensureRecordOwnership(int $studentId, int $recordId, string $type): void
+    {
+        $this->ensureStudentAccess($studentId);
         $report = new Report($this->db);
         $record = $type === 'dtr' ? $report->findDtr($recordId) : $report->findWeekly($recordId);
         if (!$record || (int)$record['student_id'] !== $studentId) {
