@@ -38,6 +38,9 @@ function route_url(string $route, array $params = []): string
         'admin.programs' => 'index.php?r=admin_programs',
         'admin.email_logs' => 'index.php?r=admin_email_logs',
         'admin.evaluations' => 'index.php?r=admin_evaluations',
+        'admin.ojt_placement' => 'index.php?r=admin_ojt_placement',
+        'admin.reports' => 'index.php?r=admin_reports',
+        'admin.report' => 'index.php?r=admin_report',
         'coordinator.dashboard' => 'index.php?r=coordinator',
         'coordinator.manage' => 'index.php?r=coordinator_manage',
         'coordinator.students' => 'index.php?r=coordinator_students',
@@ -467,4 +470,91 @@ function format_dtr_schedule(array $dtr): string
     }
 
     return '-';
+}
+
+function admin_report_categories(): array
+{
+    return [
+        [
+            'id' => 'student',
+            'title' => 'Student Reports',
+            'icon' => 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z',
+            'items' => [
+                ['label' => 'Active Students', 'slug' => 'active_students'],
+                ['label' => 'Completed OJT Students', 'slug' => 'completed_ojt_students'],
+                ['label' => 'Pending Students', 'slug' => 'pending_students'],
+                ['label' => 'Student Attendance Summary', 'slug' => 'student_attendance_summary'],
+            ],
+        ],
+        [
+            'id' => 'company',
+            'title' => 'Company Reports',
+            'icon' => 'M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z',
+            'items' => [
+                ['label' => 'Partner Company List', 'slug' => 'partner_company_list'],
+                ['label' => 'Students Per Company', 'slug' => 'students_per_company'],
+                ['label' => 'Company Evaluation Results', 'slug' => 'company_evaluation_results'],
+            ],
+        ],
+        [
+            'id' => 'attendance',
+            'title' => 'Attendance Reports',
+            'icon' => 'M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm0 16H5V9h14v10Zm-9-8H7v3h3v3h3v-3h3v-3h-3V8h-3v3Z',
+            'items' => [
+                ['label' => 'Daily Attendance', 'slug' => 'daily_attendance'],
+                ['label' => 'Weekly Attendance', 'slug' => 'weekly_attendance'],
+                ['label' => 'Monthly Attendance', 'slug' => 'monthly_attendance'],
+                ['label' => 'Hours Rendered', 'slug' => 'hours_rendered'],
+            ],
+        ],
+        [
+            'id' => 'evaluation',
+            'title' => 'Evaluation Reports',
+            'icon' => 'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z',
+            'items' => [
+                ['label' => 'Industry Supervisor Evaluation', 'slug' => 'industry_supervisor_evaluation'],
+                ['label' => 'Student Self-Evaluation', 'slug' => 'student_self_evaluation'],
+                ['label' => 'Coordinator Evaluation', 'slug' => 'coordinator_evaluation'],
+                ['label' => 'Final Evaluation Summary', 'slug' => 'final_evaluation_summary'],
+            ],
+        ],
+        [
+            'id' => 'requirements',
+            'title' => 'Requirements Reports',
+            'icon' => 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5ZM8 13h8v2H8v-2Zm0 4h8v2H8v-2Z',
+            'items' => [
+                ['label' => 'Submitted Requirements', 'slug' => 'submitted_requirements'],
+                ['label' => 'Missing Requirements', 'slug' => 'missing_requirements'],
+                ['label' => 'Approved Documents', 'slug' => 'approved_documents'],
+                ['label' => 'Rejected Documents', 'slug' => 'rejected_documents'],
+            ],
+        ],
+        [
+            'id' => 'completion',
+            'title' => 'Completion Reports',
+            'icon' => 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 14-4-4 1.4-1.4 2.6 2.6 5.6-5.6L18 9l-7 7Z',
+            'items' => [
+                ['label' => 'Completion Rate by Course', 'slug' => 'completion_rate_by_course'],
+                ['label' => 'Completion Rate by Company', 'slug' => 'completion_rate_by_company'],
+                ['label' => 'Graduated OJT Students', 'slug' => 'graduated_ojt_students'],
+            ],
+        ],
+    ];
+}
+
+function admin_report_by_slug(string $slug): ?array
+{
+    foreach (admin_report_categories() as $category) {
+        foreach ($category['items'] as $item) {
+            if ($item['slug'] === $slug) {
+                return [
+                    'category' => $category['title'],
+                    'label' => $item['label'],
+                    'slug' => $item['slug'],
+                ];
+            }
+        }
+    }
+
+    return null;
 }

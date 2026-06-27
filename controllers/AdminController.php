@@ -182,6 +182,46 @@ class AdminController extends BaseController
         ]);
     }
 
+    public function reports(): void
+    {
+        require_role('admin');
+        $this->render('admin/reports', [
+            'title' => 'Reports',
+            'categories' => admin_report_categories(),
+        ]);
+    }
+
+    public function report(): void
+    {
+        require_role('admin');
+        $slug = trim((string)($_GET['slug'] ?? ''));
+        $report = admin_report_by_slug($slug);
+        if (!$report) {
+            flash('error', 'Report not found.');
+            redirect(route_url('admin.reports'));
+        }
+        $payload = (new AdminReport($this->db))->generate($slug);
+        $this->render('admin/report_view', [
+            'title' => $report['label'],
+            'report' => $report,
+            'description' => $payload['description'] ?? '',
+            'columns' => $payload['columns'] ?? [],
+            'rows' => $payload['rows'] ?? [],
+            'ready' => (bool)($payload['ready'] ?? false),
+        ]);
+    }
+
+    public function ojtPlacement(): void
+    {
+        require_role('admin');
+        $this->render('admin/ojt_placement', [
+            'title' => 'OJT Placement',
+            'placements' => (new Enrollment($this->db))->allPlacements(),
+        ]);
+    }
+
+    
+
     public function emailLogs(): void
     {
         require_role('admin');

@@ -274,6 +274,29 @@ class Enrollment
         return $stmt->fetch() ?: null;
     }
 
+    public function allPlacements(): array
+    {
+        return $this->db->query('
+            SELECT
+                e.id,
+                e.status,
+                COALESCE(e.official_start_date, e.start_date) AS placement_start,
+                COALESCE(e.projected_end_date, e.end_date) AS placement_end,
+                u.name AS student_name,
+                s.student_no,
+                COALESCE(p.code, s.course) AS course,
+                pc.name AS company_name,
+                fr.position_held
+            FROM ojt_enrollments e
+            JOIN students s ON s.id = e.student_id
+            JOIN users u ON u.id = s.user_id
+            LEFT JOIN programs p ON p.id = s.program_id
+            JOIN partner_companies pc ON pc.id = e.company_id
+            LEFT JOIN student_final_requirements fr ON fr.student_id = s.id
+            ORDER BY u.name
+        ')->fetchAll();
+    }
+
     public function approveAndForward(int $enrollmentId, string $endorsementFile): void
     {
         $stmt = $this->db->prepare('UPDATE ojt_enrollments SET predeployment_status = "forwarded", endorsement_file = ?, forwarded_at = NOW() WHERE id = ?');
