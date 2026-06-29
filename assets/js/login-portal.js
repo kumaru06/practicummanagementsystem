@@ -1,10 +1,77 @@
 document.addEventListener('DOMContentLoaded', () => {
-    initPortalLogin();
+    initPortalGate();
+    if (document.querySelector('.js-portal-shell')) {
+        initPortalLogin();
+    }
 });
 
+function initPortalGate() {
+    const gate = document.querySelector('.js-portal-gate');
+    const host = document.querySelector('.js-portal-ajax-host');
+    const button = document.querySelector('.js-portal-gate-open');
+    if (!gate || !host || !button) return;
+
+    const fetchUrl = button.dataset.portalFetch || 'auth.php?partial=portal';
+
+    button.addEventListener('click', async () => {
+        if (button.disabled) return;
+
+        button.disabled = true;
+        button.classList.add('is-loading');
+
+        try {
+            const response = await fetch(fetchUrl, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    Accept: 'text/html',
+                },
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                throw new Error('Portal request failed');
+            }
+
+            const html = await response.text();
+            host.innerHTML = html;
+            gate.hidden = true;
+            host.hidden = false;
+
+            initPortalLogin();
+            initAjaxPortalForms(host);
+        } catch {
+            button.disabled = false;
+            window.alert('Unable to load the login portal. Please try again.');
+        } finally {
+            button.classList.remove('is-loading');
+        }
+    });
+}
+
+function initAjaxPortalForms(root) {
+    if (typeof window.initFormValidation === 'function') {
+        window.initFormValidation(root);
+        return;
+    }
+
+    root.querySelectorAll('.js-validate').forEach(form => {
+        if (form.dataset.validateBound === '1') return;
+        form.dataset.validateBound = '1';
+        form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                form.reportValidity();
+            }
+        });
+    });
+}
+
 function initPortalLogin() {
-    const shell = document.querySelector('.js-portal-shell');
+    const shell = document.querySelector('.js-portal-shell:not([data-portal-initialized])');
     if (!shell) return;
+
+    shell.dataset.portalInitialized = '1';
 
     const selectView = shell.querySelector('[data-portal-view="select"]');
     const formView = shell.querySelector('[data-portal-view="form"]');
@@ -37,14 +104,20 @@ function initPortalLogin() {
         closePortal();
     });
 
-    window.addEventListener('popstate', event => {
-        const portal = event.state?.portal || null;
-        if (portal) {
-            openPortal(portal, { push: false, direction: 'forward' });
-        } else {
-            closePortal({ push: false, direction: 'back' });
-        }
-    });
+    if (!window.__portalPopstateBound) {
+        window.addEventListener('popstate', event => {
+            const currentShell = document.querySelector('.js-portal-shell');
+            if (!currentShell || typeof currentShell.__openPortal !== 'function') return;
+
+            const portal = event.state?.portal || null;
+            if (portal) {
+                currentShell.__openPortal(portal, { push: false, direction: 'forward' });
+            } else {
+                currentShell.__closePortal({ push: false, direction: 'back' });
+            }
+        });
+        window.__portalPopstateBound = true;
+    }
 
     history.replaceState(
         { portal: activePortal || null },
@@ -156,4 +229,9 @@ function initPortalLogin() {
         alertEl.textContent = '';
         alertEl.classList.add('is-hidden');
     }
+
+    shell.__openPortal = openPortal;
+    shell.__closePortal = closePortal;
 }
+
+window.initPortalLogin = initPortalLogin;

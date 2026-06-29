@@ -11,6 +11,11 @@ class AuthController extends BaseController
             redirect(route_for_role($user['role'] ?? null));
         }
 
+        if ($this->wantsLoginPortalPartial()) {
+            $this->renderLoginPortalPartial($portalRole);
+            return;
+        }
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             verify_csrf();
             if (!$portalRole) {
@@ -71,5 +76,20 @@ class AuthController extends BaseController
             'portals' => $visible,
             'loginPortals' => $loginPortals,
         ];
+    }
+
+    private function wantsLoginPortalPartial(): bool
+    {
+        return ($_GET['partial'] ?? '') === 'portal'
+            && strcasecmp($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '', 'XMLHttpRequest') === 0
+            && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET';
+    }
+
+    private function renderLoginPortalPartial(?string $portalRole): void
+    {
+        header('Content-Type: text/html; charset=UTF-8');
+        extract($this->portalViewData($portalRole), EXTR_SKIP);
+        $flashError = flash('error');
+        require __DIR__ . '/../views/shared/partials/login-portal-card.php';
     }
 }
