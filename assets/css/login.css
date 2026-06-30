@@ -1163,15 +1163,18 @@
 
     .login-info-photo {
         position: relative;
-        aspect-ratio: unset;
+        width: min(calc(100% - 32px), calc(280px * 4 / 3));
+        max-width: calc(100% - 32px);
+        margin-inline: auto;
+        margin-bottom: 16px;
+        aspect-ratio: 4 / 3;
+        max-height: 280px;
+        min-height: 200px;
         height: auto;
-        min-height: 0;
-        max-height: none;
-        margin: 0 16px 16px;
         border-radius: 5px;
         overflow: hidden;
         box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
-        background: #0a3d8f;
+        background: linear-gradient(160deg, #0a3d8f, #072d6b);
     }
 
     .login-info-photo::after {
@@ -1181,18 +1184,37 @@
         pointer-events: none;
         border-radius: inherit;
         box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+        z-index: 1;
     }
 
     .login-info-slideshow {
-        position: relative;
-        aspect-ratio: 4 / 3;
-        min-height: 200px;
-        max-height: 280px;
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    .login-info-slide,
+    .login-info-photo-img {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: auto;
+        height: auto;
+        max-width: 100%;
+        max-height: 100%;
+        margin: auto;
+        object-fit: contain;
+        object-position: center center;
     }
 
     .login-info-slide {
-        object-fit: contain;
-        background: linear-gradient(160deg, #0a3d8f, #072d6b);
+        background: transparent;
+    }
+
+    .login-info-photo-img {
+        position: absolute;
     }
 
     .login-info-mission {
@@ -1251,10 +1273,8 @@
     }
 
     .login-info-photo {
-        margin-inline: 14px;
-    }
-
-    .login-info-slideshow {
+        width: min(calc(100% - 28px), calc(240px * 4 / 3));
+        max-width: calc(100% - 28px);
         min-height: 180px;
         max-height: 240px;
     }
