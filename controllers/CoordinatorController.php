@@ -39,8 +39,10 @@ class CoordinatorController extends BaseController
     public function myStudents(): void
     {
         require_role('coordinator');
-        $students = (new Student($this->db))->allByCoordinator(current_user()['id']);
+        $coordId = current_user()['id'];
+        $students = (new Student($this->db))->allByCoordinator($coordId);
         $studentModel = new Student($this->db);
+        $enrollModel = new Enrollment($this->db);
         $requirementsByStudent = [];
         $finalModel = new FinalRequirement($this->db);
         $studentEvalModel = new StudentEvaluation($this->db);
@@ -54,13 +56,23 @@ class CoordinatorController extends BaseController
             $studentEvaluationsByStudent[$studentId] = $studentEvalModel->getByStudent($studentId);
         }
         unset($student);
+        $totalStudents = count($students);
+        $ojtStarted = $enrollModel->countByCoordinator($coordId, 'active');
+        $ojtCompleted = $enrollModel->countByCoordinator($coordId, 'completed');
         $this->render('coordinator/my_students', [
             'title' => 'My Students',
             'students' => $students,
             'requirementsByStudent' => $requirementsByStudent,
             'finalRequirementsByStudent' => $finalRequirementsByStudent,
             'studentEvaluationsByStudent' => $studentEvaluationsByStudent,
-            'evaluations' => (new Evaluation($this->db))->byCoordinator(current_user()['id']),
+            'evaluations' => (new Evaluation($this->db))->byCoordinator($coordId),
+            'terms' => (new Term($this->db))->all(),
+            'stats' => [
+                'total' => $totalStudents,
+                'started' => $ojtStarted,
+                'not_started' => max(0, $totalStudents - $ojtStarted - $ojtCompleted),
+                'completed' => $ojtCompleted,
+            ],
         ]);
     }
 
@@ -251,6 +263,7 @@ class CoordinatorController extends BaseController
     {
         require_role('coordinator');
         $p = $this->post();
+        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
         $corPath = null;
         try {
             $studentNo = trim((string)($p['student_no'] ?? ''));
@@ -301,13 +314,30 @@ class CoordinatorController extends BaseController
             $userId = (new User($this->db))->create($fullName, $email, $password, 'student', current_user()['id'], 0);
             (new Student($this->db))->create($userId, $studentNo, $program['name'], trim($p['year_level']), $corPath, current_user()['id'], (int)$program['id'], '', $birthdate);
             $this->db->commit();
-            flash('success', 'Student profile created. Login credentials will be emailed when you enroll the student and click Enroll & Send Emails.');
+            $successMessage = 'Student profile created. Login credentials will be emailed when you enroll the student and click Enroll & Send Emails.';
+            if ($isAjax) {
+                flash('success', $successMessage);
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'ok' => true,
+                    'message' => $successMessage,
+                    'redirect' => route_url('coordinator.manage'),
+                ]);
+                exit;
+            }
+            flash('success', $successMessage);
         } catch (Throwable $e) {
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();
             }
             if ($corPath && is_file(__DIR__ . '/../' . $corPath)) {
                 @unlink(__DIR__ . '/../' . $corPath);
+            }
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                http_response_code(422);
+                echo json_encode(['ok' => false, 'message' => $e->getMessage()]);
+                exit;
             }
             flash('error', $e->getMessage());
         }
@@ -318,6 +348,7 @@ class CoordinatorController extends BaseController
     {
         require_role('coordinator');
         $p = $this->post();
+        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
         try {
             $studentId = (int)$p['student_id'];
             $companyId = (int)$p['company_id'];
@@ -369,8 +400,24 @@ class CoordinatorController extends BaseController
                 'loginUrl' => absolute_route_url('student.login'),
             ]);
             (new Notification($this->db))->create((int)$student['user_id'], 'OJT enrollment created', 'You have been enrolled for OJT deployment at ' . ($company['name'] ?? 'your Industry Partner') . '.', route_url('student.documents'));
-            flash('success', 'Student enrolled and credentials email was processed. Industry Partner deployment email will be sent after approved documents are forwarded.');
+            $successMessage = 'Student enrolled and credentials email was processed. Industry Partner deployment email will be sent after approved documents are forwarded.';
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'ok' => true,
+                    'message' => $successMessage,
+                    'redirect' => route_url('coordinator.manage'),
+                ]);
+                exit;
+            }
+            flash('success', $successMessage);
         } catch (Throwable $e) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                http_response_code(422);
+                echo json_encode(['ok' => false, 'message' => $e->getMessage()]);
+                exit;
+            }
             flash('error', $e->getMessage());
         }
         redirect('index.php?r=coordinator_manage');

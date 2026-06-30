@@ -1,83 +1,15 @@
 <?php
     $finalRequirement = $finalRequirement ?? [];
     $finalSections = $finalSections ?? [];
-    $summary = (new FinalRequirement(db()))->overallSummary($finalRequirement);
-    $docIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>';
-?>
-<a class="final-form-back" href="index.php?r=coordinator_students">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-    Back to My Students
-</a>
-
-<div class="status-callout info final-student-banner">
-    <strong><?= e($student['name'] ?? 'Student') ?></strong>
-    <p><?= e($student['student_no'] ?? '') ?> · Review final requirements and student evaluations (coordinator only — not visible to industry partners).</p>
-</div>
-
-<section class="card final-req-card">
-    <div class="section-head final-req-head">
-        <span class="final-req-step-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg>
-        </span>
-        <div>
-            <h2>Final Requirements — <?= e($student['name'] ?? 'Student') ?></h2>
-            <p class="muted"><?= e($student['student_no'] ?? '') ?> · Review submitted post-OJT documents.</p>
-        </div>
-        <span class="badge <?= e($summary['class']) ?>"><?= e($summary['label']) ?></span>
-    </div>
-
-    <div class="table-wrap">
-        <table class="data-table final-req-table" data-no-enhance>
-            <thead>
-                <tr><th>Document</th><th>Description</th><th>Status</th><th>Action</th></tr>
-            </thead>
-            <tbody>
-                <?php foreach ($finalSections as $key => $section): ?>
-                    <?php
-                        $status = (string)($finalRequirement[$key . '_status'] ?? 'pending');
-                        $status = $status !== '' ? $status : 'pending';
-                        $statusLabel = $status === 'submitted' ? 'Submitted' : 'Pending';
-                    ?>
-                    <tr>
-                        <td>
-                            <span class="final-req-doc">
-                                <span class="final-req-doc-icon"><?= $docIcon ?></span>
-                                <strong><?= e($section['name']) ?></strong>
-                            </span>
-                        </td>
-                        <td class="final-req-desc"><?= e($section['description']) ?></td>
-                        <td><span class="badge <?= e($status) ?>"><?= e($statusLabel) ?></span></td>
-                        <td>
-                            <?php if ($status === 'submitted'): ?>
-                                <a class="btn btn-primary btn-small" href="index.php?r=coordinator_student_final&amp;student_id=<?= (int)$student['id'] ?>&amp;doc=<?= e($key) ?>">View</a>
-                            <?php else: ?>
-                                <span class="muted">Not submitted</span>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
-
-    <div class="status-callout <?= $summary['submitted'] === $summary['total'] ? 'success' : 'info' ?> final-req-note">
-        <?php if ($summary['submitted'] === $summary['total']): ?>
-            <strong>All final requirements submitted</strong>
-            <p>This student has completed all three final requirement documents.</p>
-        <?php elseif ($summary['submitted'] > 0): ?>
-            <strong>In progress</strong>
-            <p><?= (int)$summary['submitted'] ?> of <?= (int)$summary['total'] ?> documents submitted so far.</p>
-        <?php else: ?>
-            <strong>Not started</strong>
-            <p>This student has not submitted any final requirement documents yet.</p>
-        <?php endif; ?>
-    </div>
-</section>
-
-<?php
     $studentEvaluation = $studentEvaluation ?? [];
     $evaluationSections = $evaluationSections ?? FinalRequirement::EVALUATION_SECTIONS;
-    $evalIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/></svg>';
+
+    $summary = (new FinalRequirement(db()))->overallSummary($finalRequirement);
+    $docSubmitted = (int)$summary['submitted'];
+    $docTotal = (int)$summary['total'];
+    $docPct = $docTotal > 0 ? (int)round(($docSubmitted / $docTotal) * 100) : 0;
+    $allDocsSubmitted = $docSubmitted === $docTotal && $docTotal > 0;
+
     $evalSubmitted = 0;
     foreach (array_keys($evaluationSections) as $evalKey) {
         if (StudentEvaluation::statusFor($studentEvaluation, $evalKey) === 'submitted') {
@@ -85,62 +17,220 @@
         }
     }
     $evalTotal = count($evaluationSections);
+    $evalPct = $evalTotal > 0 ? (int)round(($evalSubmitted / $evalTotal) * 100) : 0;
+    $allEvalsSubmitted = $evalSubmitted === $evalTotal && $evalTotal > 0;
+
+    $studentId = (int)($student['id'] ?? 0);
+    $studentName = (string)($student['name'] ?? 'Student');
+    $studentNo = (string)($student['student_no'] ?? '');
+
+    $svgAttrs = 'class="cfp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+    $sectionDocsIcon = '<svg ' . $svgAttrs . '><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><path d="M12 11v6M9 14h6"/></svg>';
+    $sectionEvalIcon = '<svg ' . $svgAttrs . '><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6M9 16h4M9 8h6"/></svg>';
+    $lockIcon = '<svg ' . $svgAttrs . '><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+    $chevronIcon = '<svg class="cfp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
+
+    $docRowIcons = [
+        'job_description' => [
+            'class' => 'cfp-item-icon cfp-item-icon--job',
+            'svg' => '<svg ' . $svgAttrs . '><path d="M10 7V5a2 2 0 0 1 4 0v2"/><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 12h18"/><path d="M12 12v4"/></svg>',
+        ],
+        'company_profile' => [
+            'class' => 'cfp-item-icon cfp-item-icon--company',
+            'svg' => '<svg ' . $svgAttrs . '><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12h12"/><path d="M10 8h.01M14 8h.01M10 16h.01M14 16h.01"/></svg>',
+        ],
+        'personal_observation' => [
+            'class' => 'cfp-item-icon cfp-item-icon--observation',
+            'svg' => '<svg ' . $svgAttrs . '><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/><path d="m15 5 3 3"/></svg>',
+        ],
+    ];
+    $evalRowIcons = [
+        'coordinator' => [
+            'class' => 'cfp-item-icon cfp-item-icon--eval',
+            'svg' => '<svg ' . $svgAttrs . '><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/></svg>',
+        ],
+        'industry_partner' => [
+            'class' => 'cfp-item-icon cfp-item-icon--partner',
+            'svg' => '<svg ' . $svgAttrs . '><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/></svg>',
+        ],
+    ];
+
+    $initials = '';
+    $nameParts = preg_split('/\s+/', trim($studentName), 2);
+    if (!empty($nameParts[0])) {
+        $initials .= strtoupper(substr($nameParts[0], 0, 1));
+    }
+    if (!empty($nameParts[1])) {
+        $initials .= strtoupper(substr($nameParts[1], 0, 1));
+    }
+    if ($initials === '') {
+        $initials = '?';
+    }
+
+    $docStatusLabel = $allDocsSubmitted ? 'Complete' : ($docSubmitted > 0 ? 'In progress' : 'Not started');
+    $docStatusClass = $allDocsSubmitted ? 'is-complete' : ($docSubmitted > 0 ? 'is-progress' : 'is-empty');
+    $evalStatusLabel = $allEvalsSubmitted ? 'Complete' : ($evalSubmitted > 0 ? 'In progress' : 'Not started');
+    $evalStatusClass = $allEvalsSubmitted ? 'is-complete' : ($evalSubmitted > 0 ? 'is-progress' : 'is-empty');
 ?>
-<section class="card final-req-card">
-    <div class="section-head final-req-head">
-        <span class="final-req-step-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/></svg>
-        </span>
-        <div>
-            <h2>Student Evaluations</h2>
-            <p class="muted">Visible to OJT coordinator only — industry partners cannot access these.</p>
-        </div>
-        <span class="badge <?= $evalSubmitted === $evalTotal ? 'submitted' : ($evalSubmitted > 0 ? 'pending' : 'not_submitted') ?>"><?= $evalSubmitted ?>/<?= $evalTotal ?> completed</span>
+
+<div class="coord-final-page">
+    <div class="cfp-toolbar">
+        <nav class="cfp-breadcrumb" aria-label="Breadcrumb">
+            <a href="index.php?r=coordinator_students">My Students</a>
+            <span class="cfp-breadcrumb-sep" aria-hidden="true">/</span>
+            <span aria-current="page"><?= e($studentName) ?></span>
+        </nav>
+        <a class="cfp-back" href="index.php?r=coordinator_students">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+            Back to My Students
+        </a>
     </div>
 
-    <div class="table-wrap">
-        <table class="data-table final-req-table" data-no-enhance>
-            <thead>
-                <tr><th>Evaluation</th><th>Description</th><th>Status</th><th>Action</th></tr>
-            </thead>
-            <tbody>
+    <header class="cfp-hero">
+        <div class="cfp-hero-profile">
+            <span class="cfp-avatar" aria-hidden="true"><?= e($initials) ?></span>
+            <div class="cfp-hero-copy">
+                <p class="cfp-eyebrow">Final Requirements Review</p>
+                <h1><?= e($studentName) ?></h1>
+                <?php if ($studentNo !== ''): ?>
+                    <p class="cfp-meta"><?= e($studentNo) ?></p>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <div class="cfp-hero-stats">
+            <article class="cfp-stat <?= e($docStatusClass) ?>">
+                <div class="cfp-ring" style="--pct: <?= $docPct ?>">
+                    <span><?= $docPct ?>%</span>
+                </div>
+                <div class="cfp-stat-copy">
+                    <span class="cfp-stat-label">Documents</span>
+                    <strong><?= $docSubmitted ?> <small>of <?= $docTotal ?></small></strong>
+                    <span class="cfp-stat-status"><?= e($docStatusLabel) ?></span>
+                </div>
+            </article>
+            <article class="cfp-stat <?= e($evalStatusClass) ?>">
+                <div class="cfp-ring cfp-ring--eval" style="--pct: <?= $evalPct ?>">
+                    <span><?= $evalPct ?>%</span>
+                </div>
+                <div class="cfp-stat-copy">
+                    <span class="cfp-stat-label">Evaluations</span>
+                    <strong><?= $evalSubmitted ?> <small>of <?= $evalTotal ?></small></strong>
+                    <span class="cfp-stat-status"><?= e($evalStatusLabel) ?></span>
+                </div>
+            </article>
+        </div>
+    </header>
+
+    <div class="cfp-grid">
+        <section class="cfp-panel">
+            <header class="cfp-panel-head">
+                <div class="cfp-panel-title">
+                    <span class="cfp-panel-icon cfp-panel-icon--docs"><?= $sectionDocsIcon ?></span>
+                    <div>
+                        <h2>Final Requirements</h2>
+                        <p>Post-OJT documents submitted by the student.</p>
+                    </div>
+                </div>
+                <div class="cfp-panel-progress" role="progressbar" aria-valuenow="<?= $docPct ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Documents progress">
+                    <div class="cfp-panel-progress-track"><span style="width: <?= $docPct ?>%"></span></div>
+                    <span class="cfp-panel-progress-label"><?= $docSubmitted ?>/<?= $docTotal ?></span>
+                </div>
+            </header>
+
+            <ul class="cfp-checklist">
+                <?php foreach ($finalSections as $key => $section): ?>
+                    <?php
+                        $status = (string)($finalRequirement[$key . '_status'] ?? 'pending');
+                        $status = $status !== '' ? $status : 'pending';
+                        $isSubmitted = $status === 'submitted';
+                        $rowIconMeta = $docRowIcons[$key] ?? $docRowIcons['company_profile'];
+                        $itemUrl = 'index.php?r=coordinator_student_final&amp;student_id=' . $studentId . '&amp;doc=' . e($key);
+                    ?>
+                    <li class="cfp-item <?= $isSubmitted ? 'is-done' : 'is-pending' ?>">
+                        <?php if ($isSubmitted): ?>
+                            <a class="cfp-item-link" href="<?= $itemUrl ?>">
+                        <?php else: ?>
+                            <div class="cfp-item-link">
+                        <?php endif; ?>
+                            <span class="<?= e($rowIconMeta['class']) ?>"><?= $rowIconMeta['svg'] ?></span>
+                            <div class="cfp-item-body">
+                                <strong><?= e($section['name']) ?></strong>
+                                <span><?= e($section['description']) ?></span>
+                            </div>
+                            <span class="cfp-item-action">
+                                <?php if ($isSubmitted): ?>
+                                    <span class="cfp-chip cfp-chip--done">Submitted</span>
+                                    <span class="cfp-item-cta">View<?= $chevronIcon ?></span>
+                                <?php else: ?>
+                                    <span class="cfp-chip cfp-chip--pending">Awaiting</span>
+                                <?php endif; ?>
+                            </span>
+                        <?php if ($isSubmitted): ?>
+                            </a>
+                        <?php else: ?>
+                            </div>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </section>
+
+        <section class="cfp-panel">
+            <header class="cfp-panel-head">
+                <div class="cfp-panel-title">
+                    <span class="cfp-panel-icon cfp-panel-icon--eval"><?= $sectionEvalIcon ?></span>
+                    <div>
+                        <h2>Student Evaluations</h2>
+                        <p>Coordinator-only — not shared with industry partners.</p>
+                    </div>
+                </div>
+                <div class="cfp-panel-progress" role="progressbar" aria-valuenow="<?= $evalPct ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Evaluations progress">
+                    <div class="cfp-panel-progress-track cfp-panel-progress-track--eval"><span style="width: <?= $evalPct ?>%"></span></div>
+                    <span class="cfp-panel-progress-label"><?= $evalSubmitted ?>/<?= $evalTotal ?></span>
+                </div>
+            </header>
+
+            <div class="cfp-privacy">
+                <span class="cfp-privacy-icon"><?= $lockIcon ?></span>
+                <p>Visible to OJT coordinators only.</p>
+            </div>
+
+            <ul class="cfp-checklist">
                 <?php foreach ($evaluationSections as $evalKey => $evalSection): ?>
                     <?php
                         $evalStatus = StudentEvaluation::statusFor($studentEvaluation, $evalKey);
-                        $evalLabel = $evalStatus === 'submitted' ? 'Completed' : 'Pending';
+                        $isSubmitted = $evalStatus === 'submitted';
+                        $rowIconMeta = $evalRowIcons[$evalKey] ?? $evalRowIcons['coordinator'];
+                        $itemUrl = 'index.php?r=coordinator_student_final&amp;student_id=' . $studentId . '&amp;eval=' . e($evalKey);
                     ?>
-                    <tr>
-                        <td>
-                            <span class="final-req-doc">
-                                <span class="final-req-doc-icon final-eval-icon"><?= $evalIcon ?></span>
+                    <li class="cfp-item <?= $isSubmitted ? 'is-done' : 'is-pending' ?>">
+                        <?php if ($isSubmitted): ?>
+                            <a class="cfp-item-link" href="<?= $itemUrl ?>">
+                        <?php else: ?>
+                            <div class="cfp-item-link">
+                        <?php endif; ?>
+                            <span class="<?= e($rowIconMeta['class']) ?>"><?= $rowIconMeta['svg'] ?></span>
+                            <div class="cfp-item-body">
                                 <strong><?= e($evalSection['name']) ?></strong>
+                                <span><?= e($evalSection['description']) ?></span>
+                            </div>
+                            <span class="cfp-item-action">
+                                <?php if ($isSubmitted): ?>
+                                    <span class="cfp-chip cfp-chip--done">Completed</span>
+                                    <span class="cfp-item-cta">View<?= $chevronIcon ?></span>
+                                <?php else: ?>
+                                    <span class="cfp-chip cfp-chip--pending">Awaiting</span>
+                                <?php endif; ?>
                             </span>
-                        </td>
-                        <td class="final-req-desc"><?= e($evalSection['description']) ?></td>
-                        <td><span class="badge <?= e($evalStatus) ?>"><?= e($evalLabel) ?></span></td>
-                        <td>
-                            <?php if ($evalStatus === 'submitted'): ?>
-                                <a class="btn btn-primary btn-small" href="index.php?r=coordinator_student_final&amp;student_id=<?= (int)$student['id'] ?>&amp;eval=<?= e($evalKey) ?>">View</a>
-                            <?php else: ?>
-                                <span class="muted">Not submitted</span>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
+                        <?php if ($isSubmitted): ?>
+                            </a>
+                        <?php else: ?>
+                            </div>
+                        <?php endif; ?>
+                    </li>
                 <?php endforeach; ?>
-            </tbody>
-        </table>
+            </ul>
+        </section>
     </div>
-
-    <div class="status-callout <?= $evalSubmitted === $evalTotal ? 'success' : 'info' ?> final-req-note">
-        <?php if ($evalSubmitted === $evalTotal): ?>
-            <strong>All evaluations completed</strong>
-            <p>This student has submitted both industry partner and coordinator evaluations.</p>
-        <?php elseif ($evalSubmitted > 0): ?>
-            <strong>In progress</strong>
-            <p><?= (int)$evalSubmitted ?> of <?= (int)$evalTotal ?> student evaluations submitted so far.</p>
-        <?php else: ?>
-            <strong>Evaluations pending</strong>
-            <p>This student has not submitted any evaluations yet.</p>
-        <?php endif; ?>
-    </div>
-</section>
+</div>

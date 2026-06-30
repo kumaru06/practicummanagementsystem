@@ -19,6 +19,7 @@
     initWizards();
     initEnrollmentAutomation();
     initEnrollmentDirectory();
+    initEnrollmentCorUpload();
     initViewToggles();
     initTimelineDetails();
     initEmailLogViews();
@@ -36,6 +37,8 @@
     initPartnerPortalRoster();
     initPartnerSubmissions();
     document.querySelectorAll('.data-table').forEach(table => enhanceTable(table));
+    initEnrollmentFilters();
+    initMyStudentsDirectory();
     document.querySelector('#modal .modal-close')?.addEventListener('click', closeSlidePanel);
     document.addEventListener('click', handleOutsideMenus);
     document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeSlidePanel(); closeNotifications(); closeRequirementReviewModals(); closeCustomSelects(); closeCustomDatePickers(); closeDtrTimePicker(); } });
@@ -137,6 +140,67 @@ function initConfirmActions() {
     });
 }
 
+function buildConfirmCardHtml({
+    variant = 'confirm',
+    title = '',
+    titleId = 'app-confirm-title',
+    message = '',
+    actionsHtml = '',
+    centered = false,
+    busy = false,
+    role = 'dialog',
+}) {
+    const processingDots = variant === 'processing'
+        ? '<div class="app-confirm-dots" aria-hidden="true"><span></span><span></span><span></span></div>'
+        : '';
+
+    const iconMap = {
+        alert: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>',
+        confirm: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 14-4-4 1.41-1.41L11 12.17l6.59-6.59L19 7l-8 8z"/></svg>',
+        success: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>',
+        processing: '',
+    };
+
+    let bodyHtml = '';
+
+    if (centered) {
+        const markHtml = variant === 'processing'
+            ? '<span class="app-confirm-spinner" aria-hidden="true"></span>'
+            : (iconMap[variant] || '');
+
+        bodyHtml = `
+            <div class="app-confirm-stage app-confirm-stage--center">
+                <div class="app-confirm-mark app-confirm-mark--${variant}" aria-hidden="true">${markHtml}</div>
+                <h2 id="${titleId}">${escapeHtml(title)}</h2>
+                ${message ? `<p class="app-confirm-message">${escapeHtml(message)}</p>` : ''}
+                ${processingDots}
+            </div>
+        `;
+    } else {
+        const iconHtml = variant === 'processing'
+            ? '<span class="app-confirm-spinner" aria-hidden="true"></span>'
+            : (iconMap[variant] || iconMap.confirm);
+
+        bodyHtml = `
+            <div class="app-confirm-stage">
+                <div class="app-confirm-icon app-confirm-icon--${variant}" aria-hidden="true">${iconHtml}</div>
+                <h2 id="${titleId}">${escapeHtml(title)}</h2>
+                ${message ? `<div class="app-confirm-message-box"><p class="app-confirm-message">${escapeHtml(message)}</p></div>` : ''}
+                ${processingDots}
+            </div>
+        `;
+    }
+
+    const footerHtml = actionsHtml ? `<div class="app-confirm-footer">${actionsHtml}</div>` : '';
+
+    return `
+        <div class="app-confirm-card app-confirm-card--${variant}" role="${role}" aria-modal="true" aria-labelledby="${titleId}"${busy ? ' aria-busy="true"' : ''}>
+            ${bodyHtml}
+            ${footerHtml}
+        </div>
+    `;
+}
+
 function showConfirmModal(message, options = {}) {
     return new Promise(resolve => {
         const existing = document.querySelector('.app-confirm-overlay');
@@ -144,21 +208,18 @@ function showConfirmModal(message, options = {}) {
 
         const overlay = document.createElement('div');
         overlay.className = 'app-confirm-overlay';
-        overlay.innerHTML = `
-            <div class="app-confirm-card" role="dialog" aria-modal="true" aria-labelledby="app-confirm-title">
-                <div class="app-confirm-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20a10 10 0 0 1 0-20Zm0 5a1 1 0 0 0-1 1v4.2a1 1 0 0 0 2 0V8a1 1 0 0 0-1-1Zm0 9.75a1.25 1.25 0 1 0 0-2.5a1.25 1.25 0 0 0 0 2.5Z"/></svg>
+        overlay.innerHTML = buildConfirmCardHtml({
+            variant: 'confirm',
+            title: options.title || 'Confirm action',
+            titleId: 'app-confirm-title',
+            message,
+            actionsHtml: `
+                <div class="app-confirm-actions app-confirm-actions--stacked">
+                    <button class="app-confirm-btn app-confirm-btn--primary app-confirm-ok" type="button">${escapeHtml(options.confirmText || 'Continue')}</button>
+                    <button class="app-confirm-btn app-confirm-btn--ghost app-confirm-cancel" type="button">${escapeHtml(options.cancelText || 'Cancel')}</button>
                 </div>
-                <div class="app-confirm-copy">
-                    <h2 id="app-confirm-title">${escapeHtml(options.title || 'Confirm action')}</h2>
-                    <p>${escapeHtml(message)}</p>
-                </div>
-                <div class="app-confirm-actions">
-                    <button class="btn btn-ghost app-confirm-cancel" type="button">${escapeHtml(options.cancelText || 'Cancel')}</button>
-                    <button class="btn btn-primary app-confirm-ok" type="button">${escapeHtml(options.confirmText || 'Continue')}</button>
-                </div>
-            </div>
-        `;
+            `,
+        });
 
         const close = value => {
             overlay.classList.remove('is-open');
@@ -174,7 +235,14 @@ function showConfirmModal(message, options = {}) {
             if (event.target === overlay) close(false);
         });
         overlay.querySelector('.app-confirm-cancel')?.addEventListener('click', () => close(false));
-        overlay.querySelector('.app-confirm-ok')?.addEventListener('click', () => close(true));
+        overlay.querySelector('.app-confirm-ok')?.addEventListener('click', () => {
+            if (options.persistOnConfirm) {
+                document.removeEventListener('keydown', onKeydown);
+                resolve({ confirmed: true, overlay });
+                return;
+            }
+            close(true);
+        });
         document.addEventListener('keydown', onKeydown);
         document.body.appendChild(overlay);
         requestAnimationFrame(() => {
@@ -184,6 +252,128 @@ function showConfirmModal(message, options = {}) {
     });
 }
 
+function ensureConfirmOverlay() {
+    let overlay = document.querySelector('.app-confirm-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.className = 'app-confirm-overlay';
+        document.body.appendChild(overlay);
+    }
+    return overlay;
+}
+
+function replaceConfirmOverlay(overlay) {
+    const freshOverlay = document.createElement('div');
+    freshOverlay.className = overlay.className;
+    overlay.replaceWith(freshOverlay);
+    return freshOverlay;
+}
+
+function openConfirmOverlay(overlay) {
+    requestAnimationFrame(() => overlay.classList.add('is-open'));
+}
+
+function setConfirmOverlayCard(overlay, html) {
+    overlay.innerHTML = html;
+    openConfirmOverlay(overlay);
+}
+
+function dismissConfirmOverlay(overlay) {
+    return new Promise(resolve => {
+        overlay.classList.remove('is-open');
+        setTimeout(() => {
+            overlay.remove();
+            resolve();
+        }, 160);
+    });
+}
+
+function showProcessingModal(overlay, options = {}) {
+    const target = replaceConfirmOverlay(overlay);
+    setConfirmOverlayCard(target, buildConfirmCardHtml({
+        variant: 'processing',
+        title: options.title || 'Processing...',
+        message: options.message || 'Please wait while we complete your request.',
+        centered: true,
+        busy: true,
+    }));
+    return target;
+}
+
+function showSuccessModal(overlay, message, options = {}) {
+    const target = replaceConfirmOverlay(overlay);
+    return new Promise(resolve => {
+        setConfirmOverlayCard(target, buildConfirmCardHtml({
+            variant: 'success',
+            title: options.title || 'Success',
+            message,
+            centered: true,
+            role: 'alertdialog',
+            actionsHtml: `
+                <div class="app-confirm-actions app-confirm-actions--single">
+                    <button class="app-confirm-btn app-confirm-btn--primary app-confirm-success-ok" type="button">${escapeHtml(options.confirmText || 'Done')}</button>
+                </div>
+            `,
+        }));
+        const finish = () => {
+            dismissConfirmOverlay(target).then(() => {
+                if (options.redirect) {
+                    window.location.href = options.redirect;
+                }
+                resolve();
+            });
+        };
+        target.querySelector('.app-confirm-success-ok')?.addEventListener('click', finish);
+        target.querySelector('.app-confirm-success-ok')?.focus();
+    });
+}
+
+async function submitFormWithStatusModals(form, overlay = null, options = {}) {
+    if (!overlay) {
+        overlay = ensureConfirmOverlay();
+    }
+    overlay = showProcessingModal(overlay, {
+        title: form.dataset.submitProcessingTitle || form.dataset.confirmProcessingTitle || 'Processing...',
+        message: form.dataset.submitProcessingMessage || form.dataset.confirmProcessingMessage || 'Please wait while we complete your request.',
+    });
+
+    const showSuccess = options.showSuccess ?? (form.dataset.submitAsyncSuccess === '1' || form.dataset.confirmAsync === '1');
+
+    try {
+        const response = await fetch(form.getAttribute('action') || window.location.href, {
+            method: (form.getAttribute('method') || 'POST').toUpperCase(),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: new FormData(form),
+        });
+        const data = await response.json().catch(() => null);
+        if (!response.ok || !data?.ok) {
+            await dismissConfirmOverlay(overlay);
+            await showAlertModal(data?.message || 'Something went wrong. Please try again.', {
+                title: form.dataset.submitErrorTitle || form.dataset.confirmErrorTitle || 'Unable to complete',
+            });
+            return;
+        }
+        if (showSuccess) {
+            await showSuccessModal(overlay, data.message || 'Completed successfully.', {
+                title: form.dataset.submitSuccessTitle || form.dataset.confirmSuccessTitle || 'Success',
+                confirmText: form.dataset.submitSuccessOk || form.dataset.confirmSuccessOk || 'Done',
+                redirect: data.redirect || form.dataset.submitSuccessRedirect || form.dataset.confirmSuccessRedirect || window.location.href,
+            });
+            return;
+        }
+        window.location.href = data.redirect || window.location.href;
+    } catch (err) {
+        await dismissConfirmOverlay(overlay);
+        await showAlertModal(err?.message || 'Network error. Please try again.', {
+            title: form.dataset.submitErrorTitle || form.dataset.confirmErrorTitle || 'Unable to complete',
+        });
+    }
+}
+
+async function submitFormWithAsyncConfirm(form, overlay) {
+    await submitFormWithStatusModals(form, overlay, { showSuccess: true });
+}
+
 function showAlertModal(message, options = {}) {
     return new Promise(resolve => {
         const existing = document.querySelector('.app-confirm-overlay');
@@ -191,20 +381,18 @@ function showAlertModal(message, options = {}) {
 
         const overlay = document.createElement('div');
         overlay.className = 'app-confirm-overlay';
-        overlay.innerHTML = `
-            <div class="app-confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="app-alert-title">
-                <div class="app-confirm-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20a10 10 0 0 1 0-20Zm0 5a1 1 0 0 0-1 1v4.2a1 1 0 0 0 2 0V8a1 1 0 0 0-1-1Zm0 9.75a1.25 1.25 0 1 0 0-2.5a1.25 1.25 0 0 0 0 2.5Z"/></svg>
+        overlay.innerHTML = buildConfirmCardHtml({
+            variant: 'alert',
+            title: options.title || 'Notice',
+            titleId: 'app-alert-title',
+            message,
+            role: 'alertdialog',
+            actionsHtml: `
+                <div class="app-confirm-actions app-confirm-actions--single">
+                    <button class="app-confirm-btn app-confirm-btn--primary app-alert-ok" type="button">${escapeHtml(options.confirmText || 'OK')}</button>
                 </div>
-                <div class="app-confirm-copy">
-                    <h2 id="app-alert-title">${escapeHtml(options.title || 'Notice')}</h2>
-                    <p>${escapeHtml(message)}</p>
-                </div>
-                <div class="app-confirm-actions">
-                    <button class="btn btn-primary app-alert-ok" type="button">${escapeHtml(options.confirmText || 'OK')}</button>
-                </div>
-            </div>
-        `;
+            `,
+        });
 
         const close = () => {
             overlay.classList.remove('is-open');
@@ -2718,12 +2906,19 @@ function initForms() {
             if (form.dataset.confirmSubmit && form.dataset.confirmedSubmit !== '1') {
                 e.preventDefault();
                 const btn = e.submitter || submitButtons[0] || null;
+                const isAsyncConfirm = form.dataset.confirmAsync === '1';
                 showConfirmModal(form.dataset.confirmSubmit, {
                     title: form.dataset.confirmTitle || 'Confirm submission',
                     confirmText: form.dataset.confirmOk || 'Submit',
                     cancelText: form.dataset.confirmCancel || 'Review again',
-                }).then(confirmed => {
+                    persistOnConfirm: isAsyncConfirm,
+                }).then(result => {
+                    const confirmed = result === true || result?.confirmed === true;
                     if (!confirmed) return;
+                    if (isAsyncConfirm && result?.overlay) {
+                        submitFormWithAsyncConfirm(form, result.overlay);
+                        return;
+                    }
                     form.dataset.confirmedSubmit = '1';
                     if (btn && typeof form.requestSubmit === 'function') {
                         form.requestSubmit(btn);
@@ -2736,6 +2931,17 @@ function initForms() {
                 return;
             }
             delete form.dataset.confirmedSubmit;
+
+            if (form.dataset.submitAsync === '1') {
+                e.preventDefault();
+                const btn = e.submitter || submitButtons[0] || null;
+                if (btn) {
+                    btn.classList.add('loading');
+                    btn.disabled = true;
+                }
+                submitFormWithStatusModals(form);
+                return;
+            }
 
             const btn = e.submitter || submitButtons[0] || null;
             if (btn) { btn.classList.add('loading'); btn.disabled = true; }
@@ -2951,11 +3157,18 @@ function initWizards() {
     document.querySelectorAll('[data-wizard]').forEach(form => {
         let index = 0;
         const panels = [...form.querySelectorAll('.wizard-step')];
-        const steps = [...form.querySelectorAll('.wizard-steps span')];
+        const stepIndicators = [...form.querySelectorAll('[data-wizard-step-indicator]')];
+        const connectors = [...form.querySelectorAll('.enrollment-wizard-connector')];
+        const legacySteps = [...form.querySelectorAll('.wizard-steps > span:not([data-wizard-step-indicator])')];
         const show = next => {
             index = Math.max(0, Math.min(next, panels.length - 1));
             panels.forEach((p, i) => p.classList.toggle('active', i === index));
-            steps.forEach((s, i) => s.classList.toggle('active', i <= index));
+            stepIndicators.forEach((s, i) => {
+                s.classList.toggle('is-done', i < index);
+                s.classList.toggle('is-current', i === index);
+            });
+            connectors.forEach((c, i) => c.classList.toggle('is-done', i < index));
+            legacySteps.forEach((s, i) => s.classList.toggle('active', i <= index));
             updateWizardSummary(form);
         };
         form.querySelectorAll('.wizard-next').forEach(btn => btn.addEventListener('click', () => {
@@ -3114,10 +3327,49 @@ function initViewToggles() {
     });
 }
 
+function ensureTableSearchEmpty(wrap, onReset) {
+    if (!wrap) return null;
+    let el = wrap.querySelector('[data-table-search-empty]');
+    if (el) return el;
+    el = document.createElement('div');
+    el.className = 'table-search-empty';
+    el.setAttribute('data-table-search-empty', '');
+    el.hidden = true;
+    el.innerHTML = `
+        <div class="table-search-empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="m20 20-3.5-3.5"></path>
+                <path d="m9 9 4 4M13 9l-4 4"></path>
+            </svg>
+        </div>
+        <h3 class="table-search-empty-title">No result found</h3>
+        <p class="table-search-empty-sub">We can't find any item matching your search.</p>
+        <button class="btn btn-small table-search-empty-reset" type="button" data-table-reset-filters>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 2.64-6.36M3 4v5h5"/></svg>
+            Reset filter
+        </button>
+    `;
+    el.querySelector('[data-table-reset-filters]')?.addEventListener('click', onReset);
+    wrap.appendChild(el);
+    return el;
+}
+
+function resetTableFilters(table, search) {
+    if (search) search.value = '';
+    if (typeof table._resetDirectoryFilters === 'function') {
+        table._resetDirectoryFilters();
+    } else {
+        table._applyRowFilter = null;
+        table.closest('[data-enrollment-directory]')?.querySelector('[data-enrollment-filter="all"]')?.click();
+    }
+}
+
 function enhanceTable(table) {
     if (table.hasAttribute('data-no-enhance')) return;
     const card = table.closest('.card');
-    const search = card?.querySelector('.table-search');
+    const directory = table.closest('[data-my-students-directory]') || table.closest('[data-enrollment-directory]');
+    const search = card?.querySelector('.table-search') || directory?.querySelector('.table-search');
     const tbody = table.tBodies[0];
     if (!tbody) return;
     if (!table.hasAttribute('data-no-tools')) {
@@ -3125,26 +3377,89 @@ function enhanceTable(table) {
     }
     let rows = [...tbody.rows];
     let page = 1;
-    const perPage = 10;
+    const perPage = parseInt(table.dataset.perPage, 10) || 10;
+    const wrap = table.closest('.table-wrap');
+    const paginationInfo = directory?.querySelector('[data-pagination-info]') || card?.querySelector('[data-pagination-info]');
+    const pager = directory?.querySelector('[data-pagination-nav]') || card?.querySelector('.pagination');
+    const tableFooter = directory?.querySelector('.ms-table-footer');
+    const emptyState = table.hasAttribute('data-no-search-empty')
+        ? null
+        : ensureTableSearchEmpty(wrap, () => {
+            resetTableFilters(table, search);
+            page = 1;
+            render();
+        });
     const filtered = () => {
-        const q = (search?.value || '').toLowerCase();
-        return rows.filter(r => r.innerText.toLowerCase().includes(q));
+        let base = rows;
+        if (typeof table._applyRowFilter === 'function') {
+            base = base.filter(table._applyRowFilter);
+        }
+        const q = (search?.value || '').toLowerCase().trim();
+        return base.filter(r => {
+            if (!q) return true;
+            const haystack = (r.dataset.search || r.innerText).toLowerCase();
+            return haystack.includes(q);
+        });
     };
     const render = () => {
         const list = filtered();
+        const showEmpty = list.length === 0 && rows.length > 0;
         tbody.innerHTML = '';
-        list.slice((page - 1) * perPage, page * perPage).forEach(r => tbody.appendChild(r));
-        const pager = card?.querySelector('.pagination');
+        if (!showEmpty) {
+            list.slice((page - 1) * perPage, page * perPage).forEach(r => tbody.appendChild(r));
+        }
+        if (emptyState) {
+            emptyState.hidden = !showEmpty;
+        }
+        if (wrap) {
+            wrap.classList.toggle('is-search-empty', showEmpty);
+        }
+        card?.classList.toggle('is-table-search-empty', showEmpty);
+        if (tableFooter) {
+            tableFooter.hidden = showEmpty;
+        }
+        if (paginationInfo) {
+            const total = list.length;
+            const start = total === 0 ? 0 : (page - 1) * perPage + 1;
+            const end = Math.min(page * perPage, total);
+            paginationInfo.textContent = `Showing ${start} to ${end} of ${total} entries`;
+        }
         if (pager) {
             pager.innerHTML = '';
+            if (showEmpty) {
+                attachRowDetails(table);
+                applyHiddenColumns(table);
+                return;
+            }
             const pages = Math.max(1, Math.ceil(list.length / perPage));
+            const useNav = table.hasAttribute('data-ms-students-table');
+            if (useNav) {
+                const prev = document.createElement('button');
+                prev.type = 'button';
+                prev.className = 'ms-page-btn ms-page-prev';
+                prev.setAttribute('aria-label', 'Previous page');
+                prev.textContent = '‹';
+                prev.disabled = page <= 1;
+                prev.onclick = () => { if (page > 1) { page--; render(); } };
+                pager.appendChild(prev);
+            }
             for (let i = 1; i <= pages; i++) {
                 const b = document.createElement('button');
-                b.textContent = i;
+                b.textContent = String(i);
                 b.className = i === page ? 'active' : '';
                 b.type = 'button';
                 b.onclick = () => { page = i; render(); };
                 pager.appendChild(b);
+            }
+            if (useNav) {
+                const next = document.createElement('button');
+                next.type = 'button';
+                next.className = 'ms-page-btn ms-page-next';
+                next.setAttribute('aria-label', 'Next page');
+                next.textContent = '›';
+                next.disabled = page >= pages;
+                next.onclick = () => { if (page < pages) { page++; render(); } };
+                pager.appendChild(next);
             }
         }
         attachRowDetails(table);
@@ -3160,6 +3475,7 @@ function enhanceTable(table) {
         });
     });
     table._getFilteredRows = filtered;
+    table._rerender = render;
     render();
 }
 
@@ -4094,8 +4410,152 @@ function initEnrollmentDirectory() {
 
             studentSelect.value = studentId;
             studentSelect.dispatchEvent(new Event('change', { bubbles: true }));
-            wizardForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            studentSelect._syncCustomSelect?.();
+            const wizardPanel = document.getElementById('enrollment-wizard-panel');
+            (wizardPanel || wizardForm).scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
+    });
+}
+
+function initEnrollmentCorUpload() {
+    document.querySelectorAll('[data-cor-dropzone]').forEach(row => {
+        const fileInput = row.querySelector('input[type="file"]');
+        const browseBtn = row.querySelector('[data-cor-browse]');
+        const filenameEl = row.querySelector('[data-cor-filename]');
+        const clearBtn = row.querySelector('[data-cor-clear]');
+        if (!fileInput) return;
+
+        const showFile = file => {
+            if (!file) return;
+            row.classList.add('has-file');
+            if (filenameEl) filenameEl.textContent = file.name;
+            if (clearBtn) clearBtn.hidden = false;
+        };
+
+        const clearFile = () => {
+            fileInput.value = '';
+            row.classList.remove('has-file');
+            if (filenameEl) filenameEl.textContent = 'No file chosen';
+            if (clearBtn) clearBtn.hidden = true;
+        };
+
+        browseBtn?.addEventListener('click', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            fileInput.click();
+        });
+
+        clearBtn?.addEventListener('click', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            clearFile();
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files?.[0]) showFile(fileInput.files[0]);
+        });
+
+        row.addEventListener('dragover', e => {
+            e.preventDefault();
+            row.classList.add('is-dragover');
+        });
+        row.addEventListener('dragleave', () => row.classList.remove('is-dragover'));
+        row.addEventListener('drop', e => {
+            e.preventDefault();
+            row.classList.remove('is-dragover');
+            const file = e.dataTransfer?.files?.[0];
+            if (!file) return;
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            fileInput.files = dt.files;
+            showFile(file);
+        });
+    });
+}
+
+function initEnrollmentFilters() {
+    document.querySelectorAll('[data-enrollment-directory]').forEach(directory => {
+        const table = directory.querySelector('[data-enrollment-directory-table]');
+        const pills = directory.querySelectorAll('[data-enrollment-filter]');
+        const search = directory.querySelector('.table-search');
+        if (!table || !pills.length) return;
+
+        let statusFilter = 'all';
+        const applyFilter = () => {
+            table._applyRowFilter = row => {
+                if (statusFilter === 'all') return true;
+                if (statusFilter === 'enrolled') return row.dataset.studentEnrolled === '1';
+                return row.dataset.studentEnrolled === '0';
+            };
+            search?.dispatchEvent(new Event('input'));
+        };
+
+        table._resetDirectoryFilters = () => {
+            statusFilter = 'all';
+            pills.forEach(p => p.classList.toggle('is-active', (p.dataset.enrollmentFilter || 'all') === 'all'));
+            table._applyRowFilter = null;
+        };
+
+        pills.forEach(pill => {
+            pill.addEventListener('click', () => {
+                statusFilter = pill.dataset.enrollmentFilter || 'all';
+                pills.forEach(p => p.classList.toggle('is-active', p === pill));
+                applyFilter();
+            });
+        });
+
+        requestAnimationFrame(applyFilter);
+    });
+}
+
+function initMyStudentsDirectory() {
+    document.querySelectorAll('[data-my-students-directory]').forEach(directory => {
+        const table = directory.querySelector('[data-ms-students-table]');
+        const ojtFilter = directory.querySelector('[data-ms-ojt-filter]');
+        const termFilter = directory.querySelector('[data-ms-term-filter]');
+        const exportBtn = directory.querySelector('[data-ms-export]');
+        const search = directory.querySelector('.table-search');
+        if (!table) return;
+
+        let ojtStatus = 'all';
+        let term = 'all';
+
+        const applyFilters = () => {
+            table._applyRowFilter = row => {
+                if (ojtStatus !== 'all' && row.dataset.ojtStatus !== ojtStatus) return false;
+                if (term !== 'all' && row.dataset.academicTerm !== term) return false;
+                return true;
+            };
+            search?.dispatchEvent(new Event('input'));
+        };
+
+        table._resetDirectoryFilters = () => {
+            ojtStatus = 'all';
+            term = 'all';
+            if (ojtFilter) {
+                ojtFilter.value = 'all';
+                ojtFilter._syncCustomSelect?.();
+            }
+            if (termFilter) {
+                termFilter.value = 'all';
+                termFilter._syncCustomSelect?.();
+            }
+            table._applyRowFilter = null;
+        };
+
+        ojtFilter?.addEventListener('change', () => {
+            ojtStatus = ojtFilter.value || 'all';
+            applyFilters();
+        });
+
+        termFilter?.addEventListener('change', () => {
+            term = termFilter.value || 'all';
+            applyFilters();
+        });
+
+        exportBtn?.addEventListener('click', () => exportCsv(table));
+
+        requestAnimationFrame(applyFilters);
     });
 }
 
