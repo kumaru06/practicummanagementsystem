@@ -87,7 +87,7 @@
                     <header class="dtr-session-head">
                         <div class="dtr-session-title-wrap">
                             <span class="dtr-session-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/></svg>
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 9c1.65 0 3 1.35 3 3s-1.35 3-3 3-3-1.35-3-3 1.35-3 3-3m0-2c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2v-2H2v2zm18 0h2v-2h-2v2zM11 2v2h2V2h-2zm0 18v2h2v-2h-2zM5.99 4.58 7.4 3.17 4.58.76 3.17 2.17l1.41 1.41zm12.37 12.37 1.41-1.41-1.41-1.41-1.41 1.41 1.41 1.41zM5.99 19.42l-1.41 1.41 1.41 1.41 1.41-1.41-1.41-1.41zm12.37-12.37-1.41-1.41-1.41 1.41 1.41 1.41 1.41-1.41z"/></svg>
                             </span>
                             <div>
                                 <h3 class="dtr-session-title">Morning</h3>
@@ -120,7 +120,7 @@
                     <header class="dtr-session-head">
                         <div class="dtr-session-title-wrap">
                             <span class="dtr-session-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/></svg>
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
                             </span>
                             <div>
                                 <h3 class="dtr-session-title">Afternoon</h3>

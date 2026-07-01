@@ -28,13 +28,23 @@ $profileComplete = !empty($student['profile_completed']);
 $deploymentComplete = $predeployment === 'orientation_completed';
 $reportCount = count($dtrs ?? []) + count($weeklyReports ?? []);
 $nextAction = match (true) {
-    !$enrollment => ['title' => 'Awaiting Enrollment', 'message' => 'Your coordinator has not enrolled you in OJT yet.', 'route' => route_url('student.documents'), 'label' => 'View documents'],
-    in_array($predeployment, ['not_submitted', 'needs_revision'], true) => ['title' => 'Prepare Requirements', 'message' => 'Upload all required pre-deployment documents and submit them for review.', 'route' => route_url('student.documents'), 'label' => 'Go to Documents'],
-    $predeployment === 'submitted' => ['title' => 'Under Review', 'message' => 'Your coordinator is reviewing your submitted requirements.', 'route' => route_url('student.documents'), 'label' => 'Check Status'],
-    in_array($predeployment, ['approved', 'forwarded', 'accepted', 'orientation_scheduled'], true) => ['title' => 'Deployment Processing', 'message' => 'Wait for company acceptance and orientation completion before submitting reports.', 'route' => route_url('student.documents'), 'label' => 'View Deployment'],
-    ($canSubmitReports ?? false) => ['title' => 'Submit OJT Records', 'message' => 'Your OJT records are unlocked. Submit DTR and weekly reports on time.', 'route' => route_url('student.records'), 'label' => 'Submit Record'],
-    default => ['title' => 'Reports Locked', 'message' => $reportLockMessage ?? 'Reports are not available yet.', 'route' => route_url('student.records'), 'label' => 'View Records'],
+    !$enrollment => ['title' => 'Awaiting Enrollment', 'message' => 'Your coordinator has not enrolled you in OJT yet.', 'route' => route_url('student.documents'), 'label' => 'View documents', 'icon' => 'enrollment'],
+    in_array($predeployment, ['not_submitted', 'needs_revision'], true) => ['title' => 'Prepare Requirements', 'message' => 'Upload all required pre-deployment documents and submit them for review.', 'route' => route_url('student.documents'), 'label' => 'Go to Documents', 'icon' => 'requirements'],
+    $predeployment === 'submitted' => ['title' => 'Under Review', 'message' => 'Your coordinator is reviewing your submitted requirements.', 'route' => route_url('student.documents'), 'label' => 'Check Status', 'icon' => 'review'],
+    in_array($predeployment, ['approved', 'forwarded', 'accepted', 'orientation_scheduled'], true) => ['title' => 'Deployment Processing', 'message' => 'Wait for company acceptance and orientation completion before submitting reports.', 'route' => route_url('student.documents'), 'label' => 'View Deployment', 'icon' => 'deployment'],
+    ($canSubmitReports ?? false) => ['title' => 'Submit OJT Records', 'message' => 'Your OJT records are unlocked. Submit DTR and weekly reports on time.', 'route' => route_url('student.records'), 'label' => 'Submit Record', 'icon' => 'records'],
+    default => ['title' => 'Reports Locked', 'message' => $reportLockMessage ?? 'Reports are not available yet.', 'route' => route_url('student.records'), 'label' => 'View Records', 'icon' => 'locked'],
 };
+$sdIconAttrs = 'viewBox="0 0 24 24" aria-hidden="true"';
+$nextActionIcons = [
+    'enrollment' => '<svg class="sd-next-icon-svg" ' . $sdIconAttrs . '><path fill="currentColor" d="M12 3 2 8l10 5 8-4v6h2V8L12 3Zm-6 9v4c2 3 10 3 12 0v-4l-6 3-6-3Z"/></svg>',
+    'requirements' => '<svg class="sd-next-icon-svg" ' . $sdIconAttrs . '><path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5ZM8 13h8v2H8v-2Zm0 4h8v2H8v-2Z"/></svg>',
+    'review' => '<svg class="sd-next-icon-svg" ' . $sdIconAttrs . '><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>',
+    'deployment' => '<svg class="sd-next-icon-svg" ' . $sdIconAttrs . '><path fill="currentColor" d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg>',
+    'records' => '<svg class="sd-next-icon-svg" ' . $sdIconAttrs . '><path fill="currentColor" d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm0 16H5V9h14v10Zm-9-8H7v3h3v3h3v-3h3v-3h-3V8h-3v3Z"/></svg>',
+    'locked' => '<svg class="sd-next-icon-svg" ' . $sdIconAttrs . '><path fill="currentColor" d="M18 8h-1V6a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2Zm-7 8.5V17h2v-2.5a1.25 1.25 0 1 0-2.5 0ZM9 8V6a3 3 0 0 1 6 0v2H9Z"/></svg>',
+];
+$nextActionIcon = $nextActionIcons[$nextAction['icon'] ?? 'records'] ?? $nextActionIcons['records'];
 $hour = (int)date('G');
 $greeting = match (true) {
     $hour < 12 => 'Good morning',
@@ -133,7 +143,7 @@ $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string)($enrollmen
             <div class="sd-journey-step<?= $step['done'] ? ' is-done' : '' ?><?= $i === $currentJourneyIndex ? ' is-current' : '' ?>">
                 <span class="sd-journey-dot" aria-hidden="true">
                     <?php if ($step['done']): ?>
-                        <svg viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5 6.5 11.5 12.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
                     <?php else: ?>
                         <span><?= $i + 1 ?></span>
                     <?php endif; ?>
@@ -148,8 +158,8 @@ $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string)($enrollmen
 
     <section class="student-next-card sd-next-card">
         <div class="sd-next-glow" aria-hidden="true"></div>
-        <div class="student-next-icon sd-next-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <div class="student-next-icon sd-next-icon sd-next-icon--<?= e($nextAction['icon'] ?? 'records') ?>" aria-hidden="true">
+            <?= $nextActionIcon ?>
         </div>
         <div class="sd-next-copy">
             <span class="student-section-label">Recommended next step</span>
@@ -161,19 +171,19 @@ $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string)($enrollmen
 
     <div class="student-stat-grid sd-stat-grid">
         <article class="student-stat-card sd-stat-card sd-stat-card--company">
-            <span class="student-stat-icon sd-stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 5.75A1.75 1.75 0 0 1 6.75 4h7.5A1.75 1.75 0 0 1 16 5.75V20H5V5.75Z"/><path d="M16 8.75A1.75 1.75 0 0 1 17.75 7h.5A1.75 1.75 0 0 1 20 8.75V20h-4V8.75Z"/></svg></span>
+            <span class="student-stat-icon sd-stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg></span>
             <div><span>Company</span><strong><?= e($enrollment['company_name'] ?? 'Not enrolled') ?></strong></div>
         </article>
         <article class="student-stat-card sd-stat-card sd-stat-card--schedule">
-            <span class="student-stat-icon sd-stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg></span>
+            <span class="student-stat-icon sd-stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 16H5V10h14v10Zm-7-2h5v-5h-5v5ZM7 12h5V7H7v5Z"/></svg></span>
             <div><span>Official Schedule</span><strong class="sd-stat-value-sm"><?= e(($officialStart ?: '—') . ' → ' . ($projectedEnd ?: '—')) ?></strong></div>
         </article>
         <article class="student-stat-card sd-stat-card sd-stat-card--hours">
-            <span class="student-stat-icon sd-stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+            <span class="student-stat-icon sd-stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2ZM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8Zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7Z"/></svg></span>
             <div><span>Remaining Hours</span><strong class="<?= $hoursComplete ? 'is-positive' : '' ?>"><?= $hoursComplete ? 'Complete ✓' : number_format($remaining, 2) ?></strong></div>
         </article>
         <article class="student-stat-card sd-stat-card sd-stat-card--records">
-            <span class="student-stat-icon sd-stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 4h8l3 3v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h2"/><path d="M16 4v4h4"/></svg></span>
+            <span class="student-stat-icon sd-stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5ZM8 13h8v2H8v-2Zm0 4h8v2H8v-2Z"/></svg></span>
             <div><span>Submitted Records</span><strong><?= (int)$reportCount ?></strong></div>
         </article>
     </div>
@@ -221,25 +231,25 @@ $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string)($enrollmen
         <div class="student-status-grid sd-status-grid">
             <article class="student-status-card sd-status-card sd-status-card--profile">
                 <span class="student-status-icon student-status-icon--profile" aria-hidden="true">
-                    <svg class="dashboard-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-1a6 6 0 0 1 12 0v1"/></svg>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg>
                 </span>
                 <div class="student-status-copy"><span class="student-status-label">Profile</span><strong class="<?= $profileComplete ? 'is-positive' : 'is-warning' ?>"><?= $profileComplete ? 'Complete' : 'Incomplete' ?></strong></div>
             </article>
             <article class="student-status-card sd-status-card sd-status-card--docs">
                 <span class="student-status-icon student-status-icon--docs" aria-hidden="true">
-                    <svg class="dashboard-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 4h8l3 3v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h2"/><path d="m9 13 2 2 4-4"/></svg>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
                 </span>
                 <div class="student-status-copy"><span class="student-status-label">Approved Docs</span><strong class="<?= $approvedRequirements >= $totalRequirements ? 'is-positive' : '' ?>"><?= $approvedRequirements ?>/<?= $totalRequirements ?></strong></div>
             </article>
             <article class="student-status-card sd-status-card sd-status-card--deployment">
                 <span class="student-status-icon student-status-icon--deployment" aria-hidden="true">
-                    <svg class="dashboard-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 7V5a2 2 0 0 1 4 0v2"/><rect x="4" y="7" width="16" height="12" rx="2"/><path d="M4 12h16"/></svg>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 2h4a2 2 0 0 1 2 2v1h4a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h4V4a2 2 0 0 1 2-2Zm0 4V4h-4v2h4Zm-2 8v2h4v-2H8Z"/></svg>
                 </span>
                 <div class="student-status-copy"><span class="student-status-label">Deployment</span><strong class="<?= $deploymentComplete ? 'is-positive' : '' ?>"><?= $deploymentComplete ? 'Started' : ucwords(str_replace('_', ' ', $predeployment)) ?></strong></div>
             </article>
             <article class="student-status-card sd-status-card sd-status-card--reports">
                 <span class="student-status-icon student-status-icon--reports" aria-hidden="true">
-                    <svg class="dashboard-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9"/><path d="M8 3v6h8"/><path d="M8 13h2v6M12 10h2v9M16 15h2v4"/></svg>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm8 1.5V8h3.5L13 4.5ZM8 13h2v5H8v-5Zm3.5-3h2v8h-2v-8ZM15 15h2v3h-2v-3Z"/></svg>
                 </span>
                 <div class="student-status-copy"><span class="student-status-label">Reports</span><strong><?= (int)$reportCount ?></strong></div>
             </article>
@@ -250,7 +260,7 @@ $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string)($enrollmen
         <section class="student-mini-card sd-mini-card student-mini-card--dtr">
             <div class="student-mini-card-head">
                 <span class="student-mini-card-icon student-mini-card-icon--dtr" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm0 16H5V9h14v10Zm-7 4h2v-2h-2v2Zm-2-4h2v-2H8v2Zm4 0h2v-2h-2v2Zm4 0h2v-2h-2v2Z"/></svg>
                 </span>
                 <div class="student-mini-card-head-copy">
                     <h3>Today's DTR</h3>
@@ -274,7 +284,7 @@ $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string)($enrollmen
         <section class="student-mini-card sd-mini-card student-mini-card--report">
             <div class="student-mini-card-head">
                 <span class="student-mini-card-icon student-mini-card-icon--report" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M10 13h4M10 17h4"/></svg>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5ZM8 13h8v2H8v-2Zm0 4h8v2H8v-2Z"/></svg>
                 </span>
                 <div class="student-mini-card-head-copy">
                     <h3>Latest Weekly Report</h3>
@@ -297,7 +307,7 @@ $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string)($enrollmen
         <section class="student-mini-card sd-mini-card student-actions-card">
             <div class="student-mini-card-head">
                 <span class="student-mini-card-icon student-mini-card-icon--actions" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 8h4V4H4v4Zm6 12h4v-4h-4v4Zm-6 0h4v-4H4v4Zm0-6h4v-4H4v4Zm6 0h4v-4h-4v4Zm6 10h4v-4h-4v4Zm0-6h4v-4h-4v4Zm0-6h4V4h-4v4Zm6 6h4v-4h-4v4Zm0 6h4v-4h-4v4Z"/></svg>
                 </span>
                 <div class="student-mini-card-head-copy">
                     <h3>Quick Actions</h3>
@@ -305,9 +315,27 @@ $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string)($enrollmen
                 </div>
             </div>
             <div class="student-mini-card-body student-mini-card-body--actions sd-quick-actions">
-                <a class="student-mini-action" href="<?= e(route_url('student.records')) ?>"><span>Submit Record</span><svg viewBox="0 0 20 20" fill="none"><path d="m7.5 5 5 5-5 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></a>
-                <a class="student-mini-action" href="<?= e(route_url('student.timeline')) ?>"><span>Activity Timeline</span><svg viewBox="0 0 20 20" fill="none"><path d="m7.5 5 5 5-5 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></a>
-                <a class="student-mini-action" href="<?= e(route_url('student.settings')) ?>"><span>Settings</span><svg viewBox="0 0 20 20" fill="none"><path d="m7.5 5 5 5-5 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></a>
+                <a class="student-mini-action" href="<?= e(route_url('student.records')) ?>">
+                    <span class="student-mini-action-main">
+                        <span class="student-mini-action-icon student-mini-action-icon--records" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm0 16H5V9h14v10Zm-9-8H7v3h3v3h3v-3h3v-3h-3V8h-3v3Z"/></svg></span>
+                        <span>Submit OJT Records</span>
+                    </span>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+                </a>
+                <a class="student-mini-action" href="<?= e(route_url('student.timeline')) ?>">
+                    <span class="student-mini-action-main">
+                        <span class="student-mini-action-icon student-mini-action-icon--timeline" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 3a2 2 0 0 1 2 2v1h6V5a2 2 0 1 1 4 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm0 5v11h10V8H7Zm2 2h6v2H9v-2Zm0 4h4v2H9v-2Z"/></svg></span>
+                        <span>Activity Timeline</span>
+                    </span>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+                </a>
+                <a class="student-mini-action" href="<?= e(route_url('student.settings')) ?>">
+                    <span class="student-mini-action-main">
+                        <span class="student-mini-action-icon student-mini-action-icon--settings" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54A.49.49 0 0 0 14 2h-4a.49.49 0 0 0-.49.42l-.36 2.54c-.58.22-1.13.53-1.63.94l-2.39-.96a.49.49 0 0 0-.59.22L2.71 8.04a.49.49 0 0 0 .12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.13.22.39.3.59.22l2.39-.96c.5.41 1.05.72 1.63.94l.36 2.54A.49.49 0 0 0 10 22h4c.24 0 .45-.17.49-.42l.36-2.54c.58-.22 1.13-.53 1.63-.94l2.39.96c.2.08.46 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 15.5 12 3.5 3.5 0 0 1 12 15.5Z"/></svg></span>
+                        <span>Settings</span>
+                    </span>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+                </a>
             </div>
         </section>
     </div>

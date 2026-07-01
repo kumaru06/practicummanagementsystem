@@ -5779,20 +5779,28 @@ small,
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
     border-radius: 10px;
-    background: rgba(255,255,255,0.88);
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    color: #9a3412;
-    box-shadow: 0 8px 18px rgba(15,23,42,0.05);
+    border: 1px solid transparent;
+    box-shadow: none;
+}
+
+.dtr-session--morning .dtr-session-icon {
+    background: linear-gradient(135deg, #fffbeb, #fff7ed);
+    border-color: #fde68a;
+    color: #b45309;
 }
 
 .dtr-session--afternoon .dtr-session-icon {
+    background: linear-gradient(135deg, #eff6ff, #f8fbff);
+    border-color: #bfdbfe;
     color: #1d4ed8;
 }
 
 .dtr-session-icon svg {
     width: 22px;
     height: 22px;
+    display: block;
 }
 
 .dtr-session-title {
@@ -17757,14 +17765,16 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 }
 
 .student-dash-v2 .sd-journey-dot svg {
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
+    display: block;
 }
 
 .student-dash-v2 .sd-journey-step.is-done .sd-journey-dot {
-    border-color: #86efac;
-    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-    color: #166534;
+    border-color: #16a34a;
+    background: #16a34a;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.22);
 }
 
 .student-dash-v2 .sd-journey-step.is-current .sd-journey-dot {
@@ -17828,17 +17838,59 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 }
 
 .student-dash-v2 .sd-next-icon {
-    width: 56px;
-    height: 56px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border: 1px solid transparent;
     border-radius: 10px;
-    background: linear-gradient(135deg, #8B1A1A, #dc2626);
-    color: #fff;
-    box-shadow: 0 12px 28px rgba(139, 26, 26, 0.28);
+    background: #fff8f8;
+    color: #8B1A1A;
+    box-shadow: none;
 }
 
-.student-dash-v2 .sd-next-icon svg {
-    width: 26px;
-    height: 26px;
+.student-dash-v2 .sd-next-icon--records {
+    border-color: #fecaca;
+    background: linear-gradient(135deg, #fff5f5, #fff1f2);
+    color: #8B1A1A;
+}
+
+.student-dash-v2 .sd-next-icon--requirements {
+    border-color: #bfdbfe;
+    background: linear-gradient(135deg, #eff6ff, #f8fbff);
+    color: #1d4ed8;
+}
+
+.student-dash-v2 .sd-next-icon--review {
+    border-color: #fde68a;
+    background: linear-gradient(135deg, #fffbeb, #fffef5);
+    color: #b45309;
+}
+
+.student-dash-v2 .sd-next-icon--deployment {
+    border-color: #ddd6fe;
+    background: linear-gradient(135deg, #f5f3ff, #faf8ff);
+    color: #6d28d9;
+}
+
+.student-dash-v2 .sd-next-icon--enrollment {
+    border-color: #cbd5e1;
+    background: linear-gradient(135deg, #f8fafc, #ffffff);
+    color: #475569;
+}
+
+.student-dash-v2 .sd-next-icon--locked {
+    border-color: #e2e8f0;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    color: #64748b;
+}
+
+.student-dash-v2 .sd-next-icon svg,
+.student-dash-v2 .sd-next-icon-svg {
+    width: 24px;
+    height: 24px;
+    display: block;
 }
 
 .student-dash-v2 .sd-next-btn {
@@ -17873,15 +17925,19 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 }
 
 .student-dash-v2 .sd-stat-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 48px;
     height: 48px;
+    border: 1px solid transparent;
     border-radius: 10px;
 }
 
-.student-dash-v2 .sd-stat-card--company .sd-stat-icon { background: linear-gradient(135deg, #eff6ff, #dbeafe); color: #1d4ed8; }
-.student-dash-v2 .sd-stat-card--schedule .sd-stat-icon { background: linear-gradient(135deg, #f5f3ff, #ede9fe); color: #7c3aed; }
-.student-dash-v2 .sd-stat-card--hours .sd-stat-icon { background: linear-gradient(135deg, #fffbeb, #fef3c7); color: #b45309; }
-.student-dash-v2 .sd-stat-card--records .sd-stat-icon { background: linear-gradient(135deg, #fff1f2, #ffe4e6); color: #be123c; }
+.student-dash-v2 .sd-stat-card--company .sd-stat-icon { border-color: #bfdbfe; background: linear-gradient(135deg, #eff6ff, #f8fbff); color: #1d4ed8; }
+.student-dash-v2 .sd-stat-card--schedule .sd-stat-icon { border-color: #ddd6fe; background: linear-gradient(135deg, #f5f3ff, #faf8ff); color: #7c3aed; }
+.student-dash-v2 .sd-stat-card--hours .sd-stat-icon { border-color: #bbf7d0; background: linear-gradient(135deg, #f0fdf8, #f8fdfb); color: #047857; }
+.student-dash-v2 .sd-stat-card--records .sd-stat-icon { border-color: #fecdd3; background: linear-gradient(135deg, #fff8f8, #fff1f2); color: #be123c; }
 
 .student-dash-v2 .sd-stat-icon svg {
     width: 22px;
@@ -18000,6 +18056,48 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
     box-shadow: var(--sd-shadow-hover);
 }
 
+.student-dash-v2 .sd-status-icon,
+.student-dash-v2 .student-status-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    box-shadow: none;
+}
+
+.student-dash-v2 .student-status-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.student-dash-v2 .student-status-icon--profile {
+    border-color: #fecdd3;
+    background: linear-gradient(135deg, #fff8f8, #fff1f2);
+    color: #be123c;
+}
+
+.student-dash-v2 .student-status-icon--docs {
+    border-color: #bbf7d0;
+    background: linear-gradient(135deg, #f0fdf8, #f8fdfb);
+    color: #047857;
+}
+
+.student-dash-v2 .student-status-icon--deployment {
+    border-color: #bfdbfe;
+    background: linear-gradient(135deg, #eff6ff, #f8fbff);
+    color: #1d4ed8;
+}
+
+.student-dash-v2 .student-status-icon--reports {
+    border-color: #fecdd3;
+    background: linear-gradient(135deg, #fff8f8, #fff1f2);
+    color: #be123c;
+}
+
 /* Mini cards */
 .student-dash-v2 .sd-mini-card {
     border-radius: var(--sd-radius);
@@ -18014,19 +18112,107 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
     box-shadow: var(--sd-shadow-hover);
 }
 
-.student-dash-v2 .sd-quick-actions .student-mini-action {
-    justify-content: space-between;
+.student-dash-v2 .student-mini-card-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    padding: 9px;
+    border: 1px solid transparent;
     border-radius: 10px;
 }
 
-.student-dash-v2 .sd-quick-actions .student-mini-action svg {
+.student-dash-v2 .student-mini-card-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.student-dash-v2 .student-mini-card-icon--dtr {
+    border-color: #fecaca;
+    background: linear-gradient(135deg, #fff5f5, #fff1f2);
+    color: #8B1A1A;
+}
+
+.student-dash-v2 .student-mini-card-icon--report {
+    border-color: #bfdbfe;
+    background: linear-gradient(135deg, #eff6ff, #f8fbff);
+    color: #1d4ed8;
+}
+
+.student-dash-v2 .student-mini-card-icon--actions {
+    border-color: #ddd6fe;
+    background: linear-gradient(135deg, #f5f3ff, #faf8ff);
+    color: #6d28d9;
+}
+
+.student-dash-v2 .student-mini-badge {
+    border-radius: 10px;
+}
+
+.student-dash-v2 .student-mini-empty {
+    border: 1px solid #eef2f6;
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.student-dash-v2 .sd-quick-actions .student-mini-action {
+    justify-content: space-between;
+    gap: 10px;
+    border-radius: 10px;
+}
+
+.student-dash-v2 .student-mini-action-main {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.student-dash-v2 .student-mini-action-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border: 1px solid transparent;
+    border-radius: 10px;
+}
+
+.student-dash-v2 .student-mini-action-icon svg {
+    width: 16px;
+    height: 16px;
+    opacity: 1;
+    transform: none;
+}
+
+.student-dash-v2 .student-mini-action-icon--records {
+    border-color: #fecaca;
+    background: #fff5f5;
+    color: #8B1A1A;
+}
+
+.student-dash-v2 .student-mini-action-icon--timeline {
+    border-color: #bfdbfe;
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.student-dash-v2 .student-mini-action-icon--settings {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+    color: #64748b;
+}
+
+.student-dash-v2 .sd-quick-actions .student-mini-action > svg:last-child {
     width: 16px;
     height: 16px;
     opacity: 0.4;
     transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
-.student-dash-v2 .sd-quick-actions .student-mini-action:hover svg {
+.student-dash-v2 .sd-quick-actions .student-mini-action:hover > svg:last-child {
     opacity: 1;
     transform: translateX(2px);
 }
