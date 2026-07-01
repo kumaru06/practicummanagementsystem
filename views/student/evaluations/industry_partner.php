@@ -2,8 +2,8 @@
     $studentEvaluation = $studentEvaluation ?? [];
     $partnerRatings = !empty($studentEvaluation['partner_ratings']) ? json_decode($studentEvaluation['partner_ratings'], true) : [];
     $criteria = StudentEvaluation::industryPartnerCriteria();
-    $svgAttrs = 'class="final-req-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
-    $partnerIcon = '<svg ' . $svgAttrs . '><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/></svg>';
+    $svgAttrs = 'class="final-req-icon" viewBox="0 0 24 24" aria-hidden="true"';
+    $partnerIcon = '<svg ' . $svgAttrs . '><path fill="currentColor" d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg>';
 ?>
 <section class="card final-form-card eval-form-card">
     <div class="final-form-head">

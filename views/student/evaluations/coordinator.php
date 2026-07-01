@@ -2,8 +2,8 @@
     $studentEvaluation = $studentEvaluation ?? [];
     $coordinatorRatings = !empty($studentEvaluation['coordinator_ratings']) ? json_decode($studentEvaluation['coordinator_ratings'], true) : [];
     $criteria = StudentEvaluation::coordinatorCriteria();
-    $svgAttrs = 'class="final-req-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
-    $coordinatorIcon = '<svg ' . $svgAttrs . '><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/></svg>';
+    $svgAttrs = 'class="final-req-icon" viewBox="0 0 24 24" aria-hidden="true"';
+    $coordinatorIcon = '<svg ' . $svgAttrs . '><path fill="currentColor" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg>';
 ?>
 <section class="card final-form-card eval-form-card">
     <div class="final-form-head">

@@ -1,7 +1,7 @@
 <?php
     $finalRequirement = $finalRequirement ?? [];
-    $svgAttrs = 'class="final-req-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
-    $companyIcon = '<svg ' . $svgAttrs . '><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12h12"/><path d="M10 8h.01M14 8h.01M10 16h.01M14 16h.01"/></svg>';
+    $svgAttrs = 'class="final-req-icon" viewBox="0 0 24 24" aria-hidden="true"';
+    $companyIcon = '<svg ' . $svgAttrs . '><path fill="currentColor" d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg>';
 ?>
 <section class="card final-form-card">
     <div class="final-form-head">
@@ -41,7 +41,7 @@
         </label>
 
         <button class="btn btn-primary final-form-submit" type="submit">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4Zm-5 16H8v-2h4v2Zm4-4H8v-2h8v2Zm0-5V5l3 3h-3Z"/></svg>
             <span>Save Company Profile</span>
         </button>
     </form>

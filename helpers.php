@@ -370,7 +370,7 @@ function generate_endorsement_letter(array $student, array $company, array $coor
 function dtr_day_types(): array
 {
     return [
-        'full' => 'Full day',
+        'full' => 'Whole day',
         'half_am' => 'Half day (Morning)',
         'half_pm' => 'Half day (Afternoon)',
         'sick' => 'Sick leave',

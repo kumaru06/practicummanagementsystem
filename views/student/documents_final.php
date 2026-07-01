@@ -17,34 +17,34 @@
     $coordinatorStatus = StudentEvaluation::statusFor($studentEvaluation, 'coordinator');
     $partnerStatus = StudentEvaluation::statusFor($studentEvaluation, 'industry_partner');
 
-    $svgAttrs = 'class="final-req-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
-    $infoIcon = '<svg ' . $svgAttrs . '><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>';
-    $successIcon = '<svg ' . $svgAttrs . '><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>';
-    $sectionDocsIcon = '<svg ' . $svgAttrs . '><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><path d="M12 11v6M9 14h6"/></svg>';
-    $sectionEvalIcon = '<svg ' . $svgAttrs . '><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6M9 16h4M9 8h6"/></svg>';
-    $summaryChartIcon = '<svg ' . $svgAttrs . '><path d="M3 3v18h18"/><path d="m7 16 4-5 4 3 5-7"/></svg>';
+    $svgAttrs = 'class="final-req-icon" viewBox="0 0 24 24" aria-hidden="true"';
+    $infoIcon = '<svg ' . $svgAttrs . '><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
+    $successIcon = '<svg ' . $svgAttrs . '><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>';
+    $sectionDocsIcon = '<svg ' . $svgAttrs . '><path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5ZM8 13h8v2H8v-2Zm0 4h8v2H8v-2Z"/></svg>';
+    $sectionEvalIcon = '<svg ' . $svgAttrs . '><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>';
+    $summaryChartIcon = '<svg ' . $svgAttrs . '><path fill="currentColor" d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm8 1.5V8h3.5L13 4.5ZM8 13h2v5H8v-5Zm3.5-3h2v8h-2v-8ZM15 15h2v3h-2v-3Z"/></svg>';
     $docRowIcons = [
         'job_description' => [
             'class' => 'final-req-row-icon final-req-row-icon--job',
-            'svg' => '<svg ' . $svgAttrs . '><path d="M10 7V5a2 2 0 0 1 4 0v2"/><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 12h18"/><path d="M12 12v4"/></svg>',
+            'svg' => '<svg ' . $svgAttrs . '><path fill="currentColor" d="M10 2h4a2 2 0 0 1 2 2v1h4a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h4V4a2 2 0 0 1 2-2Zm0 4V4h-4v2h4Zm-2 8v2h4v-2H8Z"/></svg>',
         ],
         'company_profile' => [
             'class' => 'final-req-row-icon final-req-row-icon--company',
-            'svg' => '<svg ' . $svgAttrs . '><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12h12"/><path d="M10 8h.01M14 8h.01M10 16h.01M14 16h.01"/></svg>',
+            'svg' => '<svg ' . $svgAttrs . '><path fill="currentColor" d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg>',
         ],
         'personal_observation' => [
             'class' => 'final-req-row-icon final-req-row-icon--observation',
-            'svg' => '<svg ' . $svgAttrs . '><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/><path d="m15 5 3 3"/></svg>',
+            'svg' => '<svg ' . $svgAttrs . '><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></svg>',
         ],
     ];
     $evalRowIcons = [
         'coordinator' => [
             'class' => 'final-req-row-icon final-req-row-icon--eval',
-            'svg' => '<svg ' . $svgAttrs . '><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/></svg>',
+            'svg' => '<svg ' . $svgAttrs . '><path fill="currentColor" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg>',
         ],
         'industry_partner' => [
             'class' => 'final-req-row-icon final-req-row-icon--partner',
-            'svg' => '<svg ' . $svgAttrs . '><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/></svg>',
+            'svg' => '<svg ' . $svgAttrs . '><path fill="currentColor" d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg>',
         ],
     ];
 
@@ -60,6 +60,17 @@
         $panelTitles[$key] = $section['name'];
     }
     $panelTitlesJson = json_encode($panelTitles, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+    $evalSubmitted = 0;
+    foreach (array_keys($evaluationSections) as $evalKey) {
+        if (StudentEvaluation::statusFor($studentEvaluation, $evalKey) === 'submitted') {
+            $evalSubmitted++;
+        }
+    }
+    $evalTotal = count($evaluationSections);
+    $evalPct = $evalTotal > 0 ? (int)round(($evalSubmitted / $evalTotal) * 100) : 0;
+    $overallDone = $docSubmitted + $evalSubmitted;
+    $overallTotal = $docTotal + $evalTotal;
+    $overallPct = $overallTotal > 0 ? (int)round(($overallDone / $overallTotal) * 100) : 0;
     $formWrapWide = in_array($activePanel, $widePanels, true);
 ?>
 <div
@@ -73,21 +84,56 @@
 >
 <div class="final-req-stage">
 <div class="final-req-view final-req-view--list<?= $showFormView ? '' : ' is-active' ?>" data-final-view="list">
-<div class="final-req-page">
+<div class="final-req-page final-req-v2">
     <nav class="final-req-breadcrumb" aria-label="Breadcrumb">
         <a href="index.php?r=student_documents">Documents</a>
         <span class="final-req-breadcrumb-sep" aria-hidden="true">›</span>
         <span aria-current="page">Final Requirements</span>
     </nav>
 
-    <section class="card final-req-section">
+    <section class="fr-hero" aria-label="Final requirements overview">
+        <div class="fr-hero-copy">
+            <span class="fr-hero-kicker">Completion Tracker</span>
+            <h1 class="fr-hero-title">Final Requirements</h1>
+            <p>Submit your final documents and complete evaluations before OJT completion.</p>
+        </div>
+        <div class="fr-hero-stats">
+            <div class="fr-hero-stat">
+                <span>Overall</span>
+                <strong><?= (int)$overallDone ?>/<?= (int)$overallTotal ?></strong>
+            </div>
+            <div class="fr-hero-stat">
+                <span>Documents</span>
+                <strong><?= (int)$docSubmitted ?>/<?= (int)$docTotal ?></strong>
+            </div>
+            <div class="fr-hero-stat">
+                <span>Evaluations</span>
+                <strong><?= (int)$evalSubmitted ?>/<?= (int)$evalTotal ?></strong>
+            </div>
+        </div>
+        <div class="fr-hero-progress">
+            <div class="fr-hero-progress-head">
+                <span>Overall progress</span>
+                <strong><?= (int)$overallPct ?>%</strong>
+            </div>
+            <div class="fr-hero-progress-track"><span style="width: <?= (int)$overallPct ?>%"></span></div>
+        </div>
+    </section>
+
+    <section class="card final-req-section final-req-section--docs">
         <header class="final-req-section-head">
             <span class="final-req-section-icon final-req-section-icon--docs"><?= $sectionDocsIcon ?></span>
             <div class="final-req-section-copy">
-                <h2><span class="final-req-section-step">1.</span> Student — Submit the Following</h2>
+                <span class="fr-section-eyebrow">Step 1</span>
+                <h2>Student — Submit the Following</h2>
                 <p class="muted">Please input the required information below.</p>
             </div>
+            <span class="fr-section-chip"><?= (int)$docSubmitted ?>/<?= (int)$docTotal ?> done</span>
         </header>
+
+        <div class="fr-section-progress" aria-hidden="true">
+            <div class="fr-section-progress-track"><span style="width: <?= (int)$docPct ?>%"></span></div>
+        </div>
 
         <div class="final-req-banner info">
             <span class="final-req-banner-icon"><?= $infoIcon ?></span>
@@ -103,8 +149,9 @@
                     $actionLabel = $status === 'submitted' ? 'Edit' : 'Input';
                     $actionClass = $status === 'submitted' ? 'final-req-action final-req-action--edit' : 'final-req-action final-req-action--primary';
                     $rowIconMeta = $docRowIcons[$key] ?? ['class' => 'final-req-row-icon final-req-row-icon--company', 'svg' => $docRowIcons['company_profile']['svg']];
+                    $rowStateClass = $status === 'submitted' ? 'is-complete' : 'is-pending';
                 ?>
-                <article class="final-req-row">
+                <article class="final-req-row <?= e($rowStateClass) ?>">
                     <div class="final-req-row-main">
                         <span class="<?= e($rowIconMeta['class']) ?>"><?= $rowIconMeta['svg'] ?></span>
                         <div class="final-req-row-copy">
@@ -113,8 +160,11 @@
                         </div>
                     </div>
                     <div class="final-req-row-meta">
-                        <span class="badge <?= e($status) ?>"><?= e($statusLabel) ?></span>
-                        <a class="<?= e($actionClass) ?> js-final-req-open" href="index.php?r=student_documents_final&amp;doc=<?= e($key) ?>" data-final-panel="<?= e($key) ?>" data-final-kind="doc"><?= e($actionLabel) ?></a>
+                        <span class="fr-status-pill fr-status-pill--<?= e($status === 'submitted' ? 'submitted' : 'pending') ?>"><?= e($statusLabel) ?></span>
+                        <a class="<?= e($actionClass) ?> js-final-req-open" href="index.php?r=student_documents_final&amp;doc=<?= e($key) ?>" data-final-panel="<?= e($key) ?>" data-final-kind="doc">
+                            <span><?= e($actionLabel) ?></span>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+                        </a>
                     </div>
                 </article>
             <?php endforeach; ?>
@@ -134,14 +184,20 @@
         </div>
     </section>
 
-    <section class="card final-req-section">
+    <section class="card final-req-section final-req-section--eval">
         <header class="final-req-section-head">
             <span class="final-req-section-icon final-req-section-icon--eval"><?= $sectionEvalIcon ?></span>
             <div class="final-req-section-copy">
-                <h2><span class="final-req-section-step">2.</span> Evaluations</h2>
+                <span class="fr-section-eyebrow">Step 2</span>
+                <h2>Evaluations</h2>
                 <p class="muted">Evaluate your overall performance and OJT experience.</p>
             </div>
+            <span class="fr-section-chip"><?= (int)$evalSubmitted ?>/<?= (int)$evalTotal ?> done</span>
         </header>
+
+        <div class="fr-section-progress" aria-hidden="true">
+            <div class="fr-section-progress-track"><span style="width: <?= (int)$evalPct ?>%"></span></div>
+        </div>
 
         <div class="final-req-list">
             <?php foreach ($evaluationSections as $key => $section): ?>
@@ -151,8 +207,9 @@
                     $actionLabel = $status === 'submitted' ? 'Edit' : 'Evaluate';
                     $actionClass = $status === 'submitted' ? 'final-req-action final-req-action--edit' : 'final-req-action final-req-action--primary';
                     $rowIconMeta = $evalRowIcons[$key] ?? $evalRowIcons['coordinator'];
+                    $rowStateClass = $status === 'submitted' ? 'is-complete' : 'is-pending';
                 ?>
-                <article class="final-req-row">
+                <article class="final-req-row <?= e($rowStateClass) ?>">
                     <div class="final-req-row-main">
                         <span class="<?= e($rowIconMeta['class']) ?>"><?= $rowIconMeta['svg'] ?></span>
                         <div class="final-req-row-copy">
@@ -161,8 +218,11 @@
                         </div>
                     </div>
                     <div class="final-req-row-meta">
-                        <span class="badge <?= e($status) ?>"><?= e($statusLabel) ?></span>
-                        <a class="<?= e($actionClass) ?> js-final-req-open" href="index.php?r=student_documents_final&amp;eval=<?= e($key) ?>" data-final-panel="<?= e($key) ?>" data-final-kind="eval"><?= e($actionLabel) ?></a>
+                        <span class="fr-status-pill fr-status-pill--<?= e($status === 'submitted' ? 'submitted' : 'pending') ?>"><?= e($statusLabel) ?></span>
+                        <a class="<?= e($actionClass) ?> js-final-req-open" href="index.php?r=student_documents_final&amp;eval=<?= e($key) ?>" data-final-panel="<?= e($key) ?>" data-final-kind="eval">
+                            <span><?= e($actionLabel) ?></span>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+                        </a>
                     </div>
                 </article>
             <?php endforeach; ?>
@@ -217,7 +277,7 @@
 </div>
 
 <div class="final-req-view final-req-view--form<?= $showFormView ? ' is-active' : '' ?>" data-final-view="form">
-    <div class="final-form-page js-final-req-form-wrap<?= $formWrapWide ? ' final-form-page--wide' : '' ?>">
+    <div class="final-form-page final-form-v2 js-final-req-form-wrap<?= $formWrapWide ? ' final-form-page--wide' : '' ?>">
         <?php require __DIR__ . '/partials/final_form_back.php'; ?>
         <div class="final-req-panels">
             <?php

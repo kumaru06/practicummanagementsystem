@@ -2474,7 +2474,7 @@ function initDtrTimeLocks() {
             tasksPlaceholder: 'Describe the tasks you completed today...',
             confirmTitle: 'Submit DTR',
             confirmMessage: 'Please verify the work date, session times, and tasks before submitting.',
-            summaryLabel: 'Full Day',
+            summaryLabel: 'Whole Day',
         },
         half_am: {
             morning: true,
