@@ -4555,7 +4555,10 @@ function initMyStudentsDirectory() {
 
         exportBtn?.addEventListener('click', () => exportCsv(table));
 
-        requestAnimationFrame(applyFilters);
+        requestAnimationFrame(() => {
+            applyFilters();
+            refreshTextMarquees();
+        });
     });
 }
 
