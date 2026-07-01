@@ -299,4 +299,4 @@
 </div>
 </div>
 </div>
-<script src="<?= e(asset('assets/js/final-req-nav.js')) ?>?v=20260611-final-req-spa"></script>
+<script src="<?= e(asset_url('assets/js/final-req-nav.js')) ?>"></script>

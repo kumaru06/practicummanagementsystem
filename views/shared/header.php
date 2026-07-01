@@ -34,7 +34,9 @@ $sidebarCollapsed = isset($_COOKIE['sidebarCollapsed']) && $_COOKIE['sidebarColl
     <aside class="sidebar">
         <button class="sidebar-toggle" type="button" aria-label="Collapse sidebar"><svg viewBox="0 0 24 24"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4L10.8 12l4.6-4.6ZM20 4h-2v16h2V4Z"/></svg></button>
         <div class="brand">
-            <span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Zm0 3.2 5.8 3.2-5.8 3.2-5.8-3.2L12 5.2Zm-6 5.9 4.5 2.5v4.9L6 16v-4.9Zm12 0V16l-4.5 2.5v-4.9L18 11.1Z"/></svg></span>
+            <span class="brand-mark">
+                <img src="<?= e(asset('assets/image/main/image.png')) ?>" alt="AMA Computer College logo" width="36" height="36">
+            </span>
             <div><strong data-marquee>AMA Computer College</strong><small data-marquee>OJT Management</small></div>
         </div>
         <nav class="nav">

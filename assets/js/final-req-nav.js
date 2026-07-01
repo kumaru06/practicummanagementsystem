@@ -85,6 +85,23 @@ function initFinalReqNav() {
         document.title = `${title} - AMA Practicum System`;
     }
 
+    function resetPanelForms(panelKey) {
+        if (!panelKey) return;
+
+        const panelEl = shell.querySelector(`.final-req-panel[data-final-panel="${panelKey}"]`);
+        if (!panelEl) return;
+
+        panelEl.querySelectorAll('form').forEach(form => {
+            form.reset();
+            delete form.dataset.confirmedSubmit;
+            form.querySelectorAll('.touched').forEach(el => el.classList.remove('touched'));
+            form.querySelectorAll('textarea, input:not([type="hidden"])').forEach(el => {
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        });
+    }
+
     function showPanel(panel) {
         panels.forEach(item => {
             item.classList.toggle('is-active', item.dataset.finalPanel === panel);
@@ -124,6 +141,7 @@ function initFinalReqNav() {
         if (!panel || !kind || !formView || !listView) return;
         if (activePanel === panel && formView.classList.contains('is-active') && !animating) return;
 
+        const previousPanel = activePanel;
         activeKind = kind;
         shell.dataset.activeKind = kind;
         showPanel(panel);
@@ -131,6 +149,9 @@ function initFinalReqNav() {
         if (listView.classList.contains('is-active')) {
             await switchView(listView, formView, direction);
         } else {
+            if (previousPanel && previousPanel !== panel) {
+                resetPanelForms(previousPanel);
+            }
             listView.classList.remove('is-active');
             formView.classList.add('is-active');
         }
@@ -144,6 +165,8 @@ function initFinalReqNav() {
 
     async function closePanel({ push = true, direction = 'back' } = {}) {
         if (!formView || !listView || !formView.classList.contains('is-active')) return;
+
+        resetPanelForms(activePanel);
 
         activePanel = '';
         activeKind = '';
