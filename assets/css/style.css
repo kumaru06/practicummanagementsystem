@@ -119,6 +119,30 @@ body.sidebar-collapsed {
     html.is-sidebar-collapsed-init .nav-link {
         justify-content: center;
         padding-inline: 0;
+        gap: 0;
+    }
+
+    html.is-sidebar-collapsed-init .nav-group-toggle {
+        justify-content: center;
+        padding-inline: 0;
+        gap: 0;
+    }
+
+    html.is-sidebar-collapsed-init .nav-group-toggle span,
+    html.is-sidebar-collapsed-init .nav-group-toggle .nav-link-label {
+        display: none !important;
+    }
+
+    html.is-sidebar-collapsed-init .nav-group-toggle .chevron {
+        display: none !important;
+    }
+
+    html.is-sidebar-collapsed-init .nav-group-items {
+        display: none !important;
+    }
+
+    html.is-sidebar-collapsed-init .sidebar-toggle {
+        align-self: center;
     }
 
     html.is-sidebar-collapsed-init .sidebar-logout {
@@ -4065,6 +4089,30 @@ small,
 .sidebar-collapsed .nav-link {
     justify-content: center;
     padding-inline: 0;
+    gap: 0;
+}
+
+.sidebar-collapsed .nav-group-toggle {
+    justify-content: center;
+    padding-inline: 0;
+    gap: 0;
+}
+
+.sidebar-collapsed .nav-group-toggle span,
+.sidebar-collapsed .nav-group-toggle .nav-link-label {
+    display: none;
+}
+
+.sidebar-collapsed .nav-group-toggle .chevron {
+    display: none;
+}
+
+.sidebar-collapsed .nav-group-items {
+    display: none !important;
+}
+
+.sidebar-collapsed .sidebar-toggle {
+    align-self: center;
 }
 
 .main {
