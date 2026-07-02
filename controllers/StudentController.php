@@ -467,7 +467,7 @@ class StudentController extends BaseController
             $wasCompleted = !empty($student['profile_completed']);
             $photo = null;
             if (!empty($_FILES['photo_file']['name'])) {
-                $photo = upload_document($_FILES['photo_file'], 'profiles', false);
+                $photo = upload_profile_photo($_FILES['photo_file'], false);
             }
             (new Student($this->db))->updateProfile((int)$student['id'], $p, $photo);
             flash('success', $wasCompleted ? 'Profile updated successfully.' : 'Profile completed. Your dashboard is now unlocked.');

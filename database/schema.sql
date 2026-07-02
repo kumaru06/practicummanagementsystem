@@ -69,6 +69,7 @@ CREATE TABLE partner_companies (
   contact_email VARCHAR(190) NOT NULL,
   contact_number VARCHAR(60) NULL,
   moa_mou_file VARCHAR(255) NULL,
+  photo_file VARCHAR(255) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_companies_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

@@ -16,8 +16,13 @@ $programCoverage = count($uniquePrograms);
 
 <div class="cdoc-page" data-cdoc-library>
     <section class="cdoc-hero" aria-labelledby="moa-library-title">
-        <div class="cdoc-hero-glow" aria-hidden="true"></div>
-        <div class="cdoc-hero-main">
+        <div class="cdoc-hero-bg" aria-hidden="true">
+            <span class="cdoc-hero-orb cdoc-hero-orb--one"></span>
+            <span class="cdoc-hero-orb cdoc-hero-orb--two"></span>
+            <span class="cdoc-hero-orb cdoc-hero-orb--three"></span>
+            <span class="cdoc-hero-grid"></span>
+        </div>
+        <div class="cdoc-hero-content">
             <div class="cdoc-hero-kicker">
                 <span class="cdoc-hero-kicker-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24"><path d="M14 2H7a3 3 0 0 0-3 3v14a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V8l-6-6Zm0 2.8L17.2 8H14V4.8ZM8 13h8v1.8H8V13Zm0 4h8v1.8H8V17Zm0-8h4v1.8H8V9Z"/></svg>
@@ -34,39 +39,52 @@ $programCoverage = count($uniquePrograms);
                 <span class="cdoc-hero-note">Only companies with uploaded MOA/MOU files are shown.</span>
             </div>
         </div>
-
-        <div class="cdoc-hero-panel" aria-label="Document summary">
-            <div class="cdoc-hero-panel-top">
-                <span>Library overview</span>
-                <strong><?= (int)$documentCount ?> file<?= $documentCount === 1 ? '' : 's' ?></strong>
-            </div>
-            <div class="cdoc-metrics-grid">
-                <div class="cdoc-metric-card">
-                    <span class="cdoc-metric-number"><?= (int)$documentCount ?></span>
-                    <span class="cdoc-metric-label">Total Documents</span>
-                </div>
-                <div class="cdoc-metric-card cdoc-metric-card--success">
-                    <span class="cdoc-metric-number"><?= (int)$activeCount ?></span>
-                    <span class="cdoc-metric-label">Active Industry Partners</span>
-                </div>
-                <div class="cdoc-metric-card cdoc-metric-card--muted">
-                    <span class="cdoc-metric-number"><?= (int)$inactiveCount ?></span>
-                    <span class="cdoc-metric-label">Inactive</span>
-                </div>
-                <div class="cdoc-metric-card cdoc-metric-card--accent">
-                    <span class="cdoc-metric-number"><?= (int)$programCoverage ?></span>
-                    <span class="cdoc-metric-label">Programs Covered</span>
-                </div>
-            </div>
-        </div>
     </section>
 
-    <section class="cdoc-section" id="company-agreements" aria-labelledby="company-agreements-title">
-        <div class="cdoc-section-header">
-            <div class="cdoc-section-heading">
+    <div class="cdoc-stats-strip" aria-label="Document summary">
+        <article class="cdoc-stat-card cdoc-stat-total">
+            <div class="cdoc-stat-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5Z"/></svg>
+            </div>
+            <div class="cdoc-stat-body">
+                <span>Total Documents</span>
+                <strong><?= (int)$documentCount ?></strong>
+            </div>
+        </article>
+        <article class="cdoc-stat-card cdoc-stat-active">
+            <div class="cdoc-stat-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 11-2-2 1.41-1.41L10 11.17l3.59-3.59L15 9l-5 5z"/></svg>
+            </div>
+            <div class="cdoc-stat-body">
+                <span>Active Partners</span>
+                <strong><?= (int)$activeCount ?></strong>
+            </div>
+        </article>
+        <article class="cdoc-stat-card cdoc-stat-inactive">
+            <div class="cdoc-stat-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+            </div>
+            <div class="cdoc-stat-body">
+                <span>Inactive</span>
+                <strong><?= (int)$inactiveCount ?></strong>
+            </div>
+        </article>
+        <article class="cdoc-stat-card cdoc-stat-programs">
+            <div class="cdoc-stat-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3 1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>
+            </div>
+            <div class="cdoc-stat-body">
+                <span>Programs Covered</span>
+                <strong><?= (int)$programCoverage ?></strong>
+            </div>
+        </article>
+    </div>
+
+    <section class="card cdoc-registry-card" id="company-agreements" aria-labelledby="company-agreements-title">
+        <header class="cdoc-registry-head">
+            <div class="cdoc-registry-copy">
                 <span class="cdoc-section-eyebrow">Document Registry</span>
                 <h2 id="company-agreements-title">Company Agreements</h2>
-                <p>Select an Industry Partner card to view its uploaded MOA/MOU in a dedicated secure viewer.</p>
             </div>
             <?php if ($documentCount > 0): ?>
             <div class="cdoc-live-count" aria-live="polite">
@@ -74,13 +92,13 @@ $programCoverage = count($uniquePrograms);
                 <span>shown</span>
             </div>
             <?php endif; ?>
-        </div>
+        </header>
 
         <?php if (!empty($companies)): ?>
         <div class="cdoc-toolbar" role="region" aria-label="Agreement filters">
             <label class="cdoc-search" for="cdoc-search-input">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4a6 6 0 0 1 4.74 9.67l4.3 4.29-1.42 1.42-4.29-4.3A6 6 0 1 1 10 4Zm0 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg>
-                <input id="cdoc-search-input" type="search" placeholder="Search company, contact, email, program, or address" data-cdoc-search autocomplete="off">
+                <input id="cdoc-search-input" type="search" placeholder="Search company, contact, email, program, or address…" data-cdoc-search autocomplete="off">
             </label>
             <div class="cdoc-filter-group" aria-label="Filter by status">
                 <button class="cdoc-filter is-active" type="button" data-cdoc-filter="all">All</button>
@@ -110,6 +128,7 @@ $programCoverage = count($uniquePrograms);
                 $searchText = strtolower(trim($name . ' ' . $contact . ' ' . $email . ' ' . $phone . ' ' . $address . ' ' . implode(' ', $programCodes) . ' ' . $documentName));
             ?>
             <article class="cdoc-card<?= $isActive ? '' : ' cdoc-card--inactive' ?>" data-cdoc-card data-status="<?= $isActive ? 'active' : 'inactive' ?>" data-search="<?= e($searchText) ?>">
+                <div class="cdoc-card-accent" aria-hidden="true"></div>
                 <header class="cdoc-card-header">
                     <div class="cdoc-avatar" aria-hidden="true"><?= e($initial) ?></div>
                     <div class="cdoc-card-identity">

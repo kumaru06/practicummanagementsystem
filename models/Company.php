@@ -2,6 +2,7 @@
 class Company
 {
     private ?bool $moaMouSupportReady = null;
+    private ?bool $photoSupportReady = null;
 
     public function __construct(private PDO $db) {}
 
@@ -22,9 +23,28 @@ class Company
         $this->moaMouSupportReady = true;
     }
 
+    public function ensurePhotoSupport(): void
+    {
+        if ($this->photoSupportReady === true) {
+            return;
+        }
+
+        $this->ensureMoaMouSupport();
+
+        $columnStmt = $this->db->prepare("SHOW COLUMNS FROM partner_companies LIKE 'photo_file'");
+        $columnStmt->execute();
+        $hasColumn = (bool)$columnStmt->fetch();
+
+        if (!$hasColumn) {
+            $this->db->exec('ALTER TABLE partner_companies ADD COLUMN photo_file VARCHAR(255) NULL AFTER moa_mou_file');
+        }
+
+        $this->photoSupportReady = true;
+    }
+
     public function create(int $userId, string $name, string $address, string $contactPerson, string $contactEmail, string $contactNumber = '', array $programIds = [], ?string $moaMouFile = null): int
     {
-        $this->ensureMoaMouSupport();
+        $this->ensurePhotoSupport();
 
         $stmt = $this->db->prepare('INSERT INTO partner_companies (user_id, name, address, contact_person, contact_email, contact_number, moa_mou_file) VALUES (?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([$userId, $name, $address, $contactPerson, strtolower(trim($contactEmail)), $contactNumber, $moaMouFile]);
@@ -35,13 +55,13 @@ class Company
 
     public function all(): array
     {
-        $this->ensureMoaMouSupport();
+        $this->ensurePhotoSupport();
         return $this->db->query('SELECT pc.*, u.id user_id_key, u.email, u.is_active, GROUP_CONCAT(p.code ORDER BY p.code SEPARATOR ", ") accepted_programs, GROUP_CONCAT(cp.program_id ORDER BY cp.program_id SEPARATOR ",") accepted_program_ids FROM partner_companies pc JOIN users u ON u.id = pc.user_id LEFT JOIN company_programs cp ON cp.company_id = pc.id LEFT JOIN programs p ON p.id = cp.program_id GROUP BY pc.id, u.id ORDER BY pc.name')->fetchAll();
     }
 
     public function find(int $id): ?array
     {
-        $this->ensureMoaMouSupport();
+        $this->ensurePhotoSupport();
         $stmt = $this->db->prepare('SELECT pc.*, u.email user_email FROM partner_companies pc JOIN users u ON u.id = pc.user_id WHERE pc.id = ?');
         $stmt->execute([$id]);
         return $stmt->fetch() ?: null;
@@ -49,7 +69,7 @@ class Company
 
     public function findByEnrollmentStudent(int $studentId): ?array
     {
-        $this->ensureMoaMouSupport();
+        $this->ensurePhotoSupport();
         $stmt = $this->db->prepare('SELECT pc.* FROM partner_companies pc JOIN ojt_enrollments e ON e.company_id = pc.id WHERE e.student_id = ? LIMIT 1');
         $stmt->execute([$studentId]);
         return $stmt->fetch() ?: null;
@@ -57,22 +77,23 @@ class Company
 
     public function findByUser(int $userId): ?array
     {
-        $this->ensureMoaMouSupport();
+        $this->ensurePhotoSupport();
         $stmt = $this->db->prepare('SELECT * FROM partner_companies WHERE user_id = ? LIMIT 1');
         $stmt->execute([$userId]);
         return $stmt->fetch() ?: null;
     }
 
-    public function updateProfile(int $companyId, string $name, string $address, string $contactPerson, string $contactEmail, string $contactNumber): void
+    public function updateProfile(int $companyId, string $name, string $address, string $contactPerson, string $contactEmail, string $contactNumber, ?string $photoFile = null): void
     {
-        $this->ensureMoaMouSupport();
-        $stmt = $this->db->prepare('UPDATE partner_companies SET name = ?, address = ?, contact_person = ?, contact_email = ?, contact_number = ? WHERE id = ?');
+        $this->ensurePhotoSupport();
+        $stmt = $this->db->prepare('UPDATE partner_companies SET name = ?, address = ?, contact_person = ?, contact_email = ?, contact_number = ?, photo_file = COALESCE(?, photo_file) WHERE id = ?');
         $stmt->execute([
             trim($name),
             trim($address),
             trim($contactPerson),
             strtolower(trim($contactEmail)),
             trim($contactNumber),
+            $photoFile,
             $companyId,
         ]);
     }

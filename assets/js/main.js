@@ -110,6 +110,10 @@ function initStudentProfilePhotoPreview() {
     input?.addEventListener('change', () => {
         const file = input.files?.[0];
         if (!file || !file.type.startsWith('image/')) {
+            if (file) {
+                input.value = '';
+                pushAppToast('Profile photo must be a JPG or PNG image.', 'error');
+            }
             showFallback();
             return;
         }
@@ -1370,8 +1374,6 @@ function closeNotifications() {
 function getTextMarqueeElements() {
     const selectors = [
         '[data-marquee]',
-        '.sidebar .nav-link > span:not(.nav-link-label--short):not(.chevron)',
-        '.sidebar .nav-group-toggle > span:not(.nav-link-label--short):not(.chevron)',
     ];
     const nodes = new Set();
     selectors.forEach(selector => {
@@ -1402,12 +1404,7 @@ function refreshTextMarquee(el) {
 
 function isSidebarLabelMarquee(el) {
     if (!el?.closest('.sidebar')) return false;
-    return !!(
-        el.closest('.brand > div')
-        || el.closest('.sidebar-user-info')
-        || el.matches('.nav-link > span')
-        || el.closest('.nav-group-toggle')
-    );
+    return !!el.closest('.brand > div');
 }
 
 function setupTextMarquee(el) {
@@ -3377,7 +3374,7 @@ function enhanceTable(table) {
     }
     let rows = [...tbody.rows];
     let page = 1;
-    const perPage = parseInt(table.dataset.perPage, 10) || 10;
+    let perPage = parseInt(table.dataset.perPage, 10) || 10;
     const wrap = table.closest('.table-wrap');
     const paginationInfo = directory?.querySelector('[data-pagination-info]') || card?.querySelector('[data-pagination-info]');
     const pager = directory?.querySelector('[data-pagination-nav]') || card?.querySelector('.pagination');
@@ -3476,6 +3473,12 @@ function enhanceTable(table) {
     });
     table._getFilteredRows = filtered;
     table._rerender = render;
+    table._setPerPage = (n) => {
+        perPage = Math.max(1, parseInt(n, 10) || 10);
+        table.dataset.perPage = String(perPage);
+        page = 1;
+        render();
+    };
     render();
 }
 
@@ -3641,7 +3644,7 @@ function renderDashboardCharts() {
 
     function drawAll() {
         drawBars('monthlyChart', window.dashboardCharts.monthlyTrends || [], '', false, true);
-        drawPie('statusChart',   window.dashboardCharts.statusDistribution || []);
+        drawStatusPie('statusChart', window.dashboardCharts.statusDistribution || []);
         drawBars('courseChart',  window.dashboardCharts.completionRates || [], '%', true);
     }
 
@@ -3680,7 +3683,7 @@ function prepCanvas(id) {
     c.removeAttribute('width');
     c.removeAttribute('height');
     const cssW = c.offsetWidth || c.parentElement.clientWidth;
-    const cssH = 320;
+    const cssH = c.parentElement?.classList.contains('chart-card--status') ? 360 : 320;
     c.width  = cssW * dpr;
     c.height = cssH * dpr;
     c.style.width  = cssW + 'px';
@@ -3723,7 +3726,100 @@ function roundRect(ctx, x, y, w, h, r) {
     ctx.closePath();
 }
 
-// â”€â”€â”€ Donut / Pie â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Donut / Pie ─────────────────────────────────────────────────────────────
+const STATUS_PIE_SERIES = [
+    { key: 'active', label: 'Active', color: '#16a34a' },
+    { key: 'pending', label: 'Pending Requirements', color: '#f59e0b' },
+    { key: 'completed', label: 'Completed', color: '#dc2626' },
+];
+
+function normalizeStatusPieData(data) {
+    const counts = {};
+    (data || []).forEach(d => {
+        counts[String(d.label || '').toLowerCase()] = Number(d.value || 0);
+    });
+    return STATUS_PIE_SERIES.map(item => ({
+        label: item.label,
+        value: counts[item.key] || 0,
+        color: item.color,
+    }));
+}
+
+function formatPiePercent(value, total) {
+    if (!total) return '0%';
+    const pct = (value / total) * 100;
+    return Number.isInteger(pct) ? `${pct}%` : `${pct.toFixed(1)}%`;
+}
+
+function drawStatusPie(id, data) {
+    const items = normalizeStatusPieData(data);
+    const p = prepCanvas(id);
+    if (!p) return;
+    const { ctx, w, h } = p;
+    const total = items.reduce((s, d) => s + d.value, 0);
+    if (!total) { drawEmpty(ctx, w, h); return; }
+
+    const legendRowH = 34;
+    const legendH = items.length * legendRowH + 20;
+    const donutSpace = h - legendH;
+    const r = Math.min(w * 0.34, donutSpace / 2 * 0.9);
+    const cx = w / 2;
+    const cy = donutSpace / 2;
+    const inner = r * 0.58;
+    let start = -Math.PI / 2;
+
+    items.forEach(d => {
+        const val = d.value;
+        if (!val) return;
+        const sweep = (val / total) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, r, start, start + sweep);
+        ctx.closePath();
+        ctx.fillStyle = d.color;
+        ctx.fill();
+        start += sweep;
+    });
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, inner, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+
+    chartFont(ctx, 22, '800');
+    ctx.fillStyle = '#172033';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(total), cx, cy - 8);
+    chartFont(ctx, 11, '600');
+    ctx.fillStyle = '#64748b';
+    ctx.fillText('Total', cx, cy + 12);
+
+    const legendTop = donutSpace + 4;
+    const padX = 4;
+    const swatch = 12;
+
+    items.forEach((d, i) => {
+        const y = legendTop + i * legendRowH + 10;
+        const pctText = formatPiePercent(d.value, total);
+
+        ctx.fillStyle = d.color;
+        roundRect(ctx, padX, y, swatch, swatch, 3);
+        ctx.fill();
+
+        chartFont(ctx, 13, '600');
+        ctx.fillStyle = '#172033';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(d.label, padX + swatch + 10, y + swatch / 2);
+
+        chartFont(ctx, 13, '700');
+        ctx.fillStyle = '#64748b';
+        ctx.textAlign = 'right';
+        ctx.fillText(`${d.value} (${pctText})`, w - padX, y + swatch / 2);
+    });
+}
+
 function drawPie(id, data) {
     const p = prepCanvas(id);
     if (!p) return;
@@ -4513,6 +4609,7 @@ function initMyStudentsDirectory() {
         const table = directory.querySelector('[data-ms-students-table]');
         const ojtFilter = directory.querySelector('[data-ms-ojt-filter]');
         const termFilter = directory.querySelector('[data-ms-term-filter]');
+        const perPageFilter = directory.querySelector('[data-ms-per-page]');
         const exportBtn = directory.querySelector('[data-ms-export]');
         const search = directory.querySelector('.table-search');
         if (!table) return;
@@ -4553,11 +4650,20 @@ function initMyStudentsDirectory() {
             applyFilters();
         });
 
+        perPageFilter?.addEventListener('change', () => {
+            const perPage = parseInt(perPageFilter.value, 10) || 10;
+            if (typeof table._setPerPage === 'function') {
+                table._setPerPage(perPage);
+            } else {
+                table.dataset.perPage = String(perPage);
+                table._rerender?.();
+            }
+        });
+
         exportBtn?.addEventListener('click', () => exportCsv(table));
 
         requestAnimationFrame(() => {
             applyFilters();
-            refreshTextMarquees();
         });
     });
 }

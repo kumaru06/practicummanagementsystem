@@ -16,6 +16,7 @@ abstract class BaseController
         $unreadNotifications = 0;
         $studentProfileCompleted = true;
         $studentRecord = null;
+        $partnerRecord = null;
         if ($user) {
             try {
                 $notificationModel = new Notification($this->db);
@@ -24,6 +25,9 @@ abstract class BaseController
                 if (($user['role'] ?? '') === 'student') {
                     $studentRecord = (new Student($this->db))->findByUser((int)$user['id']);
                     $studentProfileCompleted = !$studentRecord || (int)($studentRecord['profile_completed'] ?? 0) === 1;
+                }
+                if (($user['role'] ?? '') === 'partner') {
+                    $partnerRecord = (new Company($this->db))->findByUser((int)$user['id']);
                 }
             } catch (Throwable) {
                 $notifications = [];

@@ -128,15 +128,32 @@ function asset_url(string $path): string
 
 function student_profile_photo_url(?array $student): string
 {
-    if (!$student || empty($student['photo_file'])) {
+    return profile_photo_url($student);
+}
+
+function partner_profile_photo_url(?array $company): string
+{
+    return profile_photo_url($company);
+}
+
+function profile_photo_url(?array $record): string
+{
+    if (!$record || empty($record['photo_file'])) {
         return '';
     }
-    $relative = ltrim((string)$student['photo_file'], '/\\');
+    $relative = ltrim((string)$record['photo_file'], '/\\');
     if ($relative === '') {
         return '';
     }
     $absolute = __DIR__ . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relative);
-    return is_file($absolute) ? asset($student['photo_file']) : '';
+    if (!is_file($absolute)) {
+        return '';
+    }
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($absolute);
+    if (!in_array($mime, ['image/jpeg', 'image/png'], true)) {
+        return '';
+    }
+    return asset($record['photo_file']);
 }
 
 function csrf_token(): string
@@ -294,6 +311,41 @@ function upload_document(array $file, string $folder = 'documents', bool $requir
         throw new RuntimeException('Unable to save uploaded file.');
     }
     return 'uploads/' . $safeFolder . '/' . $name;
+}
+
+function upload_profile_photo(array $file, bool $required = false): ?string
+{
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        if ($required) {
+            throw new RuntimeException('Profile photo is required.');
+        }
+        return null;
+    }
+    if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+        throw new RuntimeException('Unable to read uploaded profile photo.');
+    }
+    if ($file['size'] > 8 * 1024 * 1024) {
+        throw new RuntimeException('Profile photo must not exceed 8MB.');
+    }
+
+    $allowed = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+    ];
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
+    if (!isset($allowed[$mime])) {
+        throw new RuntimeException('Profile photo must be a JPG or PNG image.');
+    }
+
+    $targetDir = __DIR__ . '/uploads/profiles';
+    if (!is_dir($targetDir)) {
+        mkdir($targetDir, 0755, true);
+    }
+    $name = bin2hex(random_bytes(16)) . '.' . $allowed[$mime];
+    if (!move_uploaded_file($file['tmp_name'], $targetDir . '/' . $name)) {
+        throw new RuntimeException('Unable to save uploaded profile photo.');
+    }
+    return 'uploads/profiles/' . $name;
 }
 
 function upload_signature(array $file): ?string

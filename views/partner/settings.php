@@ -2,6 +2,7 @@
 $companyName = trim((string)($company['name'] ?? current_user()['name'] ?? 'Organization'));
 $companyInitial = strtoupper(substr($companyName, 0, 1));
 $contactEmail = trim((string)($company['contact_email'] ?? current_user()['email'] ?? ''));
+$profilePhotoUrl = partner_profile_photo_url($company ?? null);
 ?>
 <div class="ip-settings">
     <header class="ip-settings-hero card">
@@ -10,8 +11,12 @@ $contactEmail = trim((string)($company['contact_email'] ?? current_user()['email
             <h2>Settings &amp; Security</h2>
             <p class="muted">Manage your organization profile, login email, and account password.</p>
         </div>
-        <div class="ip-settings-hero__badge" aria-hidden="true">
-            <span><?= e($companyInitial) ?></span>
+        <div class="ip-settings-hero__badge<?= $profilePhotoUrl !== '' ? ' ip-settings-hero__badge--photo' : '' ?>" aria-hidden="true">
+            <?php if ($profilePhotoUrl !== ''): ?>
+                <img src="<?= e($profilePhotoUrl) ?>" alt="">
+            <?php else: ?>
+                <span><?= e($companyInitial) ?></span>
+            <?php endif; ?>
         </div>
     </header>
 
@@ -22,7 +27,7 @@ $contactEmail = trim((string)($company['contact_email'] ?? current_user()['email
             </span>
             <span class="ip-settings-action__copy">
                 <strong>Edit Profile</strong>
-                <small>Update company name, contact person, email, phone, and address.</small>
+                <small>Update company name, contact person, email, phone, address, and profile photo.</small>
             </span>
             <span class="ip-settings-action__arrow" aria-hidden="true">
                 <svg viewBox="0 0 20 20" fill="none"><path d="M7.5 5 12.5 10l-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -55,7 +60,11 @@ $contactEmail = trim((string)($company['contact_email'] ?? current_user()['email
         <?php if ($company): ?>
             <div class="ip-settings-overview__body">
                 <div class="ip-settings-org-card">
-                    <span class="ip-settings-org-card__avatar"><?= e($companyInitial) ?></span>
+                    <?php if ($profilePhotoUrl !== ''): ?>
+                        <span class="ip-settings-org-card__avatar ip-settings-org-card__avatar--photo"><img src="<?= e($profilePhotoUrl) ?>" alt=""></span>
+                    <?php else: ?>
+                        <span class="ip-settings-org-card__avatar"><?= e($companyInitial) ?></span>
+                    <?php endif; ?>
                     <div>
                         <strong><?= e($company['name'] ?? '') ?></strong>
                         <small><?= e($company['contact_person'] ?? '') ?></small>

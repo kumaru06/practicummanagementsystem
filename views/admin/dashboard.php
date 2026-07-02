@@ -12,9 +12,9 @@
         </div>
         <canvas id="monthlyChart"></canvas>
     </section>
-    <section class="card chart-card">
-        <div class="chart-header" style="justify-content:center">
-            <h2 class="chart-title" style="text-align:center">OJT Status Distribution</h2>
+    <section class="card chart-card chart-card--status">
+        <div class="chart-header">
+            <h2 class="chart-title">OJT Status Distribution</h2>
         </div>
         <canvas id="statusChart"></canvas>
     </section>

@@ -1,8 +1,21 @@
 <?php
 $headerInitial = strtoupper(substr($user['name'] ?? 'A', 0, 1));
-$headerPhotoSource = (($user['role'] ?? '') === 'student') ? (($student ?? null) ?: ($studentRecord ?? null)) : null;
-$headerPhotoUrl = student_profile_photo_url($headerPhotoSource);
-$studentProfileRoute = ($user['role'] ?? '') === 'student' ? route_url('student.profile') : '';
+$headerPhotoSource = match ($user['role'] ?? '') {
+    'student' => ($student ?? null) ?: ($studentRecord ?? null),
+    'partner' => ($company ?? null) ?: ($partnerRecord ?? null),
+    default => null,
+};
+$headerPhotoUrl = match ($user['role'] ?? '') {
+    'student' => student_profile_photo_url($headerPhotoSource),
+    'partner' => partner_profile_photo_url($headerPhotoSource),
+    default => '',
+};
+$profileRoute = match ($user['role'] ?? '') {
+    'student' => route_url('student.profile'),
+    'partner' => route_url('partner.profile'),
+    default => '',
+};
+$studentProfileRoute = ($user['role'] ?? '') === 'student' ? $profileRoute : '';
 $sidebarCollapsed = isset($_COOKIE['sidebarCollapsed']) && $_COOKIE['sidebarCollapsed'] === '1';
 ?>
 <!doctype html>
@@ -64,9 +77,9 @@ $sidebarCollapsed = isset($_COOKIE['sidebarCollapsed']) && $_COOKIE['sidebarColl
                     <svg class="chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
                 </button>
                 <div class="nav-group-items">
-                    <a class="nav-link nav-sub <?= $currentRoute === 'admin_users' ? 'active' : '' ?>" href="index.php?r=admin_users"><svg viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 8-4v6h2V8L12 3Zm-6 9v4c2 3 10 3 12 0v-4l-6 3-6-3Z"/></svg><span>Manage Student</span></a>
-                    <a class="nav-link nav-sub <?= $currentRoute === 'admin_coordinators' ? 'active' : '' ?>" href="index.php?r=admin_coordinators"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg><span>Manage Coordinators</span></a>
-                    <a class="nav-link nav-sub <?= $currentRoute === 'admin_partners' ? 'active' : '' ?>" href="index.php?r=admin_partners"><svg viewBox="0 0 24 24"><path d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg><span>Manage Industry Partners</span></a>
+                    <a class="nav-link nav-sub <?= $currentRoute === 'admin_users' ? 'active' : '' ?>" href="index.php?r=admin_users"><svg viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 8-4v6h2V8L12 3Zm-6 9v4c2 3 10 3 12 0v-4l-6 3-6-3Z"/></svg><span>Student</span></a>
+                    <a class="nav-link nav-sub <?= $currentRoute === 'admin_coordinators' ? 'active' : '' ?>" href="index.php?r=admin_coordinators"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg><span>Coordinators</span></a>
+                    <a class="nav-link nav-sub <?= $currentRoute === 'admin_partners' ? 'active' : '' ?>" href="index.php?r=admin_partners"><svg viewBox="0 0 24 24"><path d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg><span>Industry Partners</span></a>
                 </div>
             </div><?php endif; ?>
             <?php if ($role === 'admin'): ?><a class="nav-link <?= $currentRoute === 'admin_email_logs' ? 'active' : '' ?>" href="index.php?r=admin_email_logs"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2Zm0 4-8 5-8-5V6l8 5 8-5v2Z"/></svg><span>Email Logs</span></a><a class="nav-link <?= $currentRoute === 'admin_evaluations' ? 'active' : '' ?>" href="index.php?r=admin_evaluations"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z"/></svg><span>Evaluations</span></a><a class="nav-link <?= $currentRoute === 'admin_ojt_placement' ? 'active' : '' ?>" href="index.php?r=admin_ojt_placement"><svg viewBox="0 0 24 24"><path d="M10 2h4a2 2 0 0 1 2 2v2h3a1 1 0 0 1 1 1v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a1 1 0 0 1 1-1h3V4a2 2 0 0 1 2-2Zm2 4V4h-2v2h2Zm-1 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg><span>OJT Placement</span></a><a class="nav-link <?= $currentRoute === 'admin_programs' ? 'active' : '' ?>" href="index.php?r=admin_programs"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4V5Zm2 2v10h12V7H6Zm2 2h8v2H8V9Zm0 4h6v2H8v-2Z"/></svg><span>Programs / Courses</span></a><a class="nav-link <?= in_array($currentRoute, ['admin_reports', 'admin_report'], true) ? 'active' : '' ?>" href="index.php?r=admin_reports"><svg viewBox="0 0 24 24"><path d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm8 1.5V8h3.5L13 4.5ZM8 13h2v5H8v-5Zm3.5-3h2v8h-2v-8ZM15 15h2v3h-2v-3Z"/></svg><span>Reports</span></a><a class="nav-link <?= $currentRoute === 'chat' ? 'active' : '' ?>" href="index.php?r=chat"><svg viewBox="0 0 24 24"><path d="M4 5h16v10H7l-3 3V5Z"/></svg><span>Live Chat</span></a><?php endif; ?>
@@ -104,8 +117,8 @@ $sidebarCollapsed = isset($_COOKIE['sidebarCollapsed']) && $_COOKIE['sidebarColl
             <?php endif; ?>
         </nav>
         <div class="sidebar-user">
-            <?php if ($studentProfileRoute !== ''): ?>
-                <a class="sidebar-user-info app-user-identity app-user-identity--sidebar sidebar-user-link" href="<?= e($studentProfileRoute) ?>" aria-label="Open my profile">
+            <?php if ($profileRoute !== ''): ?>
+                <a class="sidebar-user-info app-user-identity app-user-identity--sidebar sidebar-user-link" href="<?= e($profileRoute) ?>" aria-label="Open my profile">
             <?php else: ?>
                 <div class="sidebar-user-info app-user-identity app-user-identity--sidebar">
             <?php endif; ?>
@@ -118,7 +131,7 @@ $sidebarCollapsed = isset($_COOKIE['sidebarCollapsed']) && $_COOKIE['sidebarColl
                     <strong data-marquee><?= e($user['name'] ?? '') ?></strong>
                     <small data-marquee><?= e(($user['role'] ?? '') === 'student' ? ($user['email'] ?? '') : (($user['role'] ?? '') === 'partner' ? 'Industry Partner' : ucwords(str_replace('_', ' ', $user['role'] ?? '')))) ?></small>
                 </div>
-            <?php if ($studentProfileRoute !== ''): ?>
+            <?php if ($profileRoute !== ''): ?>
                 </a>
             <?php else: ?>
                 </div>
@@ -146,8 +159,8 @@ $sidebarCollapsed = isset($_COOKIE['sidebarCollapsed']) && $_COOKIE['sidebarColl
                         </button>
                     </div>
                     <span class="topbar-toolbar-divider" aria-hidden="true"></span>
-                    <?php if ($studentProfileRoute !== ''): ?>
-                        <a class="user-chip app-user-identity app-user-identity--chip user-chip-link" href="<?= e($studentProfileRoute) ?>" aria-label="Open my profile">
+                    <?php if ($profileRoute !== ''): ?>
+                        <a class="user-chip app-user-identity app-user-identity--chip user-chip-link" href="<?= e($profileRoute) ?>" aria-label="Open my profile">
                     <?php else: ?>
                         <div class="user-chip app-user-identity app-user-identity--chip">
                     <?php endif; ?>
@@ -160,10 +173,10 @@ $sidebarCollapsed = isset($_COOKIE['sidebarCollapsed']) && $_COOKIE['sidebarColl
                             <strong data-marquee><?= e($user['name'] ?? '') ?></strong>
                             <small data-marquee><?= e($user['email'] ?? '') ?></small>
                         </div>
-                        <?php if ($studentProfileRoute !== ''): ?>
+                        <?php if ($profileRoute !== ''): ?>
                             <svg class="user-chip-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
                         <?php endif; ?>
-                    <?php if ($studentProfileRoute !== ''): ?>
+                    <?php if ($profileRoute !== ''): ?>
                         </a>
                     <?php else: ?>
                         </div>

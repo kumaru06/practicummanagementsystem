@@ -691,6 +691,18 @@ class PartnerController extends BaseController
             }
             $contactNumber = '+63 ' . substr($contactNumberDigits, 0, 3) . ' ' . substr($contactNumberDigits, 3, 3) . ' ' . substr($contactNumberDigits, 6, 4);
 
+            $photo = null;
+            if (!empty($_FILES['photo_file']['name'])) {
+                $photo = upload_profile_photo($_FILES['photo_file'], false);
+                $oldPhoto = trim((string)($company['photo_file'] ?? ''));
+                if ($oldPhoto !== '') {
+                    $oldPath = __DIR__ . '/../' . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, ltrim($oldPhoto, '/\\'));
+                    if (is_file($oldPath)) {
+                        @unlink($oldPath);
+                    }
+                }
+            }
+
             $userId = (int)current_user()['id'];
             $this->db->beginTransaction();
             (new User($this->db))->updateName($userId, $companyName);
@@ -701,7 +713,8 @@ class PartnerController extends BaseController
                 $address,
                 $contactPerson,
                 $contactEmail,
-                $contactNumber
+                $contactNumber,
+                $photo
             );
             $this->db->commit();
             $_SESSION['user']['name'] = $companyName;

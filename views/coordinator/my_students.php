@@ -87,13 +87,22 @@ ksort($termOptions);
         <header class="ms-directory-head">
             <div class="ms-directory-copy">
                 <h2>My Students</h2>
-                <p class="muted">Track pre-deployment, final requirements, and evaluations in one place.</p>
             </div>
             <div class="ms-directory-toolbar" role="group" aria-label="Filter students">
                 <div class="ms-search-wrap">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14Z"/></svg>
                     <input class="table-search ms-table-search" type="search" placeholder="Search by student name or ID…" aria-label="Search students">
                 </div>
+                <label class="filter-select-wrap ms-filter-select ms-per-page-select">
+                    <span class="visually-hidden">Rows per page</span>
+                    <select data-ms-per-page aria-label="Rows per page">
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="30">30</option>
+                        <option value="40">40</option>
+                        <option value="50">50</option>
+                    </select>
+                </label>
                 <label class="filter-select-wrap ms-filter-select">
                     <span class="visually-hidden">OJT Status</span>
                     <select data-ms-ojt-filter aria-label="Filter by OJT status">
@@ -120,7 +129,7 @@ ksort($termOptions);
         </header>
 
         <div class="table-wrap ms-table-wrap">
-            <table class="data-table coord-students-table ms-students-table no-row-details" data-no-tools data-per-page="6" data-ms-students-table>
+            <table class="data-table coord-students-table ms-students-table no-row-details" data-no-tools data-per-page="10" data-ms-students-table>
                 <thead>
                     <tr>
                         <th data-sort>Student</th>
@@ -164,8 +173,8 @@ ksort($termOptions);
                                         <span class="coord-student-avatar"><?= e($initial) ?></span>
                                     <?php endif; ?>
                                     <div class="coord-student-meta">
-                                        <strong data-marquee><?= e($s['name']) ?></strong>
-                                        <small data-marquee><?= e($s['email']) ?></small>
+                                        <strong><?= e($s['name']) ?></strong>
+                                        <small><?= e($s['email']) ?></small>
                                     </div>
                                 </div>
                             </td>

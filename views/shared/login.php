@@ -12,7 +12,7 @@
 </head>
 <body class="login-page">
     <?php
-    $campusPhoto = asset('assets/image/login/campus.webp');
+    $campusPhoto = asset('assets/image/login/campus2.webp');
     $slideshowDir = __DIR__ . '/../../assets/image/slideshow';
     $slideshowImages = [];
     if (is_dir($slideshowDir)) {
