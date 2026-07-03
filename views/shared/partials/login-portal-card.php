@@ -106,7 +106,7 @@ $flashError = $flashError ?? null;
                         </label>
                         <button class="btn btn-primary" type="submit"><span class="btn-text">Sign in</span><span class="spinner"></span></button>
                         <?php if ($role === 'student'): ?>
-                            <p class="portal-register-link">Don't have an account? <a href="<?= e(route_url('student.register')) ?>">Register</a></p>
+                            <p class="portal-register-link">Don't have an account? <a href="<?= e(route_url('student.register')) ?>" target="_blank" rel="noopener noreferrer">Register</a></p>
                         <?php endif; ?>
                     </form>
                 <?php endforeach; ?>

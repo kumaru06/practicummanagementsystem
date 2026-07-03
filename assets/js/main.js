@@ -14,6 +14,9 @@
     initStudentNoAvailability();
     initEmailAvailability();
     initStudentRegistrationAvailability();
+    initStudentRegistrationPasswordIndicators();
+    initRegistrationBackLink();
+    initRegistrationSuccessCountdown();
     initCoordinatorAvailability();
     initPartnerAvailability();
     initCounters();
@@ -3096,6 +3099,109 @@ function initEmailAvailability() {
         takenMessage: 'This email address is already registered.',
         availableMessage: 'Email address is available.',
     });
+}
+
+function initStudentRegistrationPasswordIndicators() {
+    const form = document.getElementById('studentRegisterForm');
+    if (!form) return;
+
+    const passwordInput = form.querySelector('[data-register-password]');
+    const confirmInput = form.querySelector('[data-register-confirm-password]');
+    const strengthIndicator = form.querySelector('[data-register-password-strength]');
+    const strengthLabel = form.querySelector('[data-register-strength-label]');
+    const matchIndicator = form.querySelector('[data-register-password-match]');
+
+    const updatePasswordStrength = () => {
+        const password = passwordInput?.value || '';
+        const { level, label } = getPasswordStrength(password);
+        if (!password) {
+            strengthIndicator?.setAttribute('hidden', '');
+            strengthIndicator?.removeAttribute('data-level');
+            if (strengthLabel) strengthLabel.textContent = '';
+            return;
+        }
+        strengthIndicator?.removeAttribute('hidden');
+        strengthIndicator?.setAttribute('data-level', String(level));
+        if (strengthLabel) strengthLabel.textContent = label;
+    };
+
+    const updatePasswordMatch = () => {
+        const password = passwordInput?.value || '';
+        const confirmPassword = confirmInput?.value || '';
+        if (!confirmPassword) {
+            confirmInput?.setCustomValidity('');
+            matchIndicator?.setAttribute('hidden', '');
+            matchIndicator?.classList.remove('is-match', 'is-mismatch');
+            if (matchIndicator) matchIndicator.textContent = '';
+            return;
+        }
+        matchIndicator?.removeAttribute('hidden');
+        const matches = password === confirmPassword;
+        matchIndicator?.classList.toggle('is-match', matches);
+        matchIndicator?.classList.toggle('is-mismatch', !matches);
+        if (matchIndicator) {
+            matchIndicator.textContent = matches ? 'Passwords match' : 'Passwords do not match';
+        }
+        confirmInput?.setCustomValidity(matches ? '' : 'Passwords do not match.');
+    };
+
+    passwordInput?.addEventListener('input', () => {
+        updatePasswordStrength();
+        updatePasswordMatch();
+    });
+    confirmInput?.addEventListener('input', updatePasswordMatch);
+}
+
+function closeRegistrationAndReturnToLogin(loginUrl) {
+    try {
+        if (window.opener && !window.opener.closed) {
+            window.opener.focus();
+        }
+    } catch {
+        // Cross-origin opener — ignore.
+    }
+
+    window.close();
+
+    window.setTimeout(() => {
+        if (!window.closed) {
+            window.location.href = loginUrl;
+        }
+    }, 120);
+}
+
+function initRegistrationBackLink() {
+    document.querySelectorAll('[data-register-close-login]').forEach((link) => {
+        link.addEventListener('click', (event) => {
+            event.preventDefault();
+            const loginUrl = link.dataset.loginUrl || link.getAttribute('href') || '/';
+            closeRegistrationAndReturnToLogin(loginUrl);
+        });
+    });
+}
+
+function initRegistrationSuccessCountdown() {
+    const panel = document.querySelector('[data-register-success]');
+    if (!panel) return;
+
+    const redirectUrl = panel.dataset.redirectUrl || '/';
+    const countdownEl = panel.querySelector('[data-register-countdown-value]');
+    let remaining = Math.max(3, parseInt(panel.dataset.countdownSeconds || '10', 10) || 10);
+
+    if (countdownEl) countdownEl.textContent = String(remaining);
+
+    const finish = () => {
+        closeRegistrationAndReturnToLogin(redirectUrl);
+    };
+
+    const timer = window.setInterval(() => {
+        remaining -= 1;
+        if (countdownEl) countdownEl.textContent = String(Math.max(remaining, 0));
+        if (remaining <= 0) {
+            window.clearInterval(timer);
+            finish();
+        }
+    }, 1000);
 }
 
 function initStudentRegistrationAvailability() {
