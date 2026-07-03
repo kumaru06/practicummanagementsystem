@@ -214,11 +214,11 @@ class StudentRegistrationRequest
             throw new RuntimeException('This Student ID/USN is already registered.');
         }
 
-        $fullName = trim($request['first_name'] . ' ' . $request['last_name']);
         $this->db->beginTransaction();
         try {
             $userId = (new User($this->db))->createWithPasswordHash(
-                $fullName,
+                $request['first_name'],
+                $request['last_name'],
                 $request['email'],
                 $request['password_hash'],
                 'student',

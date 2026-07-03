@@ -99,7 +99,16 @@ try {
             continue;
         }
 
-        $userId = $userModel->create($name, $email, 'Student@123', 'student', $coordinatorId, 1);
+        $nameParts = split_person_name($name);
+        $userId = $userModel->create(
+            $nameParts['first_name'],
+            $nameParts['last_name'],
+            $email,
+            'Student@123',
+            'student',
+            $coordinatorId,
+            1
+        );
         $studentModel->create($userId, $studentNo, $course, $yearLevel, $corFile, $coordinatorId, $programId, $section);
         $created++;
     }

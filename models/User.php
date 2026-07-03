@@ -3,8 +3,47 @@ class User
 {
     private ?bool $coordinatorIdNumberReady = null;
     private ?bool $coordinatorSignatureReady = null;
+    private ?bool $namePartsReady = null;
 
     public function __construct(private PDO $db) {}
+
+    public function ensureNamePartsSupport(): void
+    {
+        if ($this->namePartsReady === true) {
+            return;
+        }
+
+        foreach ([
+            'first_name' => 'VARCHAR(100) NULL AFTER name',
+            'last_name' => 'VARCHAR(100) NULL AFTER first_name',
+        ] as $column => $definition) {
+            $stmt = $this->db->query("SHOW COLUMNS FROM users LIKE '{$column}'");
+            if (!$stmt->fetch()) {
+                $this->db->exec("ALTER TABLE users ADD COLUMN {$column} {$definition}");
+            }
+        }
+
+        $rows = $this->db->query('SELECT id, name, first_name, last_name FROM users')->fetchAll();
+        $update = $this->db->prepare(
+            'UPDATE users SET first_name = ?, last_name = ?, name = ? WHERE id = ?'
+        );
+        foreach ($rows as $row) {
+            $firstName = trim((string)($row['first_name'] ?? ''));
+            $lastName = trim((string)($row['last_name'] ?? ''));
+            if ($firstName !== '' && $lastName !== '') {
+                continue;
+            }
+            $parts = split_person_name((string)($row['name'] ?? ''));
+            $update->execute([
+                $parts['first_name'],
+                $parts['last_name'],
+                full_name_from_parts($parts['first_name'], $parts['last_name']),
+                (int)$row['id'],
+            ]);
+        }
+
+        $this->namePartsReady = true;
+    }
 
     public function ensureCoordinatorSignatureSupport(): void
     {
@@ -50,13 +89,15 @@ class User
 
     public function findByEmail(string $email): ?array
     {
+        $this->ensureNamePartsSupport();
         $stmt = $this->db->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
         $stmt->execute([$email]);
-        return $stmt->fetch() ?: null;
+        return hydrate_user_record($stmt->fetch() ?: null);
     }
 
     public function findForLogin(string $identifier, ?string $portalRole = null): ?array
     {
+        $this->ensureNamePartsSupport();
         $identifier = trim($identifier);
         if ($identifier === '') {
             return null;
@@ -71,7 +112,7 @@ class User
                  LIMIT 1'
             );
             $stmt->execute([strtolower($identifier), $identifier]);
-            return $stmt->fetch() ?: null;
+            return hydrate_user_record($stmt->fetch() ?: null);
         }
 
         return $this->findByEmail(strtolower($identifier));
@@ -79,13 +120,15 @@ class User
 
     public function find(int $id): ?array
     {
+        $this->ensureNamePartsSupport();
         $stmt = $this->db->prepare('SELECT * FROM users WHERE id = ? LIMIT 1');
         $stmt->execute([$id]);
-        return $stmt->fetch() ?: null;
+        return hydrate_user_record($stmt->fetch() ?: null);
     }
 
     public function findWithDetails(int $id): ?array
     {
+        $this->ensureNamePartsSupport();
         $stmt = $this->db->prepare(
             'SELECT u.*, s.student_no
              FROM users u
@@ -94,37 +137,20 @@ class User
              LIMIT 1'
         );
         $stmt->execute([$id]);
-        return $stmt->fetch() ?: null;
+        return hydrate_user_record($stmt->fetch() ?: null);
     }
 
-    public function create(string $name, string $email, string $password, string $role, ?int $createdBy = null, int $passwordChanged = 1): int
-    {
-        if (!trim($name)) {
-            throw new RuntimeException('Name is required.');
-        }
-        if (!filter_var(strtolower(trim($email)), FILTER_VALIDATE_EMAIL)) {
-            throw new RuntimeException('A valid email address is required.');
-        }
-        if (!in_array($role, ['admin', 'coordinator', 'student', 'partner'], true)) {
-            throw new RuntimeException('Invalid user role.');
-        }
-        $stmt = $this->db->prepare('INSERT INTO users (name, email, password_hash, role, created_by, is_active, password_changed) VALUES (?, ?, ?, ?, ?, 1, ?)');
-        $stmt->execute([trim($name), strtolower(trim($email)), password_hash($password, PASSWORD_DEFAULT), $role, $createdBy, $passwordChanged]);
-        return (int)$this->db->lastInsertId();
-    }
-
-    public function createWithPasswordHash(
-        string $name,
+    public function create(
+        string $firstName,
+        string $lastName,
         string $email,
-        string $passwordHash,
+        string $password,
         string $role,
         ?int $createdBy = null,
-        int $passwordChanged = 1,
-        int $isActive = 1
+        int $passwordChanged = 1
     ): int {
-        if (!trim($name)) {
-            throw new RuntimeException('Name is required.');
-        }
+        $this->ensureNamePartsSupport();
+        [$firstName, $lastName, $fullName] = $this->normalizeNameParts($firstName, $lastName);
         if (!filter_var(strtolower(trim($email)), FILTER_VALIDATE_EMAIL)) {
             throw new RuntimeException('A valid email address is required.');
         }
@@ -132,10 +158,48 @@ class User
             throw new RuntimeException('Invalid user role.');
         }
         $stmt = $this->db->prepare(
-            'INSERT INTO users (name, email, password_hash, role, created_by, is_active, password_changed) VALUES (?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO users (first_name, last_name, name, email, password_hash, role, created_by, is_active, password_changed)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)'
         );
         $stmt->execute([
-            trim($name),
+            $firstName,
+            $lastName,
+            $fullName,
+            strtolower(trim($email)),
+            password_hash($password, PASSWORD_DEFAULT),
+            $role,
+            $createdBy,
+            $passwordChanged,
+        ]);
+        return (int)$this->db->lastInsertId();
+    }
+
+    public function createWithPasswordHash(
+        string $firstName,
+        string $lastName,
+        string $email,
+        string $passwordHash,
+        string $role,
+        ?int $createdBy = null,
+        int $passwordChanged = 1,
+        int $isActive = 1
+    ): int {
+        $this->ensureNamePartsSupport();
+        [$firstName, $lastName, $fullName] = $this->normalizeNameParts($firstName, $lastName);
+        if (!filter_var(strtolower(trim($email)), FILTER_VALIDATE_EMAIL)) {
+            throw new RuntimeException('A valid email address is required.');
+        }
+        if (!in_array($role, ['admin', 'coordinator', 'student', 'partner'], true)) {
+            throw new RuntimeException('Invalid user role.');
+        }
+        $stmt = $this->db->prepare(
+            'INSERT INTO users (first_name, last_name, name, email, password_hash, role, created_by, is_active, password_changed)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        );
+        $stmt->execute([
+            $firstName,
+            $lastName,
+            $fullName,
             strtolower(trim($email)),
             $passwordHash,
             $role,
@@ -148,27 +212,32 @@ class User
 
     public function all(): array
     {
-        return $this->db->query(
+        $this->ensureNamePartsSupport();
+        $rows = $this->db->query(
             'SELECT u.*, c.name created_by_name, s.student_no, s.course
              FROM users u
              LEFT JOIN users c ON c.id = u.created_by
              LEFT JOIN students s ON s.user_id = u.id
-             ORDER BY u.created_at DESC'
+             ORDER BY u.last_name ASC, u.first_name ASC, u.created_at DESC'
         )->fetchAll();
+        return array_map(static fn ($row) => hydrate_user_record($row), $rows);
     }
 
     public function allStudents(): array
     {
-        return $this->db->query(
+        $this->ensureNamePartsSupport();
+        $rows = $this->db->query(
             'SELECT u.*, s.student_no, s.course
              FROM users u
              JOIN students s ON s.user_id = u.id
-             ORDER BY u.name ASC'
+             ORDER BY u.last_name ASC, u.first_name ASC'
         )->fetchAll();
+        return array_map(static fn ($row) => hydrate_user_record($row), $rows);
     }
 
     public function byRole(string $role): array
     {
+        $this->ensureNamePartsSupport();
         if ($role === 'coordinator') {
             $this->ensureCoordinatorIdNumberSupport();
             $this->ensureCoordinatorSignatureSupport();
@@ -177,15 +246,17 @@ class User
                  FROM users u
                  LEFT JOIN coordinators c ON c.user_id = u.id
                  WHERE u.role = ?
-                 ORDER BY u.id DESC'
+                 ORDER BY u.last_name ASC, u.first_name ASC, u.id DESC'
             );
             $stmt->execute([$role]);
-            return $stmt->fetchAll();
+            return array_map(static fn ($row) => hydrate_user_record($row), $stmt->fetchAll());
         }
 
-        $stmt = $this->db->prepare('SELECT * FROM users WHERE role = ? ORDER BY name');
+        $stmt = $this->db->prepare(
+            'SELECT * FROM users WHERE role = ? ORDER BY last_name ASC, first_name ASC'
+        );
         $stmt->execute([$role]);
-        return $stmt->fetchAll();
+        return array_map(static fn ($row) => hydrate_user_record($row), $stmt->fetchAll());
     }
 
     public function setActive(int $id, int $active): void
@@ -209,14 +280,20 @@ class User
         return password_verify($password, (string)$user['password_hash']);
     }
 
+    public function updatePersonName(int $id, string $firstName, string $lastName): void
+    {
+        $this->ensureNamePartsSupport();
+        [$firstName, $lastName, $fullName] = $this->normalizeNameParts($firstName, $lastName);
+        $stmt = $this->db->prepare(
+            'UPDATE users SET first_name = ?, last_name = ?, name = ? WHERE id = ?'
+        );
+        $stmt->execute([$firstName, $lastName, $fullName, $id]);
+    }
+
     public function updateName(int $id, string $name): void
     {
-        $name = trim($name);
-        if ($name === '') {
-            throw new RuntimeException('Company name is required.');
-        }
-        $stmt = $this->db->prepare('UPDATE users SET name = ? WHERE id = ?');
-        $stmt->execute([$name, $id]);
+        $parts = split_person_name($name);
+        $this->updatePersonName($id, $parts['first_name'], $parts['last_name']);
     }
 
     public function updateEmail(int $id, string $email): void
@@ -239,5 +316,15 @@ class User
         $stmt = $this->db->prepare('SELECT COUNT(*) FROM users WHERE role = ? AND is_active = 1');
         $stmt->execute([$role]);
         return (int)$stmt->fetchColumn();
+    }
+
+    private function normalizeNameParts(string $firstName, string $lastName): array
+    {
+        $firstName = trim($firstName);
+        $lastName = trim($lastName);
+        if ($firstName === '' || $lastName === '') {
+            throw new RuntimeException('First name and last name are required.');
+        }
+        return [$firstName, $lastName, full_name_from_parts($firstName, $lastName)];
     }
 }

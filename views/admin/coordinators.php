@@ -74,11 +74,19 @@ $inactiveCoordinators = $totalCoordinators - $activeCoordinators;
                                 <span class="field-check-message" data-coordinator-id-message hidden aria-live="polite"></span>
                             </label>
                             <label class="partner-field">
-                                <span class="partner-field-label">Full Name <em>*</em></span>
-                                <input required name="name" autocomplete="name" placeholder="e.g. Maria Santos"
+                                <span class="partner-field-label">First Name <em>*</em></span>
+                                <input required name="first_name" autocomplete="given-name" placeholder="e.g. Maria"
                                     data-capitalize-words
                                     pattern="[A-Za-z\s\-\.]+"
-                                    title="Full Name must contain letters only">
+                                    title="First name must contain letters only">
+                                <span class="field-check-message field-check-message--reserve" aria-hidden="true"></span>
+                            </label>
+                            <label class="partner-field">
+                                <span class="partner-field-label">Last Name <em>*</em></span>
+                                <input required name="last_name" autocomplete="family-name" placeholder="e.g. Santos"
+                                    data-capitalize-words
+                                    pattern="[A-Za-z\s\-\.]+"
+                                    title="Last name must contain letters only">
                                 <span class="field-check-message field-check-message--reserve" aria-hidden="true"></span>
                             </label>
                         </div>
@@ -165,7 +173,8 @@ $inactiveCoordinators = $totalCoordinators - $activeCoordinators;
                                     <div class="coordinator-card-footer">
                                         <button class="btn btn-small btn-primary coordinator-edit-btn" type="button"
                                             data-edit-coordinator="<?= (int)$u['id'] ?>"
-                                            data-name="<?= e($u['name']) ?>"
+                                            data-first-name="<?= e($u['first_name'] ?? '') ?>"
+                                            data-last-name="<?= e($u['last_name'] ?? '') ?>"
                                             data-email="<?= e($u['email']) ?>"
                                             data-id-number="<?= e($u['id_number'] ?? '') ?>"
                                             data-department="<?= e($u['department'] ?? 'OJT Department') ?>"
@@ -253,12 +262,19 @@ $inactiveCoordinators = $totalCoordinators - $activeCoordinators;
                             <span class="partner-field-label">Department <em>*</em></span>
                             <input required name="department" id="editCoordDepartment" placeholder="OJT Department">
                         </label>
-                        <label class="partner-field partner-field--full">
-                            <span class="partner-field-label">Full Name <em>*</em></span>
-                            <input required name="name" id="editCoordName" autocomplete="name" placeholder="e.g. Maria Santos"
+                        <label class="partner-field">
+                            <span class="partner-field-label">First Name <em>*</em></span>
+                            <input required name="first_name" id="editCoordFirstName" autocomplete="given-name" placeholder="e.g. Maria"
                                 data-capitalize-words
                                 pattern="[A-Za-z\s\-\.]+"
-                                title="Full Name must contain letters only">
+                                title="First name must contain letters only">
+                        </label>
+                        <label class="partner-field">
+                            <span class="partner-field-label">Last Name <em>*</em></span>
+                            <input required name="last_name" id="editCoordLastName" autocomplete="family-name" placeholder="e.g. Santos"
+                                data-capitalize-words
+                                pattern="[A-Za-z\s\-\.]+"
+                                title="Last name must contain letters only">
                         </label>
                         <label class="partner-field partner-field--full">
                             <span class="partner-field-label">Email <em>*</em></span>
@@ -322,7 +338,8 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('[data-edit-coordinator]').forEach(btn => {
         btn.addEventListener('click', () => {
             document.getElementById('editCoordUserId').value = btn.dataset.editCoordinator;
-            document.getElementById('editCoordName').value = btn.dataset.name;
+            document.getElementById('editCoordFirstName').value = btn.dataset.firstName || '';
+            document.getElementById('editCoordLastName').value = btn.dataset.lastName || '';
             document.getElementById('editCoordEmail').value = btn.dataset.email;
             document.getElementById('editCoordIdNumber').value = btn.dataset.idNumber || '';
             document.getElementById('editCoordDepartment').value = btn.dataset.department || 'OJT Department';

@@ -22,6 +22,8 @@ SET FOREIGN_KEY_CHECKS = 1;
 CREATE TABLE users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(150) NOT NULL,
+  first_name VARCHAR(100) NULL,
+  last_name VARCHAR(100) NULL,
   email VARCHAR(190) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   role ENUM('admin','coordinator','student','partner') NOT NULL,

@@ -256,12 +256,13 @@ class AdminController extends BaseController
                 throw new RuntimeException('ID number must contain digits only.');
             }
 
-            $name = trim($p['name'] ?? '');
-            if ($name === '') {
-                throw new RuntimeException('Full name is required.');
+            $firstName = trim($p['first_name'] ?? '');
+            $lastName = trim($p['last_name'] ?? '');
+            if ($firstName === '' || $lastName === '') {
+                throw new RuntimeException('First name and last name are required.');
             }
-            if (preg_match('/[0-9]/', $name)) {
-                throw new RuntimeException('Full name must contain letters only, no numbers.');
+            if (preg_match('/[0-9]/', $firstName . $lastName)) {
+                throw new RuntimeException('Name must contain letters only, no numbers.');
             }
 
             $email = strtolower(trim($p['email'] ?? ''));
@@ -285,13 +286,13 @@ class AdminController extends BaseController
                 throw new RuntimeException('ID number already exists.');
             }
 
-            $userId = $users->create($name, $email, $password, 'coordinator', current_user()['id'], 0);
+            $userId = $users->create($firstName, $lastName, $email, $password, 'coordinator', current_user()['id'], 0);
             $stmt = $this->db->prepare('INSERT INTO coordinators (user_id, id_number, department, signature_file) VALUES (?, ?, ?, ?)');
             $stmt->execute([$userId, $idNumber, trim($p['department'] ?? 'OJT Department') ?: 'OJT Department', $signaturePath]);
             $this->db->commit();
 
             (new Email($this->db))->send($email, 'Your AMA Practicum Coordinator Account', 'account_credentials', 'account_credentials', [
-                'name' => $name,
+                'name' => full_name_from_parts($firstName, $lastName),
                 'email' => $email,
                 'password' => $password,
                 'roleLabel' => 'OJT Coordinator',
@@ -392,12 +393,13 @@ class AdminController extends BaseController
             $users->ensureCoordinatorIdNumberSupport();
             $users->ensureCoordinatorSignatureSupport();
 
-            $name = trim($p['name'] ?? '');
-            if ($name === '') {
-                throw new RuntimeException('Full name is required.');
+            $firstName = trim($p['first_name'] ?? '');
+            $lastName = trim($p['last_name'] ?? '');
+            if ($firstName === '' || $lastName === '') {
+                throw new RuntimeException('First name and last name are required.');
             }
-            if (preg_match('/[0-9]/', $name)) {
-                throw new RuntimeException('Full name must contain letters only, no numbers.');
+            if (preg_match('/[0-9]/', $firstName . $lastName)) {
+                throw new RuntimeException('Name must contain letters only, no numbers.');
             }
 
             $email = strtolower(trim($p['email'] ?? ''));
@@ -417,8 +419,8 @@ class AdminController extends BaseController
 
             $this->db->beginTransaction();
 
-            $stmt = $this->db->prepare('UPDATE users SET name = ?, email = ? WHERE id = ? AND role = ?');
-            $stmt->execute([$name, $email, $userId, 'coordinator']);
+            $users->updatePersonName($userId, $firstName, $lastName);
+            $users->updateEmail($userId, $email);
 
             $updates = ['department = ?'];
             $params = [trim($p['department'] ?? 'OJT Department') ?: 'OJT Department'];
@@ -496,7 +498,16 @@ class AdminController extends BaseController
             $moaMouFile = upload_document($_FILES['moa_mou_file'] ?? [], 'company_moa_mou', true);
 
             $this->db->beginTransaction();
-            $userId = (new User($this->db))->create($companyName, $contactEmail, $password, 'partner', current_user()['id'], 0);
+            $partnerNameParts = split_person_name($companyName);
+            $userId = (new User($this->db))->create(
+                $partnerNameParts['first_name'],
+                $partnerNameParts['last_name'],
+                $contactEmail,
+                $password,
+                'partner',
+                current_user()['id'],
+                0
+            );
             $companies->create($userId, $companyName, $address, $contactPerson, $contactEmail, $contactNumber, $programIds, $moaMouFile);
             $this->db->commit();
             (new Email($this->db))->send($contactEmail, 'Your AMA Practicum Industry Partner Account', 'account_credentials', 'account_credentials', [
@@ -740,15 +751,21 @@ class AdminController extends BaseController
                 if ((new User($this->db))->findByEmail($request['email'])) {
                     throw new RuntimeException('This email is already registered.');
                 }
-                $fullName = trim($request['first_name'] . ' ' . $request['last_name']);
                 $userId = (new User($this->db))->createWithPasswordHash(
-                    $fullName,
+                    $request['first_name'],
+                    $request['last_name'],
                     $request['email'],
                     $request['password_hash'],
                     'student',
                     (int)current_user()['id'],
                     1,
                     1
+                );
+            } else {
+                (new User($this->db))->updatePersonName(
+                    $userId,
+                    $request['first_name'],
+                    $request['last_name']
                 );
             }
 

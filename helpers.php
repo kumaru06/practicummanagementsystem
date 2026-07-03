@@ -4,6 +4,50 @@ function e(?string $value): string
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+function full_name_from_parts(string $firstName, string $lastName): string
+{
+    return trim(trim($firstName) . ' ' . trim($lastName));
+}
+
+function split_person_name(string $fullName): array
+{
+    $fullName = trim(preg_replace('/\s+/', ' ', $fullName) ?? '');
+    if ($fullName === '') {
+        return ['first_name' => '', 'last_name' => ''];
+    }
+    $parts = explode(' ', $fullName);
+    if (count($parts) === 1) {
+        return ['first_name' => $parts[0], 'last_name' => $parts[0]];
+    }
+    $lastName = (string) array_pop($parts);
+    return [
+        'first_name' => implode(' ', $parts),
+        'last_name' => $lastName,
+    ];
+}
+
+function full_name(?array $record): string
+{
+    if (!$record) {
+        return '';
+    }
+    $firstName = trim((string)($record['first_name'] ?? ''));
+    $lastName = trim((string)($record['last_name'] ?? ''));
+    if ($firstName !== '' && $lastName !== '') {
+        return full_name_from_parts($firstName, $lastName);
+    }
+    return trim((string)($record['name'] ?? ''));
+}
+
+function hydrate_user_record(?array $record): ?array
+{
+    if (!$record) {
+        return null;
+    }
+    $record['name'] = full_name($record);
+    return $record;
+}
+
 function redirect(string $route): never
 {
     header('Location: ' . $route);

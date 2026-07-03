@@ -26,7 +26,8 @@
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Student</th>
+                        <th>First Name</th>
+                        <th>Last Name</th>
                         <th>USN</th>
                         <th>Email</th>
                         <th>Verified</th>
@@ -41,9 +42,10 @@
                         <td>
                             <div class="user-name-cell">
                                 <span class="table-avatar"><?= e(strtoupper(substr((string)$request['first_name'], 0, 1))) ?></span>
-                                <span><?= e(trim($request['first_name'] . ' ' . $request['last_name'])) ?></span>
+                                <span><?= e($request['first_name']) ?></span>
                             </div>
                         </td>
+                        <td><?= e($request['last_name']) ?></td>
                         <td class="center-cell"><?= e($request['student_no']) ?></td>
                         <td class="muted-cell"><?= e($request['email']) ?></td>
                         <td class="muted-cell">

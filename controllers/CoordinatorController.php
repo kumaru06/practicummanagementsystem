@@ -311,7 +311,7 @@ class CoordinatorController extends BaseController
                 throw new RuntimeException('Student must be at least 20 years old to be eligible for OJT.');
             }
             $this->db->beginTransaction();
-            $userId = (new User($this->db))->create($fullName, $email, $password, 'student', current_user()['id'], 0);
+            $userId = (new User($this->db))->create($firstName, $lastName, $email, $password, 'student', current_user()['id'], 0);
             (new Student($this->db))->create($userId, $studentNo, $program['name'], trim($p['year_level']), $corPath, current_user()['id'], (int)$program['id'], '', $birthdate);
             $this->db->commit();
             $successMessage = 'Student profile created. Login credentials will be emailed when you enroll the student and click Enroll & Send Emails.';
