@@ -23,20 +23,46 @@ class Email
         return file_put_contents($file, $html) !== false ? $file : null;
     }
 
-    private function configureMailer(PHPMailer $mail): void
+    private function mailProfile(?string $profile = null): array
     {
+        if ($profile === 'registration') {
+            return [
+                'host' => SMTP_HOST,
+                'port' => SMTP_PORT,
+                'secure' => SMTP_SECURE,
+                'username' => REGISTRATION_SMTP_USERNAME,
+                'password' => REGISTRATION_SMTP_PASSWORD,
+                'from_email' => REGISTRATION_MAIL_FROM_EMAIL,
+                'from_name' => REGISTRATION_MAIL_FROM_NAME,
+            ];
+        }
+
+        return [
+            'host' => SMTP_HOST,
+            'port' => SMTP_PORT,
+            'secure' => SMTP_SECURE,
+            'username' => SMTP_USERNAME,
+            'password' => SMTP_PASSWORD,
+            'from_email' => MAIL_FROM_EMAIL,
+            'from_name' => MAIL_FROM_NAME,
+        ];
+    }
+
+    private function configureMailer(PHPMailer $mail, ?string $profile = null): void
+    {
+        $settings = $this->mailProfile($profile);
         $mail->isSMTP();
-        $mail->Host = SMTP_HOST;
+        $mail->Host = $settings['host'];
         $mail->SMTPAuth = true;
-        $mail->Username = SMTP_USERNAME;
-        $mail->Password = SMTP_PASSWORD;
-        $mail->SMTPSecure = SMTP_SECURE;
-        $mail->Port = SMTP_PORT;
+        $mail->Username = $settings['username'];
+        $mail->Password = $settings['password'];
+        $mail->SMTPSecure = $settings['secure'];
+        $mail->Port = (int)$settings['port'];
         $mail->CharSet = PHPMailer::CHARSET_UTF8;
         $mail->Timeout = 30;
         $mail->SMTPKeepAlive = false;
-        if (defined('MAIL_FROM_EMAIL') && str_contains(MAIL_FROM_EMAIL, '@')) {
-            $fromDomain = substr(MAIL_FROM_EMAIL, strrpos(MAIL_FROM_EMAIL, '@') + 1);
+        if (str_contains($settings['from_email'], '@')) {
+            $fromDomain = substr($settings['from_email'], strrpos($settings['from_email'], '@') + 1);
             // Local .test hosts otherwise produce Message-IDs like @amaccmanagementsystem.test, which Gmail drops.
             $mail->Hostname = $fromDomain;
             $mail->Helo = $fromDomain;
@@ -51,11 +77,19 @@ class Email
         ];
     }
 
-    public function send(string $recipient, string $subject, string $type, string $template, array $data, array $attachments = []): bool
-    {
+    public function send(
+        string $recipient,
+        string $subject,
+        string $type,
+        string $template,
+        array $data,
+        array $attachments = [],
+        ?string $mailProfile = null
+    ): bool {
         $status = 'failed';
         $error = null;
         $logType = $type;
+        $settings = $this->mailProfile($mailProfile);
 
         try {
             if (!class_exists(PHPMailer::class)) {
@@ -79,9 +113,9 @@ class Email
             }
 
             $mail = new PHPMailer(true);
-            $this->configureMailer($mail);
-            $mail->setFrom(MAIL_FROM_EMAIL, MAIL_FROM_NAME);
-        $mail->addReplyTo(MAIL_FROM_EMAIL, MAIL_FROM_NAME);
+            $this->configureMailer($mail, $mailProfile);
+            $mail->setFrom($settings['from_email'], $settings['from_name']);
+            $mail->addReplyTo($settings['from_email'], $settings['from_name']);
         $mail->XMailer = ' ';
         $mail->Priority = 3;
             $mail->addAddress($recipient);

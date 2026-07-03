@@ -12,6 +12,7 @@ if ($base && str_starts_with($path, $base . '/')) {
 $pathRoutes = [
     'admin' => 'admin',
     'admin/users' => 'admin_users',
+    'admin/registration-requests' => 'admin_registration_requests',
     'admin/coordinators' => 'admin_coordinators',
     'admin/partners' => 'admin_partners',
     'admin/partners/document' => 'admin_partner_document',
@@ -42,6 +43,7 @@ $pathRoutes = [
     'student/settings' => 'student_settings',
     'student/profile' => 'student_profile',
     'student/password' => 'student_password',
+    'student/pending' => 'student_pending',
     'student/chat' => 'chat',
     'chat' => 'chat',
     'partner' => 'partner',
@@ -56,6 +58,12 @@ $route = $_GET['r'] ?? ($pathRoutes[$path] ?? current_user()['role']);
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($route === 'chat_api') {
+    if ((current_user()['role'] ?? '') === 'student' && student_is_pending_approval()) {
+        http_response_code(403);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => false, 'error' => 'Forbidden'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
     require __DIR__ . '/api/async_chat.php';
     exit;
 }
@@ -100,6 +108,21 @@ $_SESSION['user']['password_changed'] = (int)($freshUser['password_changed'] ?? 
 $_SESSION['user_id'] = (int)current_user()['id'];
 $_SESSION['role'] = (string)current_user()['role'];
 
+if ((current_user()['role'] ?? '') === 'student') {
+    $studentRecord = (new Student(db()))->findByUser((int)current_user()['id']);
+    if (!$studentRecord) {
+        if ($method === 'POST') {
+            http_response_code(403);
+            exit('Forbidden');
+        }
+        if ($route !== 'student_pending') {
+            redirect('index.php?r=student_pending');
+        }
+        (new StudentController())->pendingApproval();
+        exit;
+    }
+}
+
 if ((int)current_user()['password_changed'] === 0) {
     if ($method === 'POST') {
         $gateAction = $_POST['action'] ?? '';
@@ -134,6 +157,7 @@ if ($method === 'POST') {
         'admin/partners/resend-credentials' => 'admin_resend_company_credentials',
         'admin/users/reset-credentials' => 'admin_reset_user_credentials',
         'admin/users/toggle' => 'admin_toggle_user',
+        'admin/registration-requests/review' => 'admin_review_registration_request',
         'admin/programs' => 'admin_save_program',
         'admin/programs/terms' => 'admin_save_term',
         'admin/programs/terms/delete' => 'admin_delete_term',
@@ -191,6 +215,7 @@ if ($method === 'POST') {
         'admin_delete_term' => (new AdminController())->deleteTerm(),
         'admin_delete_program' => (new AdminController())->deleteProgram(),
         'admin_toggle_user' => (new AdminController())->toggleUser(),
+        'admin_review_registration_request' => (new AdminController())->reviewRegistrationRequest(),
         'coordinator_create_student' => (new CoordinatorController())->createStudent(),
         'coordinator_enroll_student' => (new CoordinatorController())->enrollStudent(),
         'coordinator_review_requirement' => (new CoordinatorController())->reviewRequirement(),
@@ -231,6 +256,7 @@ if ($method === 'POST') {
 match ($route) {
     'admin' => (new AdminController())->dashboard(),
     'admin_users' => (new AdminController())->manageUsers(),
+    'admin_registration_requests' => (new AdminController())->registrationRequests(),
     'admin_coordinators' => (new AdminController())->manageCoordinators(),
     'admin_check_coordinator_id' => (new AdminController())->checkCoordinatorIdNumber(),
     'admin_check_coordinator_email' => (new AdminController())->checkCoordinatorEmail(),
@@ -266,6 +292,7 @@ match ($route) {
     'student_evaluation' => (new StudentController())->evaluation(),
     'student_profile' => (new StudentController())->profileForm(),
     'student_password' => (new StudentController())->changePasswordForm(),
+    'student_pending' => (new StudentController())->pendingApproval(),
     'chat' => (new ChatPageController())->interface(),
     'partner' => (new PartnerController())->dashboard(),
     'partner_portal' => (new PartnerController())->portal(),

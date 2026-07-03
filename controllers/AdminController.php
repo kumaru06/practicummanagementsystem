@@ -684,4 +684,91 @@ class AdminController extends BaseController
         $back = $p['redirect'] ?? 'admin_users';
         redirect('index.php?r=' . $back);
     }
+
+    public function registrationRequests(): void
+    {
+        require_role('admin');
+        $model = new StudentRegistrationRequest($this->db);
+        $this->render('admin/registration_requests', [
+            'title' => 'Registration Requests',
+            'requests' => $model->allPendingApproval(),
+            'coordinators' => (new User($this->db))->byRole('coordinator'),
+        ]);
+    }
+
+    public function reviewRegistrationRequest(): void
+    {
+        require_role('admin');
+        $p = $this->post();
+        $requestId = (int)($p['request_id'] ?? 0);
+        $decision = trim((string)($p['decision'] ?? ''));
+        $model = new StudentRegistrationRequest($this->db);
+        $request = $model->find($requestId);
+
+        try {
+            if (!$request || !in_array($request['status'] ?? '', ['pending_approval', 'pending'], true)) {
+                throw new RuntimeException('Registration request not found or already processed.');
+            }
+
+            if ($decision === 'decline') {
+                $model->deleteRequest($requestId);
+                flash('success', 'Registration request declined and removed.');
+                redirect('index.php?r=admin_registration_requests');
+            }
+
+            if ($decision !== 'approve') {
+                throw new RuntimeException('Invalid action.');
+            }
+
+            $coordinatorId = (int)($p['coordinator_id'] ?? 0);
+            if ($coordinatorId <= 0) {
+                throw new RuntimeException('Select a coordinator for this student.');
+            }
+            $coordinator = (new User($this->db))->find($coordinatorId);
+            if (!$coordinator || ($coordinator['role'] ?? '') !== 'coordinator' || (int)($coordinator['is_active'] ?? 0) !== 1) {
+                throw new RuntimeException('Select a valid active coordinator.');
+            }
+
+            if ((new Student($this->db))->existsByStudentNo($request['student_no'])) {
+                throw new RuntimeException('This Student ID/USN is already registered.');
+            }
+
+            $userId = (int)($request['user_id'] ?? 0);
+            $this->db->beginTransaction();
+
+            if ($userId <= 0) {
+                if ((new User($this->db))->findByEmail($request['email'])) {
+                    throw new RuntimeException('This email is already registered.');
+                }
+                $fullName = trim($request['first_name'] . ' ' . $request['last_name']);
+                $userId = (new User($this->db))->createWithPasswordHash(
+                    $fullName,
+                    $request['email'],
+                    $request['password_hash'],
+                    'student',
+                    (int)current_user()['id'],
+                    1,
+                    1
+                );
+            }
+
+            (new Student($this->db))->create(
+                $userId,
+                $request['student_no'],
+                'Unassigned',
+                'TBD',
+                $request['cor_file'],
+                $coordinatorId
+            );
+            $model->markApproved($requestId, $coordinatorId, (int)current_user()['id']);
+            $this->db->commit();
+            flash('success', 'Registration approved. The student now has full dashboard access.');
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            flash('error', $e->getMessage());
+        }
+        redirect('index.php?r=admin_registration_requests');
+    }
 }

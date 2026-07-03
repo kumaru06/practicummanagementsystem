@@ -7,8 +7,8 @@
     <link rel="icon" type="image/jpeg" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">
     <link rel="apple-touch-icon" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600;1,700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260611-portal-spa">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/login.css')) ?>?v=20260630-slide-center">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260703-portal">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/login.css')) ?>?v=20260703-register-link">
 </head>
 <body class="login-page">
     <?php

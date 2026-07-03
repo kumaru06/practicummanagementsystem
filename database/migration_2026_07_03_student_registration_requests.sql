@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS student_registration_requests (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  email VARCHAR(190) NOT NULL,
+  student_no VARCHAR(60) NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  cor_file VARCHAR(255) NOT NULL,
+  status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+  coordinator_id INT NULL,
+  reviewed_by INT NULL,
+  decline_reason TEXT NULL,
+  reviewed_at DATETIME NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_reg_status (status),
+  INDEX idx_reg_email (email),
+  INDEX idx_reg_student_no (student_no),
+  CONSTRAINT fk_reg_coordinator FOREIGN KEY (coordinator_id) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT fk_reg_reviewer FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;

@@ -33,6 +33,10 @@ function route_url(string $route, array $params = []): string
         'partner.login.post' => 'auth.php?portal=partner',
         'admin.dashboard' => 'index.php?r=admin',
         'admin.users' => 'index.php?r=admin_users',
+        'admin.registration_requests' => 'index.php?r=admin_registration_requests',
+        'student.register' => 'register.php',
+        'student.register.verify' => 'register.php',
+        'student.pending' => 'index.php?r=student_pending',
         'admin.coordinators' => 'index.php?r=admin_coordinators',
         'admin.partners' => 'index.php?r=admin_partners',
         'admin.programs' => 'index.php?r=admin_programs',
@@ -95,12 +99,21 @@ function absolute_route_url(string $route, array $params = []): string
     return $base . '/' . ltrim($relativeUrl, '/');
 }
 
+function student_is_pending_approval(?int $userId = null): bool
+{
+    $userId = $userId ?? (int)(current_user()['id'] ?? 0);
+    if ($userId <= 0 || (current_user()['role'] ?? '') !== 'student') {
+        return false;
+    }
+    return !(new Student(db()))->findByUser($userId);
+}
+
 function route_for_role(?string $role = null): string
 {
     return match ($role ?? (current_user()['role'] ?? '')) {
         'admin' => 'index.php?r=admin',
         'coordinator' => 'index.php?r=coordinator',
-        'student' => 'index.php?r=student',
+        'student' => student_is_pending_approval() ? 'index.php?r=student_pending' : 'index.php?r=student',
         'partner' => 'index.php?r=partner',
         default => 'auth.php',
     };

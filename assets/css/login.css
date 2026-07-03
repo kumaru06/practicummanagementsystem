@@ -1369,6 +1369,210 @@
     }
 }
 
+/* ── Student registration ── */
+.login-page.register-page .register-card {
+    max-width: 480px;
+}
+
+.login-page .register-form {
+    display: grid;
+    gap: 14px;
+}
+
+.login-page .register-name-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.login-page .portal-field > input:not([type="file"]) {
+    width: 100%;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 5px;
+    background: #fafbfc;
+    color: var(--login-text);
+    padding: 13px 14px;
+    min-height: 48px;
+    font: inherit;
+    font-size: 0.94rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.login-page .portal-field > input:not([type="file"])::placeholder {
+    color: #cbd5e1;
+}
+
+.login-page .portal-field > input:not([type="file"]):focus {
+    border-color: rgba(10, 61, 143, 0.5);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(10, 61, 143, 0.08);
+}
+
+.login-page .portal-field > input[type="file"] {
+    width: 100%;
+    border: 1.5px dashed #cbd5e1;
+    border-radius: 5px;
+    background: #fafbfc;
+    padding: 12px 14px;
+    font: inherit;
+    font-size: 0.86rem;
+    color: #475569;
+    cursor: pointer;
+}
+
+.login-page .register-cor-hint {
+    color: #64748b;
+    font-weight: 600;
+}
+
+.login-page .register-form .btn-primary {
+    width: 100%;
+    min-height: 50px;
+    margin: 4px 0 0;
+    border: none;
+    border-radius: 5px;
+    background: linear-gradient(135deg, var(--login-blue-dark) 0%, var(--login-blue) 50%, var(--login-blue-light) 100%);
+    color: #fff;
+    font-size: 0.96rem;
+    font-weight: 800;
+    box-shadow: 0 8px 20px rgba(10, 61, 143, 0.3);
+    cursor: pointer;
+    transition: transform 0.25s, box-shadow 0.25s;
+}
+
+.login-page .register-form .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px rgba(10, 61, 143, 0.38);
+}
+
+.login-page .portal-register-link {
+    margin: 14px 0 0;
+    text-align: center;
+    font-size: 0.86rem;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.login-page .portal-register-link a {
+    color: var(--login-blue);
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.login-page .portal-register-link a:hover {
+    text-decoration: underline;
+}
+
+.login-page .register-success-panel {
+    display: grid;
+    gap: 12px;
+    text-align: center;
+    padding: 8px 0 4px;
+}
+
+.login-page .register-success-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: rgba(22, 163, 74, 0.12);
+    color: #16a34a;
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+.login-page .register-success-panel h1 {
+    margin: 0;
+    font-size: 1.35rem;
+    color: var(--login-text);
+}
+
+.login-page .register-success-panel p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+
+.login-page .register-success-panel .btn-primary {
+    width: 100%;
+    min-height: 50px;
+    margin-top: 4px;
+    border-radius: 5px;
+}
+
+.student-pending-page {
+    margin: 0;
+    min-height: 100vh;
+    background: #ffffff;
+    font-family: 'Plus Jakarta Sans', Arial, sans-serif;
+    color: #1f2937;
+}
+
+.student-pending-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.student-pending-card {
+    width: min(100%, 520px);
+    text-align: center;
+    padding: 40px 28px;
+}
+
+.student-pending-logo {
+    width: 72px;
+    height: auto;
+    margin: 0 auto 20px;
+    display: block;
+}
+
+.student-pending-card h1 {
+    margin: 0 0 12px;
+    font-size: 1.75rem;
+    color: #111827;
+}
+
+.student-pending-lead {
+    margin: 0 0 12px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.student-pending-card p {
+    margin: 0 0 12px;
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+.student-pending-note {
+    margin-top: 18px !important;
+    font-size: 0.92rem;
+}
+
+.student-pending-alert {
+    margin: 18px 0 0;
+    text-align: left;
+}
+
+.student-pending-logout {
+    margin-top: 24px;
+    min-width: 160px;
+}
+
+@media (max-width: 520px) {
+    .login-page .register-name-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
     .login-page .portal-login-card,

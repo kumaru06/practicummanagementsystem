@@ -13,6 +13,7 @@
     initForms();
     initStudentNoAvailability();
     initEmailAvailability();
+    initStudentRegistrationAvailability();
     initCoordinatorAvailability();
     initPartnerAvailability();
     initCounters();
@@ -2959,6 +2960,15 @@ function buildAppRouteUrl(route, params = {}) {
     return url;
 }
 
+function buildRegisterCheckUrl(action, paramName, value) {
+    const base = (document.body?.dataset?.appBase || '').replace(/\/$/, '');
+    const pathname = `${base}/register.php`.replace(/\/{2,}/g, '/');
+    const url = new URL(pathname, window.location.origin);
+    url.searchParams.set('action', action);
+    url.searchParams.set(paramName, value);
+    return url;
+}
+
 function initLiveFieldAvailability({
     input,
     route,
@@ -2968,6 +2978,7 @@ function initLiveFieldAvailability({
     canCheck = () => true,
     takenMessage,
     availableMessage,
+    endpointBuilder = null,
 }) {
     if (!input) return;
 
@@ -2995,7 +3006,9 @@ function initLiveFieldAvailability({
         setMessage('Checking availability...', 'checking');
 
         try {
-            const url = buildAppRouteUrl(route, { [paramName]: value });
+            const url = endpointBuilder
+                ? endpointBuilder(paramName, value)
+                : buildAppRouteUrl(route, { [paramName]: value });
 
             const response = await fetch(url.toString(), {
                 credentials: 'same-origin',
@@ -3061,7 +3074,7 @@ function initLiveFieldAvailability({
 
 function initStudentNoAvailability() {
     initLiveFieldAvailability({
-        input: document.querySelector('form input[name="student_no"][data-student-no-check]'),
+        input: document.querySelector('form:not(#studentRegisterForm) input[name="student_no"][data-student-no-check]'),
         route: 'coordinator_check_student_no',
         paramName: 'student_no',
         messageSelector: '[data-student-no-message]',
@@ -3074,7 +3087,7 @@ function initStudentNoAvailability() {
 
 function initEmailAvailability() {
     initLiveFieldAvailability({
-        input: document.querySelector('form input[name="email"][data-email-check]'),
+        input: document.querySelector('form:not(#studentRegisterForm) input[name="email"][data-email-check]'),
         route: 'coordinator_check_email',
         paramName: 'email',
         messageSelector: '[data-email-message]',
@@ -3082,6 +3095,33 @@ function initEmailAvailability() {
         canCheck: value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
         takenMessage: 'This email address is already registered.',
         availableMessage: 'Email address is available.',
+    });
+}
+
+function initStudentRegistrationAvailability() {
+    const form = document.getElementById('studentRegisterForm');
+    if (!form) return;
+
+    initLiveFieldAvailability({
+        input: form.querySelector('input[name="student_no"][data-student-no-check]'),
+        paramName: 'student_no',
+        messageSelector: '[data-student-no-message]',
+        sanitize: value => value.replace(/\D/g, ''),
+        canCheck: value => /^\d+$/.test(value),
+        takenMessage: 'This Student ID/USN is already registered.',
+        availableMessage: 'Student ID/USN is available.',
+        endpointBuilder: (_paramName, value) => buildRegisterCheckUrl('check_student_no', 'student_no', value),
+    });
+
+    initLiveFieldAvailability({
+        input: form.querySelector('input[name="email"][data-email-check]'),
+        paramName: 'email',
+        messageSelector: '[data-email-message]',
+        sanitize: value => value.trim().toLowerCase(),
+        canCheck: value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
+        takenMessage: 'This email address is already registered.',
+        availableMessage: 'Email address is available.',
+        endpointBuilder: (_paramName, value) => buildRegisterCheckUrl('check_email', 'email', value),
     });
 }
 

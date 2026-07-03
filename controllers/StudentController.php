@@ -1,6 +1,15 @@
 <?php
 class StudentController extends BaseController
 {
+    public function pendingApproval(): void
+    {
+        require_role('student');
+        if (!student_is_pending_approval()) {
+            redirect(route_url('student.dashboard'));
+        }
+        require __DIR__ . '/../views/student/pending.php';
+    }
+
     public function changePasswordForm(): void
     {
         require_role(['student', 'coordinator', 'partner']);

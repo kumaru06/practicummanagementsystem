@@ -113,6 +113,39 @@ class User
         return (int)$this->db->lastInsertId();
     }
 
+    public function createWithPasswordHash(
+        string $name,
+        string $email,
+        string $passwordHash,
+        string $role,
+        ?int $createdBy = null,
+        int $passwordChanged = 1,
+        int $isActive = 1
+    ): int {
+        if (!trim($name)) {
+            throw new RuntimeException('Name is required.');
+        }
+        if (!filter_var(strtolower(trim($email)), FILTER_VALIDATE_EMAIL)) {
+            throw new RuntimeException('A valid email address is required.');
+        }
+        if (!in_array($role, ['admin', 'coordinator', 'student', 'partner'], true)) {
+            throw new RuntimeException('Invalid user role.');
+        }
+        $stmt = $this->db->prepare(
+            'INSERT INTO users (name, email, password_hash, role, created_by, is_active, password_changed) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        );
+        $stmt->execute([
+            trim($name),
+            strtolower(trim($email)),
+            $passwordHash,
+            $role,
+            $createdBy,
+            $isActive,
+            $passwordChanged,
+        ]);
+        return (int)$this->db->lastInsertId();
+    }
+
     public function all(): array
     {
         return $this->db->query(

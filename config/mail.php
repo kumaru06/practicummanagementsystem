@@ -32,6 +32,19 @@ if (!defined('MAIL_FROM_NAME')) {
     define('MAIL_FROM_NAME', env('MAIL_FROM_NAME', 'AMA Computer College OJT Department') ?? 'AMA Computer College OJT Department');
 }
 
+if (!defined('REGISTRATION_SMTP_USERNAME')) {
+    define('REGISTRATION_SMTP_USERNAME', env('REGISTRATION_SMTP_USERNAME', MAIL_FROM_EMAIL) ?? MAIL_FROM_EMAIL);
+}
+if (!defined('REGISTRATION_SMTP_PASSWORD')) {
+    define('REGISTRATION_SMTP_PASSWORD', env('REGISTRATION_SMTP_PASSWORD', SMTP_PASSWORD) ?? SMTP_PASSWORD);
+}
+if (!defined('REGISTRATION_MAIL_FROM_EMAIL')) {
+    define('REGISTRATION_MAIL_FROM_EMAIL', env('REGISTRATION_MAIL_FROM_EMAIL', REGISTRATION_SMTP_USERNAME) ?? REGISTRATION_SMTP_USERNAME);
+}
+if (!defined('REGISTRATION_MAIL_FROM_NAME')) {
+    define('REGISTRATION_MAIL_FROM_NAME', env('REGISTRATION_MAIL_FROM_NAME', 'AMA OJT Student Registration') ?? 'AMA OJT Student Registration');
+}
+
 if ($isLocal) {
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $port = (int)($_SERVER['SERVER_PORT'] ?? 80);
