@@ -23,6 +23,7 @@ CREATE TABLE users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(150) NOT NULL,
   first_name VARCHAR(100) NULL,
+  middle_name VARCHAR(100) NULL,
   last_name VARCHAR(100) NULL,
   email VARCHAR(190) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,

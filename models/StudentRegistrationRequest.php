@@ -15,6 +15,7 @@ class StudentRegistrationRequest
             "CREATE TABLE IF NOT EXISTS student_registration_requests (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 first_name VARCHAR(100) NOT NULL,
+                middle_name VARCHAR(100) NULL,
                 last_name VARCHAR(100) NOT NULL,
                 email VARCHAR(190) NOT NULL,
                 student_no VARCHAR(60) NOT NULL,
@@ -63,6 +64,7 @@ class StudentRegistrationRequest
     private function ensureColumns(): void
     {
         $columns = [
+            'middle_name' => 'VARCHAR(100) NULL AFTER first_name',
             'verification_token' => 'VARCHAR(64) NULL AFTER cor_file',
             'verification_expires_at' => 'DATETIME NULL AFTER verification_token',
             'email_verified_at' => 'DATETIME NULL AFTER verification_expires_at',
@@ -144,18 +146,21 @@ class StudentRegistrationRequest
         string $email,
         string $studentNo,
         string $passwordHash,
-        string $corFile
+        string $corFile,
+        ?string $middleName = null
     ): int {
         $this->ensureTable();
         $token = bin2hex(random_bytes(32));
         $expiresAt = date('Y-m-d H:i:s', time() + (self::VERIFICATION_HOURS * 3600));
+        $middleName = trim((string)$middleName);
         $stmt = $this->db->prepare(
             'INSERT INTO student_registration_requests
-                (first_name, last_name, email, student_no, password_hash, cor_file, verification_token, verification_expires_at, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                (first_name, middle_name, last_name, email, student_no, password_hash, cor_file, verification_token, verification_expires_at, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             trim($firstName),
+            $middleName !== '' ? $middleName : null,
             trim($lastName),
             strtolower(trim($email)),
             trim($studentNo),
@@ -224,7 +229,8 @@ class StudentRegistrationRequest
                 'student',
                 null,
                 1,
-                1
+                1,
+                $request['middle_name'] ?? null
             );
             $stmt = $this->db->prepare(
                 "UPDATE student_registration_requests

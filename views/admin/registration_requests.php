@@ -28,6 +28,7 @@
                     <tr>
                         <th>Last Name</th>
                         <th>First Name</th>
+                        <th>Middle Name</th>
                         <th>USN</th>
                         <th>Email</th>
                         <th>Verified</th>
@@ -46,6 +47,7 @@
                             </div>
                         </td>
                         <td><?= e($request['first_name']) ?></td>
+                        <td><?= e($request['middle_name'] ?? '—') ?></td>
                         <td class="center-cell"><?= e($request['student_no']) ?></td>
                         <td class="muted-cell"><?= e($request['email']) ?></td>
                         <td class="muted-cell">

@@ -759,13 +759,15 @@ class AdminController extends BaseController
                     'student',
                     (int)current_user()['id'],
                     1,
-                    1
+                    1,
+                    $request['middle_name'] ?? null
                 );
             } else {
                 (new User($this->db))->updatePersonName(
                     $userId,
                     $request['first_name'],
-                    $request['last_name']
+                    $request['last_name'],
+                    $request['middle_name'] ?? null
                 );
             }
 

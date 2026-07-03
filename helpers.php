@@ -4,24 +4,33 @@ function e(?string $value): string
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
-function full_name_from_parts(string $firstName, string $lastName): string
+function full_name_from_parts(string $firstName, string $lastName, ?string $middleName = null): string
 {
-    return trim(trim($firstName) . ' ' . trim($lastName));
+    $parts = array_filter(
+        [trim($firstName), trim((string)$middleName), trim($lastName)],
+        static fn (string $part): bool => $part !== ''
+    );
+    return implode(' ', $parts);
 }
 
 function split_person_name(string $fullName): array
 {
     $fullName = trim(preg_replace('/\s+/', ' ', $fullName) ?? '');
     if ($fullName === '') {
-        return ['first_name' => '', 'last_name' => ''];
+        return ['first_name' => '', 'middle_name' => '', 'last_name' => ''];
     }
     $parts = explode(' ', $fullName);
     if (count($parts) === 1) {
-        return ['first_name' => $parts[0], 'last_name' => $parts[0]];
+        return ['first_name' => $parts[0], 'middle_name' => '', 'last_name' => $parts[0]];
+    }
+    if (count($parts) === 2) {
+        return ['first_name' => $parts[0], 'middle_name' => '', 'last_name' => $parts[1]];
     }
     $lastName = (string) array_pop($parts);
+    $firstName = (string) array_shift($parts);
     return [
-        'first_name' => implode(' ', $parts),
+        'first_name' => $firstName,
+        'middle_name' => implode(' ', $parts),
         'last_name' => $lastName,
     ];
 }
@@ -32,9 +41,10 @@ function full_name(?array $record): string
         return '';
     }
     $firstName = trim((string)($record['first_name'] ?? ''));
+    $middleName = trim((string)($record['middle_name'] ?? ''));
     $lastName = trim((string)($record['last_name'] ?? ''));
     if ($firstName !== '' && $lastName !== '') {
-        return full_name_from_parts($firstName, $lastName);
+        return full_name_from_parts($firstName, $lastName, $middleName !== '' ? $middleName : null);
     }
     return trim((string)($record['name'] ?? ''));
 }

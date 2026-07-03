@@ -1381,8 +1381,14 @@
 
 .login-page .register-name-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 12px;
+}
+
+.login-page .field-optional {
+    font-weight: 500;
+    color: #94a3b8;
+    font-size: 0.82em;
 }
 
 .login-page .portal-field > input:not([type="file"]) {

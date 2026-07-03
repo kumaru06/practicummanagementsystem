@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS student_registration_requests (
   id INT AUTO_INCREMENT PRIMARY KEY,
   first_name VARCHAR(100) NOT NULL,
+  middle_name VARCHAR(100) NULL,
   last_name VARCHAR(100) NOT NULL,
   email VARCHAR(190) NOT NULL,
   student_no VARCHAR(60) NOT NULL,

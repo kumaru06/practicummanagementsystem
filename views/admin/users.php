@@ -2,7 +2,7 @@
     <div class="section-head section-head-split">
         <input class="table-search table-search-wide" placeholder="Search users...">
     </div>
-    <div class="table-wrap"><table class="data-table"><thead><tr><th data-sort>Last Name</th><th data-sort>First Name</th><th data-sort>Email</th><th data-sort>Role</th><th data-sort>Student ID</th><th data-sort>Course</th><th>Status</th><th>Action</th></tr></thead><tbody>
+    <div class="table-wrap"><table class="data-table"><thead><tr><th data-sort>Last Name</th><th data-sort>First Name</th><th data-sort>Middle Name</th><th data-sort>Email</th><th data-sort>Role</th><th data-sort>Student ID</th><th data-sort>Course</th><th>Status</th><th>Action</th></tr></thead><tbody>
         <?php foreach ($allUsers as $u): ?>
         <tr>
             <td>
@@ -12,6 +12,7 @@
                 </div>
             </td>
             <td><?= e($u['first_name'] ?? '—') ?></td>
+            <td><?= e($u['middle_name'] ?? '—') ?></td>
             <td class="muted-cell"><?= e($u['email']) ?></td>
             <td><span class="badge role-badge role-<?= e($u['role']) ?>"><?= e($u['role']) ?></span></td>
             <td class="center-cell"><?= $u['student_no'] ? e($u['student_no']) : '<span class="muted">—</span>' ?></td>

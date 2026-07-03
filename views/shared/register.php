@@ -7,7 +7,7 @@
     <link rel="icon" type="image/jpeg" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600;1,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260703-register">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/login.css')) ?>?v=20260703-register">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/login.css')) ?>?v=20260703-middle-name">
 </head>
 <body class="login-page register-page" data-app-base="<?= e(app_base_path()) ?>">
     <div class="login-split register-split">
@@ -60,6 +60,10 @@
                                     <label class="portal-field">
                                         <span class="portal-field-label">First Name</span>
                                         <input required type="text" name="first_name" autocomplete="given-name" placeholder="First name" value="<?= e($_POST['first_name'] ?? '') ?>">
+                                    </label>
+                                    <label class="portal-field">
+                                        <span class="portal-field-label">Middle Name <span class="field-optional">(optional)</span></span>
+                                        <input type="text" name="middle_name" autocomplete="additional-name" placeholder="Middle name" value="<?= e($_POST['middle_name'] ?? '') ?>">
                                     </label>
                                     <label class="portal-field">
                                         <span class="portal-field-label">Last Name</span>

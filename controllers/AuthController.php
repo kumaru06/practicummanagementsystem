@@ -218,6 +218,8 @@ class AuthController extends BaseController
 
                 $firstName = trim((string)($_POST['first_name'] ?? ''));
 
+                $middleName = trim((string)($_POST['middle_name'] ?? ''));
+
                 $lastName = trim((string)($_POST['last_name'] ?? ''));
 
                 $studentNo = trim((string)($_POST['student_no'] ?? ''));
@@ -294,7 +296,9 @@ class AuthController extends BaseController
 
                     password_hash($password, PASSWORD_DEFAULT),
 
-                    $corPath
+                    $corPath,
+
+                    $middleName !== '' ? $middleName : null
 
                 );
 

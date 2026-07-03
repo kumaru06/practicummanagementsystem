@@ -15,7 +15,8 @@ class User
 
         foreach ([
             'first_name' => 'VARCHAR(100) NULL AFTER name',
-            'last_name' => 'VARCHAR(100) NULL AFTER first_name',
+            'middle_name' => 'VARCHAR(100) NULL AFTER first_name',
+            'last_name' => 'VARCHAR(100) NULL AFTER middle_name',
         ] as $column => $definition) {
             $stmt = $this->db->query("SHOW COLUMNS FROM users LIKE '{$column}'");
             if (!$stmt->fetch()) {
@@ -23,9 +24,9 @@ class User
             }
         }
 
-        $rows = $this->db->query('SELECT id, name, first_name, last_name FROM users')->fetchAll();
+        $rows = $this->db->query('SELECT id, name, first_name, middle_name, last_name FROM users')->fetchAll();
         $update = $this->db->prepare(
-            'UPDATE users SET first_name = ?, last_name = ?, name = ? WHERE id = ?'
+            'UPDATE users SET first_name = ?, middle_name = ?, last_name = ?, name = ? WHERE id = ?'
         );
         foreach ($rows as $row) {
             $firstName = trim((string)($row['first_name'] ?? ''));
@@ -36,8 +37,9 @@ class User
             $parts = split_person_name((string)($row['name'] ?? ''));
             $update->execute([
                 $parts['first_name'],
+                $parts['middle_name'] !== '' ? $parts['middle_name'] : null,
                 $parts['last_name'],
-                full_name_from_parts($parts['first_name'], $parts['last_name']),
+                full_name_from_parts($parts['first_name'], $parts['last_name'], $parts['middle_name'] ?: null),
                 (int)$row['id'],
             ]);
         }
@@ -147,10 +149,11 @@ class User
         string $password,
         string $role,
         ?int $createdBy = null,
-        int $passwordChanged = 1
+        int $passwordChanged = 1,
+        ?string $middleName = null
     ): int {
         $this->ensureNamePartsSupport();
-        [$firstName, $lastName, $fullName] = $this->normalizeNameParts($firstName, $lastName);
+        [$firstName, $middleName, $lastName, $fullName] = $this->normalizeNameParts($firstName, $lastName, $middleName);
         if (!filter_var(strtolower(trim($email)), FILTER_VALIDATE_EMAIL)) {
             throw new RuntimeException('A valid email address is required.');
         }
@@ -158,11 +161,12 @@ class User
             throw new RuntimeException('Invalid user role.');
         }
         $stmt = $this->db->prepare(
-            'INSERT INTO users (first_name, last_name, name, email, password_hash, role, created_by, is_active, password_changed)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)'
+            'INSERT INTO users (first_name, middle_name, last_name, name, email, password_hash, role, created_by, is_active, password_changed)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)'
         );
         $stmt->execute([
             $firstName,
+            $middleName,
             $lastName,
             $fullName,
             strtolower(trim($email)),
@@ -182,10 +186,11 @@ class User
         string $role,
         ?int $createdBy = null,
         int $passwordChanged = 1,
-        int $isActive = 1
+        int $isActive = 1,
+        ?string $middleName = null
     ): int {
         $this->ensureNamePartsSupport();
-        [$firstName, $lastName, $fullName] = $this->normalizeNameParts($firstName, $lastName);
+        [$firstName, $middleName, $lastName, $fullName] = $this->normalizeNameParts($firstName, $lastName, $middleName);
         if (!filter_var(strtolower(trim($email)), FILTER_VALIDATE_EMAIL)) {
             throw new RuntimeException('A valid email address is required.');
         }
@@ -193,11 +198,12 @@ class User
             throw new RuntimeException('Invalid user role.');
         }
         $stmt = $this->db->prepare(
-            'INSERT INTO users (first_name, last_name, name, email, password_hash, role, created_by, is_active, password_changed)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO users (first_name, middle_name, last_name, name, email, password_hash, role, created_by, is_active, password_changed)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $firstName,
+            $middleName,
             $lastName,
             $fullName,
             strtolower(trim($email)),
@@ -280,20 +286,25 @@ class User
         return password_verify($password, (string)$user['password_hash']);
     }
 
-    public function updatePersonName(int $id, string $firstName, string $lastName): void
+    public function updatePersonName(int $id, string $firstName, string $lastName, ?string $middleName = null): void
     {
         $this->ensureNamePartsSupport();
-        [$firstName, $lastName, $fullName] = $this->normalizeNameParts($firstName, $lastName);
+        [$firstName, $middleName, $lastName, $fullName] = $this->normalizeNameParts($firstName, $lastName, $middleName);
         $stmt = $this->db->prepare(
-            'UPDATE users SET first_name = ?, last_name = ?, name = ? WHERE id = ?'
+            'UPDATE users SET first_name = ?, middle_name = ?, last_name = ?, name = ? WHERE id = ?'
         );
-        $stmt->execute([$firstName, $lastName, $fullName, $id]);
+        $stmt->execute([$firstName, $middleName, $lastName, $fullName, $id]);
     }
 
     public function updateName(int $id, string $name): void
     {
         $parts = split_person_name($name);
-        $this->updatePersonName($id, $parts['first_name'], $parts['last_name']);
+        $this->updatePersonName(
+            $id,
+            $parts['first_name'],
+            $parts['last_name'],
+            $parts['middle_name'] !== '' ? $parts['middle_name'] : null
+        );
     }
 
     public function updateEmail(int $id, string $email): void
@@ -318,13 +329,15 @@ class User
         return (int)$stmt->fetchColumn();
     }
 
-    private function normalizeNameParts(string $firstName, string $lastName): array
+    private function normalizeNameParts(string $firstName, string $lastName, ?string $middleName = null): array
     {
         $firstName = trim($firstName);
         $lastName = trim($lastName);
+        $middleName = trim((string)$middleName);
         if ($firstName === '' || $lastName === '') {
             throw new RuntimeException('First name and last name are required.');
         }
-        return [$firstName, $lastName, full_name_from_parts($firstName, $lastName)];
+        $storedMiddle = $middleName !== '' ? $middleName : null;
+        return [$firstName, $storedMiddle, $lastName, full_name_from_parts($firstName, $lastName, $storedMiddle)];
     }
 }
