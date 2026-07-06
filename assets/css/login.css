@@ -1511,66 +1511,266 @@
 }
 
 .student-pending-page {
+    --pending-blue: #0a3d8f;
+    --pending-blue-dark: #072d6b;
+    --pending-text: #0f172a;
+    --pending-muted: #64748b;
+    --pending-border: #e8edf4;
+    --pending-green: #16a34a;
+    --pending-amber: #d97706;
     margin: 0;
     min-height: 100vh;
-    background: #ffffff;
-    font-family: 'Plus Jakarta Sans', Arial, sans-serif;
-    color: #1f2937;
+    min-height: 100dvh;
+    background: var(--pending-blue-dark);
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    color: var(--pending-text);
+    overflow-x: hidden;
+}
+
+.student-pending-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.student-pending-bg-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transform: scale(1.04);
+}
+
+.student-pending-bg-overlay {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(135deg, rgba(7, 45, 107, 0.92) 0%, rgba(10, 61, 143, 0.8) 50%, rgba(7, 45, 107, 0.9) 100%),
+        radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.07), transparent 36%);
 }
 
 .student-pending-shell {
+    position: relative;
+    z-index: 1;
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 24px;
+    padding: 24px 16px;
 }
 
 .student-pending-card {
-    width: min(100%, 520px);
+    width: min(100%, 460px);
+    padding: 32px 28px 28px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    background: #fff;
+    box-shadow: 0 24px 64px rgba(7, 45, 107, 0.28);
     text-align: center;
-    padding: 40px 28px;
 }
 
 .student-pending-logo {
-    width: 72px;
+    width: 64px;
     height: auto;
-    margin: 0 auto 20px;
+    margin: 0 auto 16px;
     display: block;
 }
 
+.student-pending-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 12px;
+    margin-bottom: 14px;
+    border-radius: 999px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: var(--pending-amber);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
 .student-pending-card h1 {
-    margin: 0 0 12px;
-    font-size: 1.75rem;
-    color: #111827;
+    margin: 0 0 8px;
+    font-size: clamp(1.35rem, 3vw, 1.55rem);
+    font-weight: 800;
+    color: var(--pending-text);
+    letter-spacing: -0.03em;
+    line-height: 1.2;
 }
 
 .student-pending-lead {
-    margin: 0 0 12px;
-    font-size: 1.05rem;
+    margin: 0 0 22px;
+    font-size: 0.95rem;
     font-weight: 600;
-    color: #374151;
+    color: #334155;
+    line-height: 1.5;
 }
 
-.student-pending-card p {
-    margin: 0 0 12px;
-    color: #6b7280;
-    line-height: 1.6;
+.student-pending-steps {
+    list-style: none;
+    margin: 0 0 20px;
+    padding: 0;
+    display: grid;
+    gap: 0;
+    text-align: left;
+    border: 1px solid var(--pending-border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fafbfc;
 }
 
-.student-pending-note {
-    margin-top: 18px !important;
-    font-size: 0.92rem;
+.student-pending-step {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    padding: 14px 16px;
+    background: #fff;
+}
+
+.student-pending-step + .student-pending-step {
+    border-top: 1px solid var(--pending-border);
+}
+
+.student-pending-step-icon {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: #f1f5f9;
+    color: #94a3b8;
+}
+
+.student-pending-step-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.student-pending-step-copy {
+    display: grid;
+    gap: 2px;
+    padding-top: 2px;
+}
+
+.student-pending-step-copy strong {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #334155;
+    line-height: 1.3;
+}
+
+.student-pending-step-copy span {
+    font-size: 0.8rem;
+    color: var(--pending-muted);
+    line-height: 1.4;
+}
+
+.student-pending-step.is-done .student-pending-step-icon {
+    background: #ecfdf5;
+    color: var(--pending-green);
+}
+
+.student-pending-step.is-done .student-pending-step-copy strong {
+    color: #166534;
+}
+
+.student-pending-step.is-current {
+    background: #fffbeb;
+}
+
+.student-pending-step.is-current .student-pending-step-icon {
+    background: #fef3c7;
+    color: var(--pending-amber);
+}
+
+.student-pending-step.is-current .student-pending-step-copy strong {
+    color: #92400e;
 }
 
 .student-pending-alert {
-    margin: 18px 0 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 0 0 16px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid #bbf7d0;
+    background: #f0fdf4;
     text-align: left;
 }
 
+.student-pending-alert-icon {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    color: var(--pending-green);
+}
+
+.student-pending-alert-icon svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.student-pending-alert p {
+    margin: 0;
+    color: #166534;
+    font-size: 0.86rem;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.student-pending-note {
+    margin: 0 0 20px;
+    color: var(--pending-muted);
+    font-size: 0.84rem;
+    line-height: 1.55;
+}
+
 .student-pending-logout {
-    margin-top: 24px;
-    min-width: 160px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 46px;
+    padding: 0 20px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    color: #475569;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.student-pending-logout:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #1e293b;
+}
+
+@media (max-width: 420px) {
+    .student-pending-card {
+        padding: 26px 20px 22px;
+    }
+
+    .student-pending-step {
+        padding: 12px 14px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .student-pending-logout {
+        transition: none;
+    }
 }
 
 @media (max-width: 520px) {

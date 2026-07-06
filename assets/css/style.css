@@ -24139,32 +24139,90 @@ button.ms-predeploy-badge--completed:hover {
 
 .reg-req-v2 .reg-req-table thead th {
     padding: 12px 16px;
-    background: #f8fafc;
-    color: #64748b;
-    font-size: 0.74rem;
+    background: #f8fafc !important;
+    color: #64748b !important;
+    font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0.05em;
-    border-bottom: 1px solid #e8edf4;
+    text-transform: uppercase;
+    border-bottom: 1px solid #e8edf4 !important;
+    border-left: none !important;
+    border-right: none !important;
+    white-space: nowrap;
 }
 
 .reg-req-v2 .reg-req-table td {
     padding: 14px 16px;
-    border-bottom: 1px solid #f1f5f9;
-    background: #fff;
+    border-bottom: 1px solid #f1f5f9 !important;
+    border-left: none !important;
+    border-right: none !important;
+    background: #fff !important;
     vertical-align: middle;
+    white-space: normal;
+    line-height: 1.45;
+}
+
+.reg-req-v2 .reg-req-table.data-table thead th:nth-child(n),
+.reg-req-v2 .reg-req-table.data-table td:nth-child(n) {
+    text-align: left !important;
+}
+
+.reg-req-v2 .reg-req-table.data-table tbody tr:hover td {
+    background: #f8fafc !important;
+}
+
+.reg-req-v2 .reg-req-table.data-table tbody tr:hover {
+    box-shadow: none !important;
+}
+
+.reg-req-v2 .data-table tr.is-selected-row td {
+    background: #eff6ff !important;
+    box-shadow: inset 3px 0 0 var(--reg-blue) !important;
+}
+
+.reg-req-col-num {
+    width: 44px;
+    color: #94a3b8;
+    font-size: 0.86rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.reg-req-name {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.reg-req-middle,
+.reg-req-course {
+    color: #334155;
+    font-size: 0.9rem;
+    max-width: 220px;
+}
+
+.reg-req-submitted {
+    color: #64748b;
+    font-size: 0.86rem;
+    white-space: nowrap;
+}
+
+.reg-req-verified-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.reg-req-verified-time {
+    display: block;
+    color: #94a3b8;
+    font-size: 0.76rem;
+    font-weight: 600;
+    line-height: 1.3;
 }
 
 .reg-req-v2 .reg-req-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.reg-req-v2 .reg-req-table tbody tr:hover td {
-    background: #f8fafc;
-}
-
-.reg-req-v2 .reg-req-table tbody tr.is-selected-row td {
-    background: #eff6ff;
-    box-shadow: inset 3px 0 0 var(--reg-blue);
+    border-bottom: none !important;
 }
 
 .reg-req-name-cell {
@@ -24427,62 +24485,109 @@ button.ms-predeploy-badge--completed:hover {
 }
 
 .reg-req-review-info h3 {
-    margin: 0 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #eef2f7;
     font-size: 0.95rem;
     font-weight: 800;
-    color: #1e293b;
+    color: #0f172a;
 }
 
-.reg-req-detail-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px 20px;
+.reg-req-section-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+.reg-req-section-icon svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+}
+
+.reg-req-section-icon--student {
+    color: #dc2626;
+}
+
+.reg-req-section-icon--doc {
+    color: #dc2626;
+}
+
+.reg-req-section-icon--approval {
+    color: #16a34a;
+}
+
+.reg-req-info-list {
+    list-style: none;
     margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
 }
 
-.reg-req-detail-item {
+.reg-req-info-row {
     display: grid;
+    grid-template-columns: minmax(130px, 168px) 12px minmax(0, 1fr);
+    align-items: baseline;
+    gap: 0 6px;
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+
+.reg-req-info-label {
+    color: #64748b;
+    font-weight: 600;
+}
+
+.reg-req-info-sep {
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.reg-req-info-value {
+    color: #0f172a;
+    font-weight: 700;
+    word-break: break-word;
+}
+
+.reg-req-info-row--verified .reg-req-info-value {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 4px;
 }
 
-.reg-req-detail-item--wide {
-    grid-column: 1 / -1;
-}
-
-.reg-req-detail-item dt {
-    margin: 0;
-    color: #94a3b8;
-    font-size: 0.78rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-.reg-req-detail-item dd {
-    margin: 0;
-    color: #1e293b;
-    font-size: 0.95rem;
-    font-weight: 700;
-    line-height: 1.4;
+.reg-req-info-row--verified .reg-req-verified-time {
+    font-size: 0.8rem;
 }
 
 .reg-req-document-block {
-    margin-top: 22px;
-    padding: 16px;
-    border: 1px solid #e8edf4;
-    border-radius: var(--reg-radius);
-    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #eef2f7;
 }
 
-.reg-req-document-block h4 {
+.reg-req-document-copy h4 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin: 0 0 4px;
-    font-size: 0.88rem;
+    font-size: 0.9rem;
     font-weight: 800;
-    color: #1e293b;
+    color: #0f172a;
 }
 
-.reg-req-document-block > p {
-    margin: 0 0 12px;
+.reg-req-document-copy p {
+    margin: 0;
     color: #64748b;
     font-size: 0.84rem;
 }
@@ -24525,11 +24630,34 @@ button.ms-predeploy-badge--completed:hover {
 
 .reg-req-review-actions {
     display: grid;
-    gap: 16px;
-    padding: 20px;
+    gap: 0;
+    padding: 0;
     border: 1px solid #e8edf4;
     border-radius: var(--reg-radius);
-    background: linear-gradient(180deg, #fafbfc, #fff);
+    background: #fff;
+    overflow: hidden;
+}
+
+.reg-req-approval-head {
+    padding: 14px 20px;
+    background: linear-gradient(180deg, #f0fdf4, #ecfdf5);
+    border-bottom: 1px solid #bbf7d0;
+}
+
+.reg-req-approval-head h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #166534;
+}
+
+.reg-req-approve-form {
+    display: grid;
+    gap: 16px;
+    padding: 20px;
 }
 
 .reg-req-field-label {
@@ -24560,10 +24688,10 @@ button.ms-predeploy-badge--completed:hover {
 }
 
 .reg-req-info-box {
-    margin-top: 16px;
+    margin-top: 4px;
     padding: 14px 16px;
     border-radius: var(--reg-radius);
-    background: var(--reg-blue-soft);
+    background: #eff6ff;
     border: 1px solid #bfdbfe;
     color: #1e40af;
     font-size: 0.86rem;
@@ -24572,17 +24700,38 @@ button.ms-predeploy-badge--completed:hover {
 
 .reg-req-info-box strong {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     font-size: 0.88rem;
+    color: #1d4ed8;
 }
 
 .reg-req-info-box ul {
+    list-style: none;
     margin: 0;
-    padding-left: 18px;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+}
+
+.reg-req-info-box li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding-left: 0;
+}
+
+.reg-req-info-box li::before {
+    content: '';
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    border-radius: 50%;
+    background: #dbeafe center/11px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
 }
 
 .reg-req-info-box li + li {
-    margin-top: 4px;
+    margin-top: 0;
 }
 
 .reg-req-field {
@@ -24610,7 +24759,8 @@ button.ms-predeploy-badge--completed:hover {
     justify-content: flex-end;
     gap: 10px;
     flex-wrap: wrap;
-    margin-top: 18px;
+    margin-top: 4px;
+    padding-top: 4px;
 }
 
 .reg-req-decline-form {
@@ -24686,8 +24836,18 @@ button.ms-predeploy-badge--completed:hover {
 }
 
 @media (max-width: 640px) {
-    .reg-req-detail-grid {
+    .reg-req-info-row {
         grid-template-columns: 1fr;
+        gap: 2px;
+    }
+
+    .reg-req-info-sep {
+        display: none;
+    }
+
+    .reg-req-document-block {
+        flex-direction: column;
+        align-items: flex-start;
     }
 
     .reg-req-row-actions {

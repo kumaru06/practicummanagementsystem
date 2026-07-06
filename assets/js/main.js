@@ -4556,9 +4556,41 @@ function initRegistrationRequestsReview() {
         'student-no': 'studentNo',
         email: 'email',
         course: 'course',
-        'verified-at': 'verifiedAt',
         'submitted-at': 'submittedAt',
     };
+
+    const renderVerifiedField = (container, value) => {
+        if (!container) return;
+        const trimmed = (value || '').trim();
+        if (trimmed === '') {
+            container.innerHTML = '<span class="reg-req-legacy-badge">Legacy</span>';
+            return;
+        }
+        container.innerHTML = `
+            <span class="reg-req-verified-badge">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+                Verified
+            </span>
+            <time class="reg-req-verified-time">${escapeHtml(trimmed)}</time>
+        `;
+    };
+
+    table?.querySelectorAll('th[data-sort]').forEach((th) => {
+        const colIndex = th.cellIndex;
+        let asc = true;
+        th.addEventListener('click', () => {
+            const tbody = table.tBodies[0];
+            if (!tbody) return;
+            const rows = [...tbody.rows];
+            rows.sort((a, b) => {
+                const aText = (a.cells[colIndex]?.innerText || '').trim();
+                const bText = (b.cells[colIndex]?.innerText || '').trim();
+                return asc ? aText.localeCompare(bText) : bText.localeCompare(aText);
+            });
+            asc = !asc;
+            rows.forEach(row => tbody.appendChild(row));
+        });
+    });
 
     const openReview = (row) => {
         if (!panel || !row) return;
@@ -4577,6 +4609,11 @@ function initRegistrationRequestsReview() {
             const value = (row.dataset[dataKey] || '').trim();
             el.textContent = value !== '' ? value : '—';
         });
+
+        renderVerifiedField(
+            panel.querySelector('[data-reg-field="verified-at"]'),
+            row.dataset.verifiedAt || ''
+        );
 
         const corLink = panel.querySelector('[data-reg-cor-link]');
         const corMissing = panel.querySelector('[data-reg-cor-missing]');

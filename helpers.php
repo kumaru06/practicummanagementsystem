@@ -289,6 +289,143 @@ function temporary_orientation_past_dates_allowed(): bool
         || (defined('TEMPORARY_ORIENTATION_PAST_DATES') && TEMPORARY_ORIENTATION_PAST_DATES);
 }
 
+function temporary_official_start_past_dates_allowed(): bool
+{
+    return temporary_orientation_past_dates_allowed();
+}
+
+/** Single source of truth: may this enrollment submit DTR / weekly reports? */
+function enrollment_allows_reports(?array $enrollment): bool
+{
+    if (!$enrollment) {
+        return false;
+    }
+    if (temporary_report_unlock_enabled()) {
+        return !empty($enrollment['company_id']);
+    }
+    if (($enrollment['status'] ?? '') !== 'active' || ($enrollment['predeployment_status'] ?? '') !== 'orientation_completed') {
+        return false;
+    }
+    $startDate = $enrollment['official_start_date'] ?? $enrollment['start_date'] ?? null;
+    if (!$startDate || strtotime((string)$startDate) === false) {
+        return false;
+    }
+
+    return date('Y-m-d') >= date('Y-m-d', strtotime((string)$startDate));
+}
+
+function enrollment_report_lock_message(?array $enrollment): string
+{
+    if (!$enrollment) {
+        return 'DTR and weekly reports are locked until you are enrolled and deployed to a company.';
+    }
+    if (temporary_report_unlock_enabled()) {
+        if (empty($enrollment['company_id'])) {
+            return 'DTR and weekly reports are locked until you are deployed to a company.';
+        }
+        return 'DTR and weekly reports are unlocked for testing. Normal rules resume when temporary unlock is disabled.';
+    }
+    if (($enrollment['predeployment_status'] ?? '') !== 'orientation_completed') {
+        return 'DTR and weekly reports are locked until your documents are approved, forwarded, accepted, and the company completes your orientation.';
+    }
+    if (($enrollment['status'] ?? '') !== 'active') {
+        return 'DTR and weekly reports are locked until your OJT deployment becomes active.';
+    }
+    $startDate = $enrollment['official_start_date'] ?? $enrollment['start_date'] ?? null;
+    if ($startDate && strtotime((string)$startDate) !== false && date('Y-m-d') < date('Y-m-d', strtotime((string)$startDate))) {
+        return 'DTR and weekly reports will unlock on your official OJT start date: ' . date('M d, Y', strtotime((string)$startDate)) . '.';
+    }
+
+    return 'DTR and weekly reports are now unlocked.';
+}
+
+function validate_orientation_datetime(string $dateTime): ?string
+{
+    if ($dateTime === '' || strtotime($dateTime) === false) {
+        return 'Enter a valid orientation date and time.';
+    }
+    if (!temporary_orientation_past_dates_allowed() && strtotime($dateTime) < time()) {
+        return 'Orientation date and time cannot be in the past.';
+    }
+
+    return null;
+}
+
+function validate_official_start_date(array $enrollment, string $officialStart): ?string
+{
+    if ($officialStart === '' || strtotime($officialStart) === false) {
+        return 'Enter a valid official OJT start date.';
+    }
+    if (
+        !temporary_official_start_past_dates_allowed()
+        && !empty($enrollment['orientation_datetime'])
+        && strtotime($officialStart) < strtotime(date('Y-m-d', strtotime((string)$enrollment['orientation_datetime'])))
+    ) {
+        return 'Official OJT start date cannot be earlier than the orientation date.';
+    }
+
+    return null;
+}
+
+function validate_projected_end_date(string $officialStart, string $projectedEnd): ?string
+{
+    if ($projectedEnd === '' || strtotime($projectedEnd) === false) {
+        return 'Enter a valid projected end date.';
+    }
+    if (strtotime($projectedEnd) < strtotime($officialStart)) {
+        return 'Projected end date cannot be earlier than the official start date.';
+    }
+
+    return null;
+}
+
+function validate_dtr_work_date(array $enrollment, string $workDate): ?string
+{
+    if ($workDate === '' || strtotime($workDate) === false) {
+        return 'Invalid work date.';
+    }
+    $officialStart = $enrollment['official_start_date'] ?? $enrollment['start_date'] ?? null;
+    if (!temporary_report_unlock_enabled() && $officialStart && strtotime($workDate) < strtotime((string)$officialStart)) {
+        return 'DTR date cannot be earlier than your official OJT start date.';
+    }
+
+    return null;
+}
+
+/** Server-side gate for every DTR / weekly submit and draft save. */
+function assert_student_report_submission(?array $enrollment, ?string $workDate = null): void
+{
+    if (!enrollment_allows_reports($enrollment)) {
+        throw new RuntimeException(enrollment_report_lock_message($enrollment));
+    }
+    if ($workDate !== null && $workDate !== '') {
+        $workDateError = validate_dtr_work_date($enrollment, $workDate);
+        if ($workDateError !== null) {
+            throw new RuntimeException($workDateError);
+        }
+    }
+}
+
+function assert_orientation_datetime(string $dateTime): void
+{
+    $error = validate_orientation_datetime($dateTime);
+    if ($error !== null) {
+        throw new RuntimeException($error);
+    }
+}
+
+function assert_official_start_date(array $enrollment, string $officialStart, string $projectedEnd): void
+{
+    $startError = validate_official_start_date($enrollment, $officialStart);
+    if ($startError !== null) {
+        throw new RuntimeException($startError);
+    }
+    $endError = validate_projected_end_date($officialStart, $projectedEnd);
+    if ($endError !== null) {
+        throw new RuntimeException($endError);
+    }
+}
+
 function mail_error_hint(string $error): string
 {
     $from = defined('MAIL_FROM_EMAIL') ? MAIL_FROM_EMAIL : 'your mailbox';

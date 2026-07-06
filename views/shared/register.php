@@ -7,7 +7,7 @@
     <link rel="icon" type="image/jpeg" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600;1,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260703-register">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/register.css')) ?>?v=20260706-register-v16">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/register.css')) ?>?v=20260706-register-v18">
 </head>
 <body class="register-page" data-app-base="<?= e(app_base_path()) ?>">
     <div class="register-bg" aria-hidden="true">
@@ -95,7 +95,10 @@
                             data-countdown-seconds="10"
                         >
                             <div class="register-success-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="24" cy="24" r="24" fill="currentColor"/>
+                                    <path d="M15 24.5 21 30.5 33 18" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
                             </div>
                             <h2 class="register-success-heading">Check Your Email</h2>
                             <p class="register-success-text"><?= e($successMessage ?: 'Your registration has been submitted. Please verify your email within 12 hours to activate your account. After verification, you can sign in while waiting for administrator approval.') ?></p>

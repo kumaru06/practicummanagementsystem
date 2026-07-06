@@ -157,25 +157,12 @@ class Enrollment
 
     public function allowsReports(?array $enrollment): bool
     {
-        if (!$enrollment) return false;
-        if (temporary_report_unlock_enabled()) return true;
-        if (($enrollment['status'] ?? '') !== 'active' || ($enrollment['predeployment_status'] ?? '') !== 'orientation_completed') return false;
-        $startDate = $enrollment['official_start_date'] ?? $enrollment['start_date'] ?? null;
-        if (!$startDate || strtotime((string)$startDate) === false) return false;
-        return date('Y-m-d') >= date('Y-m-d', strtotime((string)$startDate));
+        return enrollment_allows_reports($enrollment);
     }
 
     public function reportLockMessage(?array $enrollment): string
     {
-        if (!$enrollment) return 'DTR and weekly reports are locked until you are enrolled and deployed to a company.';
-        if (temporary_report_unlock_enabled()) return 'DTR and weekly reports are now unlocked.';
-        if (($enrollment['predeployment_status'] ?? '') !== 'orientation_completed') return 'DTR and weekly reports are locked until your documents are approved, forwarded, accepted, and the company completes your orientation.';
-        if (($enrollment['status'] ?? '') !== 'active') return 'DTR and weekly reports are locked until your OJT deployment becomes active.';
-        $startDate = $enrollment['official_start_date'] ?? $enrollment['start_date'] ?? null;
-        if ($startDate && strtotime((string)$startDate) !== false && date('Y-m-d') < date('Y-m-d', strtotime((string)$startDate))) {
-            return 'DTR and weekly reports will unlock on your official OJT start date: ' . date('M d, Y', strtotime((string)$startDate)) . '.';
-        }
-        return 'DTR and weekly reports are now unlocked.';
+        return enrollment_report_lock_message($enrollment);
     }
 
     public function deployedByCompany(int $companyId): array
@@ -311,12 +298,18 @@ class Enrollment
 
     public function scheduleOrientation(int $enrollmentId, string $dateTime, string $notes): void
     {
+        assert_orientation_datetime($dateTime);
         $stmt = $this->db->prepare('UPDATE ojt_enrollments SET predeployment_status = "orientation_scheduled", orientation_datetime = ?, orientation_notes = ? WHERE id = ?');
         $stmt->execute([$dateTime, $notes, $enrollmentId]);
     }
 
     public function completeOrientation(int $enrollmentId, string $officialStart, string $projectedEnd): void
     {
+        $enrollment = $this->find($enrollmentId);
+        if (!$enrollment) {
+            throw new RuntimeException('Enrollment not found.');
+        }
+        assert_official_start_date($enrollment, $officialStart, $projectedEnd);
         $stmt = $this->db->prepare('UPDATE ojt_enrollments SET predeployment_status = "orientation_completed", status = "active", official_start_date = ?, projected_end_date = ?, start_date = ?, end_date = ? WHERE id = ?');
         $stmt->execute([$officialStart, $projectedEnd, $officialStart, $projectedEnd, $enrollmentId]);
     }

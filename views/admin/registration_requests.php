@@ -40,20 +40,23 @@ $pendingCount = count($requests ?? []);
             </div>
 
             <div class="table-wrap reg-req-table-wrap">
-                <table class="data-table reg-req-table no-row-details" data-no-tools>
+                <table class="data-table reg-req-table no-row-details" data-no-tools data-no-enhance>
                     <thead>
                         <tr>
+                            <th class="reg-req-col-num">#</th>
                             <th data-sort>Last Name</th>
                             <th data-sort>First Name</th>
+                            <th data-sort>Middle Name</th>
                             <th data-sort>USN</th>
                             <th data-sort>Email</th>
-                            <th data-sort>Course</th>
+                            <th data-sort>Program / Course</th>
                             <th>Verified</th>
+                            <th data-sort>Submitted</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($requests as $request): ?>
+                        <?php foreach ($requests as $index => $request): ?>
                             <?php
                             $verifiedAt = !empty($request['email_verified_at'])
                                 ? date('M d, Y g:i A', strtotime((string)$request['email_verified_at']))
@@ -65,13 +68,14 @@ $pendingCount = count($requests ?? []);
                             if ($courseLabel === '') {
                                 $courseLabel = '—';
                             }
+                            $middleName = trim((string)($request['middle_name'] ?? ''));
                             ?>
                             <tr
                                 class="reg-req-row"
                                 data-request-id="<?= (int)$request['id'] ?>"
                                 data-last-name="<?= e($request['last_name']) ?>"
                                 data-first-name="<?= e($request['first_name']) ?>"
-                                data-middle-name="<?= e($request['middle_name'] ?? '') ?>"
+                                data-middle-name="<?= e($middleName) ?>"
                                 data-student-no="<?= e($request['student_no']) ?>"
                                 data-email="<?= e($request['email']) ?>"
                                 data-course="<?= e($courseLabel !== '—' ? $courseLabel : '') ?>"
@@ -80,26 +84,27 @@ $pendingCount = count($requests ?? []);
                                 data-cor-url="<?= e($corUrl) ?>"
                                 data-full-name="<?= e($fullName) ?>"
                             >
-                                <td>
-                                    <div class="reg-req-name-cell">
-                                        <span class="reg-req-avatar"><?= e(strtoupper(substr((string)$request['last_name'], 0, 1))) ?></span>
-                                        <span><?= e($request['last_name']) ?></span>
-                                    </div>
-                                </td>
+                                <td class="reg-req-col-num"><?= $index + 1 ?></td>
+                                <td class="reg-req-name"><?= e($request['last_name']) ?></td>
                                 <td><?= e($request['first_name']) ?></td>
+                                <td class="reg-req-middle"><?= $middleName !== '' ? e($middleName) : '<span class="muted">—</span>' ?></td>
                                 <td class="reg-req-usn"><?= e($request['student_no']) ?></td>
                                 <td class="reg-req-email"><?= e($request['email']) ?></td>
-                                <td><?= $courseLabel !== '—' ? e($courseLabel) : '<span class="muted">—</span>' ?></td>
+                                <td class="reg-req-course"><?= $courseLabel !== '—' ? e($courseLabel) : '<span class="muted">—</span>' ?></td>
                                 <td>
                                     <?php if ($verifiedAt !== ''): ?>
-                                        <span class="reg-req-verified-badge">
-                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
-                                            Verified
-                                        </span>
+                                        <div class="reg-req-verified-cell">
+                                            <span class="reg-req-verified-badge">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+                                                Verified
+                                            </span>
+                                            <time class="reg-req-verified-time"><?= e($verifiedAt) ?></time>
+                                        </div>
                                     <?php else: ?>
                                         <span class="reg-req-legacy-badge">Legacy</span>
                                     <?php endif; ?>
                                 </td>
+                                <td class="reg-req-submitted"><?= e($submittedAt) ?></td>
                                 <td>
                                     <div class="reg-req-row-actions">
                                         <?php if ($corUrl !== ''): ?>
@@ -140,45 +145,65 @@ $pendingCount = count($requests ?? []);
 
         <div class="reg-req-review-body">
             <div class="reg-req-review-info">
-                <h3>Student Information</h3>
-                <dl class="reg-req-detail-grid">
-                    <div class="reg-req-detail-item">
-                        <dt>Last Name</dt>
-                        <dd data-reg-field="last-name">—</dd>
-                    </div>
-                    <div class="reg-req-detail-item">
-                        <dt>First Name</dt>
-                        <dd data-reg-field="first-name">—</dd>
-                    </div>
-                    <div class="reg-req-detail-item">
-                        <dt>Middle Name</dt>
-                        <dd data-reg-field="middle-name">—</dd>
-                    </div>
-                    <div class="reg-req-detail-item">
-                        <dt>USN</dt>
-                        <dd data-reg-field="student-no">—</dd>
-                    </div>
-                    <div class="reg-req-detail-item reg-req-detail-item--wide">
-                        <dt>Email</dt>
-                        <dd data-reg-field="email">—</dd>
-                    </div>
-                    <div class="reg-req-detail-item">
-                        <dt>Course</dt>
-                        <dd data-reg-field="course">—</dd>
-                    </div>
-                    <div class="reg-req-detail-item">
-                        <dt>Verified</dt>
-                        <dd data-reg-field="verified-at">—</dd>
-                    </div>
-                    <div class="reg-req-detail-item">
-                        <dt>Submitted</dt>
-                        <dd data-reg-field="submitted-at">—</dd>
-                    </div>
-                </dl>
+                <h3>
+                    <span class="reg-req-section-icon reg-req-section-icon--student" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>
+                    </span>
+                    Student Information
+                </h3>
+                <ul class="reg-req-info-list">
+                    <li class="reg-req-info-row">
+                        <span class="reg-req-info-label">Last Name</span>
+                        <span class="reg-req-info-sep" aria-hidden="true">:</span>
+                        <span class="reg-req-info-value" data-reg-field="last-name">—</span>
+                    </li>
+                    <li class="reg-req-info-row">
+                        <span class="reg-req-info-label">First Name</span>
+                        <span class="reg-req-info-sep" aria-hidden="true">:</span>
+                        <span class="reg-req-info-value" data-reg-field="first-name">—</span>
+                    </li>
+                    <li class="reg-req-info-row">
+                        <span class="reg-req-info-label">Middle Name</span>
+                        <span class="reg-req-info-sep" aria-hidden="true">:</span>
+                        <span class="reg-req-info-value" data-reg-field="middle-name">—</span>
+                    </li>
+                    <li class="reg-req-info-row">
+                        <span class="reg-req-info-label">USN</span>
+                        <span class="reg-req-info-sep" aria-hidden="true">:</span>
+                        <span class="reg-req-info-value" data-reg-field="student-no">—</span>
+                    </li>
+                    <li class="reg-req-info-row">
+                        <span class="reg-req-info-label">Email</span>
+                        <span class="reg-req-info-sep" aria-hidden="true">:</span>
+                        <span class="reg-req-info-value" data-reg-field="email">—</span>
+                    </li>
+                    <li class="reg-req-info-row">
+                        <span class="reg-req-info-label">Program / Course</span>
+                        <span class="reg-req-info-sep" aria-hidden="true">:</span>
+                        <span class="reg-req-info-value" data-reg-field="course">—</span>
+                    </li>
+                    <li class="reg-req-info-row">
+                        <span class="reg-req-info-label">Date Submitted</span>
+                        <span class="reg-req-info-sep" aria-hidden="true">:</span>
+                        <span class="reg-req-info-value" data-reg-field="submitted-at">—</span>
+                    </li>
+                    <li class="reg-req-info-row reg-req-info-row--verified">
+                        <span class="reg-req-info-label">Email Verified</span>
+                        <span class="reg-req-info-sep" aria-hidden="true">:</span>
+                        <span class="reg-req-info-value" data-reg-field="verified-at">—</span>
+                    </li>
+                </ul>
 
                 <div class="reg-req-document-block">
-                    <h4>Document</h4>
-                    <p>Certificate of Registration (COR)</p>
+                    <div class="reg-req-document-copy">
+                        <h4>
+                            <span class="reg-req-section-icon reg-req-section-icon--doc" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+                            </span>
+                            Document
+                        </h4>
+                        <p>Certificate of Registration (COR)</p>
+                    </div>
                     <a class="reg-req-doc-btn" href="#" target="_blank" rel="noopener noreferrer" data-reg-cor-link hidden>
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
                         View COR
@@ -188,6 +213,15 @@ $pendingCount = count($requests ?? []);
             </div>
 
             <div class="reg-req-review-actions">
+                <div class="reg-req-approval-head">
+                    <h3>
+                        <span class="reg-req-section-icon reg-req-section-icon--approval" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/></svg>
+                        </span>
+                        Approval &amp; Assignment
+                    </h3>
+                </div>
+
                 <form method="post" class="reg-req-approve-form" id="regReqApproveForm" novalidate>
                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="action" value="admin_review_registration_request">
@@ -210,8 +244,8 @@ $pendingCount = count($requests ?? []);
                         <strong>Upon approval:</strong>
                         <ul>
                             <li>The student account will be activated</li>
-                            <li>A coordinator will be assigned to manage their OJT</li>
-                            <li>The student will receive access to the student portal</li>
+                            <li>The selected coordinator will be assigned</li>
+                            <li>A notification email will be sent to the student and coordinator</li>
                         </ul>
                     </div>
 

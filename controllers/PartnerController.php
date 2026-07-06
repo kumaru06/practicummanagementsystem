@@ -422,8 +422,9 @@ class PartnerController extends BaseController
             flash('error', 'Enter a valid orientation date and time.');
             redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
         }
-        if (!temporary_orientation_past_dates_allowed() && strtotime((string)$p['orientation_datetime']) < time()) {
-            flash('error', 'Orientation date and time cannot be in the past.');
+        $orientationError = validate_orientation_datetime((string)$p['orientation_datetime']);
+        if ($orientationError !== null) {
+            flash('error', $orientationError);
             redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
         }
         $orientationNotes = trim($p['orientation_notes'] ?? '');
@@ -476,8 +477,14 @@ class PartnerController extends BaseController
             redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
         }
         $projectedEndDate = trim($p['projected_end_date'] ?? '') ?: projected_ojt_end_date($p['official_start_date'], (int)$enrollment['required_hours']);
-        if (strtotime($projectedEndDate) < strtotime((string)$p['official_start_date'])) {
-            flash('error', 'Projected end date cannot be earlier than the official start date.');
+        $officialStartError = validate_official_start_date($enrollment, (string)$p['official_start_date']);
+        if ($officialStartError !== null) {
+            flash('error', $officialStartError);
+            redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
+        }
+        $projectedEndError = validate_projected_end_date((string)$p['official_start_date'], $projectedEndDate);
+        if ($projectedEndError !== null) {
+            flash('error', $projectedEndError);
             redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
         }
         (new Enrollment($this->db))->completeOrientation((int)$enrollment['id'], $p['official_start_date'], $projectedEndDate);

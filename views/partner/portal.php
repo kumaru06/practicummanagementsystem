@@ -346,9 +346,12 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                     <input type="hidden" name="action" value="partner_complete_orientation">
                                     <input type="hidden" name="enrollment_id" value="<?= (int)$selected['id'] ?>">
-                                    <?php $orientationDate = !empty($selected['orientation_datetime']) ? (new DateTime($selected['orientation_datetime']))->format('Y-m-d') : date('Y-m-d'); ?>
+                                    <?php
+                                    $orientationDate = !empty($selected['orientation_datetime']) ? (new DateTime($selected['orientation_datetime']))->format('Y-m-d') : date('Y-m-d');
+                                    $officialStartMinAttr = temporary_official_start_past_dates_allowed() ? '' : $orientationDate;
+                                    ?>
                                     <label class="no-floating-label required-label orientation-field"><span class="field-title">Official OJT Start Date <span class="req">*</span></span>
-                                        <span class="filter-date-picker form-date-picker is-placeholder" data-date-required="1" data-date-min="<?= e($orientationDate) ?>">
+                                        <span class="filter-date-picker form-date-picker is-placeholder" data-date-required="1"<?= $officialStartMinAttr !== '' ? ' data-date-min="' . e($officialStartMinAttr) . '"' : '' ?>>
                                             <input type="hidden" name="official_start_date" value="">
                                             <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select OJT start date"><span class="filter-date-value">mm/dd/yyyy</span><span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span></button>
                                         </span>

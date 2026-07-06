@@ -7,8 +7,9 @@ require_once __DIR__ . '/helpers.php';
 
 date_default_timezone_set('Asia/Manila');
 
-define('TEMPORARY_REPORT_UNLOCK', true);
-define('TEMPORARY_ORIENTATION_PAST_DATES', true);
+// Local/testing bypasses — set in .env; keep false on production unless intentionally testing.
+define('TEMPORARY_REPORT_UNLOCK', filter_var(env('TEMPORARY_REPORT_UNLOCK', 'false'), FILTER_VALIDATE_BOOLEAN));
+define('TEMPORARY_ORIENTATION_PAST_DATES', filter_var(env('TEMPORARY_ORIENTATION_PAST_DATES', 'false'), FILTER_VALIDATE_BOOLEAN));
 
 $autoload = __DIR__ . '/vendor/autoload.php';
 if (file_exists($autoload)) {

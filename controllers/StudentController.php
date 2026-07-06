@@ -612,13 +612,10 @@ class StudentController extends BaseController
         }
         $enrollments = new Enrollment($this->db);
         $enrollment = $enrollments->detailsByStudent((int)$student['id']);
-        if (!$enrollments->allowsReports($enrollment)) {
-            flash('error', $enrollments->reportLockMessage($enrollment));
-            redirect('index.php?r=student_records');
-        }
-        $officialStart = $enrollment['official_start_date'] ?? $enrollment['start_date'] ?? null;
-        if (!temporary_report_unlock_enabled() && $officialStart && strtotime((string)$p['work_date']) < strtotime((string)$officialStart)) {
-            flash('error', 'DTR date cannot be earlier than your official OJT start date.');
+        try {
+            assert_student_report_submission($enrollment, (string)($p['work_date'] ?? ''));
+        } catch (RuntimeException $e) {
+            flash('error', $e->getMessage());
             redirect('index.php?r=student_records');
         }
         try {
@@ -656,8 +653,10 @@ class StudentController extends BaseController
         }
         $enrollments = new Enrollment($this->db);
         $enrollment = $enrollments->detailsByStudent((int)$student['id']);
-        if (!$enrollments->allowsReports($enrollment)) {
-            flash('error', $enrollments->reportLockMessage($enrollment));
+        try {
+            assert_student_report_submission($enrollment);
+        } catch (RuntimeException $e) {
+            flash('error', $e->getMessage());
             redirect('index.php?r=student_records');
         }
         try {
@@ -703,6 +702,17 @@ class StudentController extends BaseController
         if (!$student) {
             http_response_code(404);
             echo json_encode(['ok' => false, 'message' => 'Student record not found.']);
+            return;
+        }
+        $enrollment = (new Enrollment($this->db))->detailsByStudent((int)$student['id']);
+        try {
+            assert_student_report_submission(
+                $enrollment,
+                trim((string)($p['work_date'] ?? '')) ?: null
+            );
+        } catch (RuntimeException $e) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'message' => $e->getMessage()]);
             return;
         }
         (new Report($this->db))->saveDtrDraft(

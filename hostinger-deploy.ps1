@@ -12,7 +12,7 @@ $configFile = if ($ConfigPath -ne "") { $ConfigPath } else { Join-Path $localRoo
 $exampleFile = Join-Path $localRoot "hostinger.deploy.json.example"
 $zipPath = Join-Path (Split-Path $localRoot -Parent) "amaccmanagementsystem_deploy.zip"
 
-$excludeDirNames = @('.git', '.idea', '.vscode')
+$excludeDirNames = @('.git', '.idea', '.vscode', 'vendor')
 $excludeFileNames = @(
     'hostinger.deploy.json',
     'hostinger.deploy.json.example',
