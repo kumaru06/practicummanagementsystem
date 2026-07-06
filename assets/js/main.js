@@ -15,6 +15,7 @@
     initEmailAvailability();
     initStudentRegistrationAvailability();
     initStudentRegistrationPasswordIndicators();
+    initRegisterCourseSelect();
     initRegistrationBackLink();
     initRegistrationSuccessCountdown();
     initCoordinatorAvailability();
@@ -28,6 +29,7 @@
     initTimelineDetails();
     initEmailLogViews();
     initRequirementReviewModals();
+    initRegistrationRequestsReview();
     initNotifications();
     try { initWeeklyReportUpload(); } catch (err) { console.warn('Weekly report upload init failed:', err); }
     initMoaLibrary();
@@ -45,7 +47,7 @@
     initMyStudentsDirectory();
     document.querySelector('#modal .modal-close')?.addEventListener('click', closeSlidePanel);
     document.addEventListener('click', handleOutsideMenus);
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeSlidePanel(); closeNotifications(); closeRequirementReviewModals(); closeCustomSelects(); closeCustomDatePickers(); closeDtrTimePicker(); } });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeSlidePanel(); closeNotifications(); closeRequirementReviewModals(); closeRegistrationRequestsReview(); closeCustomSelects(); closeCustomDatePickers(); closeDtrTimePicker(); } });
     initStudentModal();
     renderDashboardCharts();
     initLiveChat();
@@ -1164,11 +1166,15 @@ function initCustomFilterSelects() {
         wrap.classList.add('is-enhanced', 'select-enhanced-wrap');
 
         const fieldLabel = wrap.closest('.filter-control')?.querySelector('.filter-label')?.textContent?.trim()
+            || select.dataset.selectLabel
             || wrap.querySelector('span')?.textContent?.replace('*', '').trim()
             || select.getAttribute('aria-label')
             || 'Select';
         const custom = document.createElement('div');
         custom.className = 'custom-select';
+        if (wrap.classList.contains('register-input-wrap--select')) {
+            custom.classList.add('register-course-custom-select');
+        }
 
         const trigger = document.createElement('button');
         trigger.type = 'button';
@@ -3204,6 +3210,101 @@ function initRegistrationSuccessCountdown() {
     }, 1000);
 }
 
+function initRegisterCourseSelect() {
+    const select = document.querySelector('#studentRegisterForm select[name="program_id"]');
+    if (!select || select.dataset.enhanced !== '1') return;
+
+    const wrap = select.closest('.register-input-wrap--select');
+    const custom = wrap?.querySelector('.register-course-custom-select');
+    const trigger = custom?.querySelector('.custom-select-trigger');
+    const menu = custom?.querySelector('.custom-select-menu');
+    if (!wrap || !custom || !trigger || !menu) return;
+
+    wrap.classList.add('register-input-wrap--enhanced');
+    menu.classList.add('register-course-custom-select-menu');
+    document.body.appendChild(menu);
+    menu.hidden = true;
+
+    const syncInvalid = () => {
+        custom.classList.toggle('is-invalid', select.classList.contains('touched') && !select.checkValidity());
+    };
+
+    const upgradeOptions = () => {
+        menu.querySelectorAll('.custom-select-option').forEach(item => {
+            const label = item.querySelector('.custom-select-option-label');
+            if (!label || label.dataset.registerUpgraded === '1') return;
+            const text = label.textContent.trim();
+            if (item.dataset.value === '') {
+                label.dataset.registerUpgraded = '1';
+                label.innerHTML = `<span class="register-course-option-placeholder">${escapeHtml(text)}</span>`;
+                return;
+            }
+            const match = text.match(/^(.+?)\s*[—-]\s*(.+)$/);
+            if (!match) return;
+            label.dataset.registerUpgraded = '1';
+            label.innerHTML = `<span class="register-course-option-code">${escapeHtml(match[1].trim())}</span><span class="register-course-option-name">${escapeHtml(match[2].trim())}</span>`;
+        });
+    };
+
+    const syncMenu = () => {
+        upgradeOptions();
+        const open = custom.classList.contains('is-open');
+        menu.classList.toggle('is-open', open);
+        if (!open) {
+            menu.hidden = true;
+            return;
+        }
+
+        menu.hidden = false;
+        const rect = trigger.getBoundingClientRect();
+        const maxMenuHeight = 280;
+        const spaceBelow = window.innerHeight - rect.bottom - 12;
+        const spaceAbove = rect.top - 12;
+        const openUp = spaceBelow < 180 && spaceAbove > spaceBelow;
+
+        menu.style.position = 'fixed';
+        menu.style.left = `${Math.round(rect.left)}px`;
+        menu.style.width = `${Math.round(rect.width)}px`;
+        menu.style.zIndex = '10050';
+        menu.style.maxHeight = `${maxMenuHeight}px`;
+
+        if (openUp) {
+            menu.style.top = 'auto';
+            menu.style.bottom = `${Math.round(window.innerHeight - rect.top + 6)}px`;
+        } else {
+            menu.style.bottom = 'auto';
+            menu.style.top = `${Math.round(rect.bottom + 6)}px`;
+        }
+    };
+
+    const observer = new MutationObserver(() => requestAnimationFrame(syncMenu));
+    observer.observe(custom, { attributes: true, attributeFilter: ['class'] });
+
+    trigger.addEventListener('click', () => requestAnimationFrame(syncMenu));
+    window.addEventListener('resize', syncMenu);
+    window.addEventListener('scroll', syncMenu, true);
+    trigger.addEventListener('blur', () => {
+        select.classList.add('touched');
+        syncInvalid();
+    });
+    select.addEventListener('change', () => {
+        syncInvalid();
+        requestAnimationFrame(upgradeOptions);
+    });
+
+    const originalSync = select._syncCustomSelect;
+    if (typeof originalSync === 'function') {
+        select._syncCustomSelect = () => {
+            originalSync();
+            requestAnimationFrame(upgradeOptions);
+        };
+    }
+
+    select._syncCustomSelect?.();
+    syncMenu();
+    syncInvalid();
+}
+
 function initStudentRegistrationAvailability() {
     const form = document.getElementById('studentRegisterForm');
     if (!form) return;
@@ -4391,6 +4492,125 @@ function closeStudentModal() { closeSlidePanel(); }
 
 function closeRequirementReviewModals() {
     document.querySelectorAll('.requirement-review-modal.open').forEach(modal => modal.classList.remove('open'));
+}
+
+function closeRegistrationRequestsReview() {
+    const panel = document.getElementById('regReqReviewPanel');
+    if (!panel || panel.hidden) return;
+    panel.hidden = true;
+    document.querySelectorAll('.reg-req-row.is-selected-row').forEach(row => row.classList.remove('is-selected-row'));
+}
+
+function initRegistrationRequestsReview() {
+    const root = document.querySelector('.reg-req-v2');
+    if (!root) return;
+
+    const panel = document.getElementById('regReqReviewPanel');
+    const table = root.querySelector('.reg-req-table');
+    const exportBtn = root.querySelector('[data-reg-req-export]');
+    const approveForm = document.getElementById('regReqApproveForm');
+    const declineForm = document.getElementById('regReqDeclineForm');
+    const coordinatorSelect = document.getElementById('regReqCoordinator');
+    const coordinatorError = panel?.querySelector('[data-reg-coordinator-error]');
+
+    const setCoordinatorError = (show) => {
+        if (!coordinatorSelect || !coordinatorError) return;
+        coordinatorError.hidden = !show;
+        coordinatorSelect.classList.toggle('is-invalid', show);
+        coordinatorSelect.setAttribute('aria-invalid', show ? 'true' : 'false');
+    };
+
+    exportBtn?.addEventListener('click', () => {
+        if (table) exportCsv(table);
+    });
+
+    coordinatorSelect?.addEventListener('change', () => {
+        if (coordinatorSelect.value) setCoordinatorError(false);
+    });
+
+    approveForm?.addEventListener('submit', e => {
+        if (!coordinatorSelect?.value) {
+            e.preventDefault();
+            setCoordinatorError(true);
+            coordinatorSelect.focus({ preventScroll: true });
+            coordinatorSelect.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            return;
+        }
+        setCoordinatorError(false);
+    });
+
+    root.querySelector('[data-reg-decline]')?.addEventListener('click', async e => {
+        e.preventDefault();
+        const confirmed = await showConfirmModal('Decline this registration request?', {
+            title: 'Decline registration',
+            confirmText: 'Yes, decline',
+            cancelText: 'Cancel',
+        });
+        if (confirmed) declineForm?.requestSubmit();
+    });
+
+    const fieldMap = {
+        'last-name': 'lastName',
+        'first-name': 'firstName',
+        'middle-name': 'middleName',
+        'student-no': 'studentNo',
+        email: 'email',
+        course: 'course',
+        'verified-at': 'verifiedAt',
+        'submitted-at': 'submittedAt',
+    };
+
+    const openReview = (row) => {
+        if (!panel || !row) return;
+
+        document.querySelectorAll('.reg-req-row.is-selected-row').forEach(r => r.classList.remove('is-selected-row'));
+        row.classList.add('is-selected-row');
+
+        const requestId = row.dataset.requestId || '';
+        panel.querySelectorAll('[data-reg-request-id]').forEach(input => {
+            input.value = requestId;
+        });
+
+        Object.entries(fieldMap).forEach(([field, dataKey]) => {
+            const el = panel.querySelector(`[data-reg-field="${field}"]`);
+            if (!el) return;
+            const value = (row.dataset[dataKey] || '').trim();
+            el.textContent = value !== '' ? value : '—';
+        });
+
+        const corLink = panel.querySelector('[data-reg-cor-link]');
+        const corMissing = panel.querySelector('[data-reg-cor-missing]');
+        const corUrl = (row.dataset.corUrl || '').trim();
+        if (corLink && corMissing) {
+            if (corUrl) {
+                corLink.href = corUrl;
+                corLink.hidden = false;
+                corMissing.hidden = true;
+            } else {
+                corLink.hidden = true;
+                corMissing.hidden = false;
+            }
+        }
+
+        if (coordinatorSelect) {
+            coordinatorSelect.value = '';
+            setCoordinatorError(false);
+        }
+
+        panel.hidden = false;
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+
+    root.querySelectorAll('[data-reg-req-review]').forEach(button => {
+        button.addEventListener('click', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            const row = button.closest('.reg-req-row');
+            openReview(row);
+        });
+    });
+
+    panel?.querySelector('[data-reg-req-close]')?.addEventListener('click', closeRegistrationRequestsReview);
 }
 
 function initRequirementReviewModals() {

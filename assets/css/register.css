@@ -1,90 +1,192 @@
-/* ── Student registration — split-panel layout ── */
+/* ── Student registration — premium split-panel layout ── */
 .register-page {
     --reg-blue: #0a3d8f;
     --reg-blue-dark: #072d6b;
     --reg-blue-light: #1a56b8;
-    --reg-text: #1e293b;
+    --reg-blue-soft: #eef4ff;
+    --reg-red: #8b1a1a;
+    --reg-text: #0f172a;
     --reg-muted: #64748b;
     --reg-border: #e2e8f0;
     --reg-surface: #f8fafc;
+    --reg-card-shadow: 0 28px 80px rgba(7, 45, 107, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.08);
     margin: 0;
-    height: 100vh;
-    height: 100dvh;
-    overflow: hidden;
-    background: #ffffff;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background: var(--reg-blue-dark);
     color: var(--reg-text);
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
 
-.register-shell {
+/* ── Ambient background ── */
+.register-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.register-bg-img {
+    width: 100%;
     height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transform: scale(1.04);
+    filter: saturate(1.05);
+}
+
+.register-bg-overlay {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(135deg, rgba(7, 45, 107, 0.92) 0%, rgba(10, 61, 143, 0.78) 42%, rgba(7, 45, 107, 0.88) 100%),
+        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.08), transparent 35%),
+        radial-gradient(circle at 80% 80%, rgba(139, 26, 26, 0.12), transparent 40%);
+}
+
+.register-bg-glow {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.45;
+    animation: register-glow-drift 18s ease-in-out infinite alternate;
+}
+
+.register-bg-glow--one {
+    width: 420px;
+    height: 420px;
+    top: -120px;
+    right: -80px;
+    background: rgba(26, 86, 184, 0.55);
+}
+
+.register-bg-glow--two {
+    width: 360px;
+    height: 360px;
+    bottom: -100px;
+    left: -60px;
+    background: rgba(139, 26, 26, 0.35);
+    animation-delay: -6s;
+}
+
+@keyframes register-glow-drift {
+    from { transform: translate(0, 0) scale(1); }
+    to { transform: translate(24px, -18px) scale(1.08); }
+}
+
+@keyframes register-card-in {
+    from {
+        opacity: 0;
+        transform: translateY(22px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ── Shell ── */
+.register-shell {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     padding:
-        max(12px, env(safe-area-inset-top))
-        max(16px, env(safe-area-inset-right))
-        max(12px, env(safe-area-inset-bottom))
-        max(16px, env(safe-area-inset-left));
+        max(20px, env(safe-area-inset-top))
+        max(20px, env(safe-area-inset-right))
+        max(20px, env(safe-area-inset-bottom))
+        max(20px, env(safe-area-inset-left));
 }
 
 .register-main {
     flex: 1;
-    min-height: 0;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .register-card {
-    width: min(100%, 920px);
-    max-height: 100%;
+    width: min(100%, 1080px);
     display: grid;
-    grid-template-columns: minmax(168px, 188px) minmax(0, 1fr);
-    border-radius: 5px;
+    grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+    border-radius: 20px;
     overflow: hidden;
-    border: 1px solid var(--reg-border);
-    box-shadow:
-        0 0 0 1px rgba(10, 61, 143, 0.04),
-        0 20px 50px rgba(7, 45, 107, 0.1);
+    box-shadow: var(--reg-card-shadow);
+    animation: register-card-in 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* ── Left brand panel ── */
 .register-aside {
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 14px 12px 12px;
+    gap: 18px;
+    padding: 24px 22px 20px;
     background:
-        linear-gradient(165deg, #0b428f 0%, #072d6b 48%, #0a3d8f 100%);
+        linear-gradient(165deg, rgba(255, 255, 255, 0.08) 0%, transparent 40%),
+        linear-gradient(180deg, #0b428f 0%, #072d6b 52%, #0a3d8f 100%);
     color: #fff;
-    min-height: 0;
+    overflow: hidden;
+}
+
+.register-aside::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 15% 10%, rgba(255, 255, 255, 0.14), transparent 28%),
+        repeating-linear-gradient(
+            -45deg,
+            rgba(255, 255, 255, 0.03) 0,
+            rgba(255, 255, 255, 0.03) 2px,
+            transparent 2px,
+            transparent 12px
+        );
+    pointer-events: none;
+}
+
+.register-aside > * {
+    position: relative;
+    z-index: 1;
+}
+
+.register-aside-top {
+    display: grid;
+    gap: 18px;
 }
 
 .register-back-link {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     align-self: flex-start;
-    padding: 5px 8px 5px 6px;
-    border-radius: 4px;
+    padding: 8px 12px 8px 10px;
+    border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, 0.22);
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 0.68rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 0.74rem;
     font-weight: 700;
     text-decoration: none;
     white-space: nowrap;
-    transition: background 0.2s, border-color 0.2s;
+    transition: background 0.2s, border-color 0.2s, transform 0.2s;
 }
 
 .register-back-link svg {
-    width: 14px;
-    height: 14px;
+    width: 15px;
+    height: 15px;
 }
 
 .register-back-link:hover {
-    background: rgba(255, 255, 255, 0.16);
-    border-color: rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.38);
     color: #fff;
+    transform: translateX(-2px);
 }
 
 .register-aside-brand {
@@ -92,36 +194,36 @@
 }
 
 .register-logo {
-    width: 48px;
+    width: 58px;
     height: auto;
     display: block;
-    margin-bottom: 8px;
-    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
+    margin-bottom: 12px;
+    filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.25));
 }
 
 .register-eyebrow {
-    margin: 0 0 3px;
-    font-size: 0.58rem;
+    margin: 0 0 6px;
+    font-size: 0.64rem;
     font-weight: 800;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.78);
+    color: rgba(255, 255, 255, 0.72);
 }
 
 .register-title {
-    margin: 0 0 6px;
-    font-size: 1rem;
+    margin: 0 0 10px;
+    font-size: clamp(1.15rem, 2vw, 1.45rem);
     font-weight: 800;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
     color: #fff;
 }
 
 .register-aside-lead {
     margin: 0;
-    font-size: 0.7rem;
-    line-height: 1.45;
-    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.84);
     font-weight: 500;
 }
 
@@ -130,17 +232,26 @@
     margin: auto 0 0;
     padding: 0;
     display: grid;
-    gap: 8px;
+    gap: 0;
 }
 
 .register-step {
+    position: relative;
     display: flex;
     align-items: flex-start;
-    gap: 8px;
-    font-size: 0.66rem;
-    line-height: 1.35;
-    color: rgba(255, 255, 255, 0.72);
-    font-weight: 600;
+    gap: 12px;
+    padding: 12px 0;
+    color: rgba(255, 255, 255, 0.68);
+}
+
+.register-step:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    left: 17px;
+    top: 44px;
+    width: 2px;
+    height: calc(100% - 20px);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.06));
 }
 
 .register-step.is-active {
@@ -149,27 +260,82 @@
 
 .register-step-num {
     flex-shrink: 0;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
     display: grid;
     place-items: center;
-    font-size: 0.62rem;
-    font-weight: 800;
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.register-step-num svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 .register-step.is-active .register-step-num {
     background: #fff;
     color: var(--reg-blue);
     border-color: #fff;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.register-step-copy {
+    display: grid;
+    gap: 2px;
+    padding-top: 2px;
+}
+
+.register-step-copy strong {
+    font-size: 0.82rem;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.register-step-copy span {
+    font-size: 0.72rem;
+    line-height: 1.4;
+    font-weight: 500;
+    opacity: 0.88;
+}
+
+.register-aside-trust {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 0.72rem;
+    line-height: 1.45;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.register-aside-trust svg {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 .register-aside-footer {
     margin: 0;
-    font-size: 0.64rem;
-    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.5);
     font-weight: 600;
 }
 
@@ -178,31 +344,131 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
-    padding: 18px 22px 16px;
-    background: #fff;
-    overflow: hidden;
+    max-height: min(92vh, 920px);
+    padding: 28px 32px 36px;
+    background:
+        linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(10, 61, 143, 0.25) transparent;
+}
+
+.register-body-head {
+    margin-bottom: 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--reg-border);
+}
+
+.register-body-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: var(--reg-blue-soft);
+    color: var(--reg-blue);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.register-body-title {
+    margin: 0 0 6px;
+    font-size: clamp(1.25rem, 2.2vw, 1.55rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--reg-text);
+    line-height: 1.15;
+}
+
+.register-body-lead {
+    margin: 0;
+    font-size: 0.86rem;
+    line-height: 1.5;
+    color: var(--reg-muted);
+    font-weight: 500;
+}
+
+.register-required {
+    color: var(--reg-red);
+    font-weight: 800;
+    margin-left: 1px;
 }
 
 .register-alert {
-    margin-bottom: 10px;
-    border-radius: 4px;
-    font-size: 0.82rem;
-    padding: 8px 10px;
+    margin-bottom: 14px;
+    border-radius: 12px;
+    font-size: 0.84rem;
+    padding: 10px 14px;
     flex-shrink: 0;
 }
 
 .register-form {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 18px;
     min-height: 0;
     flex: 1;
+}
+
+.register-form-section {
+    display: grid;
+    gap: 14px;
+    padding: 16px 18px;
+    border-radius: 16px;
+    border: 1px solid var(--reg-border);
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+
+.register-section-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.register-section-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, var(--reg-blue-soft), #fff);
+    color: var(--reg-blue);
+    border: 1px solid rgba(10, 61, 143, 0.1);
+    flex-shrink: 0;
+}
+
+.register-section-icon svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.register-section-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--reg-text);
+    letter-spacing: -0.02em;
+}
+
+.register-section-desc {
+    margin: 2px 0 0;
+    font-size: 0.76rem;
+    color: var(--reg-muted);
+    font-weight: 500;
 }
 
 .register-form-grid {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 10px 12px;
+    gap: 12px 14px;
     align-content: start;
 }
 
@@ -213,7 +479,7 @@
 .register-field,
 .register-field-inner {
     display: grid;
-    gap: 4px;
+    gap: 6px;
 }
 
 .register-password-col {
@@ -221,7 +487,7 @@
 }
 
 .register-field-label {
-    font-size: 0.76rem;
+    font-size: 0.78rem;
     font-weight: 700;
     color: #334155;
     line-height: 1.2;
@@ -230,80 +496,548 @@
 .register-field-optional {
     font-weight: 500;
     color: #94a3b8;
-    font-size: 0.9em;
+    font-size: 0.88em;
+    text-transform: lowercase;
+}
+
+.register-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.register-input-icon {
+    position: absolute;
+    left: 12px;
+    z-index: 1;
+    width: 18px;
+    height: 18px;
+    color: #94a3b8;
+    pointer-events: none;
+    transition: color 0.2s;
+}
+
+.register-input-icon svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 .register-page .form input,
-.register-page .form input:focus {
-    border-radius: 4px;
-    min-height: 38px;
-    padding: 8px 11px;
+.register-page .form select,
+.register-page .form input:focus,
+.register-page .form select:focus {
+    border-radius: 12px;
+    min-height: 46px;
+    padding: 10px 14px;
     box-shadow: none;
     transform: none;
 }
 
-.register-page .form input:focus {
-    border-color: rgba(10, 61, 143, 0.45);
-    box-shadow: 0 0 0 3px rgba(10, 61, 143, 0.08);
-}
-
-.register-page .form input:invalid.touched {
-    border-color: rgba(220, 38, 38, 0.75);
-    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.08);
-}
-
-.register-page .btn-primary {
-    border-radius: 5px;
-}
-
-.register-field > input:not([type="file"]),
-.register-field-inner > input:not([type="file"]) {
+.register-field > .register-input-wrap > input:not([type="file"]),
+.register-field-inner > .register-input-wrap > input:not([type="file"]),
+.register-field > .register-input-wrap > select,
+.register-field-inner > .register-input-wrap > select {
     width: 100%;
     border: 1.5px solid var(--reg-border);
-    border-radius: 4px;
-    background: var(--reg-surface);
+    border-radius: 12px;
+    background: #fff;
     color: var(--reg-text);
-    padding: 8px 11px;
-    min-height: 38px;
+    padding: 10px 14px;
+    min-height: 46px;
     font: inherit;
-    font-size: 0.84rem;
+    font-size: 0.88rem;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
-.register-field > input:not([type="file"])::placeholder,
-.register-field-inner > input:not([type="file"])::placeholder {
+.register-field > .register-input-wrap:has(.register-input-icon) > input:not([type="file"]),
+.register-field-inner > .register-input-wrap:has(.register-input-icon) > input:not([type="file"]) {
+    padding-left: 42px;
+}
+
+.register-field > .register-input-wrap > input:not([type="file"])::placeholder,
+.register-field-inner > .register-input-wrap > input:not([type="file"])::placeholder {
     color: #cbd5e1;
 }
 
-.register-field > input:not([type="file"]):focus,
-.register-field-inner > input:not([type="file"]):focus {
+.register-field > .register-input-wrap > input:not([type="file"]):focus,
+.register-field-inner > .register-input-wrap > input:not([type="file"]):focus,
+.register-field > .register-input-wrap:not(.register-input-wrap--select) > select:focus,
+.register-field-inner > .register-input-wrap:not(.register-input-wrap--select) > select:focus {
     border-color: rgba(10, 61, 143, 0.45);
     background: #fff;
-    box-shadow: 0 0 0 3px rgba(10, 61, 143, 0.08);
+    box-shadow: 0 0 0 4px rgba(10, 61, 143, 0.08);
 }
 
-.register-file-field > input[type="file"] {
+.register-input-wrap:not(.register-input-wrap--select):focus-within .register-input-icon {
+    color: var(--reg-blue);
+}
+
+/* Select with icon — icon gets its own column so text never overlaps */
+.register-input-wrap--select {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    align-items: stretch;
+    border: 1.5px solid var(--reg-border);
+    border-radius: 12px;
+    background: #fff;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.register-input-wrap--select.register-input-wrap--enhanced {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.register-input-wrap--select.register-input-wrap--enhanced > select[data-enhanced="1"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+    min-height: 0;
+    background: none;
+}
+
+.register-input-wrap--select.register-input-wrap--enhanced > .register-input-icon {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.register-input-wrap--select.register-input-wrap--enhanced > .register-course-custom-select {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+}
+
+.register-input-wrap--select:has(.register-course-custom-select.is-open) {
+    border-color: rgba(10, 61, 143, 0.45);
+    box-shadow: 0 0 0 4px rgba(10, 61, 143, 0.08);
+}
+
+.register-input-wrap--select:has(.register-course-custom-select.is-open) .register-input-icon {
+    color: var(--reg-blue);
+}
+
+.register-input-wrap--select:has(select:invalid.touched:not(:focus)),
+.register-input-wrap--select:has(.register-course-custom-select.is-invalid:not(.is-open)) {
+    border-color: rgba(220, 38, 38, 0.75);
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08);
+}
+
+.register-input-wrap--select:has(.register-course-custom-select.is-open.is-invalid) {
+    border-color: rgba(220, 38, 38, 0.75);
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08);
+}
+
+.register-input-wrap--select .register-input-icon {
+    position: static;
+    display: grid;
+    place-items: center;
+    width: auto;
+    height: auto;
+    align-self: center;
+    color: #94a3b8;
+}
+
+.register-field > .register-input-wrap--select > select,
+.register-input-wrap--select > select {
     width: 100%;
-    border: 1.5px dashed #cbd5e1;
-    border-radius: 4px;
-    background: var(--reg-surface);
-    padding: 8px 11px;
+    min-height: 46px;
+    padding: 10px 40px 10px 0;
+    border: none;
+    border-radius: 0;
+    background-color: transparent;
+    box-shadow: none;
+    outline: none;
     font: inherit;
-    font-size: 0.78rem;
-    color: #475569;
+    font-size: 0.88rem;
+    color: var(--reg-text);
     cursor: pointer;
+    appearance: none;
+    user-select: none;
+    -webkit-user-select: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
 }
 
-.register-file-field--compact {
-    grid-column: span 6;
-    max-width: 340px;
-    align-self: start;
+.register-field > .register-input-wrap--select > select:invalid.touched,
+.register-input-wrap--select > select:invalid.touched {
+    border: none;
+    box-shadow: none;
+    outline: none;
+}
+
+.register-field > .register-input-wrap--select > select:focus,
+.register-input-wrap--select > select:focus {
+    border: none;
+    box-shadow: none;
+    transform: none;
+    background-color: transparent;
+}
+
+.register-page .form select {
+    background: #fff;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 40px;
+}
+
+.register-page .form input:invalid.touched {
+    border-color: rgba(220, 38, 38, 0.75);
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08);
+}
+
+/* ── Register course custom select ── */
+.register-course-custom-select .custom-select-trigger {
+    min-height: 46px;
+    padding: 0 14px 0 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+}
+
+.register-course-custom-select .custom-select-trigger:hover {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+}
+
+.register-course-custom-select.is-open .custom-select-trigger {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+}
+
+.register-course-custom-select .custom-select-trigger:focus-visible {
+    outline: none;
+}
+
+.register-course-custom-select .custom-select-value {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--reg-text);
+}
+
+.register-course-custom-select.is-placeholder .custom-select-value {
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.register-course-custom-select .custom-select-caret {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--reg-blue-soft);
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.register-course-custom-select .custom-select-caret::before {
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--reg-blue);
+    border-bottom: 2px solid var(--reg-blue);
+    transform: rotate(45deg) translateY(-1px);
+    content: "";
+    display: block;
+}
+
+.register-course-custom-select.is-open .custom-select-caret {
+    transform: rotate(180deg);
+    background: rgba(10, 61, 143, 0.14);
+}
+
+.register-course-custom-select:not(.is-open) .custom-select-caret {
+    transform: rotate(0deg);
+    background: var(--reg-blue-soft);
+}
+
+.register-course-custom-select .custom-select-menu,
+.register-course-custom-select-menu {
+    max-height: 280px;
+    padding: 6px;
+    border: 1px solid rgba(10, 61, 143, 0.12);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow:
+        0 22px 50px rgba(7, 45, 107, 0.18),
+        0 8px 20px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(14px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-4px) scale(0.99);
+    transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
+}
+
+.register-course-custom-select-menu.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+}
+
+.register-course-custom-select-menu[hidden] {
+    display: none !important;
+}
+
+.register-course-custom-select-menu .custom-select-option {
+    min-height: 48px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    gap: 10px;
+    border: 1px solid transparent;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    text-align: left;
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+}
+
+.register-course-custom-select .custom-select-option {
+    min-height: 48px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    gap: 10px;
+    border: 1px solid transparent;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.register-course-custom-select-menu .custom-select-option:hover,
+.register-course-custom-select-menu .custom-select-option:focus-visible,
+.register-course-custom-select .custom-select-option:hover,
+.register-course-custom-select .custom-select-option:focus-visible {
+    background: var(--reg-blue-soft);
+    border-color: rgba(10, 61, 143, 0.08);
+    transform: translateX(2px);
+}
+
+.register-course-custom-select-menu .custom-select-option.is-selected,
+.register-course-custom-select .custom-select-option.is-selected {
+    background: linear-gradient(135deg, rgba(10, 61, 143, 0.12), rgba(26, 86, 184, 0.08));
+    border-color: rgba(10, 61, 143, 0.16);
+}
+
+.register-course-custom-select-menu .custom-select-option-dot,
+.register-course-custom-select .custom-select-option-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    flex-shrink: 0;
+}
+
+.register-course-custom-select-menu .custom-select-option.is-selected .custom-select-option-dot,
+.register-course-custom-select .custom-select-option.is-selected .custom-select-option-dot {
+    border-color: var(--reg-blue);
+    background: var(--reg-blue);
+    box-shadow: 0 0 0 3px rgba(10, 61, 143, 0.12);
+}
+
+.register-course-custom-select-menu .custom-select-option-label,
+.register-course-custom-select .custom-select-option-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.register-course-custom-select-menu .custom-select-option.is-selected .register-course-option-name,
+.register-course-custom-select .custom-select-option.is-selected .register-course-option-name {
+    color: var(--reg-blue-dark);
+}
+
+.register-course-option-code {
+    display: inline-flex;
+    align-self: flex-start;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--reg-blue-soft);
+    color: var(--reg-blue);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+.register-course-option-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.register-course-option-placeholder {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.register-page .btn-primary {
+    border-radius: 12px;
 }
 
 .register-page .field-check-message {
-    font-size: 0.72rem;
-    line-height: 1.25;
+    font-size: 0.74rem;
+    line-height: 1.3;
+}
+
+/* ── COR dropzone ── */
+.register-file-field {
+    grid-column: span 12;
+}
+
+.register-cor-dropzone {
+    position: relative;
+}
+
+.register-cor-dropzone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.register-cor-dropzone-inner {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 18px;
+    border-radius: 14px;
+    border: 1.5px dashed #cbd5e1;
+    background: linear-gradient(180deg, #fff 0%, var(--reg-surface) 100%);
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.register-cor-dropzone:hover .register-cor-dropzone-inner,
+.register-cor-dropzone.is-dragover .register-cor-dropzone-inner {
+    border-color: rgba(10, 61, 143, 0.45);
+    background: var(--reg-blue-soft);
+    box-shadow: 0 0 0 4px rgba(10, 61, 143, 0.06);
+}
+
+.register-cor-dropzone.has-file .register-cor-dropzone-inner {
+    border-style: solid;
+    border-color: rgba(22, 163, 74, 0.35);
+    background: linear-gradient(180deg, #f0fdf4 0%, #fff 100%);
+}
+
+.register-cor-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    background: var(--reg-blue-soft);
+    color: var(--reg-blue);
+}
+
+.register-cor-icon svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.register-cor-copy {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.register-cor-copy strong {
+    font-size: 0.86rem;
+    font-weight: 800;
+    color: var(--reg-text);
+}
+
+.register-cor-filename {
+    font-size: 0.78rem;
+    color: var(--reg-muted);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.register-cor-dropzone.has-file .register-cor-filename {
+    color: #15803d;
+}
+
+.register-cor-browse {
+    position: relative;
+    z-index: 3;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, var(--reg-blue-dark), var(--reg-blue));
+    color: #fff;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.register-cor-browse:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(10, 61, 143, 0.22);
+}
+
+.register-cor-clear {
+    position: relative;
+    z-index: 3;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.06);
+    color: #64748b;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.register-cor-clear:hover {
+    background: rgba(220, 38, 38, 0.1);
+    color: #dc2626;
 }
 
 .register-file-hint {
@@ -317,23 +1051,24 @@
 }
 
 .register-password-strength .password-gate-strength__track {
-    height: 4px;
+    height: 5px;
+    border-radius: 999px;
 }
 
 .register-password-strength .password-gate-strength__label {
-    font-size: 0.72rem;
+    font-size: 0.74rem;
 }
 
 .register-password-match {
     margin: 0;
-    font-size: 0.74rem;
+    font-size: 0.76rem;
     font-weight: 600;
     line-height: 1.3;
 }
 
 .register-form-actions {
-    margin-top: auto;
-    padding-top: 10px;
+    margin-top: 4px;
+    padding: 18px 0 12px;
     border-top: 1px solid var(--reg-border);
     display: flex;
     flex-direction: column;
@@ -343,30 +1078,48 @@
 }
 
 .register-submit {
-    width: auto;
-    min-width: 200px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: min(100%, 320px);
+    min-height: 48px;
     padding: 0 28px;
-    min-height: 40px;
     border: none;
-    border-radius: 4px;
-    background: linear-gradient(135deg, var(--reg-blue-dark) 0%, var(--reg-blue) 50%, var(--reg-blue-light) 100%);
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--reg-blue-dark) 0%, var(--reg-blue) 52%, var(--reg-blue-light) 100%);
     color: #fff;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: 800;
-    box-shadow: 0 8px 20px rgba(10, 61, 143, 0.22);
+    box-shadow: 0 12px 28px rgba(10, 61, 143, 0.28);
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .register-submit:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 12px 26px rgba(10, 61, 143, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 16px 34px rgba(10, 61, 143, 0.34);
+}
+
+.register-submit-icon {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 0.2s;
+}
+
+.register-submit:hover .register-submit-icon {
+    transform: translateX(3px);
 }
 
 .register-signin-link {
     margin: 0;
     text-align: center;
-    font-size: 0.8rem;
+    font-size: 0.84rem;
     color: var(--reg-muted);
     font-weight: 600;
 }
@@ -384,113 +1137,111 @@
 /* ── Success state ── */
 .register-success-panel {
     display: grid;
-    gap: 12px;
+    gap: 14px;
     text-align: center;
     margin: auto;
-    padding: 12px 8px;
-    max-width: 360px;
+    padding: 24px 12px;
+    max-width: 420px;
 }
 
 .register-success-icon {
-    width: 56px;
-    height: 56px;
+    width: 72px;
+    height: 72px;
     margin: 0 auto;
     border-radius: 50%;
     display: grid;
     place-items: center;
-    background: rgba(22, 163, 74, 0.1);
+    background: linear-gradient(135deg, rgba(22, 163, 74, 0.14), rgba(22, 163, 74, 0.06));
     color: #16a34a;
+    box-shadow: 0 0 0 8px rgba(22, 163, 74, 0.08);
 }
 
 .register-success-icon svg {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
 }
 
 .register-success-heading {
     margin: 0;
-    font-size: 1.3rem;
+    font-size: clamp(1.35rem, 2.5vw, 1.65rem);
     font-weight: 800;
     color: var(--reg-text);
+    letter-spacing: -0.03em;
 }
 
 .register-success-text {
     margin: 0;
     color: var(--reg-muted);
-    font-size: 0.88rem;
-    line-height: 1.55;
+    font-size: 0.92rem;
+    line-height: 1.6;
 }
 
 .register-countdown {
     margin: 0;
-    padding: 10px 14px;
-    border-radius: 4px;
-    background: #f0f7ff;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: var(--reg-blue-soft);
     border: 1px solid rgba(10, 61, 143, 0.12);
     color: var(--reg-blue);
-    font-size: 0.84rem;
+    font-size: 0.86rem;
     font-weight: 600;
 }
 
 .register-countdown strong {
-    font-size: 1rem;
+    font-size: 1.05rem;
     font-weight: 800;
 }
 
 .register-success-btn {
     width: 100%;
-    min-height: 42px;
-    border-radius: 4px;
+    min-height: 48px;
+    border-radius: 12px;
 }
 
 /* ── Short viewports ── */
-@media (max-height: 700px) {
-    .register-page {
-        height: auto;
-        min-height: 100dvh;
-        overflow: auto;
-    }
-
-    .register-shell {
-        height: auto;
-        min-height: 100dvh;
-    }
-
-    .register-card {
+@media (max-height: 760px) {
+    .register-body {
         max-height: none;
     }
 }
 
-/* ── Mobile ── */
-@media (max-width: 768px) {
-    .register-page {
-        height: auto;
-        min-height: 100dvh;
-        overflow: auto;
-    }
-
-    .register-shell {
-        height: auto;
-        min-height: 100dvh;
-        padding: 10px;
-    }
-
+/* ── Tablet / mobile ── */
+@media (max-width: 900px) {
     .register-card {
         grid-template-columns: 1fr;
-        max-height: none;
+        border-radius: 18px;
     }
 
     .register-aside {
-        padding: 16px;
-        gap: 12px;
+        padding: 20px 18px 18px;
+        gap: 16px;
     }
 
     .register-steps {
         margin-top: 0;
     }
 
+    .register-step:not(:last-child)::after {
+        display: none;
+    }
+
+    .register-aside-trust {
+        display: none;
+    }
+
     .register-body {
-        padding: 16px;
+        max-height: none;
+        padding: 22px 20px 20px;
+    }
+}
+
+@media (max-width: 640px) {
+    .register-shell {
+        padding: 12px;
+    }
+
+    .register-form-section {
+        padding: 14px;
     }
 
     .register-field--span-4,
@@ -499,15 +1250,48 @@
         grid-column: span 12;
     }
 
-    .register-field > input:not([type="file"]),
-    .register-field-inner > input:not([type="file"]) {
-        min-height: 44px;
+    .register-cor-dropzone-inner {
+        grid-template-columns: auto 1fr;
+        grid-template-rows: auto auto;
+    }
+
+    .register-cor-browse,
+    .register-cor-clear {
+        grid-column: span 1;
+    }
+
+    .register-cor-browse {
+        grid-column: 1 / -1;
+        width: 100%;
+    }
+
+    .register-cor-clear {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+    }
+
+    .register-field > .register-input-wrap > input:not([type="file"]),
+    .register-field-inner > .register-input-wrap > input:not([type="file"]),
+    .register-field > .register-input-wrap > select {
+        min-height: 48px;
         font-size: 16px;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .register-submit:hover {
+    .register-card,
+    .register-bg-glow {
+        animation: none;
+    }
+
+    .register-submit:hover,
+    .register-back-link:hover,
+    .register-cor-browse:hover {
+        transform: none;
+    }
+
+    .register-submit:hover .register-submit-icon {
         transform: none;
     }
 }

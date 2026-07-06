@@ -65,6 +65,7 @@ class StudentRegistrationRequest
     {
         $columns = [
             'middle_name' => 'VARCHAR(100) NULL AFTER first_name',
+            'program_id' => 'INT NULL AFTER student_no',
             'verification_token' => 'VARCHAR(64) NULL AFTER cor_file',
             'verification_expires_at' => 'DATETIME NULL AFTER verification_token',
             'email_verified_at' => 'DATETIME NULL AFTER verification_expires_at',
@@ -147,6 +148,7 @@ class StudentRegistrationRequest
         string $studentNo,
         string $passwordHash,
         string $corFile,
+        int $programId,
         ?string $middleName = null
     ): int {
         $this->ensureTable();
@@ -155,8 +157,8 @@ class StudentRegistrationRequest
         $middleName = trim((string)$middleName);
         $stmt = $this->db->prepare(
             'INSERT INTO student_registration_requests
-                (first_name, middle_name, last_name, email, student_no, password_hash, cor_file, verification_token, verification_expires_at, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                (first_name, middle_name, last_name, email, student_no, program_id, password_hash, cor_file, verification_token, verification_expires_at, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             trim($firstName),
@@ -164,6 +166,7 @@ class StudentRegistrationRequest
             trim($lastName),
             strtolower(trim($email)),
             trim($studentNo),
+            $programId,
             $passwordHash,
             $corFile,
             $token,
@@ -260,9 +263,11 @@ class StudentRegistrationRequest
         $this->ensureTable();
         $this->purgeExpiredUnverified();
         $stmt = $this->db->query(
-            "SELECT * FROM student_registration_requests
-             WHERE status IN ('pending_approval', 'pending')
-             ORDER BY COALESCE(email_verified_at, created_at) DESC"
+            "SELECT r.*, p.code AS program_code, p.name AS program_name
+             FROM student_registration_requests r
+             LEFT JOIN programs p ON p.id = r.program_id
+             WHERE r.status IN ('pending_approval', 'pending')
+             ORDER BY COALESCE(r.email_verified_at, r.created_at) DESC"
         );
         return $stmt->fetchAll();
     }

@@ -238,6 +238,12 @@ class AuthController extends BaseController
 
                 }
 
+                if ($middleName === '') {
+
+                    throw new RuntimeException('Middle name is required.');
+
+                }
+
                 if ($studentNo === '') {
 
                     throw new RuntimeException('Student ID/USN is required.');
@@ -280,6 +286,14 @@ class AuthController extends BaseController
 
                 }
 
+                $program = (new Program($this->db))->find((int)($_POST['program_id'] ?? 0));
+
+                if (!$program || (int)($program['is_active'] ?? 0) !== 1) {
+
+                    throw new RuntimeException('Select a valid course.');
+
+                }
+
 
 
                 $corPath = upload_cor($_FILES['cor_file'] ?? []);
@@ -297,6 +311,8 @@ class AuthController extends BaseController
                     password_hash($password, PASSWORD_DEFAULT),
 
                     $corPath,
+
+                    (int)$program['id'],
 
                     $middleName !== '' ? $middleName : null
 
@@ -391,6 +407,8 @@ class AuthController extends BaseController
 
 
         $submitted = isset($_GET['submitted']);
+
+        $programs = (new Program($this->db))->all(true);
 
         require __DIR__ . '/../views/shared/register.php';
 

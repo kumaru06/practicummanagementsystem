@@ -744,6 +744,11 @@ class AdminController extends BaseController
                 throw new RuntimeException('This Student ID/USN is already registered.');
             }
 
+            $program = (new Program($this->db))->find((int)($request['program_id'] ?? 0));
+            if (!$program) {
+                throw new RuntimeException('This registration has no valid course assigned.');
+            }
+
             $userId = (int)($request['user_id'] ?? 0);
             $this->db->beginTransaction();
 
@@ -774,10 +779,11 @@ class AdminController extends BaseController
             (new Student($this->db))->create(
                 $userId,
                 $request['student_no'],
-                'Unassigned',
+                $program['name'],
                 'TBD',
                 $request['cor_file'],
-                $coordinatorId
+                $coordinatorId,
+                (int)$program['id']
             );
             $model->markApproved($requestId, $coordinatorId, (int)current_user()['id']);
             $this->db->commit();
