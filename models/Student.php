@@ -23,6 +23,41 @@ class Student
         return $this->db->query('SELECT s.*, u.name, u.email, c.name coordinator_name FROM students s JOIN users u ON u.id = s.user_id LEFT JOIN users c ON c.id = s.coordinator_id ORDER BY u.name')->fetchAll();
     }
 
+    public function allForAdmin(): array
+    {
+        (new Company($this->db))->ensureMoaMouSupport();
+        $rows = $this->db->query(
+            'SELECT s.*, u.id AS user_id, u.first_name, u.middle_name, u.last_name, u.name, u.email, u.is_active,
+                    p.code program_code, p.required_hours program_required_hours,
+                    e.id enrollment_id, e.status deployment_status, e.predeployment_status,
+                    e.required_hours, e.orientation_datetime, e.orientation_notes,
+                    e.official_start_date, e.projected_end_date,
+                    COALESCE(SUM(CASE WHEN d.verification_status = "approved" THEN d.hours ELSE 0 END), 0) rendered_hours,
+                    pc.id company_id, pc.name company_name, pc.moa_mou_file company_moa_mou_file,
+                    coord.name coordinator_name
+             FROM students s
+             JOIN users u ON u.id = s.user_id
+             LEFT JOIN users coord ON coord.id = s.coordinator_id
+             LEFT JOIN programs p ON p.id = s.program_id
+             LEFT JOIN ojt_enrollments e ON e.student_id = s.id
+             LEFT JOIN daily_time_records d ON d.student_id = s.id
+             LEFT JOIN partner_companies pc ON pc.id = e.company_id
+             GROUP BY s.id, u.id, p.id, e.id, pc.id, coord.id
+             ORDER BY u.last_name ASC, u.first_name ASC, u.id DESC'
+        )->fetchAll();
+
+        $studentModel = new Student($this->db);
+        foreach ($rows as &$row) {
+            $row['predeployment_status'] = $studentModel->effectivePredeploymentStatus(
+                (int)$row['id'],
+                $row['predeployment_status'] ?? null
+            );
+        }
+        unset($row);
+
+        return $rows;
+    }
+
     public function find(int $id): ?array
     {
         $stmt = $this->db->prepare('SELECT s.*, u.name, u.email, u.is_active, c.name coordinator_name, c.email coordinator_email FROM students s JOIN users u ON u.id = s.user_id LEFT JOIN users c ON c.id = s.coordinator_id WHERE s.id = ?');

@@ -19,6 +19,7 @@
     initRegistrationBackLink();
     initRegistrationSuccessCountdown();
     initCoordinatorAvailability();
+    initCoordinatorDirectory();
     initPartnerAvailability();
     initCounters();
     initWizards();
@@ -47,8 +48,9 @@
     initMyStudentsDirectory();
     document.querySelector('#modal .modal-close')?.addEventListener('click', closeSlidePanel);
     document.addEventListener('click', handleOutsideMenus);
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeSlidePanel(); closeNotifications(); closeRequirementReviewModals(); closeRegistrationRequestsReview(); closeCustomSelects(); closeCustomDatePickers(); closeDtrTimePicker(); } });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeSlidePanel(); closeAdminActionMenus(); closeNotifications(); closeRequirementReviewModals(); closeRegistrationRequestsReview(); closeCustomSelects(); closeCustomDatePickers(); closeDtrTimePicker(); } });
     initStudentModal();
+    initAdminUserActions();
     renderDashboardCharts();
     initLiveChat();
 });
@@ -554,35 +556,13 @@ function initCapitalizeWordInputs() {
 }
 
 function initCoordinatorCardAlignment() {
-    const layout = document.querySelector('.coordinators-layout');
-    const createCard = document.querySelector('.coordinator-create-card');
-    const listCard = document.querySelector('.coordinator-list-card');
+    // Legacy no-op: coordinator page now uses stacked layout (form top, table below).
+}
 
-    if (!layout || !createCard || !listCard) return;
-
-    const syncHeights = () => {
-        listCard.style.height = '';
-        listCard.style.minHeight = '';
-
-        const isStackedLayout = window.innerWidth <= 1180;
-        if (isStackedLayout) return;
-
-        const createCardHeight = Math.ceil(createCard.getBoundingClientRect().height);
-        if (!createCardHeight) return;
-
-        listCard.style.height = `${createCardHeight}px`;
-        listCard.style.minHeight = `${createCardHeight}px`;
-    };
-
-    syncHeights();
-    window.addEventListener('resize', syncHeights);
-    window.addEventListener('load', syncHeights);
-
-    if (window.ResizeObserver) {
-        const observer = new ResizeObserver(() => syncHeights());
-        observer.observe(createCard);
-        observer.observe(layout);
-    }
+function initAdminDirectoryActions() {
+    document.querySelectorAll('.admin-users-page, .admin-coordinators-page').forEach(page => {
+        bindAdminDirectoryActions(page);
+    });
 }
 
 /* â”€â”€ Global shared calendar panel (escapes all overflow/transform ancestors) â”€â”€ */
@@ -3211,14 +3191,22 @@ function initRegistrationSuccessCountdown() {
 }
 
 function initRegisterCourseSelect() {
-    const select = document.querySelector('#studentRegisterForm select[name="program_id"]');
-    if (!select || select.dataset.enhanced !== '1') return;
+    document.querySelectorAll('#studentRegisterForm select[name="program_id"], #studentRegisterForm select[name="year_level"]').forEach(select => {
+        initRegisterPortalSelect(select);
+    });
+}
+
+function initRegisterPortalSelect(select) {
+    if (!select || select.dataset.enhanced !== '1' || select.dataset.registerPortalReady === '1') return;
 
     const wrap = select.closest('.register-input-wrap--select');
     const custom = wrap?.querySelector('.register-course-custom-select');
     const trigger = custom?.querySelector('.custom-select-trigger');
     const menu = custom?.querySelector('.custom-select-menu');
     if (!wrap || !custom || !trigger || !menu) return;
+
+    select.dataset.registerPortalReady = '1';
+    const isProgramSelect = select.name === 'program_id';
 
     wrap.classList.add('register-input-wrap--enhanced');
     menu.classList.add('register-course-custom-select-menu');
@@ -3239,6 +3227,10 @@ function initRegisterCourseSelect() {
                 label.innerHTML = `<span class="register-course-option-placeholder">${escapeHtml(text)}</span>`;
                 return;
             }
+            if (!isProgramSelect) {
+                label.dataset.registerUpgraded = '1';
+                return;
+            }
             const match = text.match(/^(.+?)\s*[—-]\s*(.+)$/);
             if (!match) return;
             label.dataset.registerUpgraded = '1';
@@ -3257,10 +3249,10 @@ function initRegisterCourseSelect() {
 
         menu.hidden = false;
         const rect = trigger.getBoundingClientRect();
-        const maxMenuHeight = 280;
+        const maxMenuHeight = isProgramSelect ? 280 : 160;
         const spaceBelow = window.innerHeight - rect.bottom - 12;
         const spaceAbove = rect.top - 12;
-        const openUp = spaceBelow < 180 && spaceAbove > spaceBelow;
+        const openUp = spaceBelow < 120 && spaceAbove > spaceBelow;
 
         menu.style.position = 'fixed';
         menu.style.left = `${Math.round(rect.left)}px`;
@@ -3333,7 +3325,7 @@ function initStudentRegistrationAvailability() {
 }
 
 function initCoordinatorAvailability() {
-    const createForm = document.querySelector('.coordinator-create-form');
+    const createForm = document.querySelector('.coordinator-create-form, .aco-create-form');
     if (!createForm) return;
 
     const idInput = createForm.querySelector('input[name="id_number"][data-coordinator-id-check]');
@@ -3814,7 +3806,7 @@ function attachRowDetails(table) {
         if (row.dataset.detailReady) return;
         row.dataset.detailReady = '1';
         row.addEventListener('click', e => {
-            if (e.target.closest('a,button,form,input,select,textarea')) return;
+            if (e.target.closest('a,button,form,input,select,textarea,summary,details,.admin-user-action-menu,.admin-user-action-panel')) return;
             const headers = [...table.tHead.rows[0].cells].map(th => th.innerText.trim());
             let extraFields = [];
             if (row.dataset.idNumber) {
@@ -3858,6 +3850,23 @@ function openSlidePanel(html) {
 function closeSlidePanel() {
     document.getElementById('modal')?.classList.remove('open');
     document.getElementById('studentModal')?.classList.remove('open');
+}
+
+function closeAdminActionMenus() {
+    document.querySelectorAll('.admin-user-action-menu[open], .admin-user-action-submenu[open], .admin-user-action-other[open]').forEach(menu => {
+        menu.removeAttribute('open');
+        const panel = menu.classList.contains('admin-user-action-menu')
+            ? menu.querySelector(':scope > .admin-user-action-panel')
+            : null;
+        if (panel) {
+            panel.classList.remove('is-fixed-panel');
+            panel.style.top = '';
+            panel.style.left = '';
+            panel.style.right = '';
+            panel.style.bottom = '';
+            panel.style.width = '';
+        }
+    });
 }
 function escapeHtml(value) {
     return String(value).replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#039;', '"': '&quot;' }[c]));
@@ -4541,7 +4550,7 @@ function initRegistrationRequestsReview() {
 
     root.querySelector('[data-reg-decline]')?.addEventListener('click', async e => {
         e.preventDefault();
-        const confirmed = await showConfirmModal('Decline this registration request?', {
+        const confirmed = await showConfirmModal('Decline this student account request?', {
             title: 'Decline registration',
             confirmText: 'Yes, decline',
             cancelText: 'Cancel',
@@ -4786,6 +4795,11 @@ function initStudentModal() {
         const btn = e.target.closest('.student-view-btn');
         if (!btn) return;
 
+        e.preventDefault();
+        e.stopPropagation();
+
+        closeSlidePanel();
+        closeAdminActionMenus();
         closeRequirementReviewModals();
 
         const d = btn.dataset;
@@ -4839,6 +4853,20 @@ function initStudentModal() {
         const finalLink = document.getElementById('sm-final-link');
         if (finalLink && d.finalUrl) finalLink.href = d.finalUrl;
 
+        const coordinatorEl = document.getElementById('sm-coordinator');
+        const coordinatorField = document.querySelector('.admin-only-profile-field');
+        if (coordinatorEl && d.coordinator) {
+            coordinatorEl.textContent = d.coordinator;
+            coordinatorField?.classList.remove('is-hidden');
+        } else {
+            coordinatorField?.classList.add('is-hidden');
+        }
+
+        const adminProfileFooter = document.querySelector('.admin-users-profile-footer');
+        if (adminProfileFooter) {
+            adminProfileFooter.classList.toggle('is-hidden', !document.querySelector('.admin-users-page'));
+        }
+
         const corLink = document.getElementById('sm-cor-link');
         if (corLink) {
             if (d.cor && d.cor.trim() !== '') {
@@ -4860,13 +4888,18 @@ function initStudentModal() {
         }
 
         // Edit email form
-        document.getElementById('sm-email-csrf').value    = d.csrf || '';
-        document.getElementById('sm-email-user-id').value = d.userId || '';
-        document.getElementById('sm-email-input').value   = d.email || '';
+        const emailCsrf = document.getElementById('sm-email-csrf');
+        if (emailCsrf) emailCsrf.value = d.csrf || '';
+        const emailUserId = document.getElementById('sm-email-user-id');
+        if (emailUserId) emailUserId.value = d.userId || '';
+        const emailInput = document.getElementById('sm-email-input');
+        if (emailInput) emailInput.value = d.email || '';
 
         // Reset form
-        document.getElementById('sm-csrf').value       = d.csrf || '';
-        document.getElementById('sm-student-id').value = d.studentId || '';
+        const resetCsrf = document.getElementById('sm-csrf');
+        if (resetCsrf) resetCsrf.value = d.csrf || '';
+        const resetStudentId = document.getElementById('sm-student-id');
+        if (resetStudentId) resetStudentId.value = d.studentId || '';
 
         modal.classList.add('open');
     });
@@ -4881,6 +4914,189 @@ function initStudentModal() {
             setTimeout(() => targetButton.click(), 120);
         }
     }
+}
+
+function initAdminUserActions() {
+    initAdminDirectoryActions();
+}
+
+function bindAdminDirectoryActions(page) {
+    if (!page || page.dataset.adminActionsBound === '1') return;
+    page.dataset.adminActionsBound = '1';
+
+    const resetActionPanel = panel => {
+        if (!panel) return;
+        panel.classList.remove('is-fixed-panel');
+        panel.style.top = '';
+        panel.style.left = '';
+        panel.style.right = '';
+        panel.style.bottom = '';
+        panel.style.width = '';
+    };
+
+    const positionActionPanel = menu => {
+        if (!menu?.classList.contains('admin-user-action-menu')) return;
+        const panel = menu.querySelector(':scope > .admin-user-action-panel');
+        const trigger = menu.querySelector('.admin-user-action-trigger');
+        if (!panel || !trigger) return;
+
+        if (!menu.open) {
+            resetActionPanel(panel);
+            return;
+        }
+
+        panel.classList.add('is-fixed-panel');
+        const panelWidth = panel.offsetWidth || 210;
+        const panelHeight = panel.offsetHeight || 1;
+        const rect = trigger.getBoundingClientRect();
+        let left = rect.right - panelWidth;
+        left = Math.max(8, Math.min(left, window.innerWidth - panelWidth - 8));
+        let top = rect.bottom + 6;
+        if (top + panelHeight > window.innerHeight - 8) {
+            top = rect.top - panelHeight - 6;
+        }
+        top = Math.max(8, top);
+        panel.style.left = `${left}px`;
+        panel.style.top = `${top}px`;
+        panel.style.right = 'auto';
+    };
+
+    const repositionOpenMenus = () => {
+        page.querySelectorAll('.admin-user-action-menu[open]').forEach(positionActionPanel);
+    };
+
+    const resetNestedMenus = root => {
+        root.querySelectorAll('.admin-user-action-submenu[open], .admin-user-action-other[open]').forEach(menu => {
+            menu.removeAttribute('open');
+        });
+    };
+
+    const closeAllActionMenus = except => {
+        page.querySelectorAll('.admin-user-action-menu').forEach(menu => {
+            if (menu !== except) {
+                menu.removeAttribute('open');
+                resetActionPanel(menu.querySelector(':scope > .admin-user-action-panel'));
+            }
+            resetNestedMenus(menu);
+        });
+    };
+
+    page.addEventListener('toggle', event => {
+        const menu = event.target.closest('.admin-user-action-menu, .admin-user-action-submenu, .admin-user-action-other');
+        if (!menu) return;
+
+        if (!menu.open) {
+            if (menu.classList.contains('admin-user-action-menu')) {
+                resetActionPanel(menu.querySelector(':scope > .admin-user-action-panel'));
+            }
+            resetNestedMenus(menu);
+            return;
+        }
+
+        if (menu.classList.contains('admin-user-action-menu')) {
+            closeAllActionMenus(menu);
+            resetNestedMenus(menu);
+            positionActionPanel(menu);
+            requestAnimationFrame(() => positionActionPanel(menu));
+            return;
+        }
+
+        const panel = menu.closest('.admin-user-action-panel');
+        if (panel) {
+            panel.querySelectorAll('.admin-user-action-submenu[open], .admin-user-action-other[open]').forEach(sibling => {
+                if (sibling !== menu) sibling.removeAttribute('open');
+            });
+        }
+    }, true);
+
+    window.addEventListener('resize', repositionOpenMenus);
+    window.addEventListener('scroll', repositionOpenMenus, true);
+
+    page.addEventListener('click', event => {
+        if (event.target.closest('.pagination button, .pagination a')) {
+            closeAllActionMenus();
+        }
+    });
+
+    const directoryTable = page.querySelector('.aco-coordinators-table, .asu-students-table');
+    if (directoryTable?._rerender && !directoryTable.dataset.actionMenusHooked) {
+        directoryTable.dataset.actionMenusHooked = '1';
+        const originalRerender = directoryTable._rerender;
+        directoryTable._rerender = function rerenderWithActionReset(...args) {
+            closeAllActionMenus();
+            return originalRerender.apply(this, args);
+        };
+    }
+
+    document.addEventListener('click', event => {
+        if (event.target.closest('.student-view-btn')) {
+            return;
+        }
+        if (!event.target.closest('.admin-user-action-menu')) {
+            closeAllActionMenus();
+        }
+    });
+
+    page.addEventListener('submit', async event => {
+        const form = event.target.closest('.admin-deactivate-form, .admin-activate-form');
+        if (!form) return;
+        event.preventDefault();
+
+        const isDeactivate = form.classList.contains('admin-deactivate-form');
+        const submitBtn = form.querySelector('[type="submit"]');
+        const reasonLabel = submitBtn?.dataset.reasonLabel
+            || form.querySelector('[name="reason"]')?.value
+            || 'this student';
+        const studentRow = form.closest('tr');
+        const studentName = studentRow?.querySelector('.user-name-cell span:last-child')?.textContent?.trim() || 'this student';
+        const notes = form.querySelector('[name="notes"]')?.value?.trim() || '';
+
+        let message = isDeactivate
+            ? `Deactivate ${studentName}'s account?\n\nReason: ${reasonLabel}${notes ? `\nDetails: ${notes}` : ''}\n\nThe student will be notified by email.`
+            : `Reactivate ${studentName}'s account? They will be able to sign in again.`;
+
+        const confirmed = await showConfirmModal(message, {
+            title: isDeactivate ? 'Deactivate student' : 'Activate student',
+            confirmText: isDeactivate ? 'Deactivate' : 'Activate',
+            variant: isDeactivate ? 'danger' : 'default',
+        });
+
+        if (confirmed) form.submit();
+    });
+}
+
+function initCoordinatorDirectory() {
+    document.querySelectorAll('[data-coordinator-directory]').forEach(directory => {
+        const table = directory.querySelector('.aco-coordinators-table');
+        const pills = directory.querySelectorAll('[data-coordinator-filter]');
+        const search = directory.querySelector('.table-search');
+        if (!table || !pills.length) return;
+
+        let statusFilter = 'all';
+        const applyFilter = () => {
+            table._applyRowFilter = row => {
+                if (statusFilter === 'all') return true;
+                return row.dataset.coordinatorStatus === statusFilter;
+            };
+            search?.dispatchEvent(new Event('input'));
+        };
+
+        table._resetDirectoryFilters = () => {
+            statusFilter = 'all';
+            pills.forEach(p => p.classList.toggle('is-active', (p.dataset.coordinatorFilter || 'all') === 'all'));
+            table._applyRowFilter = null;
+        };
+
+        pills.forEach(pill => {
+            pill.addEventListener('click', () => {
+                statusFilter = pill.dataset.coordinatorFilter || 'all';
+                pills.forEach(p => p.classList.toggle('is-active', p === pill));
+                applyFilter();
+            });
+        });
+
+        requestAnimationFrame(applyFilter);
+    });
 }
 
 function initEnrollmentDirectory() {

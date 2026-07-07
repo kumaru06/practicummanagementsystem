@@ -4,6 +4,7 @@ class User
     private ?bool $coordinatorIdNumberReady = null;
     private ?bool $coordinatorSignatureReady = null;
     private ?bool $namePartsReady = null;
+    private ?bool $deactivationReady = null;
 
     public function __construct(private PDO $db) {}
 
@@ -267,8 +268,58 @@ class User
 
     public function setActive(int $id, int $active): void
     {
-        $stmt = $this->db->prepare('UPDATE users SET is_active = ? WHERE id = ?');
-        $stmt->execute([$active, $id]);
+        $this->ensureDeactivationSupport();
+        if ($active) {
+            $stmt = $this->db->prepare(
+                'UPDATE users SET is_active = 1, deactivation_reason = NULL, deactivation_notes = NULL, deactivated_at = NULL WHERE id = ?'
+            );
+            $stmt->execute([$id]);
+            return;
+        }
+
+        $stmt = $this->db->prepare('UPDATE users SET is_active = 0 WHERE id = ?');
+        $stmt->execute([$id]);
+    }
+
+    public function deactivate(int $id, string $reason, ?string $notes = null): void
+    {
+        $this->ensureDeactivationSupport();
+        $allowed = ['dropped', 'complete_ojt', 'failed', 'other'];
+        if (!in_array($reason, $allowed, true)) {
+            throw new RuntimeException('Invalid deactivation reason.');
+        }
+        if ($reason === 'other' && trim((string)$notes) === '') {
+            throw new RuntimeException('Please provide details for the deactivation reason.');
+        }
+
+        $stmt = $this->db->prepare(
+            'UPDATE users SET is_active = 0, deactivation_reason = ?, deactivation_notes = ?, deactivated_at = NOW() WHERE id = ?'
+        );
+        $stmt->execute([
+            $reason,
+            $reason === 'other' ? trim((string)$notes) : null,
+            $id,
+        ]);
+    }
+
+    public function ensureDeactivationSupport(): void
+    {
+        if ($this->deactivationReady === true) {
+            return;
+        }
+
+        foreach ([
+            'deactivation_reason' => "VARCHAR(40) NULL AFTER is_active",
+            'deactivation_notes' => 'TEXT NULL AFTER deactivation_reason',
+            'deactivated_at' => 'DATETIME NULL AFTER deactivation_notes',
+        ] as $column => $definition) {
+            $stmt = $this->db->query("SHOW COLUMNS FROM users LIKE '{$column}'");
+            if (!$stmt->fetch()) {
+                $this->db->exec("ALTER TABLE users ADD COLUMN {$column} {$definition}");
+            }
+        }
+
+        $this->deactivationReady = true;
     }
 
     public function updatePassword(int $id, string $password, int $passwordChanged = 1): void

@@ -7,7 +7,7 @@
     <link rel="icon" type="image/jpeg" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600;1,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260703-register">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/register.css')) ?>?v=20260706-register-v18">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/register.css')) ?>?v=20260706-register-v19">
 </head>
 <body class="register-page" data-app-base="<?= e(app_base_path()) ?>">
     <div class="register-bg" aria-hidden="true">
@@ -140,9 +140,9 @@
                                         </span>
                                     </label>
                                     <label class="register-field register-field--span-4">
-                                        <span class="register-field-label">Middle Name <span class="register-required" aria-hidden="true">*</span></span>
+                                        <span class="register-field-label">Middle Name</span>
                                         <span class="register-input-wrap">
-                                            <input required type="text" name="middle_name" autocomplete="additional-name" placeholder="Enter your middle name" value="<?= e($_POST['middle_name'] ?? '') ?>">
+                                            <input type="text" name="middle_name" autocomplete="additional-name" placeholder="Enter your middle name" value="<?= e($_POST['middle_name'] ?? '') ?>">
                                         </span>
                                     </label>
                                     <label class="register-field register-field--span-4">
@@ -173,17 +173,30 @@
                                         <span class="field-check-message" data-email-message aria-live="polite"></span>
                                     </label>
 
-                                    <label class="register-field register-field--span-12">
-                                        <span class="register-field-label">Course <span class="register-required" aria-hidden="true">*</span></span>
+                                    <label class="register-field register-field--span-6">
+                                        <span class="register-field-label">Program <span class="register-required" aria-hidden="true">*</span></span>
                                         <span class="register-input-wrap register-input-wrap--select">
                                             <span class="register-input-icon" aria-hidden="true">
                                                 <svg viewBox="0 0 24 24"><path d="M4.5 7.5h15M4.5 7.5A2.25 2.25 0 0 1 6.75 5.25h10.5A2.25 2.25 0 0 1 19.5 7.5v9A2.25 2.25 0 0 1 17.25 18.75H6.75A2.25 2.25 0 0 1 4.5 16.5v-9Z"/><path d="M8.25 10.5h7.5M8.25 13.5h4.5"/></svg>
                                             </span>
-                                            <select required name="program_id" data-select-label="Course">
-                                                <option value="">Select your course</option>
+                                            <select required name="program_id" data-select-label="Program">
+                                                <option value="">Select your program</option>
                                                 <?php foreach ($programs ?? [] as $program): ?>
                                                     <option value="<?= (int)$program['id'] ?>" <?= (int)($_POST['program_id'] ?? 0) === (int)$program['id'] ? 'selected' : '' ?>><?= e($program['code'] . ' — ' . $program['name']) ?></option>
                                                 <?php endforeach; ?>
+                                            </select>
+                                        </span>
+                                    </label>
+                                    <label class="register-field register-field--span-6">
+                                        <span class="register-field-label">Year Level <span class="register-required" aria-hidden="true">*</span></span>
+                                        <span class="register-input-wrap register-input-wrap--select">
+                                            <span class="register-input-icon" aria-hidden="true">
+                                                <svg viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 8-4v6h2V8L12 3Zm-6 9v4c2 3 10 3 12 0v-4l-6 3-6-3Z"/></svg>
+                                            </span>
+                                            <select required name="year_level" data-select-label="Year Level">
+                                                <option value="">Select year level</option>
+                                                <option value="3rd Year" <?= ($_POST['year_level'] ?? '') === '3rd Year' ? 'selected' : '' ?>>3rd Year</option>
+                                                <option value="4th Year" <?= ($_POST['year_level'] ?? '') === '4th Year' ? 'selected' : '' ?>>4th Year</option>
                                             </select>
                                         </span>
                                     </label>
@@ -240,7 +253,7 @@
                                         <svg viewBox="0 0 24 24"><path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
                                     </span>
                                     <div>
-                                        <h3 id="regSectionDocs" class="register-section-title">Certificate of Registration</h3>
+                                        <h3 id="regSectionDocs" class="register-section-title">Certificate of Registration <span class="register-required" aria-hidden="true">*</span></h3>
                                         <p class="register-section-desc">Upload your current COR document</p>
                                     </div>
                                 </div>
@@ -278,6 +291,6 @@
             </div>
         </main>
     </div>
-<script src="<?= e(asset('assets/js/main.js')) ?>?v=20260706-register-v10"></script>
+<script src="<?= e(asset('assets/js/main.js')) ?>?v=20260706-register-v11"></script>
 </body>
 </html>

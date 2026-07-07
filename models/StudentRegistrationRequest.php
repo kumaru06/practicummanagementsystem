@@ -66,6 +66,7 @@ class StudentRegistrationRequest
         $columns = [
             'middle_name' => 'VARCHAR(100) NULL AFTER first_name',
             'program_id' => 'INT NULL AFTER student_no',
+            'year_level' => "VARCHAR(40) NULL AFTER program_id",
             'verification_token' => 'VARCHAR(64) NULL AFTER cor_file',
             'verification_expires_at' => 'DATETIME NULL AFTER verification_token',
             'email_verified_at' => 'DATETIME NULL AFTER verification_expires_at',
@@ -149,16 +150,21 @@ class StudentRegistrationRequest
         string $passwordHash,
         string $corFile,
         int $programId,
+        string $yearLevel,
         ?string $middleName = null
     ): int {
         $this->ensureTable();
+        $yearLevel = trim($yearLevel);
+        if (!in_array($yearLevel, ['3rd Year', '4th Year'], true)) {
+            throw new RuntimeException('Select a valid year level.');
+        }
         $token = bin2hex(random_bytes(32));
         $expiresAt = date('Y-m-d H:i:s', time() + (self::VERIFICATION_HOURS * 3600));
         $middleName = trim((string)$middleName);
         $stmt = $this->db->prepare(
             'INSERT INTO student_registration_requests
-                (first_name, middle_name, last_name, email, student_no, program_id, password_hash, cor_file, verification_token, verification_expires_at, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                (first_name, middle_name, last_name, email, student_no, program_id, year_level, password_hash, cor_file, verification_token, verification_expires_at, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             trim($firstName),
@@ -167,6 +173,7 @@ class StudentRegistrationRequest
             strtolower(trim($email)),
             trim($studentNo),
             $programId,
+            $yearLevel,
             $passwordHash,
             $corFile,
             $token,

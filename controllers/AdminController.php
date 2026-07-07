@@ -169,7 +169,7 @@ class AdminController extends BaseController
         require_role('admin');
         $this->render('admin/users', [
             'title' => 'Manage Student',
-            'allUsers' => (new User($this->db))->allStudents(),
+            'students' => (new Student($this->db))->allForAdmin(),
         ]);
     }
 
@@ -696,12 +696,75 @@ class AdminController extends BaseController
         redirect('index.php?r=' . $back);
     }
 
+    public function deactivateStudent(): void
+    {
+        require_role('admin');
+        $p = $this->post();
+        $userId = (int)($p['user_id'] ?? 0);
+        $reason = trim((string)($p['reason'] ?? ''));
+        $notes = trim((string)($p['notes'] ?? ''));
+
+        try {
+            if ($userId <= 0) {
+                throw new RuntimeException('Invalid student account.');
+            }
+            if ((int)$userId === (int)current_user()['id']) {
+                throw new RuntimeException('You cannot deactivate your own account.');
+            }
+
+            $target = (new User($this->db))->findWithDetails($userId);
+            if (!$target || ($target['role'] ?? '') !== 'student') {
+                throw new RuntimeException('Student account not found.');
+            }
+            if (!(int)($target['is_active'] ?? 0)) {
+                throw new RuntimeException('This student account is already inactive.');
+            }
+
+            (new User($this->db))->deactivate($userId, $reason, $notes);
+
+            $reasonLabels = [
+                'dropped' => 'Dropped',
+                'complete_ojt' => 'Complete OJT',
+                'failed' => 'Failed',
+                'other' => 'Other',
+            ];
+            $reasonLabel = $reasonLabels[$reason] ?? ucwords(str_replace('_', ' ', $reason));
+            if ($reason === 'other' && $notes !== '') {
+                $reasonLabel .= ' — ' . $notes;
+            }
+
+            $sent = (new Email($this->db))->send(
+                (string)$target['email'],
+                'Your AMA Practicum Portal Account Has Been Deactivated',
+                'account_deactivated',
+                'account_deactivated',
+                [
+                    'studentName' => $target['name'],
+                    'reasonLabel' => $reasonLabel,
+                    'supportEmail' => MAIL_FROM_EMAIL,
+                ]
+            );
+
+            $message = 'Student account deactivated.';
+            if ($sent) {
+                $message .= ' A notification was sent to ' . $target['email'] . '.';
+            } else {
+                $message .= ' Email notification could not be sent — check Email Logs.';
+            }
+            flash($sent ? 'success' : 'error', $message);
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+
+        redirect('index.php?r=admin_users');
+    }
+
     public function registrationRequests(): void
     {
         require_role('admin');
         $model = new StudentRegistrationRequest($this->db);
         $this->render('admin/registration_requests', [
-            'title' => 'Registration Requests',
+            'title' => 'Student Account Requests',
             'requests' => $model->allPendingApproval(),
             'coordinators' => (new User($this->db))->byRole('coordinator'),
         ]);
@@ -723,7 +786,7 @@ class AdminController extends BaseController
 
             if ($decision === 'decline') {
                 $model->deleteRequest($requestId);
-                flash('success', 'Registration request declined and removed.');
+                flash('success', 'Student account request declined and removed.');
                 redirect('index.php?r=admin_registration_requests');
             }
 
@@ -746,7 +809,12 @@ class AdminController extends BaseController
 
             $program = (new Program($this->db))->find((int)($request['program_id'] ?? 0));
             if (!$program) {
-                throw new RuntimeException('This registration has no valid course assigned.');
+                throw new RuntimeException('This registration has no valid program assigned.');
+            }
+
+            $yearLevel = trim((string)($request['year_level'] ?? ''));
+            if (!in_array($yearLevel, ['3rd Year', '4th Year'], true)) {
+                $yearLevel = 'TBD';
             }
 
             $userId = (int)($request['user_id'] ?? 0);
@@ -780,7 +848,7 @@ class AdminController extends BaseController
                 $userId,
                 $request['student_no'],
                 $program['name'],
-                'TBD',
+                $yearLevel,
                 $request['cor_file'],
                 $coordinatorId,
                 (int)$program['id']

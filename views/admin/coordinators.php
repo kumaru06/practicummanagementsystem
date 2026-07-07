@@ -1,227 +1,293 @@
 <?php
+$coordinators = $coordinators ?? [];
 $totalCoordinators = count($coordinators);
 $activeCoordinators = count(array_filter($coordinators, static fn ($c) => (int)($c['is_active'] ?? 0) === 1));
 $inactiveCoordinators = $totalCoordinators - $activeCoordinators;
+$signedCoordinators = count(array_filter($coordinators, static fn ($c) => !empty($c['signature_file'])));
 ?>
+<div class="admin-coordinators-v2">
+    <nav class="aco-breadcrumb" aria-label="Breadcrumb">
+        <a href="index.php?r=admin">Dashboard</a>
+        <span class="aco-breadcrumb-sep" aria-hidden="true">&rsaquo;</span>
+        <span aria-current="page">Manage Coordinators</span>
+    </nav>
 
-<div class="partner-page coordinator-page">
-
-    <div class="partner-page-intro">
-        <div class="partner-page-intro-copy">
-            <p class="partner-page-eyebrow">Coordinator Management</p>
-            <p class="partner-page-desc">Create OJT coordinator accounts, manage access credentials, and maintain signature files for endorsement letters.</p>
-        </div>
-    </div>
-
-    <div class="partner-stats-strip coordinator-stats-strip">
-        <div class="partner-stat-card partner-stat-total">
-            <div class="partner-stat-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    <div class="aco-stats-strip">
+        <article class="aco-stat-card aco-stat-total">
+            <div class="aco-stat-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
             </div>
-            <div class="partner-stat-body">
-                <span>Coordinators</span>
-                <strong><?= (int)$totalCoordinators ?></strong>
+            <div class="aco-stat-body">
+                <span>Total Coordinators</span>
+                <strong><?= $totalCoordinators ?></strong>
             </div>
-        </div>
-        <div class="partner-stat-card partner-stat-active">
-            <div class="partner-stat-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </article>
+        <article class="aco-stat-card aco-stat-active">
+            <div class="aco-stat-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 11-2-2 1.41-1.41L10 11.17l3.59-3.59L15 9l-5 5z"/></svg>
             </div>
-            <div class="partner-stat-body">
-                <span>Active</span>
-                <strong><?= (int)$activeCoordinators ?></strong>
+            <div class="aco-stat-body">
+                <span>Active Accounts</span>
+                <strong><?= $activeCoordinators ?></strong>
             </div>
-        </div>
-        <div class="partner-stat-card partner-stat-inactive">
-            <div class="partner-stat-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        </article>
+        <article class="aco-stat-card aco-stat-inactive">
+            <div class="aco-stat-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8 0-1.85.63-3.55 1.69-4.9L16.9 18.31C15.55 19.37 13.85 20 12 20zm6.31-3.1L7.1 5.69C8.45 4.63 10.15 4 12 4c4.42 0 8 3.58 8 8 0 1.85-.63 3.55-1.69 4.9z"/></svg>
             </div>
-            <div class="partner-stat-body">
+            <div class="aco-stat-body">
                 <span>Inactive</span>
-                <strong><?= (int)$inactiveCoordinators ?></strong>
+                <strong><?= $inactiveCoordinators ?></strong>
             </div>
-        </div>
+        </article>
+        <article class="aco-stat-card aco-stat-signed">
+            <div class="aco-stat-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"/></svg>
+            </div>
+            <div class="aco-stat-body">
+                <span>With Signature</span>
+                <strong><?= $signedCoordinators ?></strong>
+            </div>
+        </article>
     </div>
 
-    <div class="partner-admin-layout coordinators-layout">
+    <details class="aco-create-panel" open>
+        <summary class="aco-create-panel-toggle">
+            <span class="aco-create-panel-toggle-main">
+                <span class="aco-create-panel-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                </span>
+                <span class="aco-create-panel-copy">
+                    <strong>Create OJT Coordinator</strong>
+                    <span>Provision access, assign department, and upload endorsement signature.</span>
+                </span>
+            </span>
+            <span class="aco-create-panel-chevron" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+            </span>
+        </summary>
 
-        <section class="partner-panel coordinator-create-card">
-            <div class="partner-panel-head">
-                <div class="partner-icon-wrap partner-icon-wrap--add">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-                </div>
-                <div class="partner-panel-head-text">
-                    <h2>Create OJT Coordinator</h2>
-                    <p>Provision coordinator access with secure credentials.</p>
-                </div>
-            </div>
-
-            <form method="post" enctype="multipart/form-data" class="form js-validate coordinator-create-form">
+        <div class="aco-create-panel-body">
+            <form method="post" enctype="multipart/form-data" class="form js-validate aco-create-form">
                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="action" value="admin_create_coordinator">
 
-                <div class="partner-form-section">
-                    <div class="partner-form-section-head">Account Details</div>
-                    <div class="coordinator-form-rows">
-                        <div class="coordinator-form-row">
-                            <label class="partner-field">
-                                <span class="partner-field-label">ID Number <em>*</em></span>
-                                <input required name="id_number" autocomplete="off" placeholder="e.g. 20240001"
-                                    inputmode="numeric" pattern="[0-9]+"
-                                    title="ID Number must contain digits only"
-                                    oninput="this.value=this.value.replace(/[^0-9]/g,'')"
-                                    data-coordinator-id-check>
-                                <span class="field-check-message" data-coordinator-id-message hidden aria-live="polite"></span>
-                            </label>
-                            <label class="partner-field">
-                                <span class="partner-field-label">First Name <em>*</em></span>
-                                <input required name="first_name" autocomplete="given-name" placeholder="e.g. Maria"
-                                    data-capitalize-words
-                                    pattern="[A-Za-z\s\-\.]+"
-                                    title="First name must contain letters only">
-                                <span class="field-check-message field-check-message--reserve" aria-hidden="true"></span>
-                            </label>
-                            <label class="partner-field">
-                                <span class="partner-field-label">Last Name <em>*</em></span>
-                                <input required name="last_name" autocomplete="family-name" placeholder="e.g. Santos"
-                                    data-capitalize-words
-                                    pattern="[A-Za-z\s\-\.]+"
-                                    title="Last name must contain letters only">
-                                <span class="field-check-message field-check-message--reserve" aria-hidden="true"></span>
-                            </label>
-                        </div>
-                        <div class="coordinator-form-row">
-                            <label class="partner-field">
-                                <span class="partner-field-label">Email <em>*</em></span>
-                                <input required type="email" name="email" autocomplete="email" placeholder="coordinator@ama.edu.ph"
-                                    pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
-                                    title="Please enter a valid email address"
-                                    data-coordinator-email-check>
-                                <span class="field-check-message" data-coordinator-email-message hidden aria-live="polite"></span>
-                            </label>
-                            <label class="partner-field">
-                                <span class="partner-field-label">Department <em>*</em></span>
-                                <input required name="department" value="OJT Department" autocomplete="organization">
-                                <span class="field-check-message field-check-message--reserve" aria-hidden="true"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <label class="partner-field partner-field--full coordinator-upload-field">
-                        <span class="partner-field-label">Signature <em>*</em></span>
-                        <input type="file" name="signature_file" accept="image/png,image/jpeg" required>
-                        <span class="hint muted">PNG or JPG, max 2MB. Appears above the name on endorsement letters. A transparent PNG looks best.</span>
+                <div class="aco-form-grid">
+                    <label class="aco-field">
+                        <span class="aco-field-label">ID Number <em>*</em></span>
+                        <input required name="id_number" autocomplete="off" placeholder="e.g. 20240001"
+                            inputmode="numeric" pattern="[0-9]+"
+                            title="ID Number must contain digits only"
+                            oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                            data-coordinator-id-check>
+                        <span class="field-check-message" data-coordinator-id-message hidden aria-live="polite"></span>
                     </label>
+                    <label class="aco-field">
+                        <span class="aco-field-label">First Name <em>*</em></span>
+                        <input required name="first_name" autocomplete="given-name" placeholder="e.g. Maria"
+                            data-capitalize-words pattern="[A-Za-z\s\-\.]+" title="First name must contain letters only">
+                    </label>
+                    <label class="aco-field">
+                        <span class="aco-field-label">Last Name <em>*</em></span>
+                        <input required name="last_name" autocomplete="family-name" placeholder="e.g. Santos"
+                            data-capitalize-words pattern="[A-Za-z\s\-\.]+" title="Last name must contain letters only">
+                    </label>
+                    <label class="aco-field">
+                        <span class="aco-field-label">Email <em>*</em></span>
+                        <input required type="email" name="email" autocomplete="email" placeholder="coordinator@ama.edu.ph"
+                            pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
+                            title="Please enter a valid email address"
+                            data-coordinator-email-check>
+                        <span class="field-check-message" data-coordinator-email-message hidden aria-live="polite"></span>
+                    </label>
+                    <label class="aco-field">
+                        <span class="aco-field-label">Department <em>*</em></span>
+                        <input required name="department" value="OJT Department" autocomplete="organization">
+                    </label>
+                    <label class="aco-field aco-field--signature">
+                        <span class="aco-field-label">Signature <em>*</em></span>
+                        <div class="aco-signature-upload">
+                            <input type="file" name="signature_file" accept="image/png,image/jpeg" required>
+                            <div class="aco-signature-upload-copy">
+                                <strong>Upload signature image</strong>
+                                <span>PNG or JPG, max 2MB. Transparent PNG recommended for endorsement letters.</span>
+                            </div>
+                        </div>
+                    </label>
+                </div>
 
-                    <div class="partner-credential-strip">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <div class="aco-create-foot">
+                    <div class="aco-credential-note">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18 8h-1V6a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2zm-6 9a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm3.1-9H8.9V6a3.1 3.1 0 0 1 6.2 0V8z"/></svg>
                         <div>
                             <strong>Auto credential delivery</strong>
-                            <span>A temporary password is generated and emailed to the coordinator on creation.</span>
+                            <span>A temporary password is generated and emailed when the account is created.</span>
                         </div>
                     </div>
+                    <button class="btn btn-primary aco-create-submit" type="submit">
+                        <span class="btn-text">Create Coordinator</span>
+                        <span class="spinner"></span>
+                    </button>
                 </div>
-
-                <button class="btn btn-primary coordinator-create-btn" type="submit"><span class="btn-text">Create Coordinator</span><span class="spinner"></span></button>
             </form>
-        </section>
+        </div>
+    </details>
 
-        <section class="partner-panel coordinator-list-card">
-            <div class="partner-panel-head partner-panel-head--split">
-                <div class="partner-panel-head-main">
-                    <div class="partner-icon-wrap partner-icon-wrap--directory">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    </div>
-                    <div class="partner-panel-head-text">
-                        <div class="partner-panel-title-row">
-                            <h2>All Coordinators</h2>
-                            <span class="partner-count-badge"><?= (int)$totalCoordinators ?> listed</span>
-                        </div>
-                        <p>Active coordinator accounts in the system.</p>
-                    </div>
+    <section class="card aco-directory-card admin-coordinators-page" data-coordinator-directory>
+        <div class="aco-directory-head">
+            <div class="aco-directory-copy">
+                <span class="aco-eyebrow">Coordinator Directory</span>
+                <h2>All Coordinators</h2>
+                <p>Search, filter, and manage OJT coordinator accounts from one directory.</p>
+            </div>
+            <div class="aco-directory-badge" aria-live="polite">
+                <strong><?= $totalCoordinators ?></strong>
+                <span>Listed</span>
+            </div>
+        </div>
+
+        <?php if ($totalCoordinators === 0): ?>
+            <div class="aco-empty">
+                <div class="aco-empty-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
                 </div>
+                <p class="aco-empty-title">No coordinators yet</p>
+                <p class="aco-empty-sub">Create the first OJT coordinator using the form above.</p>
             </div>
+        <?php else: ?>
+        <div class="aco-toolbar">
+            <div class="aco-search-wrap">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <input class="table-search aco-table-search" type="search" placeholder="Search by name, email, ID, or department..." autocomplete="off">
+            </div>
+            <div class="aco-filter-pills" role="group" aria-label="Filter by status">
+                <button class="aco-filter-pill is-active" type="button" data-coordinator-filter="all">All</button>
+                <button class="aco-filter-pill" type="button" data-coordinator-filter="active">Active</button>
+                <button class="aco-filter-pill" type="button" data-coordinator-filter="inactive">Inactive</button>
+            </div>
+        </div>
 
-            <div class="coordinator-list-scroll">
-                <?php if ($coordinators): ?>
-                    <div class="coordinator-card-grid">
-                        <?php foreach ($coordinators as $u): ?>
-                            <?php $idNumber = trim((string)($u['id_number'] ?? '')); ?>
-                            <article class="coordinator-card">
-                                <div class="coordinator-card-top">
-                                    <div class="coordinator-card-brand">
-                                        <span class="coordinator-card-avatar"><?= e(strtoupper(substr($u['name'] ?? 'C', 0, 1))) ?></span>
-                                        <div class="coordinator-card-brand-copy">
-                                            <h3 class="coordinator-card-name" title="<?= e($u['name']) ?>"><?= e($u['name']) ?></h3>
-                                            <?php if ($idNumber !== ''): ?>
-                                                <p>ID <?= e($idNumber) ?></p>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                    <span class="badge coordinator-card-status <?= $u['is_active'] ? 'active' : 'inactive' ?>"><?= $u['is_active'] ? 'Active' : 'Inactive' ?></span>
-                                </div>
-
-                                <div class="coordinator-card-email">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-                                    <div>
-                                        <span>Email</span>
-                                        <strong title="<?= e($u['email']) ?>"><?= e($u['email']) ?></strong>
-                                    </div>
-                                </div>
-
-                                <?php if ((int)$u['id'] !== (int)current_user()['id']): ?>
-                                    <div class="coordinator-card-footer">
-                                        <button class="btn btn-small btn-primary coordinator-edit-btn" type="button"
-                                            data-edit-coordinator="<?= (int)$u['id'] ?>"
-                                            data-first-name="<?= e($u['first_name'] ?? '') ?>"
-                                            data-last-name="<?= e($u['last_name'] ?? '') ?>"
-                                            data-email="<?= e($u['email']) ?>"
-                                            data-id-number="<?= e($u['id_number'] ?? '') ?>"
-                                            data-department="<?= e($u['department'] ?? 'OJT Department') ?>"
-                                            data-signature="<?= e($u['signature_file'] ?? '') ?>">
-                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                                            Edit
+        <div class="aco-directory-body">
+        <div class="table-wrap aco-table-wrap">
+            <table class="data-table no-row-details aco-coordinators-table" data-per-page="10">
+                <thead>
+                    <tr>
+                        <th data-sort>Coordinator</th>
+                        <th data-sort>Email</th>
+                        <th data-sort>ID Number</th>
+                        <th data-sort>Department</th>
+                        <th>Signature</th>
+                        <th>Status</th>
+                        <th class="aco-col-action">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($coordinators as $u): ?>
+                    <?php
+                        $fullName = trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? ''));
+                        $fullName = preg_replace('/\s+/', ' ', $fullName) ?: ($u['name'] ?? 'Coordinator');
+                        $initial = strtoupper(mb_substr((string)($u['last_name'] ?? $u['name'] ?? 'C'), 0, 1));
+                        $idNumber = trim((string)($u['id_number'] ?? ''));
+                        $department = trim((string)($u['department'] ?? 'OJT Department'));
+                        $sigUrl = !empty($u['signature_file']) ? asset($u['signature_file']) : '';
+                        $hasSignature = !empty($u['signature_file']);
+                        $isSelf = (int)$u['id'] === (int)current_user()['id'];
+                        $tone = coordinator_avatar_tone((int)$u['id']);
+                        $statusKey = !empty($u['is_active']) ? 'active' : 'inactive';
+                    ?>
+                    <tr data-search="<?= e(strtolower($fullName . ' ' . $u['email'] . ' ' . $idNumber . ' ' . $department)) ?>"
+                        data-coordinator-status="<?= e($statusKey) ?>">
+                        <td>
+                            <div class="aco-person-cell">
+                                <span class="aco-avatar aco-avatar-tone--<?= $tone ?>"><?= e($initial) ?></span>
+                                <span class="aco-person-meta">
+                                    <strong class="aco-person-name"><?= e($fullName) ?></strong>
+                                    <span class="aco-person-sub"><?= e($department) ?></span>
+                                </span>
+                            </div>
+                        </td>
+                        <td><a class="aco-email-link" href="mailto:<?= e($u['email']) ?>"><?= e($u['email']) ?></a></td>
+                        <td class="center-cell">
+                            <?php if ($idNumber !== ''): ?>
+                                <span class="aco-id-badge"><?= e($idNumber) ?></span>
+                            <?php else: ?>
+                                <span class="muted">—</span>
+                            <?php endif; ?>
+                        </td>
+                        <td><div class="aco-dept-cell" title="<?= e($department) ?>"><?= e($department) ?></div></td>
+                        <td class="center-cell">
+                            <span class="aco-sig-pill <?= $hasSignature ? 'is-yes' : 'is-no' ?>">
+                                <?= $hasSignature ? 'On file' : 'Missing' ?>
+                            </span>
+                        </td>
+                        <td class="center-cell">
+                            <span class="aco-status-pill <?= $u['is_active'] ? 'is-active' : 'is-inactive' ?>">
+                                <?= $u['is_active'] ? 'Active' : 'Inactive' ?>
+                            </span>
+                        </td>
+                        <td class="admin-users-action-cell aco-col-action">
+                            <?php if ($isSelf): ?>
+                                <span class="aco-self-note muted">Current account</span>
+                            <?php else: ?>
+                            <details class="admin-user-action-menu">
+                                <summary class="admin-user-action-trigger" aria-label="Coordinator actions">
+                                    <svg class="admin-user-action-trigger-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>
+                                    <span>Actions</span>
+                                    <svg class="admin-user-action-trigger-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                                </summary>
+                                <div class="admin-user-action-panel">
+                                    <button class="admin-user-action-item" type="button"
+                                        data-edit-coordinator="<?= (int)$u['id'] ?>"
+                                        data-first-name="<?= e($u['first_name'] ?? '') ?>"
+                                        data-last-name="<?= e($u['last_name'] ?? '') ?>"
+                                        data-email="<?= e($u['email']) ?>"
+                                        data-id-number="<?= e($u['id_number'] ?? '') ?>"
+                                        data-department="<?= e($department) ?>"
+                                        data-signature="<?= e($sigUrl) ?>">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"/></svg>
+                                        Edit Coordinator
+                                    </button>
+                                    <form method="post">
+                                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                        <input type="hidden" name="action" value="admin_reset_user_credentials">
+                                        <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                                        <input type="hidden" name="redirect" value="admin_coordinators">
+                                        <button class="admin-user-action-item" type="submit">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2.01 21 23 2 21.01 2 2 21.01 2.01 21zm20.89-13.01-1.42-1.42-2.83 2.83 1.42 1.42 2.83-2.83zm-7.07 7.07-1.42-1.42-5.66 5.66 1.42 1.42 5.66-5.66z"/></svg>
+                                            Resend Credentials
                                         </button>
-                                        <form method="post" class="coordinator-action-form">
-                                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                            <input type="hidden" name="action" value="admin_reset_user_credentials">
-                                            <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
-                                            <input type="hidden" name="redirect" value="admin_coordinators">
-                                            <button class="btn btn-small coordinator-secondary-btn" type="submit">
-                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-                                                Resend
-                                            </button>
-                                        </form>
-                                        <form method="post" class="coordinator-action-form">
-                                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                            <input type="hidden" name="action" value="admin_toggle_user">
-                                            <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
-                                            <input type="hidden" name="active" value="<?= $u['is_active'] ? 0 : 1 ?>">
-                                            <input type="hidden" name="redirect" value="admin_coordinators">
-                                            <button class="btn btn-small coordinator-danger-btn" type="submit">
-                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                                                <?= $u['is_active'] ? 'Deactivate' : 'Activate' ?>
-                                            </button>
-                                        </form>
-                                    </div>
-                                <?php else: ?>
-                                    <div class="coordinator-card-footer coordinator-card-footer--self">
-                                        <span class="coordinator-self-note">Current account</span>
-                                    </div>
-                                <?php endif; ?>
-                            </article>
-                        <?php endforeach; ?>
-                    </div>
-                <?php else: ?>
-                    <div class="coordinator-empty-state">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                        <strong>No coordinators yet</strong>
-                        <span>Create the first OJT coordinator using the form on the left.</span>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </section>
-    </div>
+                                    </form>
+                                    <form method="post">
+                                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                        <input type="hidden" name="action" value="admin_toggle_user">
+                                        <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                                        <input type="hidden" name="active" value="<?= $u['is_active'] ? 0 : 1 ?>">
+                                        <input type="hidden" name="redirect" value="admin_coordinators">
+                                        <button class="admin-user-action-item <?= $u['is_active'] ? 'admin-user-action-item--danger' : 'admin-user-action-item--success' ?>" type="submit">
+                                            <?php if ($u['is_active']): ?>
+                                                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z"/></svg>
+                                                Deactivate Coordinator
+                                            <?php else: ?>
+                                                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                                                Activate Coordinator
+                                            <?php endif; ?>
+                                        </button>
+                                    </form>
+                                </div>
+                            </details>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        </div>
+        <footer class="aco-table-footer">
+            <div class="pagination"></div>
+        </footer>
+        <?php endif; ?>
+    </section>
 </div>
 
 <!-- Edit Coordinator Modal -->
@@ -265,16 +331,12 @@ $inactiveCoordinators = $totalCoordinators - $activeCoordinators;
                         <label class="partner-field">
                             <span class="partner-field-label">First Name <em>*</em></span>
                             <input required name="first_name" id="editCoordFirstName" autocomplete="given-name" placeholder="e.g. Maria"
-                                data-capitalize-words
-                                pattern="[A-Za-z\s\-\.]+"
-                                title="First name must contain letters only">
+                                data-capitalize-words pattern="[A-Za-z\s\-\.]+" title="First name must contain letters only">
                         </label>
                         <label class="partner-field">
                             <span class="partner-field-label">Last Name <em>*</em></span>
                             <input required name="last_name" id="editCoordLastName" autocomplete="family-name" placeholder="e.g. Santos"
-                                data-capitalize-words
-                                pattern="[A-Za-z\s\-\.]+"
-                                title="Last name must contain letters only">
+                                data-capitalize-words pattern="[A-Za-z\s\-\.]+" title="Last name must contain letters only">
                         </label>
                         <label class="partner-field partner-field--full">
                             <span class="partner-field-label">Email <em>*</em></span>
@@ -337,6 +399,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.querySelectorAll('[data-edit-coordinator]').forEach(btn => {
         btn.addEventListener('click', () => {
+            const menu = btn.closest('.admin-user-action-menu');
+            if (menu) menu.removeAttribute('open');
+
             document.getElementById('editCoordUserId').value = btn.dataset.editCoordinator;
             document.getElementById('editCoordFirstName').value = btn.dataset.firstName || '';
             document.getElementById('editCoordLastName').value = btn.dataset.lastName || '';

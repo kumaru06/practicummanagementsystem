@@ -39,7 +39,7 @@ $sidebarCollapsed = isset($_COOKIE['sidebarCollapsed']) && $_COOKIE['sidebarColl
         }
     } catch (e) {}
     </script>
-    <link rel="stylesheet" href="<?= e(asset_url('assets/css/style.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset_url('assets/css/style.css')) ?>&t=<?= time() ?>">
 </head>
 <body class="app-page role-<?= e($user['role'] ?? 'guest') ?><?= $sidebarCollapsed ? ' sidebar-collapsed' : '' ?>" data-app-base="<?= e(app_base_path()) ?>" data-sidebar-collapsed="<?= $sidebarCollapsed ? '1' : '0' ?>">
 <script>try{if((localStorage.getItem('sidebarCollapsed')==='1'||document.body.dataset.sidebarCollapsed==='1')&&window.matchMedia('(min-width: 721px)').matches){document.body.classList.add('sidebar-collapsed');localStorage.setItem('sidebarCollapsed','1');}}catch(e){}</script>
@@ -78,7 +78,7 @@ $sidebarCollapsed = isset($_COOKIE['sidebarCollapsed']) && $_COOKIE['sidebarColl
                 </button>
                 <div class="nav-group-items">
                     <a class="nav-link nav-sub <?= $currentRoute === 'admin_users' ? 'active' : '' ?>" href="index.php?r=admin_users"><svg viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 8-4v6h2V8L12 3Zm-6 9v4c2 3 10 3 12 0v-4l-6 3-6-3Z"/></svg><span>Student</span></a>
-                    <a class="nav-link nav-sub <?= $currentRoute === 'admin_registration_requests' ? 'active' : '' ?>" href="index.php?r=admin_registration_requests"><svg viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-8 2h6v2h-6V5ZM7 7h10v2H7V7Zm0 4h10v2H7v-2Zm0 4h7v2H7v-2Z"/></svg><span>Registration Requests</span></a>
+                    <a class="nav-link nav-sub <?= $currentRoute === 'admin_registration_requests' ? 'active' : '' ?>" href="index.php?r=admin_registration_requests"><svg viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-8 2h6v2h-6V5ZM7 7h10v2H7V7Zm0 4h10v2H7v-2Zm0 4h7v2H7v-2Z"/></svg><span>Student Account Requests</span></a>
                     <a class="nav-link nav-sub <?= $currentRoute === 'admin_coordinators' ? 'active' : '' ?>" href="index.php?r=admin_coordinators"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg><span>Coordinators</span></a>
                     <a class="nav-link nav-sub <?= $currentRoute === 'admin_partners' ? 'active' : '' ?>" href="index.php?r=admin_partners"><svg viewBox="0 0 24 24"><path d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg><span>Industry Partners</span></a>
                 </div>

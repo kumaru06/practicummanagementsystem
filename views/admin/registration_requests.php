@@ -5,14 +5,14 @@ $pendingCount = count($requests ?? []);
     <nav class="reg-req-breadcrumb" aria-label="Breadcrumb">
         <a href="index.php?r=admin_users">Manage Users</a>
         <span class="reg-req-breadcrumb-sep" aria-hidden="true">&rsaquo;</span>
-        <span aria-current="page">Registration Requests</span>
+        <span aria-current="page">Student Account Requests</span>
     </nav>
 
     <section class="card reg-req-pending-card">
         <div class="reg-req-card-head">
             <div class="reg-req-card-copy">
                 <span class="reg-req-eyebrow">Student Self-Registration</span>
-                <h2>Pending Registration Requests</h2>
+                <h2>Pending Student Account Requests</h2>
                 <p>Review email-verified student applications awaiting administrator approval.</p>
             </div>
             <?php if ($pendingCount > 0): ?>
@@ -29,7 +29,7 @@ $pendingCount = count($requests ?? []);
                     <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg>
                 </div>
                 <p class="reg-req-empty-title">No pending registrations</p>
-                <p class="reg-req-empty-sub">New student registration requests will appear here for approval.</p>
+                <p class="reg-req-empty-sub">New student account requests will appear here for approval.</p>
             </div>
         <?php else: ?>
             <div class="reg-req-toolbar">
@@ -134,7 +134,7 @@ $pendingCount = count($requests ?? []);
                     <svg viewBox="0 0 24 24"><path d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
                 </span>
                 <div>
-                    <h2>Review Registration Request</h2>
+                    <h2>Review Student Account Request</h2>
                     <p>Verify student details and assign a coordinator before approving.</p>
                 </div>
             </div>

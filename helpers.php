@@ -826,3 +826,8 @@ function admin_report_by_slug(string $slug): ?array
 
     return null;
 }
+
+function coordinator_avatar_tone(int $id): int
+{
+    return (abs($id) % 6) + 1;
+}
