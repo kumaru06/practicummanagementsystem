@@ -1105,6 +1105,32 @@
         margin-bottom: 16px;
     }
 
+    .login-page .forgot-recovery {
+        gap: 10px;
+    }
+
+    .login-page .forgot-recovery-head .portal-heading {
+        font-size: 1.18rem;
+    }
+
+    .login-page .forgot-recovery-lead {
+        font-size: 0.78rem;
+    }
+
+    .login-page .forgot-recovery-form {
+        gap: 10px;
+    }
+
+    .login-page .portal-login-card:has(.portal-view--forgot.is-active) {
+        max-height: min(78svh, 640px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .login-page .portal-login-card:has(.portal-view--forgot.is-active .forgot-recovery--success) {
+        max-height: none;
+    }
+
     .login-page .portal-heading {
         font-size: 1.35rem;
     }
@@ -1470,6 +1496,213 @@
     text-decoration: underline;
 }
 
+.login-page .portal-forgot-link {
+    margin-top: 18px;
+}
+
+/* ── Forgot password recovery layout ── */
+.login-page .forgot-recovery {
+    display: grid;
+    gap: 12px;
+}
+
+.login-page .forgot-recovery-head {
+    display: grid;
+    gap: 6px;
+}
+
+.login-page .forgot-recovery-head .portal-eyebrow {
+    margin-bottom: 0;
+}
+
+.login-page .forgot-recovery-head .portal-heading {
+    margin-bottom: 0;
+    font-size: 1.28rem;
+}
+
+.login-page .forgot-recovery-lead {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: #475569;
+    font-weight: 600;
+}
+
+.login-page .portal-back-link--compact {
+    margin-bottom: 0;
+    padding: 6px 10px 6px 8px;
+    font-size: 0.8rem;
+}
+
+.login-page .portal-back-link--compact .portal-back-link-icon {
+    width: 24px;
+    height: 24px;
+}
+
+.login-page .forgot-recovery-form {
+    display: grid;
+    gap: 12px;
+}
+
+.login-page .forgot-recovery-form .portal-field {
+    gap: 5px;
+}
+
+.login-page .forgot-recovery-form .portal-field-label {
+    font-size: 0.8rem;
+}
+
+.login-page .forgot-recovery-form .portal-field > input:not([type="file"]) {
+    min-height: 44px;
+    padding-top: 11px;
+    padding-bottom: 11px;
+}
+
+.login-page .forgot-recovery-form .alert.danger {
+    margin-bottom: 0;
+    padding: 10px 12px;
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.login-page .forgot-recovery-submit {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding-top: 8px;
+    margin-top: 2px;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.9) 30%,
+        rgba(255, 255, 255, 0.98) 100%
+    );
+}
+
+.login-page .forgot-recovery-submit .btn-primary {
+    margin-top: 0;
+    min-height: 46px;
+}
+
+.login-page .forgot-recovery--success {
+    gap: 14px;
+    padding: 2px 0 4px;
+}
+
+.login-page .forgot-recovery--success .alert.success {
+    margin: 0;
+    padding: 14px 16px;
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
+
+.login-page .forgot-recovery-success-actions {
+    margin-top: 2px;
+}
+
+.login-page .forgot-recovery--success .btn-primary {
+    width: 100%;
+    min-height: 46px;
+    margin: 0;
+}
+
+.login-page .portal-login-card:has(.portal-view--forgot.is-active) .portal-stage,
+.login-page .forgot-password-card:has(.forgot-recovery-form) .portal-login-card-inner {
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
+}
+
+.login-page .portal-login-card:has(.portal-view--forgot.is-active) .portal-stage::-webkit-scrollbar,
+.login-page .forgot-password-card:has(.forgot-recovery-form) .portal-login-card-inner::-webkit-scrollbar {
+    width: 6px;
+}
+
+.login-page .portal-login-card:has(.portal-view--forgot.is-active) .portal-stage::-webkit-scrollbar-thumb,
+.login-page .forgot-password-card:has(.forgot-recovery-form) .portal-login-card-inner::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.35);
+    border-radius: 999px;
+}
+
+.login-page .portal-login-card:has(.portal-view--forgot.is-active .forgot-recovery--success) .portal-stage,
+.login-page .forgot-password-card:has(.forgot-recovery--success) .portal-login-card-inner {
+    overflow: visible;
+}
+
+.login-page .portal-view--forgot .js-forgot-view-host {
+    min-height: 0;
+}
+
+.login-page .forgot-password-card,
+.login-page .forgot-password-card .portal-back-link {
+    pointer-events: auto;
+}
+
+.login-page .forgot-password-card .portal-back-link {
+    position: relative;
+    z-index: 4;
+    cursor: pointer;
+}
+
+.login-page .js-login-form-shell.is-shell-transitioning,
+.login-page .login-form-shell.is-shell-transitioning {
+    position: relative;
+    overflow: hidden;
+}
+
+.login-page .portal-login-card.is-ajax-swap,
+.login-page .forgot-password-card.is-ajax-swap {
+    animation: none;
+    transition: opacity 0.24s ease, transform 0.24s ease, visibility 0.24s ease;
+    will-change: transform, opacity;
+}
+
+.login-page .portal-login-card.is-shell-leaving,
+.login-page .forgot-password-card.is-shell-leaving,
+.login-page .portal-login-card.is-shell-leaving-back,
+.login-page .forgot-password-card.is-shell-leaving-back {
+    will-change: transform, opacity;
+}
+
+.login-page .portal-login-card.is-shell-leaving,
+.login-page .forgot-password-card.is-shell-leaving {
+    opacity: 0;
+    transform: translateX(-18px);
+    pointer-events: none;
+}
+
+.login-page .portal-login-card.is-shell-leaving-back,
+.login-page .forgot-password-card.is-shell-leaving-back {
+    opacity: 0;
+    transform: translateX(18px);
+    pointer-events: none;
+}
+
+.login-page .portal-login-card.is-shell-entering,
+.login-page .forgot-password-card.is-shell-entering {
+    opacity: 0;
+    transform: translateX(18px);
+}
+
+.login-page .portal-login-card.is-shell-entering-back,
+.login-page .forgot-password-card.is-shell-entering-back {
+    opacity: 0;
+    transform: translateX(-18px);
+}
+
+.login-page .portal-login-card.is-ajax-swap:not(.is-shell-entering):not(.is-shell-entering-back),
+.login-page .forgot-password-card.is-ajax-swap:not(.is-shell-entering):not(.is-shell-entering-back) {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.login-page .portal-login-card.is-ajax-swap .portal-link {
+    animation: none;
+}
+
 .login-page .register-success-panel {
     display: grid;
     gap: 12px;
@@ -1791,3 +2024,114 @@
         transform: none;
     }
 }
+
+.login-page .portal-field > select {
+    width: 100%;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 5px;
+    background: #fafbfc;
+    color: var(--login-text);
+    padding: 13px 14px;
+    font: inherit;
+    min-height: 46px;
+}
+
+.login-page .portal-field > select:focus {
+    border-color: rgba(10, 61, 143, 0.5);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(10, 61, 143, 0.08);
+    outline: none;
+}
+
+.login-page .portal-select-wrap {
+    position: relative;
+    display: block;
+    width: 100%;
+}
+
+.login-page .portal-select-wrap.select-enhanced-wrap > select[data-enhanced="1"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.login-page .portal-login-card.has-open-select,
+.login-page .portal-login-card.has-open-select .portal-login-card-inner,
+.login-page .login-form-shell:has(.custom-select.is-open) {
+    overflow: visible;
+}
+
+.login-page .login-custom-select .custom-select-trigger {
+    min-height: 46px;
+    padding: 0 14px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 5px;
+    background: #fafbfc;
+    box-shadow: none;
+    color: var(--login-text);
+    font: inherit;
+    transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.login-page .login-custom-select .custom-select-trigger:hover {
+    border-color: #cbd5e1;
+    background: #fff;
+    box-shadow: none;
+    transform: none;
+}
+
+.login-page .login-custom-select.is-open .custom-select-trigger,
+.login-page .login-custom-select .custom-select-trigger:focus-visible {
+    border-color: rgba(10, 61, 143, 0.5);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(10, 61, 143, 0.08);
+}
+
+.login-page .login-custom-select .custom-select-value {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #cbd5e1;
+}
+
+.login-page .login-custom-select:not(.is-placeholder) .custom-select-value {
+    color: var(--login-text);
+}
+
+.login-page .login-custom-select .custom-select-caret::before {
+    border-right-color: #94a3b8;
+    border-bottom-color: #94a3b8;
+}
+
+.login-page .login-custom-select .custom-select-menu {
+    z-index: 30;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 16px 40px rgba(7, 45, 107, 0.16);
+    padding: 6px;
+}
+
+.login-page .login-custom-select .custom-select-option {
+    min-height: 42px;
+    border-radius: 6px;
+}
+
+.login-page .login-custom-select .custom-select-option:hover,
+.login-page .login-custom-select .custom-select-option:focus-visible {
+    background: rgba(10, 61, 143, 0.06);
+}
+
+.login-page .login-custom-select .custom-select-option.is-selected {
+    background: linear-gradient(135deg, #0a3d8f, #1d5fbf);
+    box-shadow: 0 6px 16px rgba(10, 61, 143, 0.22);
+}
+
+.login-page .login-custom-select .custom-select-option.is-selected .custom-select-option-label {
+    color: #fff;
+}
+
+.login-page .login-custom-select .custom-select-option.is-selected .custom-select-option-dot {
+    background: rgba(255, 255, 255, 0.92);
+}
+

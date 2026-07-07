@@ -68,7 +68,7 @@ $sidebarCollapsed = isset($_COOKIE['sidebarCollapsed']) && $_COOKIE['sidebarColl
             ?>
             <a class="nav-link <?= in_array($currentRoute, ['admin', 'coordinator', 'student', 'partner'], true) ? 'active' : '' ?>" href="index.php?r=<?= e($homeRoute) ?>"><svg viewBox="0 0 24 24"><path d="M4 13h7V4H4v9Zm0 7h7v-5H4v5Zm9 0h7v-9h-7v9Zm0-16v5h7V4h-7Z"/></svg><?php if ($role === 'student'): ?><span class="nav-link-label nav-link-label--full">Dashboard</span><span class="nav-link-label nav-link-label--short" aria-hidden="true">Home</span><?php else: ?><span>Dashboard</span><?php endif; ?></a>
             <?php if ($role === 'admin'):
-                $userRoutes = ['admin_users', 'admin_registration_requests', 'admin_coordinators', 'admin_partners'];
+                $userRoutes = ['admin_users', 'admin_registration_requests', 'admin_password_reset_requests', 'admin_coordinators', 'admin_partners'];
                 $userGroupOpen = in_array($currentRoute, $userRoutes, true);
             ?><div class="nav-group <?= $userGroupOpen ? 'open' : '' ?>">
                 <button class="nav-group-toggle" type="button">
@@ -79,6 +79,7 @@ $sidebarCollapsed = isset($_COOKIE['sidebarCollapsed']) && $_COOKIE['sidebarColl
                 <div class="nav-group-items">
                     <a class="nav-link nav-sub <?= $currentRoute === 'admin_users' ? 'active' : '' ?>" href="index.php?r=admin_users"><svg viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 8-4v6h2V8L12 3Zm-6 9v4c2 3 10 3 12 0v-4l-6 3-6-3Z"/></svg><span>Student</span></a>
                     <a class="nav-link nav-sub <?= $currentRoute === 'admin_registration_requests' ? 'active' : '' ?>" href="index.php?r=admin_registration_requests"><svg viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-8 2h6v2h-6V5ZM7 7h10v2H7V7Zm0 4h10v2H7v-2Zm0 4h7v2H7v-2Z"/></svg><span>Student Account Requests</span></a>
+                    <a class="nav-link nav-sub <?= $currentRoute === 'admin_password_reset_requests' ? 'active' : '' ?>" href="index.php?r=admin_password_reset_requests"><svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 1 5 5v3h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1V7a5 5 0 0 1 5-5Zm0 2a3 3 0 0 0-3 3v3h6V7a3 3 0 0 0-3-3Zm0 9a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"/></svg><span>Password Reset Requests</span></a>
                     <a class="nav-link nav-sub <?= $currentRoute === 'admin_coordinators' ? 'active' : '' ?>" href="index.php?r=admin_coordinators"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg><span>Coordinators</span></a>
                     <a class="nav-link nav-sub <?= $currentRoute === 'admin_partners' ? 'active' : '' ?>" href="index.php?r=admin_partners"><svg viewBox="0 0 24 24"><path d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg><span>Industry Partners</span></a>
                 </div>

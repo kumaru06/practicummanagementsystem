@@ -3,8 +3,68 @@ class Company
 {
     private ?bool $moaMouSupportReady = null;
     private ?bool $photoSupportReady = null;
+    private ?bool $partnerIdSupportReady = null;
 
     public function __construct(private PDO $db) {}
+
+    public function ensurePartnerIdSupport(): void
+    {
+        if ($this->partnerIdSupportReady === true) {
+            return;
+        }
+
+        $columnStmt = $this->db->prepare("SHOW COLUMNS FROM partner_companies LIKE 'partner_id'");
+        $columnStmt->execute();
+        if (!$columnStmt->fetch()) {
+            $this->db->exec('ALTER TABLE partner_companies ADD COLUMN partner_id VARCHAR(20) NULL AFTER id');
+        }
+
+        $indexStmt = $this->db->prepare("SHOW INDEX FROM partner_companies WHERE Key_name = 'uq_partner_companies_partner_id'");
+        $indexStmt->execute();
+        if (!$indexStmt->fetch()) {
+            $this->db->exec('ALTER TABLE partner_companies ADD UNIQUE KEY uq_partner_companies_partner_id (partner_id)');
+        }
+
+        $this->backfillPartnerIds();
+        $this->partnerIdSupportReady = true;
+    }
+
+    public function peekNextPartnerId(): string
+    {
+        $this->ensurePartnerIdSupport();
+        return $this->generatePartnerId();
+    }
+
+    private function generatePartnerId(): string
+    {
+        $year = date('Y');
+        $prefix = 'IP-' . $year . '-';
+        $stmt = $this->db->prepare(
+            'SELECT partner_id FROM partner_companies WHERE partner_id LIKE ? ORDER BY partner_id DESC LIMIT 1'
+        );
+        $stmt->execute([$prefix . '%']);
+        $last = (string)($stmt->fetchColumn() ?: '');
+        $next = 1;
+        if ($last !== '' && preg_match('/IP-\d{4}-(\d+)$/', $last, $matches)) {
+            $next = (int)$matches[1] + 1;
+        }
+        return $prefix . str_pad((string)$next, 4, '0', STR_PAD_LEFT);
+    }
+
+    private function backfillPartnerIds(): void
+    {
+        $rows = $this->db->query(
+            'SELECT id FROM partner_companies WHERE partner_id IS NULL OR partner_id = "" ORDER BY id ASC'
+        )->fetchAll();
+        if (!$rows) {
+            return;
+        }
+
+        $update = $this->db->prepare('UPDATE partner_companies SET partner_id = ? WHERE id = ?');
+        foreach ($rows as $row) {
+            $update->execute([$this->generatePartnerId(), (int)$row['id']]);
+        }
+    }
 
     public function ensureMoaMouSupport(): void
     {
@@ -45,9 +105,11 @@ class Company
     public function create(int $userId, string $name, string $address, string $contactPerson, string $contactEmail, string $contactNumber = '', array $programIds = [], ?string $moaMouFile = null): int
     {
         $this->ensurePhotoSupport();
+        $this->ensurePartnerIdSupport();
+        $partnerId = $this->generatePartnerId();
 
-        $stmt = $this->db->prepare('INSERT INTO partner_companies (user_id, name, address, contact_person, contact_email, contact_number, moa_mou_file) VALUES (?, ?, ?, ?, ?, ?, ?)');
-        $stmt->execute([$userId, $name, $address, $contactPerson, strtolower(trim($contactEmail)), $contactNumber, $moaMouFile]);
+        $stmt = $this->db->prepare('INSERT INTO partner_companies (user_id, partner_id, name, address, contact_person, contact_email, contact_number, moa_mou_file) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$userId, $partnerId, $name, $address, $contactPerson, strtolower(trim($contactEmail)), $contactNumber, $moaMouFile]);
         $companyId = (int)$this->db->lastInsertId();
         $this->syncPrograms($companyId, $programIds);
         return $companyId;
@@ -56,12 +118,14 @@ class Company
     public function all(): array
     {
         $this->ensurePhotoSupport();
+        $this->ensurePartnerIdSupport();
         return $this->db->query('SELECT pc.*, u.id user_id_key, u.email, u.is_active, GROUP_CONCAT(p.code ORDER BY p.code SEPARATOR ", ") accepted_programs, GROUP_CONCAT(cp.program_id ORDER BY cp.program_id SEPARATOR ",") accepted_program_ids FROM partner_companies pc JOIN users u ON u.id = pc.user_id LEFT JOIN company_programs cp ON cp.company_id = pc.id LEFT JOIN programs p ON p.id = cp.program_id GROUP BY pc.id, u.id ORDER BY pc.name')->fetchAll();
     }
 
     public function find(int $id): ?array
     {
         $this->ensurePhotoSupport();
+        $this->ensurePartnerIdSupport();
         $stmt = $this->db->prepare('SELECT pc.*, u.email user_email FROM partner_companies pc JOIN users u ON u.id = pc.user_id WHERE pc.id = ?');
         $stmt->execute([$id]);
         return $stmt->fetch() ?: null;
@@ -75,9 +139,18 @@ class Company
         return $stmt->fetch() ?: null;
     }
 
+    public function findByPartnerId(string $partnerId): ?array
+    {
+        $this->ensurePartnerIdSupport();
+        $stmt = $this->db->prepare('SELECT * FROM partner_companies WHERE partner_id = ? LIMIT 1');
+        $stmt->execute([trim($partnerId)]);
+        return $stmt->fetch() ?: null;
+    }
+
     public function findByUser(int $userId): ?array
     {
         $this->ensurePhotoSupport();
+        $this->ensurePartnerIdSupport();
         $stmt = $this->db->prepare('SELECT * FROM partner_companies WHERE user_id = ? LIMIT 1');
         $stmt->execute([$userId]);
         return $stmt->fetch() ?: null;

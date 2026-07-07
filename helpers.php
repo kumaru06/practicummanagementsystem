@@ -77,6 +77,8 @@ function route_url(string $route, array $params = []): string
     $map = [
         'dashboard' => 'index.php',
         'login' => 'auth.php',
+        'forgot.password' => 'forgot-password.php',
+        'password.reset' => 'reset-password.php',
         'admin.login' => 'auth.php?portal=admin',
         'admin.login.post' => 'auth.php?portal=admin',
         'coordinator.login' => 'auth.php?portal=coordinator',
@@ -88,6 +90,7 @@ function route_url(string $route, array $params = []): string
         'admin.dashboard' => 'index.php?r=admin',
         'admin.users' => 'index.php?r=admin_users',
         'admin.registration_requests' => 'index.php?r=admin_registration_requests',
+        'admin.password_reset_requests' => 'index.php?r=admin_password_reset_requests',
         'student.register' => 'register.php',
         'student.register.verify' => 'register.php',
         'student.pending' => 'index.php?r=student_pending',
@@ -237,9 +240,28 @@ function verify_csrf(): void
         $token = $_POST['csrf_token'] ?? '';
         if (!hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
             http_response_code(419);
+            if (is_ajax_request()) {
+                header('Content-Type: application/json; charset=UTF-8');
+                echo json_encode([
+                    'ok' => false,
+                    'message' => 'Your session expired. Please refresh the page and try again.',
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
             exit('Invalid CSRF token. Please go back and try again.');
         }
     }
+}
+
+function is_ajax_request(): bool
+{
+    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH'])
+        && strtolower((string)$_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+        return true;
+    }
+
+    $accept = strtolower((string)($_SERVER['HTTP_ACCEPT'] ?? ''));
+    return str_contains($accept, 'application/json');
 }
 
 function current_user(): ?array

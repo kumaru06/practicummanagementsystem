@@ -1,7 +1,127 @@
+function getLoginFormShell() {
+    return document.querySelector('.js-login-form-shell') || document.querySelector('.login-form-shell');
+}
+
+function waitLoginShell(ms) {
+    return new Promise(resolve => window.setTimeout(resolve, ms));
+}
+
+const loginPartialCache = new Map();
+
+function prefetchLoginPartial(url) {
+    const fetchUrl = String(url || '').trim();
+    if (!fetchUrl || loginPartialCache.has(fetchUrl)) return;
+
+    loginPartialCache.set(fetchUrl, fetch(fetchUrl, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            Accept: 'text/html',
+        },
+        credentials: 'same-origin',
+    }).then(response => {
+        if (!response.ok) {
+            loginPartialCache.delete(fetchUrl);
+            throw new Error('Partial request failed');
+        }
+        return response.text();
+    }).catch(error => {
+        loginPartialCache.delete(fetchUrl);
+        throw error;
+    }));
+}
+
+async function fetchLoginPartial(url) {
+    const fetchUrl = String(url || '').trim();
+    if (!fetchUrl) throw new Error('Missing partial URL');
+
+    const cached = loginPartialCache.get(fetchUrl);
+    if (cached) {
+        loginPartialCache.delete(fetchUrl);
+        return cached;
+    }
+
+    const html = await fetch(fetchUrl, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            Accept: 'text/html',
+        },
+        credentials: 'same-origin',
+    }).then(response => {
+        if (!response.ok) throw new Error('Partial request failed');
+        return response.text();
+    });
+
+    return html;
+}
+
+function bindLoginPartialPrefetch(root, selector) {
+    root.querySelectorAll(selector).forEach(el => {
+        if (el.dataset.partialPrefetchBound === '1') return;
+        el.dataset.partialPrefetchBound = '1';
+        const warm = () => {
+            const url = el.dataset.forgotFetch || el.dataset.portalFetch || '';
+            if (url) prefetchLoginPartial(url);
+        };
+        el.addEventListener('mouseenter', warm, { passive: true });
+        el.addEventListener('focus', warm, { passive: true });
+        el.addEventListener('touchstart', warm, { passive: true });
+    });
+}
+
+async function transitionLoginShell(shellHost, getHtml, onMounted, direction = 'forward') {
+    const isBack = direction === 'back';
+    const leaveClass = isBack ? 'is-shell-leaving-back' : 'is-shell-leaving';
+    const enterClass = isBack ? 'is-shell-entering-back' : 'is-shell-entering';
+
+    const html = await getHtml();
+
+    shellHost.classList.add('is-shell-transitioning');
+
+    const leavingCard = shellHost.querySelector('.portal-login-card, .forgot-password-card');
+    if (leavingCard) {
+        leavingCard.classList.add(leaveClass);
+    }
+
+    await waitLoginShell(180);
+
+    shellHost.innerHTML = html;
+
+    const enteringCard = shellHost.querySelector('.portal-login-card, .forgot-password-card');
+    if (!enteringCard) {
+        shellHost.classList.remove('is-shell-transitioning');
+        requestAnimationFrame(() => onMounted?.());
+        return html;
+    }
+
+    enteringCard.classList.add('is-ajax-swap', enterClass);
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            enteringCard.classList.remove(enterClass);
+            shellHost.classList.remove('is-shell-transitioning');
+            requestAnimationFrame(() => onMounted?.());
+        });
+    });
+
+    return html;
+}
+
+function clearLoginShellTransition(shellHost) {
+    shellHost?.classList.remove('is-shell-transitioning');
+    shellHost?.querySelector('.portal-login-card, .forgot-password-card')
+        ?.classList.remove('is-shell-leaving', 'is-shell-leaving-back', 'is-shell-entering', 'is-shell-entering-back');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initPortalGate();
+    initPortalForgotLinks(document);
+    initForgotBackDelegation();
     if (document.querySelector('.js-portal-shell')) {
         initPortalLogin();
+    }
+    if (document.querySelector('.js-forgot-shell')) {
+        initForgotPasswordShell(document);
     }
 });
 
@@ -40,6 +160,7 @@ function initPortalGate() {
 
             initPortalLogin();
             initAjaxPortalForms(host);
+            initPortalForgotLinks(host);
         } catch {
             button.disabled = false;
             window.alert('Unable to load the login portal. Please try again.');
@@ -75,6 +196,8 @@ function initPortalLogin() {
 
     const selectView = shell.querySelector('[data-portal-view="select"]');
     const formView = shell.querySelector('[data-portal-view="form"]');
+    const forgotView = shell.querySelector('[data-portal-view="forgot"]');
+    const forgotHost = shell.querySelector('.js-forgot-view-host');
     const forms = shell.querySelectorAll('[data-portal-form]');
     const badgeLabel = shell.querySelector('.js-portal-badge-label');
     const backLink = shell.querySelector('.js-portal-back');
@@ -85,6 +208,7 @@ function initPortalLogin() {
 
     let activePortal = shell.dataset.activePortal || '';
     let animating = false;
+    const initialForgotHtml = forgotHost ? forgotHost.innerHTML : '';
 
     shell.querySelectorAll('.js-portal-open').forEach(link => {
         link.addEventListener('click', event => {
@@ -106,13 +230,39 @@ function initPortalLogin() {
 
     if (!window.__portalPopstateBound) {
         window.addEventListener('popstate', event => {
+            const standaloneForgot = document.querySelector('.js-forgot-shell:not(.js-portal-shell)');
             const currentShell = document.querySelector('.js-portal-shell');
-            if (!currentShell || typeof currentShell.__openPortal !== 'function') return;
+
+            if (standaloneForgot) {
+                if (event.state?.view === 'forgot') {
+                    openForgotPassword(event.state.forgotUrl || '', { push: false });
+                    return;
+                }
+
+                closeForgotPassword({
+                    push: false,
+                    portal: event.state?.portal || null,
+                });
+                return;
+            }
+
+            if (!currentShell) return;
+
+            if (event.state?.view === 'forgot') {
+                currentShell.__openForgot?.({ push: false });
+                return;
+            }
+
+            if (currentShell.querySelector('[data-portal-view="forgot"]')?.classList.contains('is-active')) {
+                currentShell.__closeForgot?.({ push: false });
+            }
+
+            if (typeof currentShell.__openPortal !== 'function') return;
 
             const portal = event.state?.portal || null;
             if (portal) {
                 currentShell.__openPortal(portal, { push: false, direction: 'forward' });
-            } else {
+            } else if (!currentShell.querySelector('[data-portal-view="forgot"]')?.classList.contains('is-active')) {
                 currentShell.__closePortal({ push: false, direction: 'back' });
             }
         });
@@ -120,19 +270,55 @@ function initPortalLogin() {
     }
 
     history.replaceState(
-        { portal: activePortal || null },
+        { portal: activePortal || null, view: null },
         '',
         activePortal ? `${baseUrl}?portal=${encodeURIComponent(activePortal)}` : baseUrl
     );
 
     function syncStageHeight() {
-        if (!stage || !selectView || !formView) return;
+        if (!stage) return;
         stage.style.minHeight = '';
         stage.style.removeProperty('--portal-stage-height');
     }
 
+    function getActivePortalView() {
+        if (selectView?.classList.contains('is-active')) return selectView;
+        if (formView?.classList.contains('is-active')) return formView;
+        if (forgotView?.classList.contains('is-active')) return forgotView;
+        return selectView;
+    }
+
+    async function ensureForgotContent() {
+        if (!forgotHost || forgotHost.dataset.loaded === '1') return;
+
+        const fetchUrl = forgotHost.dataset.forgotFetch
+            || shell.querySelector('.js-portal-forgot-open')?.dataset.forgotFetch
+            || '';
+        if (!fetchUrl) throw new Error('Missing forgot partial URL');
+
+        const html = await fetchLoginPartial(fetchUrl);
+        forgotHost.innerHTML = html;
+        forgotHost.dataset.loaded = '1';
+        initForgotPasswordShell(forgotHost);
+    }
+
+    function resetForgotViewIfNeeded() {
+        if (!forgotHost || !initialForgotHtml) return;
+        if (forgotHost.querySelector('.js-forgot-password-form')) return;
+
+        forgotHost.innerHTML = initialForgotHtml;
+        forgotHost.dataset.loaded = '1';
+        initForgotPasswordShell(forgotHost);
+    }
+
     syncStageHeight();
     window.addEventListener('resize', syncStageHeight);
+
+    if (forgotHost?.dataset.loaded === '1') {
+        initForgotPasswordShell(forgotHost);
+    } else if (forgotHost?.dataset.forgotFetch) {
+        prefetchLoginPartial(forgotHost.dataset.forgotFetch);
+    }
 
     function parsePortalLabels(raw) {
         if (!raw) return {};
@@ -201,7 +387,7 @@ function initPortalLogin() {
         }
 
         if (push) {
-            history.pushState({ portal: role }, '', `${baseUrl}?portal=${encodeURIComponent(role)}`);
+            history.pushState({ portal: role, view: null }, '', `${baseUrl}?portal=${encodeURIComponent(role)}`);
         }
 
         const activeForm = shell.querySelector(`[data-portal-form="${role}"]`);
@@ -220,7 +406,45 @@ function initPortalLogin() {
         await switchView(formView, selectView, direction);
 
         if (push) {
-            history.pushState({ portal: null }, '', baseUrl);
+            history.pushState({ portal: null, view: null }, '', baseUrl);
+        }
+    }
+
+    async function openForgotInPortal({ push = true } = {}) {
+        if (!forgotView || !selectView) return;
+
+        try {
+            if (forgotHost?.dataset.loaded !== '1') {
+                await ensureForgotContent();
+            } else {
+                resetForgotViewIfNeeded();
+            }
+
+            document.title = 'Forgot Password - AMA Practicum System';
+
+            const fromView = getActivePortalView();
+            if (fromView === forgotView) return;
+
+            await switchView(fromView, forgotView, 'forward');
+
+            if (push) {
+                const forgotUrl = forgotHost?.dataset.forgotFetch || 'forgot-password.php';
+                history.pushState({ view: 'forgot', portal: null }, '', forgotUrl.split('?')[0]);
+            }
+        } catch {
+            window.alert('Unable to load the password recovery form. Please try again.');
+        }
+    }
+
+    async function closeForgotInPortal({ push = true } = {}) {
+        if (!forgotView || !selectView || !forgotView.classList.contains('is-active')) return;
+
+        document.title = 'Choose Login Portal - AMA Practicum System';
+        await switchView(forgotView, selectView, 'back');
+        resetForgotViewIfNeeded();
+
+        if (push) {
+            history.pushState({ portal: null, view: null }, '', baseUrl);
         }
     }
 
@@ -232,6 +456,189 @@ function initPortalLogin() {
 
     shell.__openPortal = openPortal;
     shell.__closePortal = closePortal;
+    shell.__openForgot = openForgotInPortal;
+    shell.__closeForgot = closeForgotInPortal;
+}
+
+function initForgotBackDelegation() {
+    if (window.__forgotBackDelegated) return;
+    window.__forgotBackDelegated = true;
+
+    document.addEventListener('click', async event => {
+        const back = event.target.closest('.js-forgot-back');
+        if (!back) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const portalShell = back.closest('.js-portal-shell');
+        if (portalShell?.__closeForgot && back.closest('[data-portal-view="forgot"]')) {
+            back.classList.add('is-pressed');
+            window.setTimeout(() => back.classList.remove('is-pressed'), 320);
+            await portalShell.__closeForgot();
+            return;
+        }
+
+        closeForgotPassword({
+            fetchUrl: back.dataset.portalFetch || back.closest('.js-forgot-shell')?.dataset.portalFetch || '',
+        });
+    });
+
+    bindLoginPartialPrefetch(document, '.js-forgot-back');
+}
+
+function initPortalForgotLinks(root = document) {
+    bindLoginPartialPrefetch(root, '.js-portal-forgot-open');
+
+    root.querySelectorAll('.js-portal-forgot-open').forEach(link => {
+        if (link.dataset.forgotBound === '1') return;
+        link.dataset.forgotBound = '1';
+        link.addEventListener('click', async event => {
+            event.preventDefault();
+            const fetchUrl = link.dataset.forgotFetch || link.getAttribute('href') || '';
+            if (!fetchUrl) return;
+
+            link.classList.add('is-opening');
+            window.setTimeout(() => link.classList.remove('is-opening'), 220);
+
+            const portalShell = link.closest('.js-portal-shell');
+            if (portalShell?.__openForgot) {
+                await portalShell.__openForgot();
+                return;
+            }
+
+            openForgotPassword(fetchUrl);
+        });
+    });
+}
+
+async function openForgotPassword(fetchUrl, { push = true } = {}) {
+    const shellHost = getLoginFormShell();
+    if (!shellHost || !fetchUrl) return;
+
+    try {
+        await transitionLoginShell(shellHost, () => fetchLoginPartial(fetchUrl), () => {
+            document.title = 'Forgot Password - AMA Practicum System';
+            initForgotPasswordShell(shellHost);
+        }, 'forward');
+
+        if (push) {
+            history.pushState({ view: 'forgot', forgotUrl: fetchUrl }, '', fetchUrl.split('?')[0]);
+        }
+    } catch {
+        clearLoginShellTransition(shellHost);
+        window.alert('Unable to load the password recovery form. Please try again.');
+    }
+}
+
+async function closeForgotPassword({ push = true, portal = null, fetchUrl = '' } = {}) {
+    const shellHost = getLoginFormShell();
+    const forgotShell = document.querySelector('.js-forgot-shell');
+    if (!shellHost || !forgotShell) return;
+
+    const portalFetchUrl = fetchUrl
+        || forgotShell.dataset.portalFetch
+        || document.querySelector('[data-portal-fetch]')?.dataset.portalFetch
+        || 'auth.php?partial=portal';
+
+    try {
+        await transitionLoginShell(shellHost, () => fetchLoginPartial(portalFetchUrl), () => {
+            initPortalLogin();
+            initAjaxPortalForms(shellHost);
+            initPortalForgotLinks(shellHost);
+        }, 'back');
+
+        if (portal) {
+            const shell = document.querySelector('.js-portal-shell');
+            shell?.__openPortal(portal, { push: false, direction: 'back' });
+        } else {
+            document.title = 'Choose Login Portal - AMA Practicum System';
+        }
+
+        if (push) {
+            const baseUrl = document.querySelector('.js-portal-shell')?.dataset.portalBase || 'auth.php';
+            history.pushState({ view: null, portal: portal || null }, '', portal ? `${baseUrl}?portal=${encodeURIComponent(portal)}` : baseUrl);
+        }
+    } catch {
+        window.location.href = portalFetchUrl.replace('?partial=portal', '') || 'auth.php';
+    }
+}
+
+function initForgotPasswordShell(root = document) {
+    const forgotShell = root.querySelector('.js-forgot-shell') || document.querySelector('.js-forgot-shell');
+    if (forgotShell?.dataset.portalFetch) {
+        prefetchLoginPartial(forgotShell.dataset.portalFetch);
+    }
+
+    if (typeof window.initLoginCustomSelects === 'function') {
+        window.initLoginCustomSelects();
+    }
+
+    root.querySelectorAll('[data-forgot-password-form]').forEach(form => {
+        if (form.dataset.forgotFormBound === '1') return;
+        form.dataset.forgotFormBound = '1';
+
+        const roleSelect = form.querySelector('[data-forgot-role]');
+        const label = form.querySelector('[data-forgot-identifier-label]');
+        const labels = {
+            student: 'USN (Student ID)',
+            coordinator: 'Coordinator ID',
+            partner: 'Partner ID',
+        };
+        const syncLabel = () => {
+            if (!label || !roleSelect) return;
+            label.textContent = labels[roleSelect.value] || 'Account ID';
+        };
+        roleSelect?.addEventListener('change', syncLabel);
+        syncLabel();
+
+        if (form.dataset.forgotAjax !== '1') return;
+
+        form.addEventListener('submit', async event => {
+            event.preventDefault();
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const forgotHost = form.closest('.js-forgot-view-host');
+            const shellHost = getLoginFormShell();
+            if (!shellHost) return;
+
+            submitBtn?.setAttribute('disabled', 'disabled');
+            submitBtn?.classList.add('is-loading');
+
+            try {
+                const responseHtml = await fetch(form.action || '', {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        Accept: 'text/html',
+                    },
+                    credentials: 'same-origin',
+                }).then(response => {
+                    if (!response.ok) throw new Error('Submit failed');
+                    return response.text();
+                });
+
+                if (forgotHost) {
+                    forgotHost.innerHTML = responseHtml;
+                    forgotHost.dataset.loaded = '1';
+                    initForgotPasswordShell(forgotHost);
+                    return;
+                }
+
+                await transitionLoginShell(shellHost, () => Promise.resolve(responseHtml), () => initForgotPasswordShell(shellHost), 'forward');
+            } catch {
+                clearLoginShellTransition(shellHost);
+                window.alert('Unable to submit your reset request. Please try again.');
+            } finally {
+                submitBtn?.removeAttribute('disabled');
+                submitBtn?.classList.remove('is-loading');
+            }
+        });
+    });
 }
 
 window.initPortalLogin = initPortalLogin;
+window.initPortalForgotLinks = initPortalForgotLinks;
+window.initForgotPasswordShell = initForgotPasswordShell;
+window.openForgotPassword = openForgotPassword;
+window.closeForgotPassword = closeForgotPassword;

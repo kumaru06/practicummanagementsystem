@@ -73,6 +73,10 @@ $profilePhotoUrl = partner_profile_photo_url($company ?? null);
 
                 <dl class="ip-settings-meta">
                     <div class="ip-settings-meta__item">
+                        <dt>Partner ID</dt>
+                        <dd><?= e($company['partner_id'] ?? '—') ?></dd>
+                    </div>
+                    <div class="ip-settings-meta__item">
                         <dt>Email</dt>
                         <dd><?= e($contactEmail !== '' ? $contactEmail : '—') ?></dd>
                     </div>

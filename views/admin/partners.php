@@ -114,6 +114,12 @@ $totalPrograms = count($programs);
                         <span>A temporary password is generated and emailed to the partner on creation.</span>
                     </div>
                 </div>
+
+                <div class="partner-id-preview">
+                    <span class="partner-id-preview-label">Partner ID (Auto-Generated)</span>
+                    <strong class="partner-id-preview-value"><?= e($nextPartnerId ?? 'IP-' . date('Y') . '-0001') ?></strong>
+                    <small>Assigned on save and included in the welcome email.</small>
+                </div>
             </div>
         </section>
 
@@ -151,6 +157,13 @@ $totalPrograms = count($programs);
                                 </div>
 
                                 <div class="partner-company-meta">
+                                    <div class="partner-meta-item">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h6"/></svg>
+                                        <div>
+                                            <span>Partner ID</span>
+                                            <strong><?= e($u['partner_id'] ?? '—') ?></strong>
+                                        </div>
+                                    </div>
                                     <div class="partner-meta-item">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                                         <div>
@@ -223,15 +236,6 @@ $totalPrograms = count($programs);
                                             <button class="btn btn-small btn-primary" type="submit">Save Programs</button>
                                         </form>
                                     </details>
-                                    <form method="post" class="inline partner-company-action">
-                                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                        <input type="hidden" name="action" value="admin_resend_company_credentials">
-                                        <input type="hidden" name="company_id" value="<?= (int)$u['id'] ?>">
-                                        <button class="btn btn-small partner-action-btn" type="submit">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9 22 2Z"/></svg>
-                                            Resend
-                                        </button>
-                                    </form>
                                     <form method="post" class="inline partner-company-action">
                                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                         <input type="hidden" name="action" value="admin_toggle_user">

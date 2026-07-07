@@ -41,6 +41,7 @@ class AdminController extends BaseController
             'title' => 'Manage Companies',
             'partners' => (new Company($this->db))->all(),
             'programs' => (new Program($this->db))->all(true),
+            'nextPartnerId' => (new Company($this->db))->peekNextPartnerId(),
         ]);
     }
 
@@ -170,6 +171,7 @@ class AdminController extends BaseController
         $this->render('admin/users', [
             'title' => 'Manage Student',
             'students' => (new Student($this->db))->allForAdmin(),
+            'programs' => (new Program($this->db))->all(true),
         ]);
     }
 
@@ -508,12 +510,14 @@ class AdminController extends BaseController
                 current_user()['id'],
                 0
             );
-            $companies->create($userId, $companyName, $address, $contactPerson, $contactEmail, $contactNumber, $programIds, $moaMouFile);
+            $companyId = $companies->create($userId, $companyName, $address, $contactPerson, $contactEmail, $contactNumber, $programIds, $moaMouFile);
             $this->db->commit();
+            $company = $companies->find($companyId);
             (new Email($this->db))->send($contactEmail, 'Your AMA Practicum Industry Partner Account', 'account_credentials', 'account_credentials', [
                 'name' => $contactPerson,
                 'email' => $contactEmail,
                 'password' => $password,
+                'partnerId' => $company['partner_id'] ?? '',
                 'roleLabel' => 'Industry Partner',
                 'loginUrl' => absolute_route_url('partner.login'),
             ]);
@@ -620,70 +624,6 @@ class AdminController extends BaseController
             flash('error', 'Program is already in use. Deactivate it instead.');
         }
         redirect('index.php?r=admin_programs');
-    }
-
-    public function resendCompanyCredentials(): void
-    {
-        require_role('admin');
-        $p = $this->post();
-        try {
-            $company = (new Company($this->db))->find((int)$p['company_id']);
-            if (!$company) {
-                throw new RuntimeException('Industry Partner not found.');
-            }
-            $password = random_password();
-            (new User($this->db))->updatePassword((int)$company['user_id'], $password, 0);
-            $sent = (new Email($this->db))->send($company['contact_email'], 'Your AMA Practicum Industry Partner Account', 'account_credentials', 'account_credentials', [
-                'name' => $company['contact_person'],
-                'email' => $company['contact_email'],
-                'password' => $password,
-                'roleLabel' => 'Industry Partner',
-                'loginUrl' => absolute_route_url('partner.login'),
-            ]);
-            flash($sent ? 'success' : 'error', $sent ? 'Industry Partner credentials were resent to ' . $company['contact_email'] . (defined('APP_IS_LOCAL') && APP_IS_LOCAL ? ' Check uploads/dev-mail/ for a local copy (Gmail may filter SMTP mail on .test).' : '.') : 'Credentials were reset, but the email failed. Check Email Logs.');
-        } catch (Throwable $e) {
-            flash('error', $e->getMessage());
-        }
-        redirect('index.php?r=admin_partners');
-    }
-
-    public function resetUserCredentials(): void
-    {
-        require_role('admin');
-        $p = $this->post();
-        $redirect = trim((string)($p['redirect'] ?? 'admin_users')) ?: 'admin_users';
-        try {
-            $target = (new User($this->db))->findWithDetails((int)$p['user_id']);
-            if (!$target || ($target['role'] ?? '') === 'admin') {
-                throw new RuntimeException('User account cannot be reset.');
-            }
-            $password = random_password();
-            (new User($this->db))->updatePassword((int)$target['id'], $password, 0);
-            $roleLabel = match ($target['role']) {
-                'coordinator' => 'OJT Coordinator',
-                'student' => 'Student',
-                'partner' => 'Industry Partner',
-                default => ucwords(str_replace('_', ' ', (string)$target['role'])),
-            };
-            $loginRoute = match ($target['role']) {
-                'coordinator' => 'coordinator.login',
-                'student' => 'student.login',
-                'partner' => 'partner.login',
-                default => 'login',
-            };
-            $sent = (new Email($this->db))->send($target['email'], 'Your AMA Practicum Account Credentials', 'account_credentials', 'account_credentials', [
-                'name' => $target['name'],
-                'email' => $target['email'],
-                'usn' => ($target['role'] ?? '') === 'student' ? ($target['student_no'] ?? '') : '',
-                'password' => $password,
-                'roleLabel' => $roleLabel,
-                'loginUrl' => absolute_route_url($loginRoute),
-            ]);
-            flash($sent ? 'success' : 'error', $sent ? 'Temporary credentials were sent to ' . $target['email'] . (defined('APP_IS_LOCAL') && APP_IS_LOCAL ? ' On local .test, also open uploads/dev-mail/ for the password if Gmail/Yahoo does not show it.' : '.') : 'Password was reset, but the email failed. Check Email Logs.');
-        } catch (Throwable $e) {
-            flash('error', $e->getMessage());
-        }
-        redirect('index.php?r=' . $redirect);
     }
 
     public function toggleUser(): void
@@ -863,5 +803,103 @@ class AdminController extends BaseController
             flash('error', $e->getMessage());
         }
         redirect('index.php?r=admin_registration_requests');
+    }
+
+    public function previewPartnerId(): void
+    {
+        require_role('admin');
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store, no-cache, must-revalidate');
+        echo json_encode([
+            'ok' => true,
+            'partnerId' => (new Company($this->db))->peekNextPartnerId(),
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    public function passwordResetRequests(): void
+    {
+        require_role('admin');
+        $model = new PasswordResetRequest($this->db);
+        $this->render('admin/password_reset_requests', [
+            'title' => 'Password Reset Requests',
+            'requests' => $model->allPending(),
+        ]);
+    }
+
+    public function reviewPasswordResetRequest(): void
+    {
+        require_role('admin');
+        $ajax = $this->isAjaxRequest();
+        $p = $this->post();
+        $requestId = (int)($p['request_id'] ?? 0);
+        $decision = trim((string)($p['decision'] ?? ''));
+        $model = new PasswordResetRequest($this->db);
+        $request = $model->find($requestId);
+
+        try {
+            if (!$request || ($request['status'] ?? '') !== 'pending') {
+                throw new RuntimeException('Password reset request not found or already processed.');
+            }
+
+            $user = (new User($this->db))->find((int)$request['user_id']);
+            if (!$user || (int)($user['is_active'] ?? 0) !== 1) {
+                throw new RuntimeException('The account for this request is no longer active.');
+            }
+
+            if ($decision === 'reject') {
+                $model->reject($requestId, (int)current_user()['id'], trim((string)($p['decline_reason'] ?? '')));
+                $message = 'Password reset request rejected.';
+                if ($ajax) {
+                    $this->respondJson(['ok' => true, 'message' => $message, 'requestId' => $requestId]);
+                }
+                flash('success', $message);
+                redirect('index.php?r=admin_password_reset_requests');
+            }
+
+            if ($decision !== 'approve') {
+                throw new RuntimeException('Invalid action.');
+            }
+
+            $token = $model->approve($requestId, (int)current_user()['id']);
+            $resetUrl = absolute_route_url('password.reset', ['token' => $token]);
+            $role = (string)($request['role'] ?? '');
+            $loginRoute = match ($role) {
+                'coordinator' => 'coordinator.login',
+                'partner' => 'partner.login',
+                default => 'student.login',
+            };
+
+            $sent = (new Email($this->db))->send(
+                (string)$request['email'],
+                'Reset your AMA Practicum password',
+                'password_reset_link',
+                'password_reset_link',
+                [
+                    'name' => full_name($user),
+                    'roleLabel' => $model->roleLabel($role),
+                    'resetUrl' => $resetUrl,
+                    'expiresHours' => PasswordResetRequest::RESET_LINK_HOURS,
+                    'loginUrl' => absolute_route_url($loginRoute),
+                ]
+            );
+
+            if (!$sent) {
+                throw new RuntimeException('Request was approved, but the reset email failed to send. Check Email Logs.');
+            }
+
+            $message = 'Password reset approved and a secure reset link was sent to ' . $request['email'] . '.';
+            if ($ajax) {
+                $this->respondJson(['ok' => true, 'message' => $message, 'requestId' => $requestId]);
+            }
+            flash('success', $message);
+        } catch (Throwable $e) {
+            if ($ajax) {
+                $this->respondJson(['ok' => false, 'message' => $e->getMessage()], 422);
+            }
+            flash('error', $e->getMessage());
+        }
+
+        redirect('index.php?r=admin_password_reset_requests');
     }
 }

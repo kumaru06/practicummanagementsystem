@@ -70,6 +70,13 @@ $flashError = $flashError ?? null;
                         </a>
                     <?php endforeach; ?>
                 </div>
+                <p class="portal-register-link portal-forgot-link">
+                    <a
+                        href="<?= e(route_url('forgot.password')) ?>"
+                        class="js-portal-forgot-open"
+                        data-forgot-fetch="<?= e(route_url('forgot.password', ['partial' => 'view'])) ?>"
+                    >Forgot password?</a>
+                </p>
             </div>
 
             <div class="portal-view portal-view--form<?= $showFormView ? ' is-active' : '' ?>" data-portal-view="form">
@@ -110,6 +117,22 @@ $flashError = $flashError ?? null;
                         <?php endif; ?>
                     </form>
                 <?php endforeach; ?>
+            </div>
+
+            <div class="portal-view portal-view--forgot" data-portal-view="forgot">
+                <div
+                    class="js-forgot-view-host"
+                    data-forgot-fetch="<?= e(route_url('forgot.password', ['partial' => 'view'])) ?>"
+                    data-loaded="1"
+                >
+                    <?php
+                    $role = '';
+                    $submitted = false;
+                    $flashSuccess = null;
+                    $flashError = null;
+                    require __DIR__ . '/forgot-password-view.php';
+                    ?>
+                </div>
             </div>
         </div>
     </div>

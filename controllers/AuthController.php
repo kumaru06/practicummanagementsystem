@@ -619,5 +619,180 @@ class AuthController extends BaseController
 
     }
 
+    public function forgotPassword(): void
+    {
+        if (current_user()) {
+            redirect(route_for_role(current_user()['role'] ?? null));
+        }
+
+        $model = new PasswordResetRequest($this->db);
+        $role = $this->normalizeForgotPasswordRole($_POST['role'] ?? $_GET['role'] ?? '');
+        $submitted = isset($_GET['submitted']);
+        $flashSuccess = $submitted ? flash('success') : null;
+        $flashError = flash('error');
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            verify_csrf();
+            $role = $this->normalizeForgotPasswordRole($_POST['role'] ?? '');
+            $email = strtolower(trim((string)($_POST['email'] ?? '')));
+            $identifier = trim((string)($_POST['identifier'] ?? ''));
+
+            try {
+                if ($role === null) {
+                    throw new RuntimeException('Select a valid account type.');
+                }
+                if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    throw new RuntimeException('Enter a valid registered email address.');
+                }
+                if ($identifier === '') {
+                    throw new RuntimeException('Enter your ' . $model->identifierLabel($role) . '.');
+                }
+
+                $user = $model->validateCredentials($role, $email, $identifier);
+                if (!$user) {
+                    throw new RuntimeException('The email and account ID you entered do not match our records.');
+                }
+                if ($model->hasPendingForUser((int)$user['id'])) {
+                    throw new RuntimeException('A password reset request is already pending review for this account.');
+                }
+
+                $requestId = $model->create((int)$user['id'], $role, $email, $identifier);
+                $this->notifyAdminsOfPasswordResetRequest($requestId, full_name($user), $role);
+                $submitted = true;
+                $flashSuccess = 'Your password reset request was submitted. An administrator will review it and send a secure reset link to your registered email if approved.';
+                $flashError = null;
+
+                if ($this->wantsForgotPasswordAjax()) {
+                    $this->renderForgotPasswordPartial($role, $submitted, $flashSuccess, $flashError);
+                    return;
+                }
+
+                flash('success', $flashSuccess);
+                redirect('forgot-password.php?submitted=1');
+            } catch (Throwable $e) {
+                $flashError = $e->getMessage();
+                if ($this->wantsForgotPasswordAjax()) {
+                    $this->renderForgotPasswordPartial($role, false, null, $flashError);
+                    return;
+                }
+                flash('error', $flashError);
+            }
+        }
+
+        if ($this->wantsForgotPasswordPartial()) {
+            $this->renderForgotPasswordPartial($role, $submitted, $flashSuccess, $flashError);
+            return;
+        }
+
+        require __DIR__ . '/../views/shared/forgot_password.php';
+    }
+
+    private function wantsForgotPasswordPartial(): bool
+    {
+        $partial = $_GET['partial'] ?? '';
+        return in_array($partial, ['card', 'view'], true)
+            && strcasecmp($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '', 'XMLHttpRequest') === 0
+            && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET';
+    }
+
+    private function wantsForgotPasswordAjax(): bool
+    {
+        return strcasecmp($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '', 'XMLHttpRequest') === 0
+            && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST';
+    }
+
+    private function renderForgotPasswordPartial(?string $role, bool $submitted, ?string $flashSuccess, ?string $flashError): void
+    {
+        header('Content-Type: text/html; charset=UTF-8');
+        $partial = $_GET['partial'] ?? $_POST['partial'] ?? 'card';
+        if ($partial === 'view') {
+            require __DIR__ . '/../views/shared/partials/forgot-password-view.php';
+            return;
+        }
+        require __DIR__ . '/../views/shared/partials/forgot-password-card.php';
+    }
+
+    public function resetPassword(): void
+    {
+        if (current_user()) {
+            redirect(route_for_role(current_user()['role'] ?? null));
+        }
+
+        $model = new PasswordResetRequest($this->db);
+        $token = trim((string)($_GET['token'] ?? $_POST['token'] ?? ''));
+        $request = $token !== '' ? $model->findByToken($token) : null;
+
+        if ($token !== '' && !$request) {
+            flash('error', 'This password reset link is invalid or has already been used.');
+            redirect('forgot-password.php');
+        }
+
+        if ($request && !empty($request['reset_expires_at']) && strtotime((string)$request['reset_expires_at']) < time()) {
+            flash('error', 'This password reset link has expired. Please submit a new password reset request.');
+            redirect('forgot-password.php');
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            verify_csrf();
+            $token = trim((string)($_POST['token'] ?? ''));
+            $request = $token !== '' ? $model->findByToken($token) : null;
+            $password = (string)($_POST['password'] ?? '');
+            $confirmPassword = (string)($_POST['confirm_password'] ?? '');
+
+            try {
+                if (!$request) {
+                    throw new RuntimeException('This password reset link is invalid or has already been used.');
+                }
+                if (!empty($request['reset_expires_at']) && strtotime((string)$request['reset_expires_at']) < time()) {
+                    throw new RuntimeException('This password reset link has expired. Please submit a new password reset request.');
+                }
+                if (strlen($password) < 8) {
+                    throw new RuntimeException('Password must be at least 8 characters.');
+                }
+                if ($password !== $confirmPassword) {
+                    throw new RuntimeException('Password confirmation does not match.');
+                }
+
+                (new User($this->db))->updatePassword((int)$request['user_id'], $password, 1);
+                $model->markCompleted((int)$request['id']);
+
+                $loginRoute = match ((string)($request['role'] ?? '')) {
+                    'coordinator' => 'coordinator.login',
+                    'partner' => 'partner.login',
+                    default => 'student.login',
+                };
+
+                flash('success', 'Your password has been updated. You can now sign in with your new password.');
+                redirect(route_url($loginRoute));
+            } catch (Throwable $e) {
+                flash('error', $e->getMessage());
+            }
+        }
+
+        require __DIR__ . '/../views/shared/reset_password.php';
+    }
+
+    private function normalizeForgotPasswordRole(mixed $role): ?string
+    {
+        $role = strtolower(trim((string)$role));
+        return in_array($role, ['student', 'coordinator', 'partner'], true) ? $role : null;
+    }
+
+    private function notifyAdminsOfPasswordResetRequest(int $requestId, string $userName, string $role): void
+    {
+        $notifications = new Notification($this->db);
+        $roleLabel = (new PasswordResetRequest($this->db))->roleLabel($role);
+        $link = route_url('admin.password_reset_requests');
+        $admins = $this->db->query('SELECT id FROM users WHERE role = "admin" AND is_active = 1')->fetchAll();
+        foreach ($admins as $admin) {
+            $notifications->create(
+                (int)$admin['id'],
+                'Password Reset Request',
+                $roleLabel . ' ' . $userName . ' submitted a password reset request.',
+                $link
+            );
+        }
+    }
+
 }
 

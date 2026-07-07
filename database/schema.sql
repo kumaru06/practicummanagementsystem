@@ -65,6 +65,7 @@ CREATE TABLE program_terms (
 
 CREATE TABLE partner_companies (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  partner_id VARCHAR(20) NULL UNIQUE,
   user_id INT NOT NULL UNIQUE,
   name VARCHAR(190) NOT NULL,
   address TEXT NOT NULL,

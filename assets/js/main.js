@@ -31,6 +31,7 @@
     initEmailLogViews();
     initRequirementReviewModals();
     initRegistrationRequestsReview();
+    initPasswordResetRequests();
     initNotifications();
     try { initWeeklyReportUpload(); } catch (err) { console.warn('Weekly report upload init failed:', err); }
     initMoaLibrary();
@@ -46,6 +47,7 @@
     document.querySelectorAll('.data-table').forEach(table => enhanceTable(table));
     initEnrollmentFilters();
     initMyStudentsDirectory();
+    initAdminStudentsDirectory();
     document.querySelector('#modal .modal-close')?.addEventListener('click', closeSlidePanel);
     document.addEventListener('click', handleOutsideMenus);
     document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeSlidePanel(); closeAdminActionMenus(); closeNotifications(); closeRequirementReviewModals(); closeRegistrationRequestsReview(); closeCustomSelects(); closeCustomDatePickers(); closeDtrTimePicker(); } });
@@ -3730,7 +3732,10 @@ function addTableTools(table) {
     const exportBtn = exportPdf
         ? '<button class="btn btn-small export-pdf" type="button">Export PDF</button>'
         : '<button class="btn btn-small export-csv" type="button">Export CSV</button>';
-    tools.innerHTML = exportBtn + '<div class="column-menu"><button class="btn btn-small column-toggle" type="button">Columns</button><div class="column-options"></div></div>';
+    const columnMenu = table.hasAttribute('data-hide-column-toggle')
+        ? ''
+        : '<div class="column-menu"><button class="btn btn-small column-toggle" type="button">Columns</button><div class="column-options"></div></div>';
+    tools.innerHTML = exportBtn + columnMenu;
     wrap.insertAdjacentElement('beforebegin', tools);
     if (exportPdf) {
         tools.querySelector('.export-pdf').addEventListener('click', () => {
@@ -3740,14 +3745,16 @@ function addTableTools(table) {
     } else {
         tools.querySelector('.export-csv').addEventListener('click', () => exportCsv(table));
     }
-    const options = tools.querySelector('.column-options');
-    [...table.tHead.rows[0].cells].forEach((th, i) => {
-        const label = document.createElement('label');
-        label.innerHTML = `<input type="checkbox" checked data-col="${i}"> ${escapeHtml(th.innerText || 'Column ' + (i + 1))}`;
-        options.appendChild(label);
-    label.querySelector('input').addEventListener('change', e => setColumnVisible(table, i, e.target.checked));
-    });
-    tools.querySelector('.column-toggle').addEventListener('click', () => options.classList.toggle('open'));
+    if (!table.hasAttribute('data-hide-column-toggle')) {
+        const options = tools.querySelector('.column-options');
+        [...table.tHead.rows[0].cells].forEach((th, i) => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" checked data-col="${i}"> ${escapeHtml(th.innerText || 'Column ' + (i + 1))}`;
+            options.appendChild(label);
+            label.querySelector('input').addEventListener('change', e => setColumnVisible(table, i, e.target.checked));
+        });
+        tools.querySelector('.column-toggle').addEventListener('click', () => options.classList.toggle('open'));
+    }
 }
 
 function handleOutsideMenus(event) {
@@ -3926,8 +3933,17 @@ function renderDashboardCharts() {
     }
 }
 // â”€â”€â”€ Chart helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const CHART_COLORS = ['#8B1A1A', '#c0392b', '#16a34a', '#f59e0b', '#dc2626', '#8b5cf6', '#0891b2', '#64748b'];
-const CHART_BAR_COLOR = '#8B1A1A';
+const CHART_COLORS = ['#642525', '#4b2030', '#261c4b', '#1b2a63', '#8B1A1A', '#c0392b', '#64748b'];
+const CHART_BAR_COLOR = '#4b2030';
+const CHART_BAR_GRADIENT = ['#4b2030', '#261c4b', '#642525'];
+
+function chartBarGradient(ctx, x1, y1, x2, y2) {
+    const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+    grad.addColorStop(0, CHART_BAR_GRADIENT[0]);
+    grad.addColorStop(0.5, CHART_BAR_GRADIENT[1]);
+    grad.addColorStop(1, CHART_BAR_GRADIENT[2]);
+    return grad;
+}
 
 function prepCanvas(id) {
     const c = document.getElementById(id);
@@ -4202,8 +4218,7 @@ function drawBars(id, data, suffix = '', forceHorizontal = false, forceVertical 
         const bH  = (val / maxVal) * gH;
         const x   = pad.left + i * step + (step - barW) / 2;
         const y   = pad.top + gH - bH;
-        const grad = ctx.createLinearGradient(x, y, x, pad.top + gH);
-        grad.addColorStop(0, '#c0392b'); grad.addColorStop(1, '#8B1A1A');
+        const grad = chartBarGradient(ctx, x, y, x, pad.top + gH);
         ctx.fillStyle = val > 0 ? grad : '#e2e8f0';
         roundRect(ctx, x, y, barW, bH || 2, 6); ctx.fill();
         if (val > 0) {
@@ -4284,9 +4299,7 @@ function drawHBars(id, data, suffix = '') {
         ctx.fillText(truncated, padL - 10, y + barH / 2);
 
         // bar
-        const grad = ctx.createLinearGradient(x, y, x + bW, y);
-        grad.addColorStop(0, '#c0392b');
-        grad.addColorStop(1, '#8B1A1A');
+        const grad = chartBarGradient(ctx, x, y, x + bW, y);
         ctx.fillStyle = val > 0 ? grad : '#e2e8f0';
         roundRect(ctx, x, y, Math.max(bW, 4), barH, 8);
         ctx.fill();
@@ -4657,6 +4670,193 @@ function initRegistrationRequestsReview() {
     });
 
     panel?.querySelector('[data-reg-req-close]')?.addEventListener('click', closeRegistrationRequestsReview);
+}
+
+function initPasswordResetRequests() {
+    const root = document.querySelector('[data-pwd-reset-requests]');
+    if (!root) return;
+
+    const badgeEl = root.querySelector('[data-pwd-reset-badge]');
+    const countEl = root.querySelector('[data-pwd-reset-count]');
+    const emptyEl = root.querySelector('[data-pwd-reset-empty]');
+    const tableWrap = root.querySelector('[data-pwd-reset-table-wrap]');
+    const tbody = root.querySelector('[data-pwd-reset-tbody]');
+    const loadingLabels = {
+        approve: 'Sending reset link...',
+        reject: 'Rejecting request...',
+    };
+    const successLabels = {
+        approve: 'Reset link sent successfully.',
+        reject: 'Password reset request rejected.',
+    };
+
+    let floatEl = document.querySelector('[data-pwd-reset-float]');
+    if (!floatEl) {
+        floatEl = document.createElement('div');
+        floatEl.className = 'pwd-reset-float';
+        floatEl.setAttribute('data-pwd-reset-float', '');
+        floatEl.setAttribute('aria-live', 'polite');
+        floatEl.setAttribute('aria-busy', 'false');
+        floatEl.hidden = true;
+        floatEl.innerHTML = `
+            <div class="pwd-reset-float-box" role="status">
+                <div class="pwd-reset-float-icon pwd-reset-float-icon--loading" data-pwd-reset-float-icon aria-hidden="true">
+                    <span class="pwd-reset-float-spinner"></span>
+                </div>
+                <p class="pwd-reset-float-msg" data-pwd-reset-float-msg></p>
+            </div>
+        `;
+        document.body.appendChild(floatEl);
+    }
+
+    const floatMsgEl = floatEl.querySelector('[data-pwd-reset-float-msg]');
+    const floatIconEl = floatEl.querySelector('[data-pwd-reset-float-icon]');
+    let floatHideTimer = null;
+
+    const wait = ms => new Promise(resolve => window.setTimeout(resolve, ms));
+
+    const hideFloat = async (delayMs = 0) => {
+        if (floatHideTimer) {
+            window.clearTimeout(floatHideTimer);
+            floatHideTimer = null;
+        }
+        if (delayMs > 0) {
+            await wait(delayMs);
+        }
+        floatEl.classList.remove('is-visible');
+        floatEl.classList.add('is-fading-out');
+        floatEl.setAttribute('aria-busy', 'false');
+        await wait(320);
+        floatEl.hidden = true;
+        floatEl.classList.remove('is-fading-out', 'is-success', 'is-error');
+        floatIconEl?.classList.remove('pwd-reset-float-icon--success', 'pwd-reset-float-icon--error');
+    };
+
+    const showFloat = async (state, message) => {
+        if (floatHideTimer) {
+            window.clearTimeout(floatHideTimer);
+            floatHideTimer = null;
+        }
+
+        floatEl.hidden = false;
+        floatEl.classList.remove('is-fading-out', 'is-success', 'is-error');
+        floatIconEl?.classList.remove('pwd-reset-float-icon--success', 'pwd-reset-float-icon--error');
+
+        if (floatMsgEl) floatMsgEl.textContent = message;
+        floatEl.setAttribute('aria-busy', state === 'loading' ? 'true' : 'false');
+
+        if (state === 'success') {
+            floatEl.classList.add('is-success');
+            floatIconEl?.classList.add('pwd-reset-float-icon--success');
+        } else if (state === 'error') {
+            floatEl.classList.add('is-error');
+            floatIconEl?.classList.add('pwd-reset-float-icon--error');
+        }
+
+        await wait(16);
+        floatEl.classList.add('is-visible');
+
+        if (state === 'success') {
+            floatHideTimer = window.setTimeout(() => {
+                hideFloat();
+            }, 1800);
+        } else if (state === 'error') {
+            floatHideTimer = window.setTimeout(() => {
+                hideFloat();
+            }, 2800);
+        }
+    };
+
+    const updatePendingCount = () => {
+        const count = tbody?.querySelectorAll('[data-pwd-reset-row]').length || 0;
+        if (countEl) countEl.textContent = String(count);
+        badgeEl?.classList.toggle('is-hidden', count === 0);
+        emptyEl?.classList.toggle('is-hidden', count > 0);
+        tableWrap?.classList.toggle('is-hidden', count === 0);
+    };
+
+    const setFormLoading = (form, loading) => {
+        const button = form.querySelector('[data-pwd-reset-submit]');
+        const row = form.closest('[data-pwd-reset-row]');
+        const decision = form.dataset.pwdResetDecision || 'approve';
+        const textEl = button?.querySelector('.btn-text');
+        const defaultLabel = textEl?.dataset.defaultLabel || textEl?.textContent || '';
+        const disableSelector = 'button, input:not([type="hidden"]), textarea, select';
+
+        if (loading) {
+            if (textEl && !textEl.dataset.defaultLabel) {
+                textEl.dataset.defaultLabel = defaultLabel;
+            }
+            button?.classList.add('loading');
+            if (button) button.disabled = true;
+            if (textEl) textEl.textContent = loadingLabels[decision] || 'Processing...';
+            row?.classList.add('is-processing');
+            form.querySelectorAll(disableSelector).forEach(el => {
+                el.disabled = true;
+            });
+            return;
+        }
+
+        button?.classList.remove('loading');
+        if (button) button.disabled = false;
+        if (textEl) textEl.textContent = textEl.dataset.defaultLabel || defaultLabel;
+        row?.classList.remove('is-processing');
+        form.querySelectorAll(disableSelector).forEach(el => {
+            el.disabled = false;
+        });
+    };
+
+    root.querySelectorAll('[data-pwd-reset-form]').forEach(form => {
+        form.addEventListener('submit', async event => {
+            event.preventDefault();
+            const submitBtn = form.querySelector('[data-pwd-reset-submit]');
+            if (!submitBtn || submitBtn.disabled) return;
+
+            const decision = form.dataset.pwdResetDecision || 'approve';
+            const formData = new FormData(form);
+
+            await showFloat('loading', loadingLabels[decision] || 'Processing...');
+            setFormLoading(form, true);
+
+            try {
+                const endpoint = form.getAttribute('action') || window.location.pathname || 'index.php';
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        Accept: 'application/json',
+                    },
+                    credentials: 'same-origin',
+                    body: formData,
+                });
+
+                const raw = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(raw);
+                } catch {
+                    const snippet = raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                    throw new Error(snippet.slice(0, 180) || 'Unable to process this password reset request.');
+                }
+
+                if (!response.ok || !data.ok) {
+                    throw new Error(data.message || 'Unable to process this password reset request.');
+                }
+
+                form.closest('[data-pwd-reset-row]')?.remove();
+                updatePendingCount();
+
+                const details = form.closest('details.reg-req-decline');
+                if (details) details.open = false;
+
+                setFormLoading(form, false);
+                await showFloat('success', data.message || successLabels[decision] || 'Done.');
+            } catch (error) {
+                setFormLoading(form, false);
+                await showFloat('error', error.message || 'Unable to process this password reset request.');
+            }
+        });
+    });
 }
 
 function initRequirementReviewModals() {
@@ -5284,6 +5484,49 @@ function initMyStudentsDirectory() {
         requestAnimationFrame(() => {
             applyFilters();
         });
+    });
+}
+
+function initAdminStudentsDirectory() {
+    document.querySelectorAll('[data-admin-students-directory]').forEach(directory => {
+        const table = directory.querySelector('.asu-students-table');
+        const programFilter = directory.querySelector('[data-asu-program-filter]');
+        const exportBtn = directory.querySelector('[data-asu-export]');
+        const search = directory.querySelector('.table-search');
+        if (!table) return;
+
+        let programId = 'all';
+
+        const applyFilters = () => {
+            if (!programFilter) {
+                table._applyRowFilter = null;
+                search?.dispatchEvent(new Event('input'));
+                return;
+            }
+            table._applyRowFilter = row => {
+                if (programId === 'all') return true;
+                return row.dataset.programId === programId;
+            };
+            search?.dispatchEvent(new Event('input'));
+        };
+
+        table._resetDirectoryFilters = () => {
+            programId = 'all';
+            if (programFilter) {
+                programFilter.value = 'all';
+                programFilter._syncCustomSelect?.();
+            }
+            table._applyRowFilter = null;
+        };
+
+        programFilter?.addEventListener('change', () => {
+            programId = programFilter.value || 'all';
+            applyFilters();
+        });
+
+        exportBtn?.addEventListener('click', () => exportCsv(table));
+
+        requestAnimationFrame(applyFilters);
     });
 }
 

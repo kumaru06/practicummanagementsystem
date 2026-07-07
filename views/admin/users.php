@@ -7,6 +7,7 @@ $deactivationReasons = [
 ];
 
 $students = $students ?? [];
+$programs = $programs ?? [];
 $totalStudents = count($students);
 $activeCount = count(array_filter($students, static fn($s) => !empty($s['is_active'])));
 $inactiveCount = max(0, $totalStudents - $activeCount);
@@ -58,7 +59,7 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
         </article>
     </div>
 
-    <section class="card asu-directory-card admin-users-page">
+    <section class="card asu-directory-card admin-users-page" data-admin-students-directory>
         <div class="asu-directory-head">
             <div class="asu-directory-copy">
                 <span class="asu-eyebrow">Student Directory</span>
@@ -74,8 +75,23 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
         <div class="asu-toolbar">
             <div class="asu-search-wrap">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                <input class="table-search asu-table-search" type="search" placeholder="Search by name, email, USN, or program..." autocomplete="off">
+                <input class="table-search asu-table-search" type="search" placeholder="Search students..." autocomplete="off">
             </div>
+            <?php if ($totalStudents > 0): ?>
+            <div class="asu-toolbar-actions">
+                <?php if ($programs): ?>
+                <label class="filter-select-wrap asu-filter-select">
+                    <select data-asu-program-filter data-select-label="Program" aria-label="Filter by program">
+                        <option value="all">All Programs</option>
+                        <?php foreach ($programs as $program): ?>
+                            <option value="<?= (int)$program['id'] ?>"><?= e($program['code'] . ' — ' . $program['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <?php endif; ?>
+                <button class="btn btn-small asu-export-btn" type="button" data-asu-export>Export CSV</button>
+            </div>
+            <?php endif; ?>
         </div>
 
         <?php if ($totalStudents === 0): ?>
@@ -88,10 +104,11 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
             </div>
         <?php else: ?>
             <div class="table-wrap asu-table-wrap">
-                <table class="data-table no-row-details asu-students-table">
+                <table class="data-table no-row-details asu-students-table" data-no-tools data-per-page="10">
                     <thead>
                         <tr>
-                            <th data-sort>Student</th>
+                            <th data-sort>Last Name</th>
+                            <th data-sort>First Name</th>
                             <th data-sort>Email</th>
                             <th data-sort>Student ID</th>
                             <th data-sort class="asu-col-program">Program</th>
@@ -112,25 +129,31 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
                                 ? 'index.php?r=coordinator_partner_document&company_id=' . (int)$s['company_id']
                                 : '';
                             $isSelf = (int)($s['user_id'] ?? 0) === (int)current_user()['id'];
-                            $fullName = trim(($s['first_name'] ?? '') . ' ' . ($s['middle_name'] ?? '') . ' ' . ($s['last_name'] ?? ''));
+                            $firstName = trim((string)($s['first_name'] ?? ''));
+                            $lastName = trim((string)($s['last_name'] ?? ''));
+                            if ($firstName === '' && $lastName === '' && !empty($s['name'])) {
+                                $nameParts = preg_split('/\s+/', trim((string)$s['name']), 2);
+                                $firstName = $nameParts[0] ?? '';
+                                $lastName = $nameParts[1] ?? '';
+                            }
+                            $fullName = trim($firstName . ' ' . ($s['middle_name'] ?? '') . ' ' . $lastName);
                             $fullName = preg_replace('/\s+/', ' ', $fullName) ?: ($s['name'] ?? 'Student');
                         ?>
-                        <tr>
-                            <td>
+                        <tr data-program-id="<?= (int)($s['program_id'] ?? 0) ?>"
+                            data-search="<?= e(strtolower(trim($lastName . ' ' . $firstName . ' ' . ($s['middle_name'] ?? '') . ' ' . ($s['email'] ?? '') . ' ' . ($s['student_no'] ?? '') . ' ' . ($s['course'] ?? '') . ' ' . ($s['program_code'] ?? '')))) ?>">
+                            <td class="asu-name-cell">
                                 <div class="asu-student-cell">
-                                    <?php if ($studentPhotoUrl !== ''): ?>
-                                        <span class="asu-student-avatar asu-student-avatar--photo"><img src="<?= e($studentPhotoUrl) ?>" alt=""></span>
-                                    <?php else: ?>
-                                        <span class="asu-student-avatar"><?= e($initial) ?></span>
-                                    <?php endif; ?>
-                                    <span class="asu-student-meta">
-                                        <strong class="asu-student-name"><?= e($fullName) ?></strong>
-                                        <span class="asu-student-sub">
-                                            <?= e($s['year_level'] ?? '') ?><?= !empty($s['year_level']) && !empty($s['coordinator_name']) ? ' · ' : '' ?><?= e($s['coordinator_name'] ?? '') ?>
-                                        </span>
+                                    <span class="asu-student-avatar aco-avatar-tone--<?= (abs((int)($s['user_id'] ?? $s['id'] ?? 0)) % 6) + 1 ?><?= $studentPhotoUrl ? ' asu-student-avatar--photo' : '' ?>">
+                                        <?php if ($studentPhotoUrl): ?>
+                                            <img src="<?= e($studentPhotoUrl) ?>" alt="">
+                                        <?php else: ?>
+                                            <?= e($initial) ?>
+                                        <?php endif; ?>
                                     </span>
+                                    <span><?= $lastName !== '' ? e($lastName) : '<span class="muted">—</span>' ?></span>
                                 </div>
                             </td>
+                            <td class="asu-name-cell"><?= $firstName !== '' ? e($firstName) : '<span class="muted">—</span>' ?></td>
                             <td><a class="asu-email-link" href="mailto:<?= e($s['email']) ?>"><?= e($s['email']) ?></a></td>
                             <td class="center-cell">
                                 <?php if ($s['student_no']): ?>
@@ -155,7 +178,7 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
                                     </summary>
                                     <div class="admin-user-action-panel">
                                         <button class="admin-user-action-item student-view-btn" type="button"
-                                            data-name="<?= e($s['name']) ?>"
+                                            data-name="<?= e($fullName) ?>"
                                             data-email="<?= e($s['email']) ?>"
                                             data-photo-url="<?= e($studentPhotoUrl) ?>"
                                             data-initial="<?= e($initial) ?>"

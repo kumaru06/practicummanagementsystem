@@ -169,10 +169,11 @@ $signedCoordinators = count(array_filter($coordinators, static fn ($c) => !empty
 
         <div class="aco-directory-body">
         <div class="table-wrap aco-table-wrap">
-            <table class="data-table no-row-details aco-coordinators-table" data-per-page="10">
+            <table class="data-table no-row-details aco-coordinators-table" data-per-page="10" data-hide-column-toggle>
                 <thead>
                     <tr>
-                        <th data-sort>Coordinator</th>
+                        <th data-sort>Last Name</th>
+                        <th data-sort>First Name</th>
                         <th data-sort>Email</th>
                         <th data-sort>ID Number</th>
                         <th data-sort>Department</th>
@@ -184,7 +185,9 @@ $signedCoordinators = count(array_filter($coordinators, static fn ($c) => !empty
                 <tbody>
                     <?php foreach ($coordinators as $u): ?>
                     <?php
-                        $fullName = trim(($u['first_name'] ?? '') . ' ' . ($u['last_name'] ?? ''));
+                        $firstName = trim((string)($u['first_name'] ?? ''));
+                        $lastName = trim((string)($u['last_name'] ?? ''));
+                        $fullName = trim($firstName . ' ' . $lastName);
                         $fullName = preg_replace('/\s+/', ' ', $fullName) ?: ($u['name'] ?? 'Coordinator');
                         $initial = strtoupper(mb_substr((string)($u['last_name'] ?? $u['name'] ?? 'C'), 0, 1));
                         $idNumber = trim((string)($u['id_number'] ?? ''));
@@ -195,17 +198,15 @@ $signedCoordinators = count(array_filter($coordinators, static fn ($c) => !empty
                         $tone = coordinator_avatar_tone((int)$u['id']);
                         $statusKey = !empty($u['is_active']) ? 'active' : 'inactive';
                     ?>
-                    <tr data-search="<?= e(strtolower($fullName . ' ' . $u['email'] . ' ' . $idNumber . ' ' . $department)) ?>"
+                    <tr data-search="<?= e(strtolower(trim($lastName . ' ' . $firstName . ' ' . $u['email'] . ' ' . $idNumber . ' ' . $department))) ?>"
                         data-coordinator-status="<?= e($statusKey) ?>">
-                        <td>
+                        <td class="aco-name-cell">
                             <div class="aco-person-cell">
                                 <span class="aco-avatar aco-avatar-tone--<?= $tone ?>"><?= e($initial) ?></span>
-                                <span class="aco-person-meta">
-                                    <strong class="aco-person-name"><?= e($fullName) ?></strong>
-                                    <span class="aco-person-sub"><?= e($department) ?></span>
-                                </span>
+                                <span><?= $lastName !== '' ? e($lastName) : '<span class="muted">—</span>' ?></span>
                             </div>
                         </td>
+                        <td class="aco-name-cell"><?= $firstName !== '' ? e($firstName) : '<span class="muted">—</span>' ?></td>
                         <td><a class="aco-email-link" href="mailto:<?= e($u['email']) ?>"><?= e($u['email']) ?></a></td>
                         <td class="center-cell">
                             <?php if ($idNumber !== ''): ?>
@@ -247,16 +248,6 @@ $signedCoordinators = count(array_filter($coordinators, static fn ($c) => !empty
                                         <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"/></svg>
                                         Edit Coordinator
                                     </button>
-                                    <form method="post">
-                                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                        <input type="hidden" name="action" value="admin_reset_user_credentials">
-                                        <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
-                                        <input type="hidden" name="redirect" value="admin_coordinators">
-                                        <button class="admin-user-action-item" type="submit">
-                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2.01 21 23 2 21.01 2 2 21.01 2.01 21zm20.89-13.01-1.42-1.42-2.83 2.83 1.42 1.42 2.83-2.83zm-7.07 7.07-1.42-1.42-5.66 5.66 1.42 1.42 5.66-5.66z"/></svg>
-                                            Resend Credentials
-                                        </button>
-                                    </form>
                                     <form method="post">
                                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                         <input type="hidden" name="action" value="admin_toggle_user">

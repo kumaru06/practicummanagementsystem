@@ -47,8 +47,16 @@ abstract class BaseController
 
     protected function isAjaxRequest(): bool
     {
-        return !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
-            && strtolower((string)$_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+        return is_ajax_request();
+    }
+
+    protected function respondJson(array $payload, int $status = 200): void
+    {
+        http_response_code($status);
+        header('Content-Type: application/json; charset=UTF-8');
+        header('Cache-Control: no-store, no-cache, must-revalidate');
+        echo json_encode($payload, JSON_UNESCAPED_UNICODE);
+        exit;
     }
 
     protected function renderPartial(string $view, array $data = []): void
