@@ -82,7 +82,7 @@ class AdminController extends BaseController
     {
         require_role('admin');
         $this->render('admin/programs', [
-            'title' => 'Programs / Courses',
+            'title' => 'Degree Program',
             'programs' => (new Program($this->db))->all(),
             'terms' => (new Term($this->db))->all(),
         ]);
