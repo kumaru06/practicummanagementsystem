@@ -631,6 +631,21 @@ class AuthController extends BaseController
         $flashSuccess = $submitted ? flash('success') : null;
         $flashError = flash('error');
 
+        if ($role === null) {
+            if ($this->wantsForgotPasswordPartial()) {
+                header('Content-Type: text/html; charset=UTF-8');
+                http_response_code(400);
+                echo '<p class="alert danger">Please use forgot password from your login portal.</p>';
+                return;
+            }
+
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                flash('error', 'Please open forgot password from your login portal.');
+            }
+
+            redirect(route_url('login'));
+        }
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             verify_csrf();
             $role = $this->normalizeForgotPasswordRole($_POST['role'] ?? '');
@@ -638,9 +653,6 @@ class AuthController extends BaseController
             $identifier = trim((string)($_POST['identifier'] ?? ''));
 
             try {
-                if ($role === null) {
-                    throw new RuntimeException('Select a valid account type.');
-                }
                 if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     throw new RuntimeException('Enter a valid registered email address.');
                 }

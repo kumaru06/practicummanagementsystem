@@ -102,7 +102,7 @@ function buildForgotFetchUrl(role = '') {
 }
 
 function buildForgotPageUrl(role = '') {
-    return role ? `forgot-password.php?role=${encodeURIComponent(role)}` : 'forgot-password.php';
+    return role ? `forgot-password.php?role=${encodeURIComponent(role)}` : 'auth.php';
 }
 
 async function transitionLoginShell(shellHost, getHtml, onMounted, direction = 'forward') {

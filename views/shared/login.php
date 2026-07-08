@@ -109,7 +109,7 @@
     </div>
 <script src="<?= e(asset('assets/js/main.js')) ?>?v=20260509-native-login"></script>
 <script src="<?= e(asset('assets/js/login-custom-select.js')) ?>?v=20260707-forgot-select"></script>
-    <script src="<?= e(asset('assets/js/login-portal.js')) ?>?v=20260708-no-drag"></script>
+    <script src="<?= e(asset('assets/js/login-portal.js')) ?>?v=20260708-forgot-role"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('.login-info-slideshow').forEach(function (slideshow) {

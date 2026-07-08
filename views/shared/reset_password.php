@@ -5,7 +5,7 @@ $forgotRole = $tokenRole ?? '';
 $showResetForm = $token !== '' && empty($tokenError);
 $forgotUrl = $forgotRole !== ''
     ? route_url('forgot.password', ['role' => $forgotRole])
-    : route_url('forgot.password');
+    : route_url('login');
 ?>
 <!doctype html>
 <html lang="en">
