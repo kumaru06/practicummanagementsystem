@@ -9,7 +9,7 @@ $identifierLabel = $identifierLabels[$selectedRole] ?? 'Account ID';
 $roleLabels = [
     'student' => 'Student',
     'coordinator' => 'OJT Coordinator',
-    'partner' => 'Industry Partner',
+    'partner' => 'Host Training Establishment',
 ];
 $flashSuccess = $flashSuccess ?? flash('success');
 $flashError = $flashError ?? flash('error');

@@ -1,6 +1,6 @@
 <section class="card">
     <div class="section-head section-head-split">
-        <div><h2>All Evaluations</h2><p class="muted">Final evaluations submitted by Industry Partners for deployed students.</p></div>
+        <div><h2>All Evaluations</h2><p class="muted">Final evaluations submitted by Host Training Establishments for deployed students.</p></div>
         <input class="table-search table-search-wide" placeholder="Search evaluations...">
     </div>
     <?php if (empty($evaluations)): ?>

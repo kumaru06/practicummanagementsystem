@@ -91,7 +91,7 @@ class AdminController extends BaseController
     private function validateAcademicTerm(string $term): string
     {
         $term = trim($term);
-        // Normalize en-dash (–) and em-dash (—) to regular hyphen, and non-breaking spaces to space
+        // Normalize en-dash (â€“) and em-dash (â€”) to regular hyphen, and non-breaking spaces to space
         $term = str_replace(["\u{2013}", "\u{2014}", "\u{00A0}"], ['-', '-', ' '], $term);
         $term = preg_replace('/\s+/', ' ', $term);
         if ($term === '') {
@@ -487,11 +487,11 @@ class AdminController extends BaseController
             $companies->ensureMoaMouSupport();
 
             if ($companyName === '' || $contactPerson === '' || $contactEmail === '' || $address === '' || trim((string)($p['contact_number'] ?? '')) === '') {
-                throw new RuntimeException('Fill in all required Industry Partner details before creating the account.');
+                throw new RuntimeException('Fill in all required Host Training Establishment details before creating the account.');
             }
 
             if (!filter_var($contactEmail, FILTER_VALIDATE_EMAIL)) {
-                throw new RuntimeException('Enter a valid Industry Partner email address.');
+                throw new RuntimeException('Enter a valid Host Training Establishment email address.');
             }
 
             $contactNumberDigits = preg_replace('/\D+/', '', (string)($p['contact_number'] ?? ''));
@@ -524,15 +524,15 @@ class AdminController extends BaseController
             $companyId = $companies->create($userId, $companyName, $address, $contactPerson, $contactEmail, $contactNumber, $programIds, $moaMouFile);
             $this->db->commit();
             $company = $companies->find($companyId);
-            (new Email($this->db))->send($contactEmail, 'Your AMA Practicum Industry Partner Account', 'account_credentials', 'account_credentials', [
+            (new Email($this->db))->send($contactEmail, 'Your AMA Practicum Host Training Establishment Account', 'account_credentials', 'account_credentials', [
                 'name' => $contactPerson,
                 'email' => $contactEmail,
                 'password' => $password,
                 'partnerId' => $company['partner_id'] ?? '',
-                'roleLabel' => 'Industry Partner',
+                'roleLabel' => 'Host Training Establishment',
                 'loginUrl' => absolute_route_url('partner.login'),
             ]);
-            flash('success', 'Industry Partner account created and credentials email was processed.');
+            flash('success', 'Host Training Establishment account created and credentials email was processed.');
         } catch (Throwable $e) {
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();
@@ -584,7 +584,7 @@ class AdminController extends BaseController
             $programIds = array_values(array_unique(array_filter(array_map('intval', (array)($p['program_ids'] ?? [])))));
 
             if ($companyId <= 0) {
-                throw new RuntimeException('Invalid Industry Partner selected.');
+                throw new RuntimeException('Invalid Host Training Establishment selected.');
             }
             if (!$programIds) {
                 throw new RuntimeException('Select at least one accepted program/course.');
@@ -593,11 +593,11 @@ class AdminController extends BaseController
             $companies = new Company($this->db);
             $company = $companies->find($companyId);
             if (!$company) {
-                throw new RuntimeException('Industry Partner not found.');
+                throw new RuntimeException('Host Training Establishment not found.');
             }
 
             $companies->syncPrograms($companyId, $programIds);
-            flash('success', 'Accepted programs updated for ' . ($company['name'] ?? 'Industry Partner') . '.');
+            flash('success', 'Accepted programs updated for ' . ($company['name'] ?? 'Host Training Establishment') . '.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
@@ -681,7 +681,7 @@ class AdminController extends BaseController
             ];
             $reasonLabel = $reasonLabels[$reason] ?? ucwords(str_replace('_', ' ', $reason));
             if ($reason === 'other' && $notes !== '') {
-                $reasonLabel .= ' — ' . $notes;
+                $reasonLabel .= ' â€” ' . $notes;
             }
 
             $sent = (new Email($this->db))->send(
@@ -700,7 +700,7 @@ class AdminController extends BaseController
             if ($sent) {
                 $message .= ' A notification was sent to ' . $target['email'] . '.';
             } else {
-                $message .= ' Email notification could not be sent — check Email Logs.';
+                $message .= ' Email notification could not be sent â€” check Email Logs.';
             }
             flash($sent ? 'success' : 'error', $message);
         } catch (Throwable $e) {

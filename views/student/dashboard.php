@@ -87,7 +87,7 @@ $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string)($enrollmen
                 <span class="student-hero-greeting"><?= e($greeting) ?>,</span>
                 <span class="student-hero-name"><?= e($user['name'] ?? 'Student') ?></span>
             </h2>
-            <p class="sd-hero-sub">Track your OJT journey — deployment, records, and completion in one place.</p>
+            <p class="sd-hero-sub">Track your OJT journey â€” deployment, records, and completion in one place.</p>
             <div class="student-hero-actions sd-hero-actions">
                 <a class="btn btn-primary student-hero-btn-primary sd-hero-cta" href="<?= e($nextAction['route']) ?>">
                     <span><?= e($nextAction['label']) ?></span>
@@ -176,11 +176,11 @@ $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string)($enrollmen
         </article>
         <article class="student-stat-card sd-stat-card sd-stat-card--schedule">
             <span class="student-stat-icon sd-stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 16H5V10h14v10Zm-7-2h5v-5h-5v5ZM7 12h5V7H7v5Z"/></svg></span>
-            <div><span>Official Schedule</span><strong class="sd-stat-value-sm"><?= e(($officialStart ?: '—') . ' → ' . ($projectedEnd ?: '—')) ?></strong></div>
+            <div><span>Official Schedule</span><strong class="sd-stat-value-sm"><?= e(($officialStart ?: 'â€”') . ' â†’ ' . ($projectedEnd ?: 'â€”')) ?></strong></div>
         </article>
         <article class="student-stat-card sd-stat-card sd-stat-card--hours">
             <span class="student-stat-icon sd-stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2ZM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8Zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7Z"/></svg></span>
-            <div><span>Remaining Hours</span><strong class="<?= $hoursComplete ? 'is-positive' : '' ?>"><?= $hoursComplete ? 'Complete ✓' : number_format($remaining, 2) ?></strong></div>
+            <div><span>Remaining Hours</span><strong class="<?= $hoursComplete ? 'is-positive' : '' ?>"><?= $hoursComplete ? 'Complete âœ“' : number_format($remaining, 2) ?></strong></div>
         </article>
         <article class="student-stat-card sd-stat-card sd-stat-card--records">
             <span class="student-stat-icon sd-stat-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5ZM8 13h8v2H8v-2Zm0 4h8v2H8v-2Z"/></svg></span>
@@ -206,7 +206,7 @@ $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string)($enrollmen
             <div class="student-progress-copy">
                 <span class="student-section-label">OJT Progress</span>
                 <h3><?= number_format($rendered, 2) ?> / <?= number_format($required, 2) ?> hours rendered</h3>
-                <p>DTR and weekly submissions unlock after your Industry Partner completes orientation.</p>
+                <p>DTR and weekly submissions unlock after your Host Training Establishment completes orientation.</p>
                 <div class="student-progress-bar sd-progress-bar" aria-hidden="true"><span style="width: <?= $percent ?>%"></span></div>
                 <span class="badge <?= e($enrollment['status'] ?? 'pending') ?>"><?= e($enrollment['status'] ?? 'pending') ?></span>
             </div>
@@ -273,7 +273,7 @@ $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string)($enrollmen
                     <div class="student-mini-highlight"><?= e(format_dtr_schedule($todayDtr)) ?></div>
                     <div class="student-mini-stats">
                         <span><strong><?= e($todayDtr['hours']) ?></strong> hours</span>
-                        <span class="student-mini-divider" aria-hidden="true">·</span>
+                        <span class="student-mini-divider" aria-hidden="true">Â·</span>
                         <span><?= e($todayDtr['tasks_done']) ?></span>
                     </div>
                 <?php else: ?>
@@ -346,7 +346,7 @@ $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string)($enrollmen
                 <span class="student-section-label">Activity</span>
                 <h3>Recent DTR Entries</h3>
             </div>
-            <a class="sd-activity-link" href="<?= e(route_url('student.records')) ?>">View all →</a>
+            <a class="sd-activity-link" href="<?= e(route_url('student.records')) ?>">View all â†’</a>
         </div>
         <div class="timeline sd-timeline<?= empty($dtrs ?? []) ? ' is-empty' : '' ?>">
             <?php if (empty($dtrs ?? [])): ?>

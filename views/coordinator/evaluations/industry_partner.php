@@ -16,8 +16,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/></svg>
         </span>
         <div>
-            <h2>Industry Partner Evaluation</h2>
-            <p class="muted"><?= e($student['name'] ?? 'Student') ?> · <?= e($student['student_no'] ?? '') ?></p>
+            <h2>Host Training Establishment Evaluation</h2>
+            <p class="muted"><?= e($student['name'] ?? 'Student') ?> Â· <?= e($student['student_no'] ?? '') ?></p>
         </div>
         <div class="eval-result-grade">
             <span class="eval-result-grade-value"><?= e(number_format($grade, 2)) ?>%</span>
@@ -27,7 +27,7 @@
 
     <div class="status-callout info final-req-note" style="margin-top:0;margin-bottom:18px;">
         <strong>Coordinator only</strong>
-        <p>This student evaluation of the industry partner and OJT supervisor is not visible to the industry partner.</p>
+        <p>This student evaluation of the host training establishment and OJT supervisor is not visible to the host training establishment.</p>
     </div>
 
     <?php $rowIndex = 0; ?>

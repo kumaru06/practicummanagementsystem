@@ -22,7 +22,7 @@ $totalPrograms = count($programs);
     <div class="partner-page-intro">
         <div class="partner-page-intro-copy">
             <p class="partner-page-eyebrow">Partner Management</p>
-            <p class="partner-page-desc">Register industry partners, assign accepted programs, and manage MOA/MOU agreements for OJT deployment.</p>
+            <p class="partner-page-desc">Register host training establishments, assign accepted programs, and manage MOA/MOU agreements for OJT deployment.</p>
         </div>
     </div>
 
@@ -32,7 +32,7 @@ $totalPrograms = count($programs);
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg>
             </div>
             <div class="partner-stat-body">
-                <span>Industry Partners</span>
+                <span>Host Training Establishments</span>
                 <strong><?= (int)$totalPartners ?></strong>
             </div>
         </div>
@@ -73,7 +73,7 @@ $totalPrograms = count($programs);
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
                 </div>
                 <div class="partner-panel-head-text">
-                    <h2>Add Industry Partner</h2>
+                    <h2>Add Host Training Establishment</h2>
                     <p>Fill in company details below. Choose accepted programs in the section at the bottom.</p>
                 </div>
             </div>
@@ -131,7 +131,7 @@ $totalPrograms = count($programs);
                     </div>
                     <div class="partner-panel-head-text">
                         <div class="partner-panel-title-row">
-                            <h2>Industry Partner Directory</h2>
+                            <h2>Host Training Establishment Directory</h2>
                             <span class="partner-count-badge"><?= (int)$totalPartners ?> listed</span>
                         </div>
                         <p>All registered partners and their deployment details.</p>
@@ -150,7 +150,7 @@ $totalPrograms = count($programs);
                                         <span class="partner-company-avatar"><?= e(strtoupper(substr($u['name'] ?? 'P', 0, 1))) ?></span>
                                         <div class="partner-company-brand-copy">
                                             <h3 class="partner-company-name" title="<?= e($u['name']) ?>"><?= e($u['name']) ?></h3>
-                                            <p><?= e($u['contact_person'] ?? '—') ?></p>
+                                            <p><?= e($u['contact_person'] ?? 'â€”') ?></p>
                                         </div>
                                     </div>
                                     <span class="badge partner-company-status <?= $u['is_active'] ? 'active' : 'inactive' ?>"><?= $u['is_active'] ? 'Active' : 'Inactive' ?></span>
@@ -161,7 +161,7 @@ $totalPrograms = count($programs);
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h6"/></svg>
                                         <div>
                                             <span>Partner ID</span>
-                                            <strong><?= e($u['partner_id'] ?? '—') ?></strong>
+                                            <strong><?= e($u['partner_id'] ?? 'â€”') ?></strong>
                                         </div>
                                     </div>
                                     <div class="partner-meta-item">
@@ -175,7 +175,7 @@ $totalPrograms = count($programs);
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92Z"/></svg>
                                         <div>
                                             <span>Phone</span>
-                                            <strong><?= e($u['contact_number'] ?: '—') ?></strong>
+                                            <strong><?= e($u['contact_number'] ?: 'â€”') ?></strong>
                                         </div>
                                     </div>
                                 </div>
@@ -256,8 +256,8 @@ $totalPrograms = count($programs);
                     <div class="partner-empty-icon">
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg>
                     </div>
-                    <strong>No Industry Partners yet</strong>
-                    <span>Use the form on the left to add your first Industry Partner.</span>
+                    <strong>No Host Training Establishments yet</strong>
+                    <span>Use the form on the left to add your first Host Training Establishment.</span>
                 </div>
             <?php endif; ?>
         </section>
@@ -267,11 +267,11 @@ $totalPrograms = count($programs);
     <section class="partner-panel partner-full-card">
         <div class="partner-panel-head">
             <div class="partner-icon-wrap partner-icon-wrap--programs">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/></svg>
             </div>
             <div class="partner-panel-head-text">
                 <h2>Accepted Programs <span class="field-required">*</span></h2>
-                <p>Select which programs the new Industry Partner can accept students from.</p>
+                <p>Select which programs the new Host Training Establishment can accept students from.</p>
             </div>
         </div>
 
@@ -281,7 +281,7 @@ $totalPrograms = count($programs);
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 </div>
                 <strong>No programs available yet</strong>
-                <span>Create programs first in Degree Program before adding Industry Partners.</span>
+                <span>Create programs first in Degree Program before adding Host Training Establishments.</span>
             </div>
         <?php else: ?>
             <div class="partner-programs-grid">
@@ -306,7 +306,7 @@ $totalPrograms = count($programs);
             </label>
             <button form="create-partner-form" class="btn partner-create-btn" type="submit">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-                <span class="btn-text">Create Industry Partner</span>
+                <span class="btn-text">Create Host Training Establishment</span>
                 <span class="spinner"></span>
             </button>
         </div>

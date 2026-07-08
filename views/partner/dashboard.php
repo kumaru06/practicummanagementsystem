@@ -40,17 +40,17 @@ $workflowSteps = [
         <div class="pd-hero-copy">
             <span class="pd-hero-kicker">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg>
-                Industry Partner Workspace
+                Host Training Establishment Workspace
             </span>
             <p class="pd-hero-date"><?= e(date('l, F j, Y')) ?></p>
             <h2>
                 <span class="pd-hero-greeting"><?= e($greeting) ?>,</span>
-                <span class="pd-hero-name"><?= e($company['name'] ?? 'Industry Partner') ?></span>
+                <span class="pd-hero-name"><?= e($company['name'] ?? 'Host Training Establishment') ?></span>
             </h2>
             <p class="pd-hero-sub">A professional overview of assigned OJT students, orientation progress, and evaluation work.</p>
             <div class="pd-hero-actions">
                 <a class="btn btn-primary pd-hero-cta" href="<?= e(route_url('partner.portal')) ?>">
-                    <span>Open Industry Partner Portal</span>
+                    <span>Open Host Training Establishment Portal</span>
                     <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m7.5 5 5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </a>
                 <a class="btn btn-small pd-hero-ghost" href="<?= e(route_url('partner.submissions')) ?>">Review Submissions</a>
@@ -184,7 +184,7 @@ $workflowSteps = [
             <div class="pd-card-head">
                 <div>
                     <h2>Portal Workflow</h2>
-                    <p>Use the Industry Partner Portal for daily operational tasks.</p>
+                    <p>Use the Host Training Establishment Portal for daily operational tasks.</p>
                 </div>
             </div>
 
@@ -213,7 +213,7 @@ $workflowSteps = [
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg>
             </span>
             <span class="pd-quick-text">
-                <strong>Industry Partner Portal</strong>
+                <strong>Host Training Establishment Portal</strong>
                 <small>Manage students and deployment</small>
             </span>
             <svg class="pd-quick-arrow" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m7.5 5 5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>

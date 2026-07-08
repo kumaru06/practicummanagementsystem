@@ -90,7 +90,7 @@ class CoordinatorController extends BaseController
         $finalModel = new FinalRequirement($this->db);
         $evalModel = new StudentEvaluation($this->db);
         $data = [
-            'title' => 'Final Requirements — ' . ($student['name'] ?? 'Student'),
+            'title' => 'Final Requirements â€” ' . ($student['name'] ?? 'Student'),
             'student' => $student,
             'finalRequirement' => $finalModel->getByStudent($studentId),
             'studentEvaluation' => $evalModel->getByStudent($studentId),
@@ -109,7 +109,7 @@ class CoordinatorController extends BaseController
                 flash('error', 'This document has not been submitted yet.');
                 redirect('index.php?r=coordinator_student_final&student_id=' . $studentId);
             }
-            $data['title'] = $section['name'] . ' — ' . ($student['name'] ?? 'Student');
+            $data['title'] = $section['name'] . ' â€” ' . ($student['name'] ?? 'Student');
             $data['finalDoc'] = $doc;
             $view = match ($doc) {
                 'job_description' => 'coordinator/final/job_description',
@@ -127,7 +127,7 @@ class CoordinatorController extends BaseController
                 flash('error', 'This evaluation has not been submitted yet.');
                 redirect('index.php?r=coordinator_student_final&student_id=' . $studentId);
             }
-            $data['title'] = 'OJT Coordinator Evaluation — ' . ($student['name'] ?? 'Student');
+            $data['title'] = 'OJT Coordinator Evaluation â€” ' . ($student['name'] ?? 'Student');
             $data['evalType'] = 'coordinator';
             $this->renderAppPage('coordinator/evaluations/coordinator', $data);
             return;
@@ -139,7 +139,7 @@ class CoordinatorController extends BaseController
                 flash('error', 'This evaluation has not been submitted yet.');
                 redirect('index.php?r=coordinator_student_final&student_id=' . $studentId);
             }
-            $data['title'] = 'Industry Partner Evaluation — ' . ($student['name'] ?? 'Student');
+            $data['title'] = 'Host Training Establishment Evaluation â€” ' . ($student['name'] ?? 'Student');
             $data['evalType'] = 'industry_partner';
             $this->renderAppPage('coordinator/evaluations/industry_partner', $data);
             return;
@@ -158,7 +158,7 @@ class CoordinatorController extends BaseController
         ));
 
         $this->renderAppPage('coordinator/moa_mou', [
-            'title' => 'Industry Partner MOA/MOU',
+            'title' => 'Host Training Establishment MOA/MOU',
             'companies' => $companies,
         ]);
     }
@@ -365,7 +365,7 @@ class CoordinatorController extends BaseController
                 throw new RuntimeException('Student has no valid program/course assigned.');
             }
             if (!(new Company($this->db))->acceptsProgram($companyId, (int)$program['id'])) {
-                throw new RuntimeException('Selected Industry Partner does not accept the student\'s program/course.');
+                throw new RuntimeException('Selected Host Training Establishment does not accept the student\'s program/course.');
             }
             $requiredHours = (int)$program['required_hours'];
             $academicTerm = trim($p['academic_term'] ?? '');
@@ -389,7 +389,7 @@ class CoordinatorController extends BaseController
             $tempPassword = random_password();
             (new User($this->db))->updatePassword((int)$student['user_id'], $tempPassword, 0);
             $email = new Email($this->db);
-            $email->send($student['email'], 'You are now enrolled in OJT – AMA Computer College', 'student_enrollment', 'student_enrollment', [
+            $email->send($student['email'], 'You are now enrolled in OJT â€“ AMA Computer College', 'student_enrollment', 'student_enrollment', [
                 'student' => $student,
                 'company' => $company,
                 'academicTerm' => $academicTerm,
@@ -400,8 +400,8 @@ class CoordinatorController extends BaseController
                 'coordinator' => current_user(),
                 'loginUrl' => absolute_route_url('student.login'),
             ]);
-            (new Notification($this->db))->create((int)$student['user_id'], 'OJT enrollment created', 'You have been enrolled for OJT deployment at ' . ($company['name'] ?? 'your Industry Partner') . '.', route_url('student.documents'));
-            $successMessage = 'Student enrolled and credentials email was processed. Industry Partner deployment email will be sent after approved documents are forwarded.';
+            (new Notification($this->db))->create((int)$student['user_id'], 'OJT enrollment created', 'You have been enrolled for OJT deployment at ' . ($company['name'] ?? 'your Host Training Establishment') . '.', route_url('student.documents'));
+            $successMessage = 'Student enrolled and credentials email was processed. Host Training Establishment deployment email will be sent after approved documents are forwarded.';
             if ($isAjax) {
                 header('Content-Type: application/json');
                 echo json_encode([
@@ -495,7 +495,7 @@ class CoordinatorController extends BaseController
             }
             $company = (new Company($this->db))->find((int)$enrollment['company_id']);
             if (!$company) {
-                throw new RuntimeException('Industry Partner not found.');
+                throw new RuntimeException('Host Training Establishment not found.');
             }
 
             /**
@@ -536,10 +536,10 @@ class CoordinatorController extends BaseController
                 $email->send($company['contact_email'], 'Student Deployment Documents Forwarded', 'deployment_forwarded', 'company_deployment', $emailData, $attachments);
                 $email->send($student['email'], 'Your OJT Documents Have Been Forwarded', 'student_deployment_forwarded', 'student_deployment_forwarded', $emailData);
 
-                (new Notification($this->db))->create((int)$company['user_id'], 'Student deployment forwarded', $student['name'] . ' has been forwarded to your Industry Partner Portal for review.', route_url('partner.portal', ['enrollment' => (int)$enrollment['id']]));
-                (new Notification($this->db))->create((int)$student['user_id'], 'Documents forwarded to Industry Partner', 'Your approved pre-deployment documents and endorsement letter were sent to ' . ($company['name'] ?? 'your Industry Partner') . '. They will review and schedule your orientation.', route_url('student.documents'));
+                (new Notification($this->db))->create((int)$company['user_id'], 'Student deployment forwarded', $student['name'] . ' has been forwarded to your Host Training Establishment Portal for review.', route_url('partner.portal', ['enrollment' => (int)$enrollment['id']]));
+                (new Notification($this->db))->create((int)$student['user_id'], 'Documents forwarded to Host Training Establishment', 'Your approved pre-deployment documents and endorsement letter were sent to ' . ($company['name'] ?? 'your Host Training Establishment') . '. They will review and schedule your orientation.', route_url('student.documents'));
             }
-            flash('success', 'Documents approved and Endorsement Letter generated and forwarded to the Industry Partner.');
+            flash('success', 'Documents approved and Endorsement Letter generated and forwarded to the Host Training Establishment.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
@@ -592,27 +592,6 @@ class CoordinatorController extends BaseController
             http_response_code(500);
             exit('Error generating endorsement letter: ' . $e->getMessage());
         }
-    }
-
-    public function resetStudentPassword(): void
-    {
-        require_role('coordinator');
-        $p = $this->post();
-        $student = (new Student($this->db))->find((int)$p['student_id']);
-        if (!$student || (int)$student['coordinator_id'] !== current_user()['id']) {
-            flash('error', 'Invalid student.');
-            redirect('index.php?r=coordinator_students');
-        }
-        $password = random_password();
-        (new User($this->db))->updatePassword((int)$student['user_id'], $password, 0);
-        (new Email($this->db))->send($student['email'], 'Your AMA OJT password has been reset', 'password_reset', 'password_reset', [
-            'student' => $student,
-            'password' => $password,
-            'coordinator' => current_user(),
-            'loginUrl' => absolute_route_url('student.login'),
-        ]);
-        flash('success', 'Student password reset and emailed.');
-        redirect('index.php?r=coordinator_students');
     }
 
     public function updateStudentEmail(): void

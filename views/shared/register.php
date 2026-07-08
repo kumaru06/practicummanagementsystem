@@ -136,19 +136,19 @@
                                     <label class="register-field register-field--span-4">
                                         <span class="register-field-label">First Name <span class="register-required" aria-hidden="true">*</span></span>
                                         <span class="register-input-wrap">
-                                            <input required type="text" name="first_name" autocomplete="given-name" placeholder="Enter your first name" value="<?= e($_POST['first_name'] ?? '') ?>">
+                                            <input required type="text" name="first_name" autocomplete="given-name" placeholder="Enter your first name" data-capitalize-words pattern="[A-Za-z\s\-\.]+" title="First name must contain letters only" value="<?= e($_POST['first_name'] ?? '') ?>">
                                         </span>
                                     </label>
                                     <label class="register-field register-field--span-4">
                                         <span class="register-field-label">Middle Name</span>
                                         <span class="register-input-wrap">
-                                            <input type="text" name="middle_name" autocomplete="additional-name" placeholder="Enter your middle name" value="<?= e($_POST['middle_name'] ?? '') ?>">
+                                            <input type="text" name="middle_name" autocomplete="additional-name" placeholder="Enter your middle name" data-capitalize-words pattern="[A-Za-z\s\-\.]*" title="Middle name must contain letters only" value="<?= e($_POST['middle_name'] ?? '') ?>">
                                         </span>
                                     </label>
                                     <label class="register-field register-field--span-4">
                                         <span class="register-field-label">Last Name <span class="register-required" aria-hidden="true">*</span></span>
                                         <span class="register-input-wrap">
-                                            <input required type="text" name="last_name" autocomplete="family-name" placeholder="Rezep" value="<?= e($_POST['last_name'] ?? '') ?>">
+                                            <input required type="text" name="last_name" autocomplete="family-name" placeholder="Rezep" data-capitalize-words pattern="[A-Za-z\s\-\.]+" title="Last name must contain letters only" value="<?= e($_POST['last_name'] ?? '') ?>">
                                         </span>
                                     </label>
 

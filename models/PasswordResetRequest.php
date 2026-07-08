@@ -293,7 +293,7 @@ class PasswordResetRequest
         return match ($role) {
             'student' => 'Student',
             'coordinator' => 'OJT Coordinator',
-            'partner' => 'Industry Partner',
+            'partner' => 'Host Training Establishment',
             default => ucfirst($role),
         };
     }

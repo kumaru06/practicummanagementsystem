@@ -452,7 +452,7 @@ function mail_error_hint(string $error): string
 {
     $from = defined('MAIL_FROM_EMAIL') ? MAIL_FROM_EMAIL : 'your mailbox';
     if (stripos($error, 'Disabled by user') !== false || stripos($error, '554') !== false || stripos($error, 'suspended') !== false) {
-        return 'Hostinger mailbox ' . $from . ' is suspended or disabled. Create or re-enable a mailbox in hPanel → Emails, then update SMTP_USERNAME, SMTP_PASSWORD, and MAIL_FROM_EMAIL in .env.';
+        return 'Hostinger mailbox ' . $from . ' is suspended or disabled. Create or re-enable a mailbox in hPanel â†’ Emails, then update SMTP_USERNAME, SMTP_PASSWORD, and MAIL_FROM_EMAIL in .env.';
     }
     if (stripos($error, 'Could not authenticate') !== false) {
         return 'SMTP authentication failed for ' . $from . '. Check SMTP_USERNAME and SMTP_PASSWORD in .env (use the full email address and mailbox password).';
@@ -612,7 +612,7 @@ function projected_ojt_end_date(string $startDate, int $requiredHours, int $hour
     $date = new DateTimeImmutable($startDate);
     $workedDays = 0;
     while ($workedDays < $daysNeeded) {
-        $weekday = (int)$date->format('N'); // 1=Mon … 6=Sat, 7=Sun
+        $weekday = (int)$date->format('N'); // 1=Mon â€¦ 6=Sat, 7=Sun
         if ($weekday <= 6) {
             $workedDays++;
         }
@@ -635,7 +635,7 @@ function generate_endorsement_letter(array $student, array $company, array $coor
     $content = '<!doctype html><html><head><meta charset="utf-8"><title>Endorsement Letter</title><style>body{font-family:Arial,sans-serif;line-height:1.6;color:#111827;padding:42px;max-width:820px;margin:auto}.head{text-align:center;margin-bottom:34px}.date{text-align:right}.signature{margin-top:54px}</style></head><body>'
         . '<div class="head"><h2>AMA Computer College</h2><h3>Recommendation / Endorsement Letter</h3></div>'
         . '<p class="date">' . date('F d, Y') . '</p>'
-        . '<p>Dear ' . $safe($company['contact_person'] ?? 'Industry Partner') . ',</p>'
+        . '<p>Dear ' . $safe($company['contact_person'] ?? 'Host Training Establishment') . ',</p>'
         . '<p>This is to formally endorse <strong>' . $safe($student['name'] ?? $student['student_name'] ?? 'Student') . '</strong>, Student ID <strong>' . $safe($student['student_no'] ?? '') . '</strong>, from <strong>' . $safe($student['course'] ?? '') . '</strong>, for On-the-Job Training deployment at <strong>' . $safe($company['name'] ?? '') . '</strong>.</p>'
         . '<p>The student is enrolled for <strong>' . $safe($enrollment['academic_term'] ?? '') . '</strong> and is required to complete <strong>' . $safe($enrollment['required_hours'] ?? '') . ' hours</strong>. The official OJT start date and projected end date will be confirmed by your company after orientation.</p>'
         . '<p>Attached with this endorsement are the student pre-deployment requirements for your review and acceptance.</p>'
@@ -696,10 +696,10 @@ function format_dtr_schedule(array $dtr): string
     $dayType = normalize_dtr_day_type($dtr['day_type'] ?? 'full');
 
     if ($dayType === 'sick') {
-        return 'Sick leave — no attendance';
+        return 'Sick leave â€” no attendance';
     }
     if ($dayType === 'absent') {
-        return 'Absent — no attendance';
+        return 'Absent â€” no attendance';
     }
 
     $morningIn = trim((string)($dtr['morning_time_in'] ?? ''));
@@ -715,7 +715,7 @@ function format_dtr_schedule(array $dtr): string
 
     if ($dayType === 'half_am' && $morningIn !== '' && $morningOut !== '') {
         return sprintf(
-            'Half AM %s–%s',
+            'Half AM %sâ€“%s',
             format_dtr_time_display($morningIn),
             format_dtr_time_display($morningOut)
         );
@@ -723,7 +723,7 @@ function format_dtr_schedule(array $dtr): string
 
     if ($dayType === 'half_pm' && $afternoonIn !== '' && $afternoonOut !== '') {
         return sprintf(
-            'Half PM %s–%s',
+            'Half PM %sâ€“%s',
             format_dtr_time_display($afternoonIn),
             format_dtr_time_display($afternoonOut)
         );
@@ -731,7 +731,7 @@ function format_dtr_schedule(array $dtr): string
 
     if ($morningIn !== '' && $morningOut !== '' && $afternoonIn !== '' && $afternoonOut !== '') {
         return sprintf(
-            'AM %s–%s · PM %s–%s',
+            'AM %sâ€“%s Â· PM %sâ€“%s',
             format_dtr_time_display($morningIn),
             format_dtr_time_display($morningOut),
             format_dtr_time_display($afternoonIn),
@@ -741,7 +741,7 @@ function format_dtr_schedule(array $dtr): string
 
     if ($morningIn !== '' && $morningOut !== '') {
         return sprintf(
-            'AM %s–%s',
+            'AM %sâ€“%s',
             format_dtr_time_display($morningIn),
             format_dtr_time_display($morningOut)
         );
@@ -749,7 +749,7 @@ function format_dtr_schedule(array $dtr): string
 
     if ($afternoonIn !== '' && $afternoonOut !== '') {
         return sprintf(
-            'PM %s–%s',
+            'PM %sâ€“%s',
             format_dtr_time_display($afternoonIn),
             format_dtr_time_display($afternoonOut)
         );

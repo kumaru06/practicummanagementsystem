@@ -126,7 +126,7 @@ class AuthController extends BaseController
 
             'coordinator' => ['label' => 'OJT Coordinator Login Portal', 'route' => route_url('coordinator.login')],
 
-            'partner' => ['label' => 'Industry Partner Login Portal', 'route' => route_url('partner.login')],
+            'partner' => ['label' => 'Host Training Establishment Login Portal', 'route' => route_url('partner.login')],
 
         ];
 
@@ -629,7 +629,9 @@ class AuthController extends BaseController
         $role = $this->normalizeForgotPasswordRole($_POST['role'] ?? $_GET['role'] ?? '');
         $submitted = isset($_GET['submitted']);
         $flashSuccess = $submitted ? flash('success') : null;
-        $flashError = flash('error');
+        // If we're on the "submitted" state, do not show stale errors
+        // (e.g. a previous login error) alongside the success message.
+        $flashError = $submitted ? null : flash('error');
 
         if ($role === null) {
             if ($this->wantsForgotPasswordPartial()) {
@@ -680,6 +682,8 @@ class AuthController extends BaseController
                 }
 
                 flash('success', $flashSuccess);
+                // Prevent any lingering error flash (e.g. from login) from showing on the submitted page.
+                unset($_SESSION['flash']['error']);
                 $redirectRole = $role ? '&role=' . urlencode($role) : '';
                 redirect('forgot-password.php?submitted=1' . $redirectRole);
             } catch (Throwable $e) {

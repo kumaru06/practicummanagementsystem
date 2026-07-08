@@ -65,7 +65,7 @@ $totalTerms = count($terms ?? []);
                         <h2>Add Program / Course</h2>
                         <span class="programs-count-badge"><?= (int)$totalPrograms ?> listed</span>
                     </div>
-                    <p>Programs must be prepared first before Industry Partners can choose them.</p>
+                    <p>Programs must be prepared first before Host Training Establishments can choose them.</p>
                 </div>
             </div>
 
@@ -190,9 +190,9 @@ $totalTerms = count($terms ?? []);
                                         <div class="programs-term-copy">
                                             <span class="programs-term-label-text"><?= e($term['term_label']) ?></span>
                                             <?php if ($hasDates): ?>
-                                                <small class="programs-term-range"><?= e($displayStart) ?> — <?= e($displayEnd) ?></small>
+                                                <small class="programs-term-range"><?= e($displayStart) ?> â€” <?= e($displayEnd) ?></small>
                                             <?php else: ?>
-                                                <small class="programs-term-range programs-term-range--warn">Dates not set — add below</small>
+                                                <small class="programs-term-range programs-term-range--warn">Dates not set â€” add below</small>
                                             <?php endif; ?>
                                         </div>
                                     </div>

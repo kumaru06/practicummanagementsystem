@@ -2,7 +2,7 @@
 $roleOptions = [
     'student' => 'Student',
     'coordinator' => 'OJT Coordinator',
-    'partner' => 'Industry Partner',
+    'partner' => 'Host Training Establishment',
 ];
 $selectedRole = $role ?? '';
 $identifierLabels = [
@@ -11,8 +11,8 @@ $identifierLabels = [
     'partner' => 'Partner ID',
 ];
 $identifierLabel = $selectedRole ? ($identifierLabels[$selectedRole] ?? 'Account ID') : 'Account ID';
-$flashSuccess = flash('success');
-$flashError = flash('error');
+$flashSuccess = $flashSuccess ?? flash('success');
+$flashError = $flashError ?? flash('error');
 ?>
 <!doctype html>
 <html lang="en">

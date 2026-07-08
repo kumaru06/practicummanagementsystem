@@ -13,10 +13,10 @@ $coordOjtStatus = static function (array $student): array {
 $coordPredeploymentDisplay = static function (string $status): array {
     $completedStates = ['forwarded', 'accepted', 'orientation_scheduled', 'orientation_completed'];
     if (in_array($status, $completedStates, true)) {
-        return ['label' => '✓ Completed', 'class' => 'completed', 'reviewable' => false];
+        return ['label' => 'âœ“ Completed', 'class' => 'completed', 'reviewable' => false];
     }
     if ($status === 'approved') {
-        return ['label' => '✓ Completed', 'class' => 'completed', 'reviewable' => true];
+        return ['label' => 'âœ“ Completed', 'class' => 'completed', 'reviewable' => true];
     }
     if ($status === 'submitted') {
         return ['label' => 'In Review', 'class' => 'submitted', 'reviewable' => true];
@@ -26,10 +26,10 @@ $coordPredeploymentDisplay = static function (string $status): array {
 
 $formatOjtDate = static function (?string $date): string {
     if ($date === null || trim($date) === '') {
-        return '—';
+        return 'â€”';
     }
     $ts = strtotime($date);
-    return $ts ? date('M d, Y', $ts) : '—';
+    return $ts ? date('M d, Y', $ts) : 'â€”';
 };
 
 $termOptions = [];
@@ -91,7 +91,7 @@ ksort($termOptions);
             <div class="ms-directory-toolbar" role="group" aria-label="Filter students">
                 <div class="ms-search-wrap">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14Z"/></svg>
-                    <input class="table-search ms-table-search" type="search" placeholder="Search by student name or ID…" aria-label="Search students">
+                    <input class="table-search ms-table-search" type="search" placeholder="Search by student name or IDâ€¦" aria-label="Search students">
                 </div>
                 <label class="filter-select-wrap ms-filter-select ms-per-page-select">
                     <span class="visually-hidden">Rows per page</span>
@@ -307,12 +307,6 @@ ksort($termOptions);
                             </label>
                             <button class="btn btn-small" type="submit">Save Email</button>
                         </form>
-                        <form method="post" class="student-panel-reset-form">
-                            <input type="hidden" name="csrf_token" id="sm-csrf">
-                            <input type="hidden" name="action" value="coordinator_reset_password">
-                            <input type="hidden" name="student_id" id="sm-student-id">
-                            <button class="btn btn-small btn-ghost" type="submit">Send Password Reset</button>
-                        </form>
                     </div>
                 </details>
             </div>
@@ -329,7 +323,7 @@ ksort($termOptions);
                 <div class="requirement-review-modal-header">
                     <div>
                         <h2>Review Documents</h2>
-                        <p><?= e($s['name']) ?> • <?= e($s['student_no']) ?></p>
+                        <p><?= e($s['name']) ?> â€¢ <?= e($s['student_no']) ?></p>
                     </div>
                     <span class="badge <?= e($s['predeployment_status'] ?? 'not_submitted') ?>" data-modal-status-badge><?= e(str_replace('_', ' ', $s['predeployment_status'] ?? 'not_submitted')) ?></span>
                 </div>
@@ -379,7 +373,7 @@ ksort($termOptions);
                         <div class="requirement-forward-box" data-forward-box<?= ($s['predeployment_status'] ?? '') !== 'approved' ? ' style="display:none"' : '' ?>>
                             <div>
                                 <strong>Ready to forward deployment</strong>
-                                <small>The endorsement letter will be generated automatically and sent to the Industry Partner along with the approved documents.</small>
+                                <small>The endorsement letter will be generated automatically and sent to the Host Training Establishment along with the approved documents.</small>
                             </div>
                             <div style="display: flex; gap: 10px; align-items: center;">
                                 <a class="btn btn-small" target="_blank" href="<?= e(route_url('coordinator.preview_endorsement', ['enrollment' => (int)$s['enrollment_id']])) ?>">Preview Letter</a>

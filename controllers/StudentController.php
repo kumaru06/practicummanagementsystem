@@ -359,10 +359,10 @@ class StudentController extends BaseController
             $coordinatorUserId = (int)($student['coordinator_id'] ?? 0);
             if ($coordinatorUserId > 0) {
                 $studentName = (string)($student['name'] ?? 'A student');
-                $title = $wasSubmitted ? 'Industry partner evaluation updated' : 'Industry partner evaluation received';
+                $title = $wasSubmitted ? 'Host training establishment evaluation updated' : 'Host training establishment evaluation received';
                 $message = $wasSubmitted
-                    ? $studentName . ' updated their evaluation of the industry partner and OJT supervisor.'
-                    : $studentName . ' submitted an evaluation of the industry partner and OJT supervisor.';
+                    ? $studentName . ' updated their evaluation of the host training establishment and OJT supervisor.'
+                    : $studentName . ' submitted an evaluation of the host training establishment and OJT supervisor.';
                 (new Notification($this->db))->create(
                     $coordinatorUserId,
                     $title,
@@ -370,7 +370,7 @@ class StudentController extends BaseController
                     'index.php?r=coordinator_student_final&student_id=' . (int)$student['id'] . '&eval=industry_partner'
                 );
             }
-            flash('success', 'Industry Partner evaluation saved.');
+            flash('success', 'Host Training Establishment evaluation saved.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
             redirect('index.php?r=student_documents_final&eval=industry_partner');
@@ -635,7 +635,7 @@ class StudentController extends BaseController
             if ($company) {
                 (new Notification($this->db))->create((int)$company['user_id'], 'New DTR pending approval', $student['name'] . ' submitted a DTR for ' . date('M d, Y', strtotime((string)$p['work_date'])) . '. Please review.', route_url('partner.submissions', ['student_id' => (int)$student['id'], 'tab' => 'dtr']));
             }
-            flash('success', 'Daily time record submitted. Awaiting Industry Partner approval.');
+            flash('success', 'Daily time record submitted. Awaiting Host Training Establishment approval.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
@@ -685,7 +685,7 @@ class StudentController extends BaseController
             if ($company) {
                 (new Notification($this->db))->create((int)$company['user_id'], 'New Weekly Report pending approval', $student['name'] . ' submitted weekly report #' . (int)$p['week_no'] . '. Please review.', route_url('partner.submissions', ['student_id' => (int)$student['id'], 'tab' => 'weekly']));
             }
-            flash('success', 'Weekly report submitted. Awaiting Industry Partner approval.');
+            flash('success', 'Weekly report submitted. Awaiting Host Training Establishment approval.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }

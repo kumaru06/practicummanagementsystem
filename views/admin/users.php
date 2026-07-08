@@ -109,6 +109,7 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
                         <tr>
                             <th data-sort>Last Name</th>
                             <th data-sort>First Name</th>
+                            <th data-sort>Middle Name</th>
                             <th data-sort>Email</th>
                             <th data-sort>Student ID</th>
                             <th data-sort class="asu-col-program">Program</th>
@@ -130,17 +131,18 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
                                 : '';
                             $isSelf = (int)($s['user_id'] ?? 0) === (int)current_user()['id'];
                             $firstName = trim((string)($s['first_name'] ?? ''));
+                            $middleName = trim((string)($s['middle_name'] ?? ''));
                             $lastName = trim((string)($s['last_name'] ?? ''));
                             if ($firstName === '' && $lastName === '' && !empty($s['name'])) {
                                 $nameParts = preg_split('/\s+/', trim((string)$s['name']), 2);
                                 $firstName = $nameParts[0] ?? '';
                                 $lastName = $nameParts[1] ?? '';
                             }
-                            $fullName = trim($firstName . ' ' . ($s['middle_name'] ?? '') . ' ' . $lastName);
+                            $fullName = trim($firstName . ' ' . $middleName . ' ' . $lastName);
                             $fullName = preg_replace('/\s+/', ' ', $fullName) ?: ($s['name'] ?? 'Student');
                         ?>
                         <tr data-program-id="<?= (int)($s['program_id'] ?? 0) ?>"
-                            data-search="<?= e(strtolower(trim($lastName . ' ' . $firstName . ' ' . ($s['middle_name'] ?? '') . ' ' . ($s['email'] ?? '') . ' ' . ($s['student_no'] ?? '') . ' ' . ($s['course'] ?? '') . ' ' . ($s['program_code'] ?? '')))) ?>">
+                            data-search="<?= e(strtolower(trim($lastName . ' ' . $firstName . ' ' . $middleName . ' ' . ($s['email'] ?? '') . ' ' . ($s['student_no'] ?? '') . ' ' . ($s['course'] ?? '') . ' ' . ($s['program_code'] ?? '')))) ?>">
                             <td class="asu-name-cell">
                                 <div class="asu-student-cell">
                                     <span class="asu-student-avatar aco-avatar-tone--<?= (abs((int)($s['user_id'] ?? $s['id'] ?? 0)) % 6) + 1 ?><?= $studentPhotoUrl ? ' asu-student-avatar--photo' : '' ?>">
@@ -154,6 +156,7 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
                                 </div>
                             </td>
                             <td class="asu-name-cell"><?= $firstName !== '' ? e($firstName) : '<span class="muted">—</span>' ?></td>
+                            <td class="asu-name-cell"><?= $middleName !== '' ? e($middleName) : '<span class="muted">—</span>' ?></td>
                             <td><a class="asu-email-link" href="mailto:<?= e($s['email']) ?>"><?= e($s['email']) ?></a></td>
                             <td class="center-cell">
                                 <?php if ($s['student_no']): ?>

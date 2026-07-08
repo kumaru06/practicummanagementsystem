@@ -13,7 +13,7 @@ $stars = static fn (int $n): string => str_repeat("\u{2605}", max(0, min(5, $n))
                 <svg viewBox="0 0 24 24" width="40" height="40" fill="currentColor"><path d="M9 2h6a2 2 0 0 1 2 2h1a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1a2 2 0 0 1 2-2Zm0 2v2h6V4H9Z"/></svg>
             </div>
             <h2>No Evaluation Yet</h2>
-            <p class="muted">Your Industry Partner has not submitted your final evaluation yet. It will appear here once completed.</p>
+            <p class="muted">Your Host Training Establishment has not submitted your final evaluation yet. It will appear here once completed.</p>
         </section>
     <?php else: ?>
         <section class="card eval-card">
@@ -21,7 +21,7 @@ $stars = static fn (int $n): string => str_repeat("\u{2605}", max(0, min(5, $n))
                 <div>
                     <span class="student-section-label">Final OJT Evaluation</span>
                     <h2>Your Performance Rating</h2>
-                    <p class="muted">Submitted by your Industry Partner<?= !empty($evaluation['submitted_at']) ? ' on ' . e(date('F j, Y', strtotime($evaluation['submitted_at']))) : '' ?>.</p>
+                    <p class="muted">Submitted by your Host Training Establishment<?= !empty($evaluation['submitted_at']) ? ' on ' . e(date('F j, Y', strtotime($evaluation['submitted_at']))) : '' ?>.</p>
                 </div>
                 <div class="eval-result-grade">
                     <span class="eval-result-grade-value"><?= e(number_format($grade, 2)) ?>%</span>
@@ -54,7 +54,7 @@ $stars = static fn (int $n): string => str_repeat("\u{2605}", max(0, min(5, $n))
             </div>
 
             <div class="eval-field">
-                <span class="eval-field-label">Comments from Industry Partner</span>
+                <span class="eval-field-label">Comments from Host Training Establishment</span>
                 <div class="eval-comment-box"><?= nl2br(e($evaluation['comments'] ?? '')) ?: '<span class="muted">No comments.</span>' ?></div>
             </div>
 

@@ -324,7 +324,7 @@ class ChatController
             'admin' => 'Administrators',
             'coordinator' => 'Coordinators',
             'student' => 'Students',
-            'partner' => 'Industry Partners',
+            'partner' => 'Host Training Establishments',
             default => ucfirst($role),
         };
     }

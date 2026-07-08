@@ -3,7 +3,7 @@
 <div class="ps-v2" data-ps-submissions>
     <?php if (!$company): ?>
         <section class="ps-v2-empty-card">
-            <h2>No Industry Partner profile found.</h2>
+            <h2>No Host Training Establishment profile found.</h2>
             <p class="muted">Please contact the administrator to set up your account.</p>
         </section>
     <?php else: ?>
@@ -67,7 +67,7 @@
                                     <span class="ps-v2-student-avatar"><?= e(strtoupper(substr($row['student_name'], 0, 1))) ?></span>
                                     <span class="ps-v2-student-info">
                                         <strong><?= e($row['student_name']) ?></strong>
-                                        <?php $studentMeta = $row['student_no'] . ' · ' . $row['course']; ?>
+                                        <?php $studentMeta = $row['student_no'] . ' Â· ' . $row['course']; ?>
                                         <span class="ps-v2-student-meta-marquee" data-ps-meta-marquee title="<?= e($studentMeta) ?>">
                                             <span class="ps-v2-student-meta-track">
                                                 <small><?= e($studentMeta) ?></small>

@@ -33,7 +33,7 @@ class PartnerController extends BaseController
         }
 
         $this->renderAppPage('partner/dashboard', [
-            'title' => 'Industry Partner Dashboard',
+            'title' => 'Host Training Establishment Dashboard',
             'company' => $company,
             'students' => $students,
             'stats' => $stats,
@@ -244,7 +244,7 @@ class PartnerController extends BaseController
     {
         $company = (new Company($this->db))->findByUser(current_user()['id']);
         if (!$company) {
-            throw new RuntimeException('Industry Partner profile not found.');
+            throw new RuntimeException('Host Training Establishment profile not found.');
         }
         $stmt = $this->db->prepare(
             'SELECT COUNT(*) FROM ojt_enrollments WHERE student_id = ? AND company_id = ?'
@@ -264,14 +264,14 @@ class PartnerController extends BaseController
         $notifications = new Notification($this->db);
         $label = $type === 'dtr' ? 'Daily Time Records' : 'Weekly Reports';
         $title = $count . ' ' . $label . ' ' . ($action === 'approved' ? 'approved' : 'rejected');
-        $message = $count . ' ' . strtolower($label) . ' were ' . $action . ' by your Industry Partner.';
+        $message = $count . ' ' . strtolower($label) . ' were ' . $action . ' by your Host Training Establishment.';
         $notifications->create((int)$student['user_id'], $title, $message, route_url('student.records'));
 
         if ($action === 'approved' && !empty($student['coordinator_id'])) {
             $notifications->create(
                 (int)$student['coordinator_id'],
-                $label . ' approved by Industry Partner',
-                $count . ' ' . strtolower($label) . ' for ' . $student['name'] . ' were approved by the Industry Partner.',
+                $label . ' approved by Host Training Establishment',
+                $count . ' ' . strtolower($label) . ' for ' . $student['name'] . ' were approved by the Host Training Establishment.',
                 route_url('coordinator.students')
             );
         }
@@ -294,15 +294,15 @@ class PartnerController extends BaseController
         $notifications = new Notification($this->db);
         $label = $type === 'dtr' ? 'Daily Time Record' : 'Weekly Report';
         $title = $label . ' ' . ($action === 'approved' ? 'approved' : 'rejected');
-        $message = 'Your ' . $label . ' was ' . $action . ' by your Industry Partner' . ($notes !== '' ? ': ' . $notes : '.');
+        $message = 'Your ' . $label . ' was ' . $action . ' by your Host Training Establishment' . ($notes !== '' ? ': ' . $notes : '.');
 
         $notifications->create((int)$student['user_id'], $title, $message, route_url('student.records'));
 
         if ($action === 'approved' && !empty($student['coordinator_id'])) {
             $notifications->create(
                 (int)$student['coordinator_id'],
-                $label . ' approved by Industry Partner',
-                $student['name'] . '\'s ' . $label . ' has been approved by the Industry Partner.',
+                $label . ' approved by Host Training Establishment',
+                $student['name'] . '\'s ' . $label . ' has been approved by the Host Training Establishment.',
                 route_url('coordinator.students')
             );
         }
@@ -325,7 +325,7 @@ class PartnerController extends BaseController
             $evaluation = (new Evaluation($this->db))->byEnrollment((int)$selected['id']);
         }
         $this->renderAppPage('partner/portal', [
-            'title' => 'Industry Partner Portal',
+            'title' => 'Host Training Establishment Portal',
             'company' => $company,
             'students' => $students,
             'selected' => $selected,
@@ -614,7 +614,7 @@ class PartnerController extends BaseController
             exit('Enrollment not found.');
         }
 
-        // Verify the Industry Partner has access to this enrollment
+        // Verify the Host Training Establishment has access to this enrollment
         if (!$company || (int)$enrollment['company_id'] !== (int)$company['id']) {
             http_response_code(403);
             exit('You do not have access to this enrollment.');
@@ -654,7 +654,7 @@ class PartnerController extends BaseController
         require_role('partner');
         $company = (new Company($this->db))->findByUser((int)current_user()['id']);
         if (!$company) {
-            flash('error', 'Industry Partner profile not found.');
+            flash('error', 'Host Training Establishment profile not found.');
             redirect('index.php?r=partner_settings');
         }
         $this->renderAppPage('partner/profile', [
@@ -669,7 +669,7 @@ class PartnerController extends BaseController
         $p = $this->post();
         $company = (new Company($this->db))->findByUser((int)current_user()['id']);
         if (!$company) {
-            flash('error', 'Industry Partner profile not found.');
+            flash('error', 'Host Training Establishment profile not found.');
             redirect('index.php?r=partner_settings');
         }
         try {

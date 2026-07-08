@@ -49,10 +49,9 @@ $pendingCount = count($requests ?? []);
                             <th data-sort>Middle Name</th>
                             <th data-sort>USN</th>
                             <th data-sort>Email</th>
-                            <th data-sort>Program / Course</th>
-                            <th>Verified</th>
-                            <th data-sort>Submitted</th>
-                            <th>Actions</th>
+                            <th data-sort class="reg-req-col-course">Program / Course</th>
+                            <th data-sort class="reg-req-col-submitted">Submitted</th>
+                            <th class="reg-req-col-action">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -89,30 +88,21 @@ $pendingCount = count($requests ?? []);
                                 <td><?= e($request['first_name']) ?></td>
                                 <td class="reg-req-middle"><?= $middleName !== '' ? e($middleName) : '<span class="muted">—</span>' ?></td>
                                 <td class="reg-req-usn"><?= e($request['student_no']) ?></td>
-                                <td class="reg-req-email"><?= e($request['email']) ?></td>
-                                <td class="reg-req-course"><?= $courseLabel !== '—' ? e($courseLabel) : '<span class="muted">—</span>' ?></td>
-                                <td>
-                                    <?php if ($verifiedAt !== ''): ?>
-                                        <div class="reg-req-verified-cell">
-                                            <span class="reg-req-verified-badge">
-                                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
-                                                Verified
-                                            </span>
-                                            <time class="reg-req-verified-time"><?= e($verifiedAt) ?></time>
-                                        </div>
-                                    <?php else: ?>
-                                        <span class="reg-req-legacy-badge">Legacy</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="reg-req-submitted"><?= e($submittedAt) ?></td>
-                                <td>
-                                    <div class="reg-req-row-actions">
-                                        <?php if ($corUrl !== ''): ?>
-                                            <a class="reg-req-cor-btn" href="<?= e($corUrl) ?>" target="_blank" rel="noopener noreferrer">
-                                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
-                                                View COR
-                                            </a>
+                                <td class="reg-req-email">
+                                    <span class="reg-req-email-line">
+                                        <span class="reg-req-email-text"><?= e($request['email']) ?></span>
+                                        <?php if ($verifiedAt !== ''): ?>
+                                            <svg class="reg-req-email-check" viewBox="0 0 16 16" aria-label="Email verified" role="img">
+                                                <circle cx="8" cy="8" r="8" fill="currentColor" opacity="0.18"/>
+                                                <path d="M4.5 8.25 6.75 10.5 11.5 5.75" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </svg>
                                         <?php endif; ?>
+                                    </span>
+                                </td>
+                                <td class="reg-req-course"><?= $courseLabel !== '—' ? e($courseLabel) : '<span class="muted">—</span>' ?></td>
+                                <td class="reg-req-submitted"><?= e($submittedAt) ?></td>
+                                <td class="reg-req-col-action">
+                                    <div class="reg-req-row-actions">
                                         <button class="reg-req-review-btn" type="button" data-reg-req-review>
                                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
                                             Review Request
@@ -175,7 +165,7 @@ $pendingCount = count($requests ?? []);
                     <li class="reg-req-info-row">
                         <span class="reg-req-info-label">Email</span>
                         <span class="reg-req-info-sep" aria-hidden="true">:</span>
-                        <span class="reg-req-info-value" data-reg-field="email">—</span>
+                        <span class="reg-req-info-value reg-req-info-email" data-reg-field="email">—</span>
                     </li>
                     <li class="reg-req-info-row">
                         <span class="reg-req-info-label">Program / Course</span>
@@ -187,18 +177,13 @@ $pendingCount = count($requests ?? []);
                         <span class="reg-req-info-sep" aria-hidden="true">:</span>
                         <span class="reg-req-info-value" data-reg-field="submitted-at">—</span>
                     </li>
-                    <li class="reg-req-info-row reg-req-info-row--verified">
-                        <span class="reg-req-info-label">Email Verified</span>
-                        <span class="reg-req-info-sep" aria-hidden="true">:</span>
-                        <span class="reg-req-info-value" data-reg-field="verified-at">—</span>
-                    </li>
                 </ul>
 
                 <div class="reg-req-document-block">
                     <div class="reg-req-document-copy">
                         <h4>
                             <span class="reg-req-section-icon reg-req-section-icon--doc" aria-hidden="true">
-                                <svg viewBox="0 0 24 24"><path d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
                             </span>
                             Document
                         </h4>

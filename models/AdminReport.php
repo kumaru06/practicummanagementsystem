@@ -70,7 +70,7 @@ class AdminReport
                 $row['student_no'],
                 $row['course'],
                 $row['company_name'],
-                $row['coordinator_name'] ?: '—',
+                $row['coordinator_name'] ?: 'â€”',
                 $this->formatDate($row['start_date'] ?? null),
                 $this->formatDate($row['end_date'] ?? null),
                 number_format((float)$row['rendered_hours'], 1) . ' / ' . (int)$row['required_hours'] . ' hrs',
@@ -138,16 +138,16 @@ class AdminReport
         foreach ($companies as $company) {
             $rows[] = [
                 $company['name'],
-                $company['contact_person'] ?? '—',
-                $company['contact_email'] ?? '—',
-                $company['contact_number'] ?: '—',
-                $company['accepted_programs'] ?: '—',
+                $company['contact_person'] ?? 'â€”',
+                $company['contact_email'] ?? 'â€”',
+                $company['contact_number'] ?: 'â€”',
+                $company['accepted_programs'] ?: 'â€”',
                 !empty($company['is_active']) ? 'Active' : 'Inactive',
             ];
         }
 
         return [
-            'description' => 'List of all registered industry partner companies.',
+            'description' => 'List of all registered host training establishment companies.',
             'columns' => ['Company', 'Contact Person', 'Email', 'Contact No.', 'Accepted Programs', 'Account Status'],
             'rows' => $rows,
             'ready' => true,
@@ -180,7 +180,7 @@ class AdminReport
         }
 
         return [
-            'description' => 'Number of students assigned to each industry partner.',
+            'description' => 'Number of students assigned to each host training establishment.',
             'columns' => ['Company', 'Total Students', 'Active', 'Completed', 'Pending'],
             'rows' => $rows,
             'ready' => true,
@@ -190,7 +190,7 @@ class AdminReport
     private function companyEvaluationResults(): array
     {
         if (!$this->tableExists('evaluations')) {
-            return $this->emptyReport('Final evaluation results submitted by industry partners.');
+            return $this->emptyReport('Final evaluation results submitted by host training establishments.');
         }
 
         $stmt = $this->db->query('
@@ -223,7 +223,7 @@ class AdminReport
         }
 
         return [
-            'description' => 'Final evaluation results submitted by industry partners.',
+            'description' => 'Final evaluation results submitted by host training establishments.',
             'columns' => ['Company', 'Student', 'Student ID', 'Final Grade', 'Submitted'],
             'rows' => $rows,
             'ready' => true,
@@ -431,8 +431,8 @@ class AdminReport
             $rows[] = [
                 $row['student_name'],
                 $row['student_no'],
-                $row['coordinator_name'] ?: '—',
-                $row['coordinator_grade'] !== null ? number_format((float)$row['coordinator_grade'], 2) . '%' : '—',
+                $row['coordinator_name'] ?: 'â€”',
+                $row['coordinator_grade'] !== null ? number_format((float)$row['coordinator_grade'], 2) . '%' : 'â€”',
                 ucfirst((string)$row['coordinator_status']),
                 $this->formatDate($row['updated_at'] ?? null, true),
             ];
@@ -482,7 +482,7 @@ class AdminReport
         }
 
         return [
-            'description' => 'Summary of all final OJT evaluations submitted by industry partners.',
+            'description' => 'Summary of all final OJT evaluations submitted by host training establishments.',
             'columns' => ['Student', 'Student ID', 'Course', 'Company', 'Final Grade', 'Submitted'],
             'rows' => $rows,
             'ready' => true,
@@ -511,8 +511,8 @@ class AdminReport
                         $student['student_no'],
                         $req['requirement_name'] ?? 'Requirement',
                         'Missing',
-                        '—',
-                        '—',
+                        'â€”',
+                        'â€”',
                     ];
                 }
             }
@@ -624,7 +624,7 @@ class AdminReport
         }
 
         return [
-            'description' => 'Average OJT completion progress grouped by industry partner.',
+            'description' => 'Average OJT completion progress grouped by host training establishment.',
             'columns' => ['Company', 'Students', 'Avg. Completion'],
             'rows' => $rows,
             'ready' => true,
@@ -657,7 +657,7 @@ class AdminReport
     private function formatDate(?string $date, bool $includeTime = false): string
     {
         if (!$date || strtotime($date) === false) {
-            return '—';
+            return 'â€”';
         }
 
         return $includeTime

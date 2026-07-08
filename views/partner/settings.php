@@ -40,7 +40,7 @@ $profilePhotoUrl = partner_profile_photo_url($company ?? null);
             </span>
             <span class="ip-settings-action__copy">
                 <strong>Change Password</strong>
-                <small>Set a new secure password for your Industry Partner account.</small>
+                <small>Set a new secure password for your Host Training Establishment account.</small>
             </span>
             <span class="ip-settings-action__arrow" aria-hidden="true">
                 <svg viewBox="0 0 20 20" fill="none"><path d="M7.5 5 12.5 10l-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -74,19 +74,19 @@ $profilePhotoUrl = partner_profile_photo_url($company ?? null);
                 <dl class="ip-settings-meta">
                     <div class="ip-settings-meta__item">
                         <dt>Partner ID</dt>
-                        <dd><?= e($company['partner_id'] ?? '—') ?></dd>
+                        <dd><?= e($company['partner_id'] ?? 'â€”') ?></dd>
                     </div>
                     <div class="ip-settings-meta__item">
                         <dt>Email</dt>
-                        <dd><?= e($contactEmail !== '' ? $contactEmail : '—') ?></dd>
+                        <dd><?= e($contactEmail !== '' ? $contactEmail : 'â€”') ?></dd>
                     </div>
                     <div class="ip-settings-meta__item">
                         <dt>Contact Number</dt>
-                        <dd><?= e($company['contact_number'] ?? '—') ?></dd>
+                        <dd><?= e($company['contact_number'] ?? 'â€”') ?></dd>
                     </div>
                     <div class="ip-settings-meta__item ip-settings-meta__item--full">
                         <dt>Address</dt>
-                        <dd><?= e($company['address'] ?? '—') ?></dd>
+                        <dd><?= e($company['address'] ?? 'â€”') ?></dd>
                     </div>
                 </dl>
             </div>

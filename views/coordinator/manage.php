@@ -46,11 +46,11 @@ $totalStudents = count($students);
                         Academic Details
                     </legend>
                     <label><span>Course <span class="field-required">*</span></span><select required name="program_id">
-                        <option value="">— Select course —</option>
-                        <?php foreach ($programs as $program): ?><option value="<?= (int)$program['id'] ?>"><?= e($program['code'] . ' — ' . $program['name'] . ' (' . $program['required_hours'] . ' hrs)') ?></option><?php endforeach; ?>
+                        <option value="">â€” Select course â€”</option>
+                        <?php foreach ($programs as $program): ?><option value="<?= (int)$program['id'] ?>"><?= e($program['code'] . ' â€” ' . $program['name'] . ' (' . $program['required_hours'] . ' hrs)') ?></option><?php endforeach; ?>
                     </select></label>
                     <label><span>Year Level <span class="field-required">*</span></span><select required name="year_level">
-                        <option value="">— Select year level —</option>
+                        <option value="">â€” Select year level â€”</option>
                         <option value="3rd Year">3rd Year</option>
                         <option value="4th Year">4th Year</option>
                     </select></label>
@@ -97,7 +97,7 @@ $totalStudents = count($students);
                 </div>
                 <div>
                     <h2>Enroll Student in OJT</h2>
-                    <p class="muted">Follow the step-by-step wizard to assign an Industry Partner and send deployment emails.</p>
+                    <p class="muted">Follow the step-by-step wizard to assign an Host Training Establishment and send deployment emails.</p>
                 </div>
             </header>
             <form method="post" class="form js-validate wizard-form enrollment-wizard-form" data-wizard data-confirm-submit="Enroll this student and send the enrollment/deployment emails now? Please verify the student, company, dates, and required hours before continuing." data-confirm-title="Confirm OJT enrollment" data-confirm-ok="Enroll & send emails" data-confirm-cancel="Review details" data-confirm-async="1" data-confirm-processing-title="Enrolling student..." data-confirm-processing-message="Sending enrollment emails and preparing deployment details. This may take a moment." data-confirm-success-title="Enrollment complete" data-confirm-success-ok="Done">
@@ -126,7 +126,7 @@ $totalStudents = count($students);
                         <h3>Select a student</h3>
                         <p class="muted">Choose an unenrolled student from your roster, or click a row in the directory below.</p>
                     </div>
-                    <label><span>Student <span class="field-required">*</span></span><select required name="student_id"><option value="">— Select student —</option><?php foreach ($students as $s): ?><option value="<?= (int)$s['id'] ?>" data-program-id="<?= (int)($s['program_id'] ?? 0) ?>" data-required-hours="<?= (int)($s['program_required_hours'] ?? 0) ?>" data-is-enrolled="<?= !empty($s['enrollment_id']) ? '1' : '0' ?>"><?= e($s['name'] . ' - ' . $s['student_no'] . ' (' . ($s['program_code'] ?? $s['course']) . ')' . ' - ' . (!empty($s['enrollment_id']) ? 'Enrolled' : 'Unenrolled')) ?></option><?php endforeach; ?></select></label>
+                    <label><span>Student <span class="field-required">*</span></span><select required name="student_id"><option value="">â€” Select student â€”</option><?php foreach ($students as $s): ?><option value="<?= (int)$s['id'] ?>" data-program-id="<?= (int)($s['program_id'] ?? 0) ?>" data-required-hours="<?= (int)($s['program_required_hours'] ?? 0) ?>" data-is-enrolled="<?= !empty($s['enrollment_id']) ? '1' : '0' ?>"><?= e($s['name'] . ' - ' . $s['student_no'] . ' (' . ($s['program_code'] ?? $s['course']) . ')' . ' - ' . (!empty($s['enrollment_id']) ? 'Enrolled' : 'Unenrolled')) ?></option><?php endforeach; ?></select></label>
                     <button class="btn btn-primary wizard-next enrollment-wizard-next" type="button">
                         Continue
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
@@ -136,19 +136,19 @@ $totalStudents = count($students);
                 <div class="wizard-step">
                     <div class="enrollment-wizard-step-intro">
                         <h3>Placement details</h3>
-                        <p class="muted">Assign an industry partner and confirm the academic term schedule.</p>
+                        <p class="muted">Assign an host training establishment and confirm the academic term schedule.</p>
                     </div>
-                    <label><span>Industry Partner <span class="field-required">*</span></span><select required name="company_id"><option value="">— Select Industry Partner —</option><?php foreach ($companies as $c): ?><option value="<?= (int)$c['id'] ?>" data-program-ids="<?= e($c['accepted_program_ids'] ?? '') ?>" data-moa-mou="<?= e(!empty($c['moa_mou_file']) ? 'index.php?r=coordinator_partner_document&company_id=' . (int)$c['id'] : '') ?>"><?= e($c['name'] . (!empty($c['accepted_programs']) ? ' — ' . $c['accepted_programs'] : '')) ?></option><?php endforeach; ?></select></label>
+                    <label><span>Host Training Establishment <span class="field-required">*</span></span><select required name="company_id"><option value="">â€” Select Host Training Establishment â€”</option><?php foreach ($companies as $c): ?><option value="<?= (int)$c['id'] ?>" data-program-ids="<?= e($c['accepted_program_ids'] ?? '') ?>" data-moa-mou="<?= e(!empty($c['moa_mou_file']) ? 'index.php?r=coordinator_partner_document&company_id=' . (int)$c['id'] : '') ?>"><?= e($c['name'] . (!empty($c['accepted_programs']) ? ' â€” ' . $c['accepted_programs'] : '')) ?></option><?php endforeach; ?></select></label>
                     <div class="company-doc-preview enrollment-company-doc" data-company-doc-preview hidden>
                         <div class="enrollment-company-doc-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5Z"/></svg></div>
                         <div>
-                            <span class="muted">Industry Partner MOA/MOU</span>
+                            <span class="muted">Host Training Establishment MOA/MOU</span>
                             <a class="enrollment-company-doc-link" data-company-doc-link target="_blank" href="#">View document</a>
                         </div>
                     </div>
                     <label>Academic Term
                         <select required name="academic_term" data-term-autofill="1">
-                            <option value="">— Select Term —</option>
+                            <option value="">â€” Select Term â€”</option>
                             <?php foreach (($terms ?? []) as $t): ?>
                                 <?php
                                 $tStart = trim((string)($t['term_start_date'] ?? ''));

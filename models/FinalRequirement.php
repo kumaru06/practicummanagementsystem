@@ -26,8 +26,8 @@ class FinalRequirement
      */
     public const EVALUATION_SECTIONS = [
         'industry_partner' => [
-            'name' => 'Industry Partner Evaluation',
-            'description' => 'Evaluate your OJT experience by rating your Industry Partner and OJT Supervisor.',
+            'name' => 'Host Training Establishment Evaluation',
+            'description' => 'Evaluate your OJT experience by rating your Host Training Establishment and OJT Supervisor.',
         ],
         'coordinator' => [
             'name' => 'OJT Coordinator Evaluation', 

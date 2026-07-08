@@ -1,7 +1,7 @@
 <?php $criteriaFlat = Evaluation::criteriaFlat(); ?>
 <section class="card">
     <div class="section-head section-head-split">
-        <div><h2>Evaluations</h2><p class="muted">Final evaluations submitted by Industry Partners for your students.</p></div>
+        <div><h2>Evaluations</h2><p class="muted">Final evaluations submitted by Host Training Establishments for your students.</p></div>
         <input class="table-search table-search-wide" placeholder="Search evaluations...">
     </div>
     <?php if (empty($evaluations)): ?>

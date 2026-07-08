@@ -4,12 +4,12 @@ class StudentEvaluation
     public function __construct(private PDO $db) {}
 
     /**
-     * Industry Partner evaluation criteria
+     * Host Training Establishment evaluation criteria
      */
     public static function industryPartnerCriteria(): array
     {
         return [
-            'A. INDUSTRY PARTNER EVALUATION' => [
+            'A. HOST TRAINING ESTABLISHMENT EVALUATION' => [
                 'ip1' => ['label' => 'Provided a safe and conducive environment for OJT', 'weight' => 10],
                 'ip2' => ['label' => 'Provided the necessary materials, tools, and equipment', 'weight' => 10],
                 'ip3' => ['label' => 'Allowed me to apply my knowledge and skills in real work situations', 'weight' => 10],
@@ -17,7 +17,7 @@ class StudentEvaluation
                 'ip5' => ['label' => 'Supported and guided me throughout the OJT duration', 'weight' => 10],
                 'ip6' => ['label' => 'Treated me with respect and professionalism', 'weight' => 10],
                 'ip7' => ['label' => 'Provided opportunities to learn and grow', 'weight' => 10],
-                'ip8' => ['label' => 'Overall satisfaction with the Industry Partner', 'weight' => 10],
+                'ip8' => ['label' => 'Overall satisfaction with the Host Training Establishment', 'weight' => 10],
             ],
             'B. OJT SUPERVISOR EVALUATION' => [
                 'os1' => ['label' => 'Clearly explained tasks and responsibilities', 'weight' => 2.5],
@@ -43,7 +43,7 @@ class StudentEvaluation
                 'oc2' => ['label' => 'Was accessible for consultations and support', 'weight' => 12.5],
                 'oc3' => ['label' => 'Conducted regular monitoring and check-ins', 'weight' => 12.5],
                 'oc4' => ['label' => 'Responded promptly to concerns and issues', 'weight' => 12.5],
-                'oc5' => ['label' => 'Facilitated effective communication with industry partners', 'weight' => 12.5],
+                'oc5' => ['label' => 'Facilitated effective communication with host training establishments', 'weight' => 12.5],
                 'oc6' => ['label' => 'Provided adequate support throughout the OJT', 'weight' => 12.5],
                 'oc7' => ['label' => 'Demonstrated professionalism and competence', 'weight' => 12.5],
                 'oc8' => ['label' => 'Overall satisfaction with the OJT Coordinator', 'weight' => 12.5],

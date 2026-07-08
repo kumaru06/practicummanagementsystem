@@ -159,13 +159,13 @@ body.sidebar-collapsed {
     }
 }
 
-/* ── Notification menu wrapper ── */
+/* â”€â”€ Notification menu wrapper â”€â”€ */
 .notification-menu {
     position: relative;
     z-index: 102;
 }
 
-/* ── Bell trigger button ── */
+/* â”€â”€ Bell trigger button â”€â”€ */
 .notif-trigger {
     position: relative;
     display: inline-flex;
@@ -215,7 +215,7 @@ body.sidebar-collapsed {
     pointer-events: none;
 }
 
-/* ── Notification panel — hidden by default, fixed to viewport ── */
+/* â”€â”€ Notification panel â€” hidden by default, fixed to viewport â”€â”€ */
 .notif-panel {
     position: fixed;
     z-index: 999;
@@ -255,7 +255,7 @@ body.sidebar-collapsed {
     to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
 
-/* ── Panel header (coral-red) ── */
+/* â”€â”€ Panel header (coral-red) â”€â”€ */
 .notif-panel-header {
     position: relative;
     z-index: 2;
@@ -285,7 +285,7 @@ body.sidebar-collapsed {
 }
 .notif-panel-gear:hover { opacity: 1; }
 
-/* ── Empty state ── */
+/* â”€â”€ Empty state â”€â”€ */
 .notif-empty {
     display: flex;
     flex-direction: column;
@@ -321,7 +321,7 @@ body.sidebar-collapsed {
     color: #9ca3af;
 }
 
-/* ── Notification list ── */
+/* â”€â”€ Notification list â”€â”€ */
 .notif-list {
     max-height: 340px;
     overflow-y: auto;
@@ -332,7 +332,7 @@ body.sidebar-collapsed {
 .notif-list::-webkit-scrollbar-track { background: transparent; }
 .notif-list::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 5px; }
 
-/* ── Notification item ── */
+/* â”€â”€ Notification item â”€â”€ */
 .notif-item {
     display: flex;
     align-items: center;
@@ -351,7 +351,7 @@ body.sidebar-collapsed {
 .notif-item.is-unread { background: #fff9f9; }
 .notif-item.is-unread:hover { background: #fdeaea; }
 
-/* ── Avatar circle ── */
+/* â”€â”€ Avatar circle â”€â”€ */
 .notif-avatar {
     flex-shrink: 0;
     width: 46px;
@@ -366,7 +366,7 @@ body.sidebar-collapsed {
     justify-content: center;
 }
 
-/* ── Body text ── */
+/* â”€â”€ Body text â”€â”€ */
 .notif-body {
     display: flex;
     flex-direction: column;
@@ -402,7 +402,7 @@ body.sidebar-collapsed {
     margin-top: 3px;
 }
 
-/* ── Unread dot (right) ── */
+/* â”€â”€ Unread dot (right) â”€â”€ */
 .notif-dot {
     flex-shrink: 0;
     width: 9px;
@@ -412,7 +412,7 @@ body.sidebar-collapsed {
     box-shadow: 0 0 0 3px rgba(34,197,94,0.18);
 }
 
-/* ── Footer ── */
+/* â”€â”€ Footer â”€â”€ */
 .notif-footer {
     border-top: 1px solid #f3f4f6;
     padding: 13px 18px;
@@ -981,7 +981,7 @@ small,
     flex-direction: column;
     gap: 16px;
     padding: 22px 18px;
-    /* Match AMA sidebar: deep navy → purple → maroon */
+    /* Match AMA sidebar: deep navy â†’ purple â†’ maroon */
     background: linear-gradient(180deg,
         #172a66 0%,
         #1b2a63 18%,
@@ -1240,7 +1240,7 @@ small,
     display: none;
 }
 
-/* ── Nav Group (Manage Users dropdown) ── */
+/* â”€â”€ Nav Group (Manage Users dropdown) â”€â”€ */
 .nav-group {
     display: flex;
     flex-direction: column;
@@ -1328,7 +1328,7 @@ small,
     border-radius: 5px;
 }
 
-/* ── Sidebar user footer ── */
+/* â”€â”€ Sidebar user footer â”€â”€ */
 .sidebar-user {
     position: relative;
     z-index: 1;
@@ -1395,7 +1395,7 @@ small,
 }
 
 
-/* ─── Programs / Courses Page ───────────────────────────────────────────── */
+/* â”€â”€â”€ Programs / Courses Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .programs-page {
     display: flex;
     flex-direction: column;
@@ -2193,7 +2193,7 @@ small,
     color: var(--muted);
 }
 
-/* ─── Partner Companies ─────────────────────────────────────────────────── */
+/* â”€â”€â”€ Partner Companies â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .partner-page {
     display: flex;
     flex-direction: column;
@@ -3034,9 +3034,9 @@ small,
     min-height: 36px !important;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   COORDINATOR – MOA/MOU DOCUMENT CENTRE  (cdoc-*)
-═══════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   COORDINATOR â€“ MOA/MOU DOCUMENT CENTRE  (cdoc-*)
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .cdoc-page {
     display: flex;
@@ -3057,7 +3057,7 @@ small,
     flex-shrink: 0;
 }
 
-/* ── Hero ── */
+/* â”€â”€ Hero â”€â”€ */
 .cdoc-hero {
     position: relative;
     isolation: isolate;
@@ -3226,7 +3226,7 @@ small,
     font-weight: 600;
 }
 
-/* ── Stats strip ── */
+/* â”€â”€ Stats strip â”€â”€ */
 .cdoc-stats-strip {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3308,7 +3308,7 @@ small,
     line-height: 1;
 }
 
-/* ── Registry card ── */
+/* â”€â”€ Registry card â”€â”€ */
 .cdoc-registry-card {
     padding: 0;
     overflow: hidden;
@@ -3382,7 +3382,7 @@ small,
     flex: 1 1 180px;
 }
 
-/* ── Toolbar ── */
+/* â”€â”€ Toolbar â”€â”€ */
 .cdoc-toolbar {
     display: flex;
     align-items: center;
@@ -3467,7 +3467,7 @@ small,
     box-shadow: 0 4px 12px rgba(15,23,42,0.08);
 }
 
-/* ── Agreement cards ── */
+/* â”€â”€ Agreement cards â”€â”€ */
 .cdoc-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -3910,7 +3910,7 @@ small,
     }
 }
 
-/* ── Legacy alias: keep old coordinator-doc-page class from breaking if cached */
+/* â”€â”€ Legacy alias: keep old coordinator-doc-page class from breaking if cached */
 .coordinator-doc-page {
     display: flex;
     flex-direction: column;
@@ -5234,7 +5234,7 @@ body.is-coordinator-edit-open {
     z-index: 25;
 }
 
-/* Freeze card lift when a date picker is open inside — prevents fixed positioning being offset */
+/* Freeze card lift when a date picker is open inside â€” prevents fixed positioning being offset */
 .card.picker-open,
 .card.picker-open:hover {
     transform: none !important;
@@ -5921,7 +5921,7 @@ body.is-coordinator-edit-open {
     border-radius: 5px;
 }
 
-/* ── DTR Form Card ──────────────────────────────── */
+/* â”€â”€ DTR Form Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .dtr-form-card {
     overflow: hidden;
 }
@@ -6944,7 +6944,7 @@ body.is-confirm-open .app-confirm-overlay {
     box-shadow: 0 0 0 3px rgba(224,55,55,0.12);
 }
 
-/* Global shared calendar panel — direct child of body, never clipped */
+/* Global shared calendar panel â€” direct child of body, never clipped */
 .global-cal-panel {
     position: fixed;
     z-index: 99999;
@@ -6974,7 +6974,7 @@ body.is-confirm-open .app-confirm-overlay {
     transform: translateY(-6px) scale(0.98) !important;
 }
 
-/* ── Global datetime panel (calendar + time picker) ── */
+/* â”€â”€ Global datetime panel (calendar + time picker) â”€â”€ */
 .global-datetime-panel {
     position: fixed;
     z-index: 99999;
@@ -7991,7 +7991,7 @@ body.is-confirm-open .app-confirm-overlay {
     display: none;
 }
 
-/* Coordinator — My Students table */
+/* Coordinator â€” My Students table */
 .student-list-card .section-head-split {
     align-items: flex-end;
     gap: 16px;
@@ -9375,7 +9375,7 @@ body.is-confirm-open .app-confirm-overlay {
     z-index: 1;
 }
 
-/* ── Left image panel ── */
+/* â”€â”€ Left image panel â”€â”€ */
 .login-image-panel {
     display: none;
 }
@@ -9414,7 +9414,7 @@ body.is-confirm-open .app-confirm-overlay {
     margin: 0;
 }
 
-/* ── Right form panel ── */
+/* â”€â”€ Right form panel â”€â”€ */
 .login-form-panel {
     width: 100%;
     display: grid;
@@ -12850,7 +12850,7 @@ body.is-confirm-open .app-confirm-overlay {
         min-width: 0;
     }
 }
-/* ─── Course chart tooltip ─────────────────────────────────────────────────── */
+/* â”€â”€â”€ Course chart tooltip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .course-chart-tip {
     position: fixed;
     z-index: 9999;
@@ -12912,7 +12912,7 @@ body.is-confirm-open .app-confirm-overlay {
     text-align: center;
 }
 
-/* ─── Course student progress modal ───────────────────────────────────────── */
+/* â”€â”€â”€ Course student progress modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .cprogress-meta {
     font-size: 0.83rem;
     color: #64748b;
@@ -12974,7 +12974,7 @@ body.is-confirm-open .app-confirm-overlay {
     color: #94a3b8;
 }
 
-/* ─── Industry Partner dashboard / portal polish ─────────────────────────── */
+/* â”€â”€â”€ Host Training Establishment dashboard / portal polish â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .industry-dashboard,
 .industry-portal {
     display: flex;
@@ -13412,7 +13412,7 @@ body.is-confirm-open .app-confirm-overlay {
     }
 }
 
-/* ── OJT Active / Completed Block ── */
+/* â”€â”€ OJT Active / Completed Block â”€â”€ */
 .ojt-completed-block {
     padding: 22px;
     border-radius: 5px;
@@ -14294,7 +14294,7 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
     min-width: 120px;
 }
 
-/* ── Records Page ───────────────────────────────── */
+/* â”€â”€ Records Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .records-page {
     --records-radius: 10px;
     gap: 24px;
@@ -14351,7 +14351,7 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
     border-radius: var(--records-radius);
 }
 
-/* ── Weekly Report Card ─────────────────────────── */
+/* â”€â”€ Weekly Report Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .weekly-report-card h2 {
     margin: 0 0 4px;
 }
@@ -14711,7 +14711,7 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
     cursor: pointer;
 }
 
-/* ── Partner Submissions v2 ─────────────────────────── */
+/* â”€â”€ Partner Submissions v2 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .role-partner .content:has(.ps-v2) {
     background:
         radial-gradient(ellipse 80% 50% at 10% -10%, rgba(139, 26, 26, 0.06), transparent 50%),
@@ -15481,7 +15481,7 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
     background: rgba(15, 23, 42, 0.18);
 }
 
-/* Record list — timeline layout fixes horizontal stretch */
+/* Record list â€” timeline layout fixes horizontal stretch */
 .ps-v2-record-list {
     display: grid;
     gap: 0;
@@ -16082,7 +16082,7 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
     }
 }
 
-/* ── Student record status badges (DTR / Weekly tables) ─── */
+/* â”€â”€ Student record status badges (DTR / Weekly tables) â”€â”€â”€ */
 .rec-status-badge {
     display: inline-block;
     padding: 5px 14px;
@@ -16123,7 +16123,7 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
     color: #991b1b;
 }
 
-/* ── Student Reports v2 ───────────────────────────── */
+/* â”€â”€ Student Reports v2 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .role-student .content:has(.student-reports-v2) {
     background:
         radial-gradient(ellipse 80% 50% at 10% -10%, rgba(139, 26, 26, 0.06), transparent 50%),
@@ -16649,7 +16649,7 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
     gap: 22px;
 }
 
-/* ── Final Requirements v2 polish ───────────────── */
+/* â”€â”€ Final Requirements v2 polish â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .role-student .content:has(.js-final-req-shell) {
     background:
         radial-gradient(ellipse 80% 50% at 10% -10%, rgba(139, 26, 26, 0.05), transparent 50%),
@@ -18007,7 +18007,7 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
     }
 }
 
-/* ── Student Dashboard v2 ─────────────────────────────────────────── */
+/* â”€â”€ Student Dashboard v2 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .role-student .content:has(.student-dash-v2) {
     background:
         radial-gradient(ellipse 80% 50% at 10% -10%, rgba(139, 26, 26, 0.06), transparent 50%),
@@ -19447,7 +19447,7 @@ body.role-student .student-dash-v2 .sd-requirement-card .btn.sd-manage-btn {
     }
 }
 
-/* ─── Industry Partner settings / profile polish ─────────────────────────── */
+/* â”€â”€â”€ Host Training Establishment settings / profile polish â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 body.role-partner .content:has(.ip-settings) {
     max-width: 1080px;
     margin-inline: auto;
@@ -20068,7 +20068,7 @@ body.role-partner .content:has(.ip-settings) {
     }
 }
 
-/* ─── Industry Partner profile v2 (photo upload + polish) ─────────────── */
+/* â”€â”€â”€ Host Training Establishment profile v2 (photo upload + polish) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 body.role-partner .content:has(.ip-profile-v2) {
     background:
         radial-gradient(ellipse 80% 50% at 10% -10%, rgba(139, 26, 26, 0.05), transparent 50%),
@@ -20213,7 +20213,7 @@ body.role-partner .content:has(.ip-profile-v2) {
     }
 }
 
-/* ── Industry Partner Dashboard v2 ─────────────────────────────────── */
+/* â”€â”€ Host Training Establishment Dashboard v2 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .role-partner .content:has(.partner-dash-v2) {
     background:
         radial-gradient(ellipse 80% 50% at 10% -10%, rgba(139, 26, 26, 0.06), transparent 50%),
@@ -21106,7 +21106,7 @@ body.role-partner .content:has(.ip-profile-v2) {
     }
 }
 
-/* ── Industry Partner Portal v2 ───────────────────────────────────── */
+/* â”€â”€ Host Training Establishment Portal v2 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .role-partner .content:has(.partner-portal-v2) {
     background:
         radial-gradient(ellipse 80% 50% at 10% -10%, rgba(139, 26, 26, 0.06), transparent 50%),
@@ -22314,7 +22314,7 @@ body.role-partner .content:has(.ip-profile-v2) {
     }
 }
 
-/* ── Coordinator Enrollment v2 ─────────────────────────────────────── */
+/* â”€â”€ Coordinator Enrollment v2 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .role-coordinator .content:has(.enrollment-v2) {
     background:
         radial-gradient(ellipse 80% 50% at 10% -10%, rgba(139, 26, 26, 0.06), transparent 50%),
@@ -22456,7 +22456,7 @@ body.role-partner .content:has(.ip-profile-v2) {
     font-weight: 800;
 }
 
-/* File upload — compact row */
+/* File upload â€” compact row */
 .enrollment-file-field {
     gap: 6px !important;
 }
@@ -23103,7 +23103,7 @@ body.role-partner .content:has(.ip-profile-v2) {
     }
 }
 
-/* Coordinator — My Students v2 */
+/* Coordinator â€” My Students v2 */
 .my-students-v2 {
     display: flex;
     flex-direction: column;
@@ -23569,7 +23569,7 @@ button.ms-predeploy-badge--completed:hover {
     }
 }
 
-/* Table search — no results empty state */
+/* Table search â€” no results empty state */
 .enrollment-table-wrap.is-search-empty {
     display: flex;
     align-items: center;
@@ -23670,7 +23670,7 @@ button.ms-predeploy-badge--completed:hover {
     display: none;
 }
 
-/* Coordinator — student final requirements page */
+/* Coordinator â€” student final requirements page */
 .coord-final-page {
     display: grid;
     gap: 20px;
@@ -24222,7 +24222,7 @@ button.ms-predeploy-badge--completed:hover {
     }
 }
 
-/* ── Admin Registration Requests v2 (reg-req-*) ── */
+/* â”€â”€ Admin Registration Requests v2 (reg-req-*) â”€â”€ */
 .reg-req-v2 {
     --reg-blue: #2563eb;
     --reg-blue-soft: #eff6ff;
@@ -24351,10 +24351,10 @@ button.ms-predeploy-badge--completed:hover {
     gap: 8px;
     min-height: 40px;
     padding: 0 16px;
-    border: 1.5px solid var(--reg-blue);
+    border: 1.5px solid #dbe4f0;
     border-radius: var(--reg-radius);
     background: #fff;
-    color: var(--reg-blue);
+    color: #475569;
     font-size: 0.88rem;
     font-weight: 700;
     cursor: pointer;
@@ -24372,19 +24372,27 @@ button.ms-predeploy-badge--completed:hover {
 }
 
 .reg-req-export-btn:hover {
-    background: var(--reg-blue-soft);
-    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12);
+    background: #f8fafc;
+    box-shadow: none;
 }
 
 .reg-req-table-wrap {
     border: 1px solid #e8edf4;
     border-radius: var(--reg-radius);
     background: #fff;
-    overflow: auto;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+.reg-req-v2 .reg-req-table {
+    table-layout: auto;
+    width: max-content;
+    min-width: 100%;
 }
 
 .reg-req-v2 .reg-req-table thead th {
-    padding: 12px 16px;
+    padding: 10px 16px;
     background: #f8fafc !important;
     color: #64748b !important;
     font-size: 0.72rem;
@@ -24398,18 +24406,30 @@ button.ms-predeploy-badge--completed:hover {
 }
 
 .reg-req-v2 .reg-req-table td {
-    padding: 14px 16px;
+    padding: 10px 16px;
     border-bottom: 1px solid #f1f5f9 !important;
     border-left: none !important;
     border-right: none !important;
     background: #fff !important;
     vertical-align: middle;
-    white-space: normal;
-    line-height: 1.45;
+    white-space: nowrap !important;
+    line-height: 1.35;
 }
 
 .reg-req-v2 .reg-req-table.data-table thead th:nth-child(n),
 .reg-req-v2 .reg-req-table.data-table td:nth-child(n) {
+    text-align: left !important;
+}
+
+.reg-req-v2 .reg-req-table.data-table thead th.reg-req-col-num,
+.reg-req-v2 .reg-req-table.data-table td.reg-req-col-num {
+    text-align: center !important;
+}
+
+.reg-req-v2 .reg-req-table.data-table thead th:nth-child(4),
+.reg-req-v2 .reg-req-table.data-table thead th:nth-child(5),
+.reg-req-v2 .reg-req-table.data-table td:nth-child(4),
+.reg-req-v2 .reg-req-table.data-table td:nth-child(5) {
     text-align: left !important;
 }
 
@@ -24422,12 +24442,13 @@ button.ms-predeploy-badge--completed:hover {
 }
 
 .reg-req-v2 .data-table tr.is-selected-row td {
-    background: #eff6ff !important;
-    box-shadow: inset 3px 0 0 var(--reg-blue) !important;
+    background: #f8fafc !important;
+    box-shadow: inset 3px 0 0 #cbd5e1 !important;
 }
 
 .reg-req-col-num {
-    width: 44px;
+    width: 48px;
+    text-align: center;
     color: #94a3b8;
     font-size: 0.86rem;
     font-weight: 700;
@@ -24443,28 +24464,24 @@ button.ms-predeploy-badge--completed:hover {
 .reg-req-course {
     color: #334155;
     font-size: 0.9rem;
-    max-width: 220px;
+}
+
+.reg-req-col-course {
+    white-space: nowrap;
+}
+
+.reg-req-col-submitted {
+    white-space: nowrap;
+}
+
+.reg-req-col-action {
+    white-space: nowrap;
 }
 
 .reg-req-submitted {
     color: #64748b;
     font-size: 0.86rem;
     white-space: nowrap;
-}
-
-.reg-req-verified-cell {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-}
-
-.reg-req-verified-time {
-    display: block;
-    color: #94a3b8;
-    font-size: 0.76rem;
-    font-weight: 600;
-    line-height: 1.3;
 }
 
 .reg-req-v2 .reg-req-table tbody tr:last-child td {
@@ -24498,31 +24515,32 @@ button.ms-predeploy-badge--completed:hover {
 }
 
 .reg-req-email {
-    color: #64748b;
+    color: #475569;
     font-size: 0.9rem;
 }
 
-.reg-req-verified-badge {
+.reg-req-email-line {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    min-height: 28px;
-    padding: 0 10px;
-    border-radius: var(--reg-radius);
-    background: var(--reg-green-soft);
-    color: var(--reg-green);
-    font-size: 0.78rem;
-    font-weight: 800;
+    gap: 6px;
+    white-space: nowrap;
 }
 
-.reg-req-verified-badge svg {
-    width: 15px;
-    height: 15px;
-    stroke: currentColor;
-    fill: none;
-    stroke-width: 1.8;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+.reg-req-email-text {
+    line-height: 1.4;
+}
+
+.reg-req-email-check {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    color: var(--reg-green);
+}
+
+.reg-req-info-email .reg-req-email-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .reg-req-legacy-badge {
@@ -24541,7 +24559,7 @@ button.ms-predeploy-badge--completed:hover {
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 .reg-req-cor-btn,
@@ -24584,14 +24602,14 @@ button.ms-predeploy-badge--completed:hover {
 
 .reg-req-review-btn {
     border: none;
-    background: var(--reg-blue);
+    background: #1e293b;
     color: #fff;
-    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.16);
 }
 
 .reg-req-review-btn:hover {
-    background: #1d4ed8;
-    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.32);
+    background: #0f172a;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.22);
 }
 
 .reg-req-empty {
@@ -24902,7 +24920,20 @@ button.ms-predeploy-badge--completed:hover {
 .reg-req-section-icon svg {
     width: 18px;
     height: 18px;
+}
+
+.reg-req-section-icon--student svg {
     fill: currentColor;
+    stroke: none;
+}
+
+.reg-req-section-icon--doc svg,
+.reg-req-section-icon--approval svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 .reg-req-section-icon--student {
@@ -25257,7 +25288,7 @@ button.ms-predeploy-badge--completed:hover {
     }
 }
 
-/* ── Admin Manage Students v2 (asu-*) ── */
+/* â”€â”€ Admin Manage Students v2 (asu-*) â”€â”€ */
 .admin-students-v2 {
     --asu-red: #be123c;
     --asu-red-soft: #fff1f2;
@@ -25385,14 +25416,15 @@ button.ms-predeploy-badge--completed:hover {
 
 .asu-directory-card {
     padding: 0;
-    overflow: clip;
+    overflow: hidden;
     border: 1px solid rgba(219, 228, 240, 0.95);
     border-radius: var(--asu-radius);
     box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
 }
 
-.asu-directory-card:has(.custom-select.is-open) {
-    overflow: clip visible;
+.admin-students-v2 .asu-directory-card.card:has(.custom-select.is-open) {
+    overflow: hidden;
+    z-index: auto;
 }
 
 .asu-directory-card:hover {
@@ -25572,30 +25604,112 @@ button.ms-predeploy-badge--completed:hover {
     box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
 }
 
-.admin-students-v2 .asu-filter-select .custom-select-option {
+.custom-select-menu.asu-program-filter-menu {
+    position: fixed;
+    top: auto;
+    left: auto;
+    right: auto;
+    z-index: 10050;
+    display: none;
+    gap: 4px;
+    min-width: 0;
+    width: auto;
+    max-height: 320px;
+    padding: 6px;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--asu-radius);
+    background: #fff;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    overflow-x: auto;
+    overflow-y: auto;
+    opacity: 1;
+    visibility: hidden;
+    transform: none;
+    transition: none;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+.custom-select-menu.asu-program-filter-menu::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.custom-select-menu.asu-program-filter-menu::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 999px;
+}
+
+.custom-select-menu.asu-program-filter-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-select-menu.asu-program-filter-menu.is-open {
+    display: grid;
+    visibility: visible;
+}
+
+.admin-students-v2 .asu-filter-select .custom-select-option,
+.custom-select-menu.asu-program-filter-menu .custom-select-option {
     min-height: 38px;
     padding: 8px 10px;
+    gap: 8px;
     border-radius: calc(var(--asu-radius) - 1px);
     font-size: 0.86rem;
+    background: transparent;
+    width: 100%;
+    min-width: max-content;
+}
+
+.custom-select-menu.asu-program-filter-menu .custom-select-option-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #cbd5e1;
+    box-shadow: none;
+    flex-shrink: 0;
+}
+
+.custom-select-menu.asu-program-filter-menu .custom-select-option-label {
+    color: #334155;
+    font-size: 0.86rem;
+    font-weight: 600;
+    line-height: 1.35;
+    white-space: nowrap;
+    flex: 1 1 auto;
+    overflow: visible;
+    text-overflow: unset;
 }
 
 .admin-students-v2 .asu-filter-select .custom-select-option:hover,
-.admin-students-v2 .asu-filter-select .custom-select-option:focus-visible {
+.admin-students-v2 .asu-filter-select .custom-select-option:focus-visible,
+.custom-select-menu.asu-program-filter-menu .custom-select-option:hover,
+.custom-select-menu.asu-program-filter-menu .custom-select-option:focus-visible {
     background: #fff1f2;
     color: #9f1239;
 }
 
-.admin-students-v2 .asu-filter-select .custom-select-option.is-selected {
+.custom-select-menu.asu-program-filter-menu .custom-select-option:hover .custom-select-option-label,
+.custom-select-menu.asu-program-filter-menu .custom-select-option:focus-visible .custom-select-option-label {
+    color: #9f1239;
+}
+
+.admin-students-v2 .asu-filter-select .custom-select-option.is-selected,
+.custom-select-menu.asu-program-filter-menu .custom-select-option.is-selected {
     background: #fff1f2;
     color: #be123c;
 }
 
-.admin-students-v2 .asu-filter-select .custom-select-option.is-selected .custom-select-option-dot {
+.admin-students-v2 .asu-filter-select .custom-select-option.is-selected .custom-select-option-dot,
+.custom-select-menu.asu-program-filter-menu .custom-select-option.is-selected .custom-select-option-dot {
     background: #be123c;
     box-shadow: 0 0 0 3px rgba(190, 18, 60, 0.15);
 }
 
-.admin-students-v2 .asu-filter-select .custom-select-option.is-selected .custom-select-option-label {
+.admin-students-v2 .asu-filter-select .custom-select-option.is-selected .custom-select-option-label,
+.custom-select-menu.asu-program-filter-menu .custom-select-option.is-selected .custom-select-option-label {
     color: #be123c;
     font-weight: 700;
 }
@@ -25689,13 +25803,15 @@ button.ms-predeploy-badge--completed:hover {
     border-radius: 0;
     background: #fff;
     overflow-x: auto;
-    overflow-y: visible;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
     scrollbar-color: rgba(190, 18, 60, 0.35) transparent;
+    padding-bottom: 2px;
 }
 
 .asu-table-wrap::-webkit-scrollbar {
-    height: 6px;
+    height: 8px;
 }
 
 .asu-table-wrap::-webkit-scrollbar-thumb {
@@ -25704,7 +25820,9 @@ button.ms-predeploy-badge--completed:hover {
 }
 
 .asu-students-table {
-    min-width: 1120px;
+    width: max-content;
+    min-width: 100%;
+    table-layout: auto;
 }
 
 .asu-name-cell {
@@ -25761,6 +25879,7 @@ button.ms-predeploy-badge--completed:hover {
     vertical-align: middle;
     padding: 16px 18px;
     border-bottom: 1px solid #f1f5f9;
+    white-space: nowrap;
 }
 
 /* tighten Last/First spacing */
@@ -25878,7 +25997,6 @@ button.ms-predeploy-badge--completed:hover {
 
 .asu-col-program {
     width: auto;
-    min-width: 0;
     white-space: nowrap;
 }
 
@@ -25977,7 +26095,7 @@ button.ms-predeploy-badge--completed:hover {
     }
 }
 
-/* ── Admin Manage Students action menus ── */
+/* â”€â”€ Admin Manage Students action menus â”€â”€ */
 .admin-users-action-cell {
     min-width: 120px;
     overflow: visible;
@@ -26213,7 +26331,7 @@ button.ms-predeploy-badge--completed:hover {
     }
 }
 
-/* ── Admin Manage Coordinators v2 (aco-*) ── Premium Redesign ── */
+/* â”€â”€ Admin Manage Coordinators v2 (aco-*) â”€â”€ Premium Redesign â”€â”€ */
 .admin-coordinators-v2 {
     --aco-red: #be123c;
     --aco-red-deep: #9f1239;
@@ -26260,7 +26378,7 @@ button.ms-predeploy-badge--completed:hover {
 .aco-breadcrumb-sep { color: #cbd5e1; font-weight: 700; font-size: 0.9em; }
 .aco-breadcrumb [aria-current="page"] { color: #1e293b; font-weight: 800; }
 
-/* ── Stat Cards ── */
+/* â”€â”€ Stat Cards â”€â”€ */
 .aco-stats-strip {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -26359,7 +26477,7 @@ button.ms-predeploy-badge--completed:hover {
     line-height: 1;
 }
 
-/* ── Create Panel ── */
+/* â”€â”€ Create Panel â”€â”€ */
 .aco-create-panel {
     border: 1px solid rgba(226, 232, 240, 0.8);
     border-radius: var(--aco-radius);
@@ -26461,7 +26579,7 @@ button.ms-predeploy-badge--completed:hover {
 
 .aco-create-panel-body { padding: 28px; }
 
-/* ── Form Grid ── */
+/* â”€â”€ Form Grid â”€â”€ */
 .aco-form-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -26650,7 +26768,7 @@ button.ms-predeploy-badge--completed:hover {
     box-shadow: 0 8px 24px rgba(190, 18, 60, 0.25) !important;
 }
 
-/* ── Directory Card ── */
+/* â”€â”€ Directory Card â”€â”€ */
 .aco-directory-card {
     padding: 0;
     overflow: hidden;
@@ -26823,7 +26941,7 @@ button.ms-predeploy-badge--completed:hover {
     box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06), 0 1px 4px rgba(15, 23, 42, 0.04);
 }
 
-/* ── Table ── */
+/* â”€â”€ Table â”€â”€ */
 .aco-table-wrap {
     border: none;
     border-radius: 0;
@@ -26900,7 +27018,7 @@ button.ms-predeploy-badge--completed:hover {
     text-align: center;
 }
 
-/* ── Person Cell ── */
+/* â”€â”€ Person Cell â”€â”€ */
 .aco-person-cell {
     display: flex;
     align-items: center;
@@ -27019,7 +27137,7 @@ button.ms-predeploy-badge--completed:hover {
     font-weight: 600;
 }
 
-/* ── Empty State ── */
+/* â”€â”€ Empty State â”€â”€ */
 .aco-empty {
     display: grid;
     justify-items: center;
@@ -27058,7 +27176,7 @@ button.ms-predeploy-badge--completed:hover {
     line-height: 1.6;
 }
 
-/* ── Table Footer ── */
+/* â”€â”€ Table Footer â”€â”€ */
 .aco-table-footer {
     display: flex;
     align-items: center;
@@ -27075,7 +27193,7 @@ button.ms-predeploy-badge--completed:hover {
     border-bottom: 1px solid #f1f5f9;
 }
 
-/* ── Responsive ── */
+/* â”€â”€ Responsive â”€â”€ */
 @media (max-width: 1100px) {
     .aco-stats-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .aco-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

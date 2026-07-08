@@ -3820,7 +3820,7 @@ function handleOutsideMenus(event) {
     document.querySelectorAll('.column-options.open').forEach(menu => {
         if (!menu.parentElement.contains(event.target)) menu.classList.remove('open');
     });
-    if (!event.target.closest('.custom-select')) closeCustomSelects();
+    if (!event.target.closest('.custom-select') && !event.target.closest('.asu-program-filter-menu')) closeCustomSelects();
     if (!event.target.closest('.filter-date-picker') && !event.target.closest('.global-cal-panel')) closeCustomDatePickers();
     if (!event.target.closest('.form-datetime-picker') && !event.target.closest('.global-datetime-panel')) closeGlobalDtPanel();
     if (!event.target.closest('.dtr-time-panel') && !event.target.closest('[data-time-picker-trigger]')) closeDtrTimePicker();
@@ -4640,20 +4640,24 @@ function initRegistrationRequestsReview() {
         'submitted-at': 'submittedAt',
     };
 
-    const renderVerifiedField = (container, value) => {
+    const emailCheckSvg = `
+        <svg class="reg-req-email-check" viewBox="0 0 16 16" aria-label="Email verified" role="img">
+            <circle cx="8" cy="8" r="8" fill="currentColor" opacity="0.18"/>
+            <path d="M4.5 8.25 6.75 10.5 11.5 5.75" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    `;
+
+    const renderEmailField = (container, email, verifiedAt) => {
         if (!container) return;
-        const trimmed = (value || '').trim();
-        if (trimmed === '') {
-            container.innerHTML = '<span class="reg-req-legacy-badge">Legacy</span>';
+        const trimmedEmail = (email || '').trim();
+        const isVerified = (verifiedAt || '').trim() !== '';
+        if (trimmedEmail === '') {
+            container.textContent = '—';
             return;
         }
-        container.innerHTML = `
-            <span class="reg-req-verified-badge">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
-                Verified
-            </span>
-            <time class="reg-req-verified-time">${escapeHtml(trimmed)}</time>
-        `;
+        container.innerHTML = isVerified
+            ? `<span class="reg-req-email-line"><span class="reg-req-email-text">${escapeHtml(trimmedEmail)}</span>${emailCheckSvg}</span>`
+            : escapeHtml(trimmedEmail);
     };
 
     table?.querySelectorAll('th[data-sort]').forEach((th) => {
@@ -4686,13 +4690,14 @@ function initRegistrationRequestsReview() {
 
         Object.entries(fieldMap).forEach(([field, dataKey]) => {
             const el = panel.querySelector(`[data-reg-field="${field}"]`);
-            if (!el) return;
+            if (!el || field === 'email') return;
             const value = (row.dataset[dataKey] || '').trim();
             el.textContent = value !== '' ? value : '—';
         });
 
-        renderVerifiedField(
-            panel.querySelector('[data-reg-field="verified-at"]'),
+        renderEmailField(
+            panel.querySelector('[data-reg-field="email"]'),
+            row.dataset.email || '',
             row.dataset.verifiedAt || ''
         );
 
@@ -5154,12 +5159,6 @@ function initStudentModal() {
         const emailInput = document.getElementById('sm-email-input');
         if (emailInput) emailInput.value = d.email || '';
 
-        // Reset form
-        const resetCsrf = document.getElementById('sm-csrf');
-        if (resetCsrf) resetCsrf.value = d.csrf || '';
-        const resetStudentId = document.getElementById('sm-student-id');
-        if (resetStudentId) resetStudentId.value = d.studentId || '';
-
         modal.classList.add('open');
     });
 
@@ -5546,6 +5545,84 @@ function initMyStudentsDirectory() {
     });
 }
 
+function initAdminStudentsProgramFilterPortal(programFilter) {
+    if (!programFilter || programFilter.dataset.asuMenuPortal === '1') return;
+
+    const wrap = programFilter.closest('.asu-filter-select');
+    const custom = wrap?.querySelector('.custom-select');
+    const trigger = custom?.querySelector('.custom-select-trigger');
+    const menu = custom?.querySelector('.custom-select-menu');
+    if (!custom || !trigger || !menu) return;
+
+    programFilter.dataset.asuMenuPortal = '1';
+    document.body.appendChild(menu);
+    menu.classList.add('asu-program-filter-menu');
+    menu.hidden = true;
+
+    const syncMenu = () => {
+        const open = custom.classList.contains('is-open');
+        menu.classList.toggle('is-open', open);
+        if (!open) {
+            menu.hidden = true;
+            menu.style.width = '';
+            menu.style.left = '';
+            menu.style.maxHeight = '';
+            menu.style.maxWidth = '';
+            return;
+        }
+
+        menu.hidden = false;
+        const rect = trigger.getBoundingClientRect();
+        const viewportPadding = 16;
+        const maxViewportWidth = window.innerWidth - viewportPadding * 2;
+
+        menu.style.visibility = 'hidden';
+        menu.style.display = 'grid';
+        menu.style.width = 'max-content';
+        menu.style.maxWidth = `${maxViewportWidth}px`;
+        menu.style.left = '0';
+        menu.style.top = '0';
+        const contentWidth = menu.scrollWidth;
+        const menuWidth = Math.min(
+            maxViewportWidth,
+            Math.max(Math.round(rect.width), contentWidth, 320)
+        );
+
+        let left = Math.round(rect.left);
+        if (left + menuWidth > window.innerWidth - viewportPadding) {
+            left = Math.max(viewportPadding, window.innerWidth - viewportPadding - menuWidth);
+        }
+
+        const spaceBelow = window.innerHeight - rect.bottom - 12;
+        const openUp = spaceBelow < 120 && rect.top > spaceBelow;
+        const maxHeight = openUp
+            ? Math.min(320, rect.top - 18)
+            : Math.min(320, window.innerHeight - rect.bottom - 18);
+
+        menu.style.position = 'fixed';
+        menu.style.left = `${left}px`;
+        menu.style.width = `${menuWidth}px`;
+        menu.style.maxWidth = `${maxViewportWidth}px`;
+        menu.style.zIndex = '10050';
+        menu.style.maxHeight = `${Math.max(120, maxHeight)}px`;
+        menu.style.visibility = '';
+
+        if (openUp) {
+            menu.style.top = 'auto';
+            menu.style.bottom = `${Math.round(window.innerHeight - rect.top + 6)}px`;
+        } else {
+            menu.style.bottom = 'auto';
+            menu.style.top = `${Math.round(rect.bottom + 6)}px`;
+        }
+    };
+
+    const observer = new MutationObserver(() => requestAnimationFrame(syncMenu));
+    observer.observe(custom, { attributes: true, attributeFilter: ['class'] });
+    window.addEventListener('resize', syncMenu);
+    window.addEventListener('scroll', syncMenu, true);
+    requestAnimationFrame(syncMenu);
+}
+
 function initAdminStudentsDirectory() {
     document.querySelectorAll('[data-admin-students-directory]').forEach(directory => {
         const table = directory.querySelector('.asu-students-table');
@@ -5582,6 +5659,8 @@ function initAdminStudentsDirectory() {
             programId = programFilter.value || 'all';
             applyFilters();
         });
+
+        initAdminStudentsProgramFilterPortal(programFilter);
 
         exportBtn?.addEventListener('click', () => exportCsv(table));
 

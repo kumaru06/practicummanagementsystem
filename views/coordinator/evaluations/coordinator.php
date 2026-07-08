@@ -13,7 +13,7 @@
 <section class="card final-form-card eval-form-card final-readonly-card">
     <div class="status-callout info final-req-note" style="margin-top:0;margin-bottom:18px;">
         <strong>Coordinator only</strong>
-        <p>This student evaluation of your coordination is not visible to the industry partner.</p>
+        <p>This student evaluation of your coordination is not visible to the host training establishment.</p>
     </div>
 
     <div class="final-form-head">
@@ -22,7 +22,7 @@
         </span>
         <div>
             <h2>OJT Coordinator Evaluation</h2>
-            <p class="muted"><?= e($student['name'] ?? 'Student') ?> · <?= e($student['student_no'] ?? '') ?></p>
+            <p class="muted"><?= e($student['name'] ?? 'Student') ?> Â· <?= e($student['student_no'] ?? '') ?></p>
         </div>
         <div class="eval-result-grade">
             <span class="eval-result-grade-value"><?= e(number_format($grade, 2)) ?>%</span>

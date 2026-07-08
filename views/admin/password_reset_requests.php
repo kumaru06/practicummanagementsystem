@@ -14,7 +14,7 @@ $model = new PasswordResetRequest(db());
             <div class="reg-req-card-copy">
                 <span class="reg-req-eyebrow">Account Recovery</span>
                 <h2>Pending Password Reset Requests</h2>
-                <p>Review forgot-password submissions from students, coordinators, and industry partners.</p>
+                <p>Review forgot-password submissions from students, coordinators, and host training establishments.</p>
             </div>
             <div class="reg-req-pending-badge<?= $pendingCount > 0 ? '' : ' is-hidden' ?>" data-pwd-reset-badge aria-live="polite">
                 <strong data-pwd-reset-count><?= $pendingCount ?></strong>

@@ -344,7 +344,7 @@ HTML;
             '{{ LOGO_BASE64 }}' => $logoBase64,
             '{{ SIGNATURE_IMG }}' => $signatureImg,
             '{{ CURRENT_DATE }}' => $currentDate,
-            '{{ CONTACT_PERSON }}' => $safe($data['contact_person'] ?? 'Industry Partner'),
+            '{{ CONTACT_PERSON }}' => $safe($data['contact_person'] ?? 'Host Training Establishment'),
             '{{ COMPANY_NAME }}' => $safe($data['company_name'] ?? ''),
             '{{ COMPANY_ADDRESS }}' => $safe($data['company_address'] ?? ''),
             '{{ STUDENT_NAME }}' => $safe($data['student_name'] ?? ''),

@@ -27,10 +27,10 @@ $programCoverage = count($uniquePrograms);
                 <span class="cdoc-hero-kicker-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24"><path d="M14 2H7a3 3 0 0 0-3 3v14a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V8l-6-6Zm0 2.8L17.2 8H14V4.8ZM8 13h8v1.8H8V13Zm0 4h8v1.8H8V17Zm0-8h4v1.8H8V9Z"/></svg>
                 </span>
-                Industry Partner Agreement Center
+                Host Training Establishment Agreement Center
             </div>
             <h1 id="moa-library-title">MOA / MOU Library</h1>
-            <p>Review official Industry Partner agreements in a clean document workspace before assigning students to deployment organizations.</p>
+            <p>Review official Host Training Establishment agreements in a clean document workspace before assigning students to deployment organizations.</p>
             <div class="cdoc-hero-actions">
                 <a class="cdoc-primary-action" href="#company-agreements">
                     Browse documents
@@ -98,7 +98,7 @@ $programCoverage = count($uniquePrograms);
         <div class="cdoc-toolbar" role="region" aria-label="Agreement filters">
             <label class="cdoc-search" for="cdoc-search-input">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4a6 6 0 0 1 4.74 9.67l4.3 4.29-1.42 1.42-4.29-4.3A6 6 0 1 1 10 4Zm0 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg>
-                <input id="cdoc-search-input" type="search" placeholder="Search company, contact, email, program, or address…" data-cdoc-search autocomplete="off">
+                <input id="cdoc-search-input" type="search" placeholder="Search company, contact, email, program, or addressâ€¦" data-cdoc-search autocomplete="off">
             </label>
             <div class="cdoc-filter-group" aria-label="Filter by status">
                 <button class="cdoc-filter is-active" type="button" data-cdoc-filter="all">All</button>
@@ -112,7 +112,7 @@ $programCoverage = count($uniquePrograms);
             <?php
                 $programCodes = array_values(array_filter(array_map('trim', explode(',', (string)($company['accepted_programs'] ?? '')))));
                 $programCount = count($programCodes);
-                $name         = (string)($company['name'] ?? 'Industry Partner');
+                $name         = (string)($company['name'] ?? 'Host Training Establishment');
                 $initial      = strtoupper(substr($name, 0, 1));
                 $isActive     = !empty($company['is_active']);
                 $email        = $company['email'] ?? ($company['contact_email'] ?? '');
@@ -132,7 +132,7 @@ $programCoverage = count($uniquePrograms);
                 <header class="cdoc-card-header">
                     <div class="cdoc-avatar" aria-hidden="true"><?= e($initial) ?></div>
                     <div class="cdoc-card-identity">
-                        <span class="cdoc-card-label">Industry Partner</span>
+                        <span class="cdoc-card-label">Host Training Establishment</span>
                         <h3 class="cdoc-card-name" title="<?= e($name) ?>"><?= e($name) ?></h3>
                     </div>
                     <span class="cdoc-status-badge <?= $isActive ? 'cdoc-status-badge--active' : 'cdoc-status-badge--inactive' ?>">
@@ -147,7 +147,7 @@ $programCoverage = count($uniquePrograms);
                     </div>
                     <div class="cdoc-document-copy">
                         <strong><?= e($documentName) ?></strong>
-                        <span><?= e($documentExt) ?> • <?= e($documentSizeLabel) ?></span>
+                        <span><?= e($documentExt) ?> â€¢ <?= e($documentSizeLabel) ?></span>
                     </div>
                 </div>
 
@@ -217,7 +217,7 @@ $programCoverage = count($uniquePrograms);
                 <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5ZM8 13h8v2H8v-2Zm0 4h6v2H8v-2Z"/></svg>
             </div>
             <p class="cdoc-empty-title">No documents uploaded yet</p>
-            <p class="cdoc-empty-sub">Industry Partner MOA/MOU agreements will appear here once they have been uploaded by an administrator.</p>
+            <p class="cdoc-empty-sub">Host Training Establishment MOA/MOU agreements will appear here once they have been uploaded by an administrator.</p>
         </div>
         <?php endif; ?>
     </section>
