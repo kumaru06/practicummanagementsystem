@@ -21,6 +21,7 @@ if (is_dir($slideshowDir)) {
                         alt="AMA Computer College campus life"
                         class="login-info-slide<?= $index === 0 ? ' is-active' : '' ?>"
                         loading="<?= $index === 0 ? 'eager' : 'lazy' ?>"
+                        draggable="false"
                     >
                 <?php endforeach; ?>
             </div>
@@ -29,6 +30,7 @@ if (is_dir($slideshowDir)) {
                 src="<?= e(asset('assets/image/login/students.webp')) ?>"
                 alt="AMA Computer College students"
                 class="login-info-photo-img"
+                draggable="false"
                 onerror="this.closest('.login-info-photo').classList.add('is-placeholder')"
             >
         <?php endif; ?>

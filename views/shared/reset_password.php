@@ -1,6 +1,11 @@
 <?php
-$flashError = flash('error');
+$flashError = $tokenError ?? flash('error');
 $token = trim((string)($request['reset_token'] ?? $_GET['token'] ?? $_POST['token'] ?? ''));
+$forgotRole = $tokenRole ?? '';
+$showResetForm = $token !== '' && empty($tokenError);
+$forgotUrl = $forgotRole !== ''
+    ? route_url('forgot.password', ['role' => $forgotRole])
+    : route_url('forgot.password');
 ?>
 <!doctype html>
 <html lang="en">
@@ -11,7 +16,7 @@ $token = trim((string)($request['reset_token'] ?? $_GET['token'] ?? $_POST['toke
     <link rel="icon" type="image/jpeg" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260707-reset">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/login.css')) ?>?v=20260707-forgot-layout">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/login.css')) ?>?v=20260708-reset-fix">
 </head>
 <body class="login-page">
     <div class="login-split">
@@ -20,7 +25,7 @@ $token = trim((string)($request['reset_token'] ?? $_GET['token'] ?? $_POST['toke
                 <div class="login-card portal-login-card forgot-password-card is-revealed">
                     <div class="portal-login-card-inner">
                         <div class="brand login-brand">
-                            <img src="<?= e(asset('assets/image/main/logo/amalogo.png')) ?>" alt="AMA Logo" class="login-logo">
+                            <img src="<?= e(asset('assets/image/main/logo/amalogo.png')) ?>" alt="AMA Logo" class="login-logo" draggable="false">
                             <div class="login-brand-copy">
                                 <strong>Computer College &mdash; Davao</strong>
                                 <span>Practicum Management System</span>
@@ -35,6 +40,7 @@ $token = trim((string)($request['reset_token'] ?? $_GET['token'] ?? $_POST['toke
 
                         <div class="alert danger<?= $flashError ? '' : ' is-hidden' ?>"><?= e($flashError ?: '') ?></div>
 
+                        <?php if ($showResetForm): ?>
                         <form method="post" class="form portal-login-form is-active">
                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="token" value="<?= e($token) ?>">
@@ -51,6 +57,11 @@ $token = trim((string)($request['reset_token'] ?? $_GET['token'] ?? $_POST['toke
 
                             <button class="btn btn-primary" type="submit"><span class="btn-text">Save New Password</span><span class="spinner"></span></button>
                         </form>
+                        <?php elseif ($token !== ''): ?>
+                        <div class="portal-form-footer-links">
+                            <p class="portal-register-link"><a href="<?= e($forgotUrl) ?>">Request a new reset link</a></p>
+                        </div>
+                        <?php endif; ?>
 
                         <p class="portal-register-link"><a href="<?= e(route_url('login')) ?>">Back to Login</a></p>
                     </div>
@@ -58,7 +69,15 @@ $token = trim((string)($request['reset_token'] ?? $_GET['token'] ?? $_POST['toke
         <?php require __DIR__ . '/partials/login-hero-close.php'; ?>
     </div>
 <script>
+document.addEventListener('dragstart', function (event) {
+    if (event.target instanceof HTMLImageElement && event.target.closest('.login-page')) {
+        event.preventDefault();
+    }
+}, true);
 document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.login-page img').forEach(function (img) {
+        img.setAttribute('draggable', 'false');
+    });
     document.querySelectorAll('.login-info-slideshow').forEach(function (slideshow) {
         var slides = slideshow.querySelectorAll('.login-info-slide');
         if (slides.length < 2) return;

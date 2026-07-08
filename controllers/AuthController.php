@@ -722,31 +722,24 @@ class AuthController extends BaseController
 
         $model = new PasswordResetRequest($this->db);
         $token = trim((string)($_GET['token'] ?? $_POST['token'] ?? ''));
-        $request = $token !== '' ? $model->findByToken($token) : null;
-
-        if ($token !== '' && !$request) {
-            flash('error', 'This password reset link is invalid or has already been used.');
-            redirect('forgot-password.php');
-        }
-
-        if ($request && !empty($request['reset_expires_at']) && strtotime((string)$request['reset_expires_at']) < time()) {
-            flash('error', 'This password reset link has expired. Please submit a new password reset request.');
-            redirect('forgot-password.php');
-        }
+        $resolved = $model->resolveToken($token);
+        $request = $resolved['request'];
+        $tokenError = $resolved['error'];
+        $tokenRole = $resolved['role'] ?? '';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             verify_csrf();
             $token = trim((string)($_POST['token'] ?? ''));
-            $request = $token !== '' ? $model->findByToken($token) : null;
+            $resolved = $model->resolveToken($token);
+            $request = $resolved['request'];
+            $tokenError = $resolved['error'];
+            $tokenRole = $resolved['role'] ?? '';
             $password = (string)($_POST['password'] ?? '');
             $confirmPassword = (string)($_POST['confirm_password'] ?? '');
 
             try {
                 if (!$request) {
-                    throw new RuntimeException('This password reset link is invalid or has already been used.');
-                }
-                if (!empty($request['reset_expires_at']) && strtotime((string)$request['reset_expires_at']) < time()) {
-                    throw new RuntimeException('This password reset link has expired. Please submit a new password reset request.');
+                    throw new RuntimeException($resolved['error'] ?: 'This password reset link is invalid or has already been used.');
                 }
                 if (strlen($password) < 8) {
                     throw new RuntimeException('Password must be at least 8 characters.');
@@ -767,7 +760,7 @@ class AuthController extends BaseController
                 flash('success', 'Your password has been updated. You can now sign in with your new password.');
                 redirect(route_url($loginRoute));
             } catch (Throwable $e) {
-                flash('error', $e->getMessage());
+                $tokenError = $e->getMessage();
             }
         }
 

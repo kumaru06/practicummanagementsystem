@@ -8,7 +8,7 @@
     <link rel="apple-touch-icon" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600;1,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260703-portal">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/login.css')) ?>?v=20260708-role-badge">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/login.css')) ?>?v=20260708-no-drag">
 </head>
 <body class="login-page">
     <?php
@@ -36,6 +36,7 @@
                                 alt="AMA Computer College campus life"
                                 class="login-info-slide<?= $index === 0 ? ' is-active' : '' ?>"
                                 loading="<?= $index === 0 ? 'eager' : 'lazy' ?>"
+                                draggable="false"
                             >
                         <?php endforeach; ?>
                     </div>
@@ -44,6 +45,7 @@
                         src="<?= e(asset('assets/image/login/students.webp')) ?>"
                         alt="AMA Computer College students"
                         class="login-info-photo-img"
+                        draggable="false"
                         onerror="this.closest('.login-info-photo').classList.add('is-placeholder')"
                     >
                 <?php endif; ?>
@@ -59,9 +61,10 @@
                 src="<?= e($campusPhoto) ?>"
                 alt="AMA Computer College Davao Campus building"
                 class="login-hero-bg"
+                draggable="false"
             >
             <div class="login-hero-brand">
-                <img src="<?= e(asset('assets/image/login/ama.webp')) ?>" alt="AMA Education System" class="login-hero-brand-logo">
+                <img src="<?= e(asset('assets/image/login/ama.webp')) ?>" alt="AMA Education System" class="login-hero-brand-logo" draggable="false">
             </div>
 
             <address class="login-hero-contact">
@@ -84,7 +87,7 @@
                 <?php else: ?>
                     <div class="login-portal-gate js-portal-gate">
                         <div class="login-portal-gate-card">
-                            <img src="<?= e(asset('assets/image/main/logo/amalogo.png')) ?>" alt="AMA Logo" class="login-portal-gate-logo">
+                            <img src="<?= e(asset('assets/image/main/logo/amalogo.png')) ?>" alt="AMA Logo" class="login-portal-gate-logo" draggable="false">
                             <p class="login-portal-gate-eyebrow">Practicum Management System</p>
                             <h2 class="login-portal-gate-title">AMA Computer College &mdash; Davao</h2>
                             <p class="login-portal-gate-text">Sign in to manage OJT practicum activities, track progress, and stay connected with your campus community.</p>
@@ -106,7 +109,7 @@
     </div>
 <script src="<?= e(asset('assets/js/main.js')) ?>?v=20260509-native-login"></script>
 <script src="<?= e(asset('assets/js/login-custom-select.js')) ?>?v=20260707-forgot-select"></script>
-    <script src="<?= e(asset('assets/js/login-portal.js')) ?>?v=20260708-role-forgot"></script>
+    <script src="<?= e(asset('assets/js/login-portal.js')) ?>?v=20260708-no-drag"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('.login-info-slideshow').forEach(function (slideshow) {

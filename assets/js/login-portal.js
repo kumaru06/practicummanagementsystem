@@ -1,3 +1,28 @@
+(function preventLoginImageDrag() {
+    document.addEventListener('dragstart', function (event) {
+        const target = event.target;
+        if (!(target instanceof HTMLImageElement)) return;
+        if (!target.closest('.login-page')) return;
+        event.preventDefault();
+    }, true);
+
+    function markLoginImagesUndraggable(root) {
+        (root || document).querySelectorAll('.login-page img').forEach(function (img) {
+            img.setAttribute('draggable', 'false');
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+            markLoginImagesUndraggable();
+        });
+    } else {
+        markLoginImagesUndraggable();
+    }
+
+    window.markLoginImagesUndraggable = markLoginImagesUndraggable;
+})();
+
 function getLoginFormShell() {
     return document.querySelector('.js-login-form-shell') || document.querySelector('.login-form-shell');
 }
@@ -97,6 +122,9 @@ async function transitionLoginShell(shellHost, getHtml, onMounted, direction = '
     await waitLoginShell(180);
 
     shellHost.innerHTML = html;
+    if (typeof window.markLoginImagesUndraggable === 'function') {
+        window.markLoginImagesUndraggable(shellHost);
+    }
 
     const enteringCard = shellHost.querySelector('.portal-login-card, .forgot-password-card');
     if (!enteringCard) {
@@ -165,6 +193,9 @@ function initPortalGate() {
 
             const html = await response.text();
             host.innerHTML = html;
+            if (typeof window.markLoginImagesUndraggable === 'function') {
+                window.markLoginImagesUndraggable(host);
+            }
             gate.hidden = true;
             host.hidden = false;
 
@@ -315,6 +346,9 @@ function initPortalLogin() {
 
         const html = await fetchLoginPartial(fetchUrl);
         forgotHost.innerHTML = html;
+        if (typeof window.markLoginImagesUndraggable === 'function') {
+            window.markLoginImagesUndraggable(forgotHost);
+        }
         forgotHost.dataset.loaded = '1';
         forgotHost.dataset.forgotRole = nextRole;
         forgotHost.dataset.forgotFetch = fetchUrl;
@@ -665,6 +699,9 @@ function initForgotPasswordShell(root = document) {
 
                 if (forgotHost) {
                     forgotHost.innerHTML = responseHtml;
+                    if (typeof window.markLoginImagesUndraggable === 'function') {
+                        window.markLoginImagesUndraggable(forgotHost);
+                    }
                     forgotHost.dataset.loaded = '1';
                     initForgotPasswordShell(forgotHost);
                     return;

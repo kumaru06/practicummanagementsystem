@@ -6,9 +6,10 @@ $campusPhoto = $campusPhoto ?? asset('assets/image/login/campus2.webp');
         src="<?= e($campusPhoto) ?>"
         alt="AMA Computer College Davao Campus building"
         class="login-hero-bg"
+        draggable="false"
     >
     <div class="login-hero-brand">
-        <img src="<?= e(asset('assets/image/login/ama.webp')) ?>" alt="AMA Education System" class="login-hero-brand-logo">
+        <img src="<?= e(asset('assets/image/login/ama.webp')) ?>" alt="AMA Education System" class="login-hero-brand-logo" draggable="false">
     </div>
 
     <address class="login-hero-contact">

@@ -23,7 +23,7 @@ $flashError = flash('error');
     <link rel="icon" type="image/jpeg" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260707-forgot">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/login.css')) ?>?v=20260708-role-badge">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/login.css')) ?>?v=20260708-no-drag">
 </head>
 <body class="login-page">
     <div class="login-split">
@@ -51,6 +51,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 <script src="<?= e(asset('assets/js/login-custom-select.js')) ?>?v=20260707-forgot-select"></script>
-<script src="<?= e(asset('assets/js/login-portal.js')) ?>?v=20260708-role-forgot"></script>
+<script src="<?= e(asset('assets/js/login-portal.js')) ?>?v=20260708-no-drag"></script>
 </body>
 </html>

@@ -124,21 +124,90 @@ class PasswordResetRequest
 
     public function findByToken(string $token): ?array
     {
+        $resolved = $this->resolveToken($token);
+        return $resolved['request'];
+    }
+
+    /**
+     * @return array{request: ?array, error: ?string, role: ?string}
+     */
+    public function resolveToken(string $token): array
+    {
+        $this->ensureTable();
+        $token = trim($token);
+        if ($token === '') {
+            return ['request' => null, 'error' => null, 'role' => null];
+        }
+
+        $record = $this->findByTokenRecord($token);
+        if (!$record) {
+            return [
+                'request' => null,
+                'error' => 'This password reset link is invalid.',
+                'role' => null,
+            ];
+        }
+
+        $role = (string)($record['role'] ?? '');
+        $status = (string)($record['status'] ?? '');
+
+        if ($status === 'completed') {
+            return [
+                'request' => null,
+                'error' => 'This password reset link has already been used. Please sign in or submit a new reset request.',
+                'role' => $role,
+            ];
+        }
+
+        if ($status !== 'approved') {
+            return [
+                'request' => null,
+                'error' => 'This password reset link is invalid or is no longer active.',
+                'role' => $role,
+            ];
+        }
+
+        if ($this->isExpired($record)) {
+            return [
+                'request' => null,
+                'error' => 'This password reset link has expired. Please submit a new password reset request.',
+                'role' => $role,
+            ];
+        }
+
+        return ['request' => $record, 'error' => null, 'role' => $role];
+    }
+
+    public function findByTokenRecord(string $token): ?array
+    {
         $this->ensureTable();
         $token = trim($token);
         if ($token === '') {
             return null;
         }
+
         $stmt = $this->db->prepare(
             "SELECT pr.*, u.name AS user_name
              FROM password_reset_requests pr
              JOIN users u ON u.id = pr.user_id
              WHERE pr.reset_token = ?
-               AND pr.status = 'approved'
              LIMIT 1"
         );
         $stmt->execute([$token]);
         return $stmt->fetch() ?: null;
+    }
+
+    public function isExpired(array $record): bool
+    {
+        if (empty($record['reset_expires_at'])) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare(
+            'SELECT reset_expires_at <= NOW() FROM password_reset_requests WHERE id = ? LIMIT 1'
+        );
+        $stmt->execute([(int)$record['id']]);
+        return (bool)$stmt->fetchColumn();
     }
 
     public function allPending(): array
