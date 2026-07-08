@@ -64,4 +64,22 @@ abstract class BaseController
         extract($data, EXTR_SKIP);
         require __DIR__ . '/../views/' . $view . '.php';
     }
+
+    protected function renderAppPage(string $view, array $data = []): void
+    {
+        if ($this->isAjaxRequest() && ($_GET['partial'] ?? '') === 'content') {
+            header('Content-Type: text/html; charset=utf-8');
+            header('Cache-Control: no-store, no-cache, must-revalidate');
+            extract($data, EXTR_SKIP);
+            $ajaxRoute = (string)($_GET['r'] ?? '');
+            $ajaxTitle = (string)($data['title'] ?? 'Dashboard');
+            ob_start();
+            require __DIR__ . '/../views/' . $view . '.php';
+            $pageHtml = ob_get_clean();
+            require __DIR__ . '/../views/shared/partials/ajax-app-content.php';
+            return;
+        }
+
+        $this->render($view, $data);
+    }
 }

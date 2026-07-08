@@ -70,13 +70,6 @@ $flashError = $flashError ?? null;
                         </a>
                     <?php endforeach; ?>
                 </div>
-                <p class="portal-register-link portal-forgot-link">
-                    <a
-                        href="<?= e(route_url('forgot.password')) ?>"
-                        class="js-portal-forgot-open"
-                        data-forgot-fetch="<?= e(route_url('forgot.password', ['partial' => 'view'])) ?>"
-                    >Forgot password?</a>
-                </p>
             </div>
 
             <div class="portal-view portal-view--form<?= $showFormView ? ' is-active' : '' ?>" data-portal-view="form">
@@ -112,27 +105,25 @@ $flashError = $flashError ?? null;
                             </span>
                         </label>
                         <button class="btn btn-primary" type="submit"><span class="btn-text">Sign in</span><span class="spinner"></span></button>
+                        <div class="portal-form-footer-links">
                         <?php if ($role === 'student'): ?>
                             <p class="portal-register-link">Don't have an account? <a href="<?= e(route_url('student.register')) ?>" target="_blank" rel="noopener noreferrer">Register</a></p>
                         <?php endif; ?>
+                        <p class="portal-forgot-link">
+                            <a
+                                href="<?= e(route_url('forgot.password', ['role' => $role])) ?>"
+                                class="js-portal-forgot-open"
+                                data-forgot-role="<?= e($role) ?>"
+                                data-forgot-fetch="<?= e(route_url('forgot.password', ['partial' => 'view', 'role' => $role])) ?>"
+                            >Forgot password?</a>
+                        </p>
+                        </div>
                     </form>
                 <?php endforeach; ?>
             </div>
 
             <div class="portal-view portal-view--forgot" data-portal-view="forgot">
-                <div
-                    class="js-forgot-view-host"
-                    data-forgot-fetch="<?= e(route_url('forgot.password', ['partial' => 'view'])) ?>"
-                    data-loaded="1"
-                >
-                    <?php
-                    $role = '';
-                    $submitted = false;
-                    $flashSuccess = null;
-                    $flashError = null;
-                    require __DIR__ . '/forgot-password-view.php';
-                    ?>
-                </div>
+                <div class="js-forgot-view-host" data-loaded="0"></div>
             </div>
         </div>
     </div>

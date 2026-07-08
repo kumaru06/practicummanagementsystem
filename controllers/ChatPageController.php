@@ -47,7 +47,7 @@ class ChatPageController extends BaseController
             }
         }
 
-        $this->render('chat/interface', [
+        $this->renderAppPage('chat/interface', [
             'title' => 'Live Chat',
             'chat' => $chat,
             'partnerGroups' => $partnerGroups,

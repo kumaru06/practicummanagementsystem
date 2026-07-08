@@ -7,7 +7,7 @@ class CoordinatorController extends BaseController
         $students = new Student($this->db);
         $enroll = new Enrollment($this->db);
         $coordId = current_user()['id'];
-        $this->render('coordinator/dashboard', [
+        $this->renderAppPage('coordinator/dashboard', [
             'title' => 'Coordinator Dashboard',
             'stats' => [
                 'students'  => $students->countByCoordinator($coordId),
@@ -27,7 +27,7 @@ class CoordinatorController extends BaseController
     {
         require_role('coordinator');
         $coordId = current_user()['id'];
-        $this->render('coordinator/manage', [
+        $this->renderAppPage('coordinator/manage', [
             'title' => 'Student Enrollment',
             'students'  => (new Student($this->db))->allByCoordinator($coordId),
             'companies' => (new Company($this->db))->all(),
@@ -59,7 +59,7 @@ class CoordinatorController extends BaseController
         $totalStudents = count($students);
         $ojtStarted = $enrollModel->countByCoordinator($coordId, 'active');
         $ojtCompleted = $enrollModel->countByCoordinator($coordId, 'completed');
-        $this->render('coordinator/my_students', [
+        $this->renderAppPage('coordinator/my_students', [
             'title' => 'My Students',
             'students' => $students,
             'requirementsByStudent' => $requirementsByStudent,
@@ -116,7 +116,7 @@ class CoordinatorController extends BaseController
                 'company_profile' => 'coordinator/final/company_profile',
                 'personal_observation' => 'coordinator/final/personal_observation',
             };
-            $this->render($view, $data);
+            $this->renderAppPage($view, $data);
             return;
         }
         
@@ -129,7 +129,7 @@ class CoordinatorController extends BaseController
             }
             $data['title'] = 'OJT Coordinator Evaluation — ' . ($student['name'] ?? 'Student');
             $data['evalType'] = 'coordinator';
-            $this->render('coordinator/evaluations/coordinator', $data);
+            $this->renderAppPage('coordinator/evaluations/coordinator', $data);
             return;
         }
 
@@ -141,11 +141,11 @@ class CoordinatorController extends BaseController
             }
             $data['title'] = 'Industry Partner Evaluation — ' . ($student['name'] ?? 'Student');
             $data['evalType'] = 'industry_partner';
-            $this->render('coordinator/evaluations/industry_partner', $data);
+            $this->renderAppPage('coordinator/evaluations/industry_partner', $data);
             return;
         }
 
-        $this->render('coordinator/student_final_requirements', $data);
+        $this->renderAppPage('coordinator/student_final_requirements', $data);
     }
 
     public function moaMouLibrary(): void
@@ -157,7 +157,7 @@ class CoordinatorController extends BaseController
             static fn (array $company): bool => !empty($company['moa_mou_file'])
         ));
 
-        $this->render('coordinator/moa_mou', [
+        $this->renderAppPage('coordinator/moa_mou', [
             'title' => 'Industry Partner MOA/MOU',
             'companies' => $companies,
         ]);
@@ -199,7 +199,7 @@ class CoordinatorController extends BaseController
     public function evaluations(): void
     {
         require_role('coordinator');
-        $this->render('coordinator/evaluations', [
+        $this->renderAppPage('coordinator/evaluations', [
             'title' => 'Evaluations',
             'evaluations' => (new Evaluation($this->db))->byCoordinator(current_user()['id']),
         ]);

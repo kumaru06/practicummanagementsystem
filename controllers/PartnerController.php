@@ -32,7 +32,7 @@ class PartnerController extends BaseController
             }
         }
 
-        $this->render('partner/dashboard', [
+        $this->renderAppPage('partner/dashboard', [
             'title' => 'Industry Partner Dashboard',
             'company' => $company,
             'students' => $students,
@@ -49,13 +49,13 @@ class PartnerController extends BaseController
         require_role('partner');
         $data = $this->submissionsViewData();
 
-        if ($this->isAjaxRequest()) {
+        if ($this->isAjaxRequest() && ($_GET['partial'] ?? '') !== 'content') {
             header('Content-Type: text/html; charset=utf-8');
             $this->renderPartial('partner/submissions_detail', $data);
             return;
         }
 
-        $this->render('partner/submissions', array_merge($data, [
+        $this->renderAppPage('partner/submissions', array_merge($data, [
             'title' => 'Student Submissions',
         ]));
     }
@@ -324,7 +324,7 @@ class PartnerController extends BaseController
             $dtrs = (new Report($this->db))->dtrByStudent((int)$selected['student_id']);
             $evaluation = (new Evaluation($this->db))->byEnrollment((int)$selected['id']);
         }
-        $this->render('partner/portal', [
+        $this->renderAppPage('partner/portal', [
             'title' => 'Industry Partner Portal',
             'company' => $company,
             'students' => $students,
@@ -536,7 +536,7 @@ class PartnerController extends BaseController
             redirect('index.php?r=partner_portal&enrollment=' . (int)$selected['id']);
         }
 
-        $this->render('partner/evaluate', [
+        $this->renderAppPage('partner/evaluate', [
             'title' => 'Final Evaluation',
             'company' => $company,
             'selected' => $selected,
@@ -643,7 +643,7 @@ class PartnerController extends BaseController
     {
         require_role('partner');
         $company = (new Company($this->db))->findByUser((int)current_user()['id']);
-        $this->render('partner/settings', [
+        $this->renderAppPage('partner/settings', [
             'title' => 'Settings',
             'company' => $company,
         ]);
@@ -657,7 +657,7 @@ class PartnerController extends BaseController
             flash('error', 'Industry Partner profile not found.');
             redirect('index.php?r=partner_settings');
         }
-        $this->render('partner/profile', [
+        $this->renderAppPage('partner/profile', [
             'title' => 'Edit Profile',
             'company' => $company,
         ]);
@@ -743,7 +743,7 @@ class PartnerController extends BaseController
     public function changePasswordForm(): void
     {
         require_role('partner');
-        $this->render('partner/change_password', [
+        $this->renderAppPage('partner/change_password', [
             'title' => 'Change Password',
             'csrfToken' => csrf_token(),
         ]);

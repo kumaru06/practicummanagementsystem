@@ -14,7 +14,7 @@ class StudentController extends BaseController
     {
         require_role(['student', 'coordinator', 'partner']);
         $isFirstLogin = (int)(current_user()['password_changed'] ?? 1) === 0;
-        $this->render('student/change_password', [
+        $this->renderAppPage('student/change_password', [
             'title' => $isFirstLogin ? 'Change Temporary Password' : 'Change Password',
             'csrfToken' => csrf_token(),
             'isFirstLogin' => $isFirstLogin,
@@ -101,17 +101,17 @@ class StudentController extends BaseController
 
     public function dashboard(): void
     {
-        $this->render('student/dashboard', $this->studentPageData('Student Dashboard'));
+        $this->renderAppPage('student/dashboard', $this->studentPageData('Student Dashboard'));
     }
 
     public function records(): void
     {
-        $this->render('student/records', $this->studentPageData('Submit Record'));
+        $this->renderAppPage('student/records', $this->studentPageData('Submit Record'));
     }
 
     public function reports(): void
     {
-        $this->render('student/reports', $this->studentPageData('Reports'));
+        $this->renderAppPage('student/reports', $this->studentPageData('Reports'));
     }
 
     public function exportReportPdf(): void
@@ -224,12 +224,12 @@ class StudentController extends BaseController
 
     public function timeline(): void
     {
-        $this->render('student/timeline', $this->studentPageData('Activity Timeline'));
+        $this->renderAppPage('student/timeline', $this->studentPageData('Activity Timeline'));
     }
 
     public function documents(): void
     {
-        $this->render('student/documents', $this->studentPageData('Pre-Deployment Requirements'));
+        $this->renderAppPage('student/documents', $this->studentPageData('Pre-Deployment Requirements'));
     }
 
     public function documentsFinal(): void
@@ -259,7 +259,7 @@ class StudentController extends BaseController
             $data['title'] = FinalRequirement::EVALUATION_SECTIONS[$eval]['name'];
         }
 
-        $this->render('student/documents_final', $data);
+        $this->renderAppPage('student/documents_final', $data);
     }
 
     public function saveFinalJobDescription(): void
@@ -425,12 +425,12 @@ class StudentController extends BaseController
 
     public function documentsOther(): void
     {
-        $this->render('student/documents_other', $this->studentPageData('Other Documents'));
+        $this->renderAppPage('student/documents_other', $this->studentPageData('Other Documents'));
     }
 
     public function settings(): void
     {
-        $this->render('student/settings', $this->studentPageData('Settings'));
+        $this->renderAppPage('student/settings', $this->studentPageData('Settings'));
     }
 
     public function evaluation(): void
@@ -441,14 +441,14 @@ class StudentController extends BaseController
             $evaluation = (new Evaluation($this->db))->byEnrollment((int)$data['enrollment']['id']);
         }
         $data['evaluation'] = $evaluation;
-        $this->render('student/evaluation', $data);
+        $this->renderAppPage('student/evaluation', $data);
     }
 
     public function profileForm(): void
     {
         require_role('student');
         $student = (new Student($this->db))->findByUser(current_user()['id']);
-        $this->render('student/profile', [
+        $this->renderAppPage('student/profile', [
             'title' => !empty($student['profile_completed']) ? 'Edit Student Profile' : 'Complete Student Profile',
             'student' => $student,
             'profileCompleted' => !empty($student['profile_completed']),

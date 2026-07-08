@@ -7,7 +7,7 @@ class AdminController extends BaseController
         $users = new User($this->db);
         $company = new Company($this->db);
         $enroll = new Enrollment($this->db);
-        $this->render('admin/dashboard', [
+        $this->renderAppPage('admin/dashboard', [
             'title' => 'Admin Dashboard',
             'stats' => [
                 'coordinators' => $users->countRole('coordinator'),
@@ -28,7 +28,7 @@ class AdminController extends BaseController
     public function manageCoordinators(): void
     {
         require_role('admin');
-        $this->render('admin/coordinators', [
+        $this->renderAppPage('admin/coordinators', [
             'title' => 'Manage Coordinators',
             'coordinators' => (new User($this->db))->byRole('coordinator'),
         ]);
@@ -37,7 +37,7 @@ class AdminController extends BaseController
     public function managePartners(): void
     {
         require_role('admin');
-        $this->render('admin/partners', [
+        $this->renderAppPage('admin/partners', [
             'title' => 'Manage Companies',
             'partners' => (new Company($this->db))->all(),
             'programs' => (new Program($this->db))->all(true),
@@ -81,7 +81,7 @@ class AdminController extends BaseController
     public function managePrograms(): void
     {
         require_role('admin');
-        $this->render('admin/programs', [
+        $this->renderAppPage('admin/programs', [
             'title' => 'Degree Program',
             'programs' => (new Program($this->db))->all(),
             'terms' => (new Term($this->db))->all(),
@@ -168,7 +168,7 @@ class AdminController extends BaseController
     public function manageUsers(): void
     {
         require_role('admin');
-        $this->render('admin/users', [
+        $this->renderAppPage('admin/users', [
             'title' => 'Manage Student',
             'students' => (new Student($this->db))->allForAdmin(),
             'programs' => (new Program($this->db))->all(true),
@@ -178,7 +178,7 @@ class AdminController extends BaseController
     public function evaluations(): void
     {
         require_role('admin');
-        $this->render('admin/evaluations', [
+        $this->renderAppPage('admin/evaluations', [
             'title' => 'Evaluations',
             'evaluations' => (new Evaluation($this->db))->allWithDetails(),
         ]);
@@ -187,7 +187,7 @@ class AdminController extends BaseController
     public function reports(): void
     {
         require_role('admin');
-        $this->render('admin/reports', [
+        $this->renderAppPage('admin/reports', [
             'title' => 'Reports',
             'categories' => admin_report_categories(),
         ]);
@@ -203,7 +203,7 @@ class AdminController extends BaseController
             redirect(route_url('admin.reports'));
         }
         $payload = (new AdminReport($this->db))->generate($slug);
-        $this->render('admin/report_view', [
+        $this->renderAppPage('admin/report_view', [
             'title' => $report['label'],
             'report' => $report,
             'description' => $payload['description'] ?? '',
@@ -216,7 +216,7 @@ class AdminController extends BaseController
     public function ojtPlacement(): void
     {
         require_role('admin');
-        $this->render('admin/ojt_placement', [
+        $this->renderAppPage('admin/ojt_placement', [
             'title' => 'OJT Placement',
             'placements' => (new Enrollment($this->db))->allPlacements(),
         ]);
@@ -233,7 +233,7 @@ class AdminController extends BaseController
             'date_from' => trim($_GET['date_from'] ?? ''),
             'date_to' => trim($_GET['date_to'] ?? ''),
         ];
-        $this->render('admin/email_logs', [
+        $this->renderAppPage('admin/email_logs', [
             'title' => 'Email Logs',
             'logs' => (new Email($this->db))->filtered($filters),
             'filters' => $filters,
@@ -703,7 +703,7 @@ class AdminController extends BaseController
     {
         require_role('admin');
         $model = new StudentRegistrationRequest($this->db);
-        $this->render('admin/registration_requests', [
+        $this->renderAppPage('admin/registration_requests', [
             'title' => 'Student Account Requests',
             'requests' => $model->allPendingApproval(),
             'coordinators' => (new User($this->db))->byRole('coordinator'),
@@ -821,7 +821,7 @@ class AdminController extends BaseController
     {
         require_role('admin');
         $model = new PasswordResetRequest($this->db);
-        $this->render('admin/password_reset_requests', [
+        $this->renderAppPage('admin/password_reset_requests', [
             'title' => 'Password Reset Requests',
             'requests' => $model->allPending(),
         ]);

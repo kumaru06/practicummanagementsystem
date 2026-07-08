@@ -668,7 +668,8 @@ class AuthController extends BaseController
                 }
 
                 flash('success', $flashSuccess);
-                redirect('forgot-password.php?submitted=1');
+                $redirectRole = $role ? '&role=' . urlencode($role) : '';
+                redirect('forgot-password.php?submitted=1' . $redirectRole);
             } catch (Throwable $e) {
                 $flashError = $e->getMessage();
                 if ($this->wantsForgotPasswordAjax()) {
@@ -705,6 +706,7 @@ class AuthController extends BaseController
     {
         header('Content-Type: text/html; charset=UTF-8');
         $partial = $_GET['partial'] ?? $_POST['partial'] ?? 'card';
+        $embeddedInPortal = $partial === 'view';
         if ($partial === 'view') {
             require __DIR__ . '/../views/shared/partials/forgot-password-view.php';
             return;

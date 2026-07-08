@@ -70,6 +70,16 @@ function bindLoginPartialPrefetch(root, selector) {
     });
 }
 
+function buildForgotFetchUrl(role = '') {
+    const params = new URLSearchParams({ partial: 'view' });
+    if (role) params.set('role', role);
+    return `forgot-password.php?${params.toString()}`;
+}
+
+function buildForgotPageUrl(role = '') {
+    return role ? `forgot-password.php?role=${encodeURIComponent(role)}` : 'forgot-password.php';
+}
+
 async function transitionLoginShell(shellHost, getHtml, onMounted, direction = 'forward') {
     const isBack = direction === 'back';
     const leaveClass = isBack ? 'is-shell-leaving-back' : 'is-shell-leaving';
@@ -208,7 +218,7 @@ function initPortalLogin() {
 
     let activePortal = shell.dataset.activePortal || '';
     let animating = false;
-    const initialForgotHtml = forgotHost ? forgotHost.innerHTML : '';
+    let forgotRole = activePortal || '';
 
     shell.querySelectorAll('.js-portal-open').forEach(link => {
         link.addEventListener('click', event => {
@@ -249,7 +259,10 @@ function initPortalLogin() {
             if (!currentShell) return;
 
             if (event.state?.view === 'forgot') {
-                currentShell.__openForgot?.({ push: false });
+                currentShell.__openForgot?.({
+                    push: false,
+                    role: event.state.portal || '',
+                });
                 return;
             }
 
@@ -288,26 +301,24 @@ function initPortalLogin() {
         return selectView;
     }
 
-    async function ensureForgotContent() {
-        if (!forgotHost || forgotHost.dataset.loaded === '1') return;
+    async function loadForgotContent(role = '') {
+        if (!forgotHost) return;
 
-        const fetchUrl = forgotHost.dataset.forgotFetch
-            || shell.querySelector('.js-portal-forgot-open')?.dataset.forgotFetch
-            || '';
+        const nextRole = role || activePortal || '';
+        const fetchUrl = buildForgotFetchUrl(nextRole);
         if (!fetchUrl) throw new Error('Missing forgot partial URL');
+
+        if (forgotHost.dataset.loaded === '1' && forgotHost.dataset.forgotRole === nextRole) {
+            initForgotPasswordShell(forgotHost);
+            return;
+        }
 
         const html = await fetchLoginPartial(fetchUrl);
         forgotHost.innerHTML = html;
         forgotHost.dataset.loaded = '1';
-        initForgotPasswordShell(forgotHost);
-    }
-
-    function resetForgotViewIfNeeded() {
-        if (!forgotHost || !initialForgotHtml) return;
-        if (forgotHost.querySelector('.js-forgot-password-form')) return;
-
-        forgotHost.innerHTML = initialForgotHtml;
-        forgotHost.dataset.loaded = '1';
+        forgotHost.dataset.forgotRole = nextRole;
+        forgotHost.dataset.forgotFetch = fetchUrl;
+        forgotRole = nextRole;
         initForgotPasswordShell(forgotHost);
     }
 
@@ -316,8 +327,6 @@ function initPortalLogin() {
 
     if (forgotHost?.dataset.loaded === '1') {
         initForgotPasswordShell(forgotHost);
-    } else if (forgotHost?.dataset.forgotFetch) {
-        prefetchLoginPartial(forgotHost.dataset.forgotFetch);
     }
 
     function parsePortalLabels(raw) {
@@ -410,41 +419,68 @@ function initPortalLogin() {
         }
     }
 
-    async function openForgotInPortal({ push = true } = {}) {
-        if (!forgotView || !selectView) return;
+    async function openForgotInPortal({ push = true, role = '' } = {}) {
+        if (!forgotView) return;
+
+        const targetRole = role || activePortal || '';
+        if (!targetRole) return;
 
         try {
-            if (forgotHost?.dataset.loaded !== '1') {
-                await ensureForgotContent();
-            } else {
-                resetForgotViewIfNeeded();
-            }
+            await loadForgotContent(targetRole);
 
             document.title = 'Forgot Password - AMA Practicum System';
 
             const fromView = getActivePortalView();
             if (fromView === forgotView) return;
 
+            if (!formView?.classList.contains('is-active')) {
+                showFormForRole(targetRole);
+                if (selectView?.classList.contains('is-active')) {
+                    selectView.classList.remove('is-active');
+                }
+                formView?.classList.add('is-active');
+            }
+
             await switchView(fromView, forgotView, 'forward');
 
             if (push) {
-                const forgotUrl = forgotHost?.dataset.forgotFetch || 'forgot-password.php';
-                history.pushState({ view: 'forgot', portal: null }, '', forgotUrl.split('?')[0]);
+                history.pushState(
+                    { view: 'forgot', portal: targetRole },
+                    '',
+                    buildForgotPageUrl(targetRole)
+                );
             }
         } catch {
             window.alert('Unable to load the password recovery form. Please try again.');
         }
     }
 
-    async function closeForgotInPortal({ push = true } = {}) {
-        if (!forgotView || !selectView || !forgotView.classList.contains('is-active')) return;
+    async function closeForgotInPortal({ push = true, portal = '' } = {}) {
+        if (!forgotView || !forgotView.classList.contains('is-active')) return;
 
-        document.title = 'Choose Login Portal - AMA Practicum System';
-        await switchView(forgotView, selectView, 'back');
-        resetForgotViewIfNeeded();
+        const returnPortal = portal || forgotHost?.dataset.forgotRole || forgotRole || activePortal || '';
+        const targetView = returnPortal && formView ? formView : selectView;
+        if (!targetView) return;
+
+        if (returnPortal && formView) {
+            showFormForRole(returnPortal);
+            document.title = `${portalLabels[returnPortal]?.label || 'Login'} - AMA Practicum System`;
+        } else {
+            document.title = 'Choose Login Portal - AMA Practicum System';
+        }
+
+        await switchView(forgotView, targetView, 'back');
 
         if (push) {
-            history.pushState({ portal: null, view: null }, '', baseUrl);
+            if (returnPortal && formView) {
+                history.pushState(
+                    { portal: returnPortal, view: null },
+                    '',
+                    `${baseUrl}?portal=${encodeURIComponent(returnPortal)}`
+                );
+            } else {
+                history.pushState({ portal: null, view: null }, '', baseUrl);
+            }
         }
     }
 
@@ -472,10 +508,12 @@ function initForgotBackDelegation() {
         event.stopPropagation();
 
         const portalShell = back.closest('.js-portal-shell');
-        if (portalShell?.__closeForgot && back.closest('[data-portal-view="forgot"]')) {
+        if (portalShell?.__closeForgot && back.closest('[data-portal-view="forgot"], .js-forgot-view-host')) {
             back.classList.add('is-pressed');
             window.setTimeout(() => back.classList.remove('is-pressed'), 320);
-            await portalShell.__closeForgot();
+            await portalShell.__closeForgot({
+                portal: back.dataset.portalRole || '',
+            });
             return;
         }
 
@@ -502,8 +540,9 @@ function initPortalForgotLinks(root = document) {
             window.setTimeout(() => link.classList.remove('is-opening'), 220);
 
             const portalShell = link.closest('.js-portal-shell');
+            const forgotRole = link.dataset.forgotRole || '';
             if (portalShell?.__openForgot) {
-                await portalShell.__openForgot();
+                await portalShell.__openForgot({ role: forgotRole });
                 return;
             }
 
@@ -578,7 +617,12 @@ function initForgotPasswordShell(root = document) {
         if (form.dataset.forgotFormBound === '1') return;
         form.dataset.forgotFormBound = '1';
 
+        if (form.closest('.js-forgot-view-host')) {
+            form.dataset.forgotAjax = '1';
+        }
+
         const roleSelect = form.querySelector('[data-forgot-role]');
+        const hiddenRole = form.querySelector('input[type="hidden"][name="role"]');
         const label = form.querySelector('[data-forgot-identifier-label]');
         const labels = {
             student: 'USN (Student ID)',
@@ -586,8 +630,9 @@ function initForgotPasswordShell(root = document) {
             partner: 'Partner ID',
         };
         const syncLabel = () => {
-            if (!label || !roleSelect) return;
-            label.textContent = labels[roleSelect.value] || 'Account ID';
+            if (!label) return;
+            const roleValue = roleSelect?.value || hiddenRole?.value || form.dataset.forgotRoleFixed || '';
+            label.textContent = labels[roleValue] || 'Account ID';
         };
         roleSelect?.addEventListener('change', syncLabel);
         syncLabel();

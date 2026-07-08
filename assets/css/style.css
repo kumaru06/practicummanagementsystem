@@ -4370,6 +4370,12 @@ small,
     padding: 30px 32px 42px;
 }
 
+.content.is-ajax-loading {
+    opacity: 0.55;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+}
+
 .account-settings-actions {
     position: relative;
     z-index: 2;
@@ -6454,12 +6460,23 @@ small,
     background: rgba(15, 23, 42, 0.28);
     opacity: 0;
     visibility: hidden;
+    pointer-events: none;
     transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
 .app-confirm-overlay.is-open {
     opacity: 1;
     visibility: visible;
+    pointer-events: auto;
+}
+
+body.is-confirm-open .app-shell,
+body.is-confirm-open .student-bottom-nav-root {
+    pointer-events: none;
+}
+
+body.is-confirm-open .app-confirm-overlay {
+    pointer-events: auto;
 }
 
 .app-confirm-card {
@@ -12077,12 +12094,12 @@ small,
     .student-bottom-nav-root .sidebar .nav {
         display: flex;
         flex-direction: row;
-        align-items: stretch;
+        align-items: center;
         grid-auto-flow: unset;
         grid-auto-columns: unset;
         gap: 4px;
         min-width: 0;
-        min-height: 0;
+        min-height: 62px;
         overflow-x: auto;
         overflow-y: hidden;
         overscroll-behavior-x: contain;
@@ -12097,15 +12114,109 @@ small,
     }
 
     .student-bottom-nav-root .sidebar .nav-link,
-    .student-bottom-nav-root .sidebar .nav-group {
+    .student-bottom-nav-root .sidebar .nav-group,
+    .student-bottom-nav-root .sidebar .sidebar-user {
         flex: 0 0 auto;
         min-width: 62px;
         scroll-snap-align: center;
         touch-action: pan-x;
     }
 
+    .student-bottom-nav-root .sidebar .nav-link,
+    .student-bottom-nav-root .sidebar .nav-group-toggle,
+    .student-bottom-nav-root .sidebar .sidebar-logout {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        height: 62px;
+        min-height: 62px;
+        max-height: 62px;
+        padding: 8px 7px;
+        box-sizing: border-box;
+        line-height: 1;
+        margin: 0;
+        border-radius: 5px;
+        text-align: center;
+        touch-action: manipulation;
+    }
+
+    .student-bottom-nav-root .sidebar .nav-group {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: center;
+        height: 62px;
+        min-height: 62px;
+        max-height: 62px;
+        padding: 0;
+        background: transparent;
+    }
+
     .student-bottom-nav-root .sidebar .nav-group-toggle {
-        touch-action: pan-x;
+        flex: 1 1 auto;
+        width: 100%;
+        border: 0;
+        background: transparent;
+        appearance: none;
+        -webkit-appearance: none;
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+    }
+
+    .student-bottom-nav-root .sidebar .nav-link svg,
+    .student-bottom-nav-root .sidebar .nav-group-toggle svg:first-of-type,
+    .student-bottom-nav-root .sidebar .sidebar-logout svg {
+        flex: 0 0 21px;
+        width: 21px;
+        height: 21px;
+        margin: 0;
+        display: block;
+        opacity: 0.95;
+    }
+
+    .student-bottom-nav-root .sidebar .nav-link .nav-link-label--short,
+    .student-bottom-nav-root .sidebar .nav-link > span:not(.nav-link-label--full),
+    .student-bottom-nav-root .sidebar .nav-group-toggle .nav-link-label--short,
+    .student-bottom-nav-root .sidebar .sidebar-logout span {
+        flex: 0 0 auto;
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.68rem;
+        line-height: 1.1;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+    }
+
+    .student-bottom-nav-root .sidebar .nav-link .nav-link-label--full,
+    .student-bottom-nav-root .sidebar .nav-group-toggle .nav-link-label--full,
+    .student-bottom-nav-root .sidebar .nav-group-toggle .chevron {
+        display: none !important;
+    }
+
+    .student-bottom-nav-root .sidebar .sidebar-user {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 62px;
+        min-height: 62px;
+        max-height: 62px;
+        padding: 0;
+        margin: 0;
+        border-top: 0;
+    }
+
+    .student-bottom-nav-root .sidebar .sidebar-logout {
+        width: 100%;
+        color: rgba(255, 255, 255, 0.82);
+        background: rgba(255, 255, 255, 0.08);
     }
 
     .role-student .student-dashboard-page {

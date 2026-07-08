@@ -8,7 +8,7 @@
     <link rel="apple-touch-icon" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600;1,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260703-portal">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/login.css')) ?>?v=20260707-portal-scroll-fix">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/login.css')) ?>?v=20260708-role-badge">
 </head>
 <body class="login-page">
     <?php
@@ -106,7 +106,7 @@
     </div>
 <script src="<?= e(asset('assets/js/main.js')) ?>?v=20260509-native-login"></script>
 <script src="<?= e(asset('assets/js/login-custom-select.js')) ?>?v=20260707-forgot-select"></script>
-    <script src="<?= e(asset('assets/js/login-portal.js')) ?>?v=20260707-forgot-reset"></script>
+    <script src="<?= e(asset('assets/js/login-portal.js')) ?>?v=20260708-role-forgot"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('.login-info-slideshow').forEach(function (slideshow) {

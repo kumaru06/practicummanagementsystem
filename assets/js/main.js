@@ -44,6 +44,8 @@
     initStudentPasswordChange();
     initPartnerPortalRoster();
     initPartnerSubmissions();
+    initPartnerSubmissionsPopstate();
+    initAppAjaxNav();
     document.querySelectorAll('.data-table').forEach(table => enhanceTable(table));
     initEnrollmentFilters();
     initMyStudentsDirectory();
@@ -237,6 +239,7 @@ function showConfirmModal(message, options = {}) {
 
         const close = value => {
             overlay.classList.remove('is-open');
+            document.body.classList.remove('is-confirm-open');
             document.removeEventListener('keydown', onKeydown);
             setTimeout(() => overlay.remove(), 160);
             resolve(value);
@@ -258,6 +261,7 @@ function showConfirmModal(message, options = {}) {
             close(true);
         });
         document.addEventListener('keydown', onKeydown);
+        document.body.classList.add('is-confirm-open');
         document.body.appendChild(overlay);
         requestAnimationFrame(() => {
             overlay.classList.add('is-open');
@@ -284,6 +288,7 @@ function replaceConfirmOverlay(overlay) {
 }
 
 function openConfirmOverlay(overlay) {
+    document.body.classList.add('is-confirm-open');
     requestAnimationFrame(() => overlay.classList.add('is-open'));
 }
 
@@ -295,6 +300,7 @@ function setConfirmOverlayCard(overlay, html) {
 function dismissConfirmOverlay(overlay) {
     return new Promise(resolve => {
         overlay.classList.remove('is-open');
+        document.body.classList.remove('is-confirm-open');
         setTimeout(() => {
             overlay.remove();
             resolve();
@@ -410,6 +416,7 @@ function showAlertModal(message, options = {}) {
 
         const close = () => {
             overlay.classList.remove('is-open');
+            document.body.classList.remove('is-confirm-open');
             document.removeEventListener('keydown', onKeydown);
             setTimeout(() => overlay.remove(), 160);
             resolve();
@@ -423,6 +430,7 @@ function showAlertModal(message, options = {}) {
         });
         overlay.querySelector('.app-alert-ok')?.addEventListener('click', close);
         document.addEventListener('keydown', onKeydown);
+        document.body.classList.add('is-confirm-open');
         document.body.appendChild(overlay);
         requestAnimationFrame(() => {
             overlay.classList.add('is-open');
@@ -438,7 +446,7 @@ function initStudentMobileTapProxy() {
     let suppressUntil = 0;
     const isMobileStudentLayout = () => window.matchMedia('(max-width: 720px)').matches;
     const clickableSelector = 'button,a,input:not([type="hidden"]),textarea,select,[data-time-lock-toggle],[data-time-picker-trigger],.filter-date-trigger';
-    const skipSelector = '.notif-panel,.topbar,.sidebar,.student-bottom-nav-root,.global-cal-panel,.global-datetime-panel,.dtr-time-panel,.student-nav-sheet-backdrop,.nav-group-items,[data-docs-sheet="1"],.student-docs-sheet-item,.chat-app';
+    const skipSelector = '.notif-panel,.topbar,.sidebar,.student-bottom-nav-root,.global-cal-panel,.global-datetime-panel,.dtr-time-panel,.student-nav-sheet-backdrop,.nav-group-items,[data-docs-sheet="1"],.student-docs-sheet-item,.chat-app,.app-confirm-overlay,#modal';
 
     const findContentControl = (x, y) => {
         const content = document.querySelector('.role-student .content');
@@ -447,6 +455,7 @@ function initStudentMobileTapProxy() {
         const elements = document.elementsFromPoint(x, y);
         for (const element of elements) {
             if (!element || element === document.documentElement || element === document.body) continue;
+            if (element.closest('.app-confirm-overlay, #modal')) continue;
             if (element.closest(skipSelector)) continue;
             if (!content.contains(element)) continue;
 
@@ -458,6 +467,7 @@ function initStudentMobileTapProxy() {
 
     const forwardTap = event => {
         if (proxying || !isMobileStudentLayout()) return;
+        if (document.querySelector('.app-confirm-overlay.is-open, #modal.open')) return;
         if (event.target instanceof Element && event.target.closest(skipSelector)) return;
         if (Date.now() < suppressUntil) {
             event.preventDefault();
@@ -2262,14 +2272,63 @@ function initPartnerSubmissions() {
         const studentId = link.dataset.studentId || null;
         loadDetail(link.href, { studentId });
     });
+}
 
-    window.addEventListener('popstate', () => {
-        if (!document.querySelector('[data-ps-submissions]')) return;
+function initPartnerSubmissionsPopstate() {
+    if (window.__psPopstateBound) return;
+    window.__psPopstateBound = true;
+
+    window.addEventListener('popstate', async () => {
+        const root = document.querySelector('[data-ps-submissions]');
+        const detailHost = root?.querySelector('[data-ps-v2-detail]');
+        if (!root || !detailHost) return;
+
         const params = new URLSearchParams(window.location.search);
-        loadDetail(window.location.href, {
-            pushState: false,
-            studentId: params.get('student_id'),
-        });
+        const studentId = params.get('student_id');
+        const url = window.location.href;
+
+        if (!studentId) {
+            detailHost.classList.add('is-loading');
+            try {
+                const listUrl = new URL(url, window.location.href);
+                listUrl.searchParams.delete('student_id');
+                const response = await fetch(listUrl.toString(), {
+                    credentials: 'same-origin',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    cache: 'no-store',
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to load submissions.');
+                }
+                detailHost.innerHTML = await response.text();
+                root.querySelectorAll('[data-student-id]').forEach(card => card.classList.remove('is-selected'));
+            } catch {
+                window.location.assign(url);
+            } finally {
+                detailHost.classList.remove('is-loading');
+            }
+            return;
+        }
+
+        detailHost.classList.add('is-loading');
+        try {
+            const response = await fetch(url, {
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                cache: 'no-store',
+            });
+            if (!response.ok) {
+                throw new Error('Failed to load submissions.');
+            }
+            detailHost.innerHTML = await response.text();
+            root.querySelectorAll('[data-student-id]').forEach(card => {
+                card.classList.toggle('is-selected', card.dataset.studentId === String(studentId));
+            });
+        } catch {
+            window.location.assign(url);
+        } finally {
+            detailHost.classList.remove('is-loading');
+        }
     });
 }
 
@@ -5644,12 +5703,357 @@ function initWeeklyReportUpload() {
     });
 }
 
+const APP_AJAX_ROLES = new Set(['admin', 'coordinator', 'student', 'partner']);
+
+const ROLE_AJAX_ROUTES = {
+    admin: new Set([
+        'admin',
+        'admin_users',
+        'admin_registration_requests',
+        'admin_password_reset_requests',
+        'admin_coordinators',
+        'admin_partners',
+        'admin_email_logs',
+        'admin_evaluations',
+        'admin_ojt_placement',
+        'admin_programs',
+        'admin_reports',
+        'admin_report',
+        'chat',
+    ]),
+    coordinator: new Set([
+        'coordinator',
+        'coordinator_manage',
+        'coordinator_students',
+        'coordinator_moa_mou',
+        'coordinator_evaluations',
+        'coordinator_student_final',
+        'chat',
+    ]),
+    student: new Set([
+        'student',
+        'student_records',
+        'student_reports',
+        'student_timeline',
+        'student_documents',
+        'student_documents_final',
+        'student_documents_other',
+        'student_evaluation',
+        'student_settings',
+        'student_password',
+        'student_profile',
+        'chat',
+    ]),
+    partner: new Set([
+        'partner',
+        'partner_portal',
+        'partner_submissions',
+        'partner_settings',
+        'partner_password',
+        'partner_profile',
+        'partner_evaluate',
+        'chat',
+    ]),
+};
+
+const ADMIN_USER_ROUTES = new Set([
+    'admin_users',
+    'admin_registration_requests',
+    'admin_password_reset_requests',
+    'admin_coordinators',
+    'admin_partners',
+]);
+
+const STUDENT_DOC_ROUTES = new Set([
+    'student_documents',
+    'student_documents_final',
+    'student_documents_other',
+]);
+
+const SIDEBAR_HOME_ROUTES = {
+    admin: 'admin',
+    coordinator: 'coordinator',
+    student: 'student',
+    partner: 'partner',
+};
+
+const SIDEBAR_ROUTE_ALIASES = {
+    admin_reports: ['admin_reports', 'admin_report'],
+    student_settings: ['student_settings', 'student_password', 'student_profile'],
+    partner_settings: ['partner_settings', 'partner_password', 'partner_profile'],
+};
+
+function getAppRole() {
+    for (const className of document.body.classList) {
+        if (className.startsWith('role-')) {
+            return className.slice(5);
+        }
+    }
+    return '';
+}
+
+function getRoleAjaxRoutes(role = getAppRole()) {
+    return ROLE_AJAX_ROUTES[role] || new Set();
+}
+
+function parseAppRoute(href) {
+    if (!href) return '';
+    try {
+        const url = new URL(href, window.location.href);
+        return url.searchParams.get('r') || '';
+    } catch {
+        return '';
+    }
+}
+
+function isAppAjaxNavLink(link) {
+    if (!link || link.target === '_blank' || link.hasAttribute('download')) return false;
+    const href = link.getAttribute('href');
+    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return false;
+    if (href.includes('logout.php')) return false;
+
+    const role = getAppRole();
+    if (!APP_AJAX_ROLES.has(role)) return false;
+
+    const route = parseAppRoute(href);
+    return getRoleAjaxRoutes(role).has(route);
+}
+
+function buildAppAjaxUrl(href) {
+    const url = new URL(href, window.location.href);
+    url.searchParams.set('partial', 'content');
+    return url.toString();
+}
+
+function runInjectedScripts(container) {
+    if (!container) return;
+
+    container.querySelectorAll('script').forEach(oldScript => {
+        const code = oldScript.textContent || '';
+        if (oldScript.src) {
+            const script = document.createElement('script');
+            Array.from(oldScript.attributes).forEach(attr => script.setAttribute(attr.name, attr.value));
+            oldScript.replaceWith(script);
+            return;
+        }
+
+        const domReadyMatch = code.match(
+            /document\.addEventListener\s*\(\s*['"]DOMContentLoaded['"]\s*,\s*function\s*\(\)\s*\{([\s\S]*)\}\s*\)\s*;?\s*$/
+        );
+
+        try {
+            if (domReadyMatch) {
+                new Function(domReadyMatch[1])();
+            } else if (code.trim()) {
+                new Function(code)();
+            }
+        } catch (error) {
+            console.error('Failed to run injected script:', error);
+        }
+
+        oldScript.remove();
+    });
+}
+
+function routeMatchesNavLink(route, linkRoute, homeRoute) {
+    if (route === homeRoute && linkRoute === homeRoute) return true;
+
+    for (const [navRoute, aliases] of Object.entries(SIDEBAR_ROUTE_ALIASES)) {
+        if (aliases.includes(route) && linkRoute === navRoute) return true;
+    }
+
+    return linkRoute === route;
+}
+
+function updateAppSidebarActive(route) {
+    const sidebar = document.querySelector('.sidebar');
+    const role = getAppRole();
+    const homeRoute = SIDEBAR_HOME_ROUTES[role];
+    if (!sidebar || !homeRoute) return;
+
+    sidebar.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+
+    if (role === 'admin') {
+        const userGroup = sidebar.querySelector('.nav-group:not(.nav-group--student-docs)');
+        userGroup?.classList.toggle('open', ADMIN_USER_ROUTES.has(route));
+    }
+
+    if (role === 'student') {
+        const docGroup = sidebar.querySelector('.nav-group--student-docs');
+        const isDocRoute = STUDENT_DOC_ROUTES.has(route);
+        docGroup?.classList.toggle('open', isDocRoute);
+        docGroup?.classList.toggle('nav-group--active', isDocRoute);
+    }
+
+    sidebar.querySelectorAll('.nav-link[href]').forEach(link => {
+        const linkRoute = parseAppRoute(link.getAttribute('href'));
+        if (!linkRoute) return;
+
+        if (routeMatchesNavLink(route, linkRoute, homeRoute)) {
+            link.classList.add('active');
+        }
+    });
+}
+
+function updateAppTopbar(title) {
+    const heading = document.querySelector('.topbar h1');
+    if (heading && title) {
+        heading.textContent = title;
+    }
+    if (title) {
+        document.title = title;
+    }
+}
+
+function destroyLiveChatIfNeeded() {
+    if (typeof window.__liveChatCleanup === 'function') {
+        window.__liveChatCleanup();
+        window.__liveChatCleanup = null;
+    }
+}
+
+function reinitAppPageContent() {
+    initToasts();
+    initFloatingLabels();
+    initCustomFilterSelects();
+    initCustomDatePickers();
+    initDateTimePickers();
+    initPhoneInputs();
+    initCharacterCounters();
+    initDtrTimeLocks();
+    initConfirmActions();
+    initViewToggles();
+    initTimelineDetails();
+    initEmailLogViews();
+    initRequirementReviewModals();
+    initRegistrationRequestsReview();
+    initPasswordResetRequests();
+    initAdminUserActions();
+    initAdminStudentsDirectory();
+    initCoordinatorAvailability();
+    initPartnerAvailability();
+    initEnrollmentAutomation();
+    initEnrollmentDirectory();
+    initEnrollmentCorUpload();
+    initEnrollmentFilters();
+    initMyStudentsDirectory();
+    initMoaLibrary();
+    initCoordinatorCardAlignment();
+    initCapitalizeWordInputs();
+    initStudentProfilePhotoPreview();
+    initPartnerPasswordChange();
+    initStudentPasswordChange();
+    initPartnerPortalRoster();
+    initPartnerSubmissions();
+    initStudentModal();
+    try { initWeeklyReportUpload(); } catch (err) { console.warn('Weekly report upload init failed:', err); }
+    document.querySelectorAll('.content .data-table').forEach(table => enhanceTable(table));
+
+    if (!document.getElementById('monthlyChart')) {
+        window.dashboardCharts = null;
+    }
+    renderDashboardCharts();
+    initLiveChat();
+    initTextMarquees();
+}
+
+function initAppAjaxNav() {
+    const role = getAppRole();
+    if (!APP_AJAX_ROLES.has(role)) return;
+
+    const content = document.querySelector('section.content');
+    if (!content) return;
+
+    let loading = false;
+
+    const loadPage = async (href, { pushState = true } = {}) => {
+        if (loading) return;
+
+        const route = parseAppRoute(href);
+        if (!getRoleAjaxRoutes(role).has(route)) {
+            window.location.assign(href);
+            return;
+        }
+
+        loading = true;
+        content.classList.add('is-ajax-loading');
+
+        try {
+            destroyLiveChatIfNeeded();
+
+            const response = await fetch(buildAppAjaxUrl(href), {
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    Accept: 'text/html',
+                },
+                cache: 'no-store',
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to load page.');
+            }
+
+            const html = await response.text();
+            content.innerHTML = html;
+
+            const pageRoot = content.querySelector('[data-ajax-page]');
+            const pageTitle = pageRoot?.dataset.pageTitle || '';
+            const pageRoute = pageRoot?.dataset.route || route;
+
+            runInjectedScripts(content);
+            updateAppTopbar(pageTitle);
+            updateAppSidebarActive(pageRoute);
+            reinitAppPageContent();
+
+            if (pushState) {
+                history.pushState({ appAjaxNav: true, route: pageRoute, role }, '', href);
+            }
+
+            content.scrollTop = 0;
+            window.scrollTo({ top: 0, behavior: 'auto' });
+        } catch {
+            window.location.assign(href);
+        } finally {
+            loading = false;
+            content.classList.remove('is-ajax-loading');
+        }
+    };
+
+    document.addEventListener('click', event => {
+        const link = event.target.closest('a[href]');
+        if (!link || !isAppAjaxNavLink(link)) return;
+
+        const inSidebar = link.closest('.sidebar');
+        const inContent = link.closest('section.content');
+        if (!inSidebar && !inContent) return;
+
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+
+        event.preventDefault();
+        loadPage(link.href);
+    });
+
+    window.addEventListener('popstate', () => {
+        if (!APP_AJAX_ROLES.has(getAppRole())) return;
+
+        const route = parseAppRoute(window.location.href);
+        if (route === 'partner_submissions' && document.querySelector('[data-ps-submissions]')) {
+            return;
+        }
+
+        loadPage(window.location.href, { pushState: false });
+    });
+}
+
 /**
  * AMA Practicum Live Chat
  * Vanilla JS + Fetch API with 3-second polling (no WebSockets).
  */
 function initLiveChat() {
     'use strict';
+
+    destroyLiveChatIfNeeded();
 
     const app = document.getElementById('chatApp');
     if (!app) return;
@@ -6089,6 +6493,10 @@ function initLiveChat() {
     });
 
     window.addEventListener('beforeunload', stopPolling);
+    window.__liveChatCleanup = () => {
+        stopPolling();
+        window.removeEventListener('beforeunload', stopPolling);
+    };
 
     if (messagesEl) {
         scrollToBottom(true);

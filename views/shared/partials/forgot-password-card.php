@@ -1,5 +1,8 @@
 <?php
-$portalPartialUrl = route_url('login', ['partial' => 'portal']);
+$selectedRole = $role ?? '';
+$portalPartialUrl = $selectedRole
+    ? route_url('login', ['portal' => $selectedRole])
+    : route_url('login', ['partial' => 'portal']);
 ?>
 <div
     class="login-card portal-login-card forgot-password-card is-revealed js-forgot-shell"
