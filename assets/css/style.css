@@ -4929,31 +4929,63 @@ small,
 }
 
 .coordinator-edit-overlay {
-    display: none;
+    display: flex;
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.46);
-    backdrop-filter: blur(8px);
+    background: rgba(15, 23, 42, 0.32);
     z-index: 1000;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 24px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.28s ease, visibility 0.28s ease;
 }
 
 .coordinator-edit-overlay.open {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.coordinator-edit-overlay.is-closing {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+body.is-coordinator-edit-open {
+    overflow: hidden;
 }
 
 .coordinator-edit-modal {
     display: flex;
     flex-direction: column;
-    width: min(540px, 100%);
-    max-height: min(88vh, 820px);
+    width: min(600px, 100%);
+    max-height: min(90vh, 860px);
     overflow: hidden;
     background: #fff;
-    border-radius: 5px;
-    border: 1px solid rgba(219, 228, 240, 0.95);
-    box-shadow: 0 24px 64px rgba(15, 23, 42, 0.16), 0 4px 16px rgba(139, 26, 26, 0.05);
+    border-radius: 14px;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    box-shadow:
+        0 28px 72px rgba(15, 23, 42, 0.14),
+        0 8px 24px rgba(15, 23, 42, 0.06);
+    transform: translateY(14px) scale(0.97);
+    opacity: 0;
+    transition:
+        transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.28s ease;
+}
+
+.coordinator-edit-overlay.open .coordinator-edit-modal {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+}
+
+.coordinator-edit-overlay.is-closing .coordinator-edit-modal {
+    transform: translateY(-8px) scale(0.98);
+    opacity: 0;
 }
 
 .coordinator-edit-modal-head {
@@ -4961,9 +4993,9 @@ small,
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    padding: 22px 24px 18px;
-    border-bottom: 1px solid rgba(219, 228, 240, 0.85);
-    background: linear-gradient(180deg, #ffffff 0%, #fafbfd 100%);
+    padding: 24px 26px 20px;
+    border-bottom: 1px solid #eef2f7;
+    background: #fff;
 }
 
 .coordinator-edit-modal-head-main {
@@ -4974,46 +5006,47 @@ small,
 }
 
 .coordinator-edit-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 5px;
-    box-shadow: 0 8px 18px rgba(139, 26, 26, 0.2);
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    box-shadow: 0 6px 14px rgba(139, 26, 26, 0.16);
 }
 
 .coordinator-edit-modal-head h2 {
-    margin: 0 0 4px;
-    font-size: 1.06rem;
+    margin: 0 0 5px;
+    font-size: 1.12rem;
     font-weight: 800;
     letter-spacing: -0.02em;
-    color: var(--text);
+    color: #0f172a;
 }
 
 .coordinator-edit-modal-head p {
     margin: 0;
-    font-size: 0.82rem;
+    font-size: 0.84rem;
     line-height: 1.5;
-    color: var(--muted);
+    color: #64748b;
 }
 
 .coordinator-edit-modal-close {
     flex-shrink: 0;
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(219, 228, 240, 0.95);
-    border-radius: 5px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
     background: #fff;
     color: #64748b;
     cursor: pointer;
-    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
 }
 
 .coordinator-edit-modal-close:hover {
     background: #f8fafc;
     color: #0f172a;
     border-color: #cbd5e1;
+    transform: scale(1.02);
 }
 
 .coordinator-edit-form {
@@ -5028,10 +5061,10 @@ small,
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 20px 24px;
+    padding: 22px 26px;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 22px;
     scrollbar-gutter: stable;
 }
 
@@ -5051,41 +5084,52 @@ small,
 .coordinator-edit-section {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 14px;
 }
 
 .coordinator-edit-section-head {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 700;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: #94a3b8;
 }
 
 .coordinator-edit-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.coordinator-edit-fields .partner-field input {
+    min-height: 44px;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.coordinator-edit-fields .partner-field input:focus {
+    background: #fff;
 }
 
 .coordinator-sig-panel {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 14px 16px;
-    border: 1px dashed rgba(148, 163, 184, 0.55);
-    border-radius: 5px;
-    background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+    gap: 16px;
+    padding: 16px 18px;
+    border: 1.5px dashed #d5dee9;
+    border-radius: 10px;
+    background: #f8fafc;
 }
 
 .coordinator-sig-panel-preview {
     flex-shrink: 0;
-    width: 88px;
-    height: 56px;
+    width: 92px;
+    height: 60px;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 6px;
     border: 1px solid #e2e8f0;
-    border-radius: 5px;
+    border-radius: 8px;
     background: #fff;
 }
 
@@ -5113,23 +5157,32 @@ small,
 }
 
 .coordinator-upload-field--modal {
-    gap: 8px;
+    gap: 10px;
+}
+
+.coordinator-upload-field--modal input[type="file"] {
+    min-height: 44px;
+    border-radius: 8px;
+    background: #f8fafc;
 }
 
 .coordinator-edit-modal-actions {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     justify-content: flex-end;
-    padding: 16px 24px 22px;
-    border-top: 1px solid rgba(219, 228, 240, 0.85);
+    padding: 18px 26px 24px;
+    border-top: 1px solid #eef2f7;
     background: #fff;
 }
 
 .coordinator-edit-cancel-btn {
-    min-width: 108px;
+    min-width: 112px;
+    min-height: 42px;
+    border-radius: 8px;
     background: #fff;
     color: #475569;
     border: 1px solid #dbe4f0;
+    font-weight: 600;
 }
 
 .coordinator-edit-cancel-btn:hover {
@@ -5138,7 +5191,22 @@ small,
 }
 
 .coordinator-edit-save-btn {
-    min-width: 148px;
+    min-width: 156px;
+    min-height: 42px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .coordinator-edit-overlay,
+    .coordinator-edit-modal {
+        transition: none;
+    }
+
+    .coordinator-edit-overlay.open .coordinator-edit-modal,
+    .coordinator-edit-overlay.is-closing .coordinator-edit-modal {
+        transform: none;
+    }
 }
 
 .charts {

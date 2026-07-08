@@ -259,11 +259,12 @@ class AdminController extends BaseController
             }
 
             $firstName = trim($p['first_name'] ?? '');
+            $middleName = trim((string)($p['middle_name'] ?? ''));
             $lastName = trim($p['last_name'] ?? '');
             if ($firstName === '' || $lastName === '') {
                 throw new RuntimeException('First name and last name are required.');
             }
-            if (preg_match('/[0-9]/', $firstName . $lastName)) {
+            if (preg_match('/[0-9]/', $firstName . $middleName . $lastName)) {
                 throw new RuntimeException('Name must contain letters only, no numbers.');
             }
 
@@ -288,13 +289,22 @@ class AdminController extends BaseController
                 throw new RuntimeException('ID number already exists.');
             }
 
-            $userId = $users->create($firstName, $lastName, $email, $password, 'coordinator', current_user()['id'], 0);
+            $userId = $users->create(
+                $firstName,
+                $lastName,
+                $email,
+                $password,
+                'coordinator',
+                current_user()['id'],
+                0,
+                $middleName !== '' ? $middleName : null
+            );
             $stmt = $this->db->prepare('INSERT INTO coordinators (user_id, id_number, department, signature_file) VALUES (?, ?, ?, ?)');
             $stmt->execute([$userId, $idNumber, trim($p['department'] ?? 'OJT Department') ?: 'OJT Department', $signaturePath]);
             $this->db->commit();
 
             (new Email($this->db))->send($email, 'Your AMA Practicum Coordinator Account', 'account_credentials', 'account_credentials', [
-                'name' => full_name_from_parts($firstName, $lastName),
+                'name' => full_name_from_parts($firstName, $lastName, $middleName !== '' ? $middleName : null),
                 'email' => $email,
                 'password' => $password,
                 'roleLabel' => 'OJT Coordinator',
@@ -396,11 +406,12 @@ class AdminController extends BaseController
             $users->ensureCoordinatorSignatureSupport();
 
             $firstName = trim($p['first_name'] ?? '');
+            $middleName = trim((string)($p['middle_name'] ?? ''));
             $lastName = trim($p['last_name'] ?? '');
             if ($firstName === '' || $lastName === '') {
                 throw new RuntimeException('First name and last name are required.');
             }
-            if (preg_match('/[0-9]/', $firstName . $lastName)) {
+            if (preg_match('/[0-9]/', $firstName . $middleName . $lastName)) {
                 throw new RuntimeException('Name must contain letters only, no numbers.');
             }
 
@@ -421,7 +432,7 @@ class AdminController extends BaseController
 
             $this->db->beginTransaction();
 
-            $users->updatePersonName($userId, $firstName, $lastName);
+            $users->updatePersonName($userId, $firstName, $lastName, $middleName !== '' ? $middleName : null);
             $users->updateEmail($userId, $email);
 
             $updates = ['department = ?'];
