@@ -1,4 +1,4 @@
-# AMA Computer College Ã¢â‚¬â€ Practicum Management System
+# AMA Computer College - Practicum Management System
 
 Pure PHP 8 + PDO/MySQL web application for managing On-the-Job Training (OJT): enrollment, pre-deployment requirements, host training establishment coordination, DTR/weekly reports, evaluations, and live chat.
 
