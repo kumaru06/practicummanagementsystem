@@ -22,7 +22,7 @@ Pure PHP 8 + PDO/MySQL web application for managing On-the-Job Training (OJT): e
 - PHP 8+
 - MySQL (PDO)
 - PHPMailer (SMTP)
-- Dompdf (PDF Ã¢â‚¬â€ endorsement letters, reports)
+- Dompdf (PDF - endorsement letters, reports)
 - Vanilla JavaScript + CSS (no frontend framework)
 
 ---
@@ -31,41 +31,41 @@ Pure PHP 8 + PDO/MySQL web application for managing On-the-Job Training (OJT): e
 
 ```
 amaccmanagementsystem/
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ api/                    # Async JSON endpoints (e.g. live chat)
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ assets/
-Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ css/                # Global, login, and chat styles
-Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ js/                 # main.js, chat.js, login-portal.js, Ã¢â‚¬Â¦
-Ã¢â€â€š   Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ image/              # Logos and static images
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ bootstrap/              # Env loader, mailer bootstrap
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ config/                 # database.php, mail.php (+ local *.example files)
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ controllers/            # Request handlers (Admin, Auth, Coordinator, Ã¢â‚¬Â¦)
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ database/
-Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ schema.sql          # Base schema
-Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ seed.sql            # Seed data
-Ã¢â€â€š   Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ migration_*.sql     # Incremental migrations (run in order)
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ lib/                    # Bundled libraries (PHPMailer copy)
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ models/                 # Data access (User, Student, Enrollment, Ã¢â‚¬Â¦)
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ template/               # Document templates (e.g. consent form)
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ tools/                  # SMTP test, deploy helpers
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ uploads/                # User uploads (COR, requirements, signatures) Ã¢â‚¬â€ not in git
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ vendor/                 # Composer dependencies (dompdf, phpmailer, Ã¢â‚¬Â¦)
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ views/
-Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ admin/              # Admin dashboards and management screens
-Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ coordinator/        # Coordinator dashboards, manage, students
-Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ partner/            # Host training establishment portal and submissions
-Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ student/            # Student portal pages
-Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ chat/               # Live chat UI
-Ã¢â€â€š   Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ emails/             # Email HTML templates
-Ã¢â€â€š   Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ shared/             # Header, footer, login layout
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ auth.php                # Login entry point
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ index.php               # Main router (pretty URLs + actions)
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ init.php                # App bootstrap, session, autoload
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ helpers.php             # Shared helpers (upload, CSRF, routes, Ã¢â‚¬Â¦)
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ mail.php                # Mail configuration loader
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ composer.json
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ .env.example            # Copy to .env for local environment variables
-Ã¢â€Å“Ã¢â€â‚¬Ã¢â€â‚¬ HOSTINGER_DEPLOY.md     # Production deployment guide
-Ã¢â€â€Ã¢â€â‚¬Ã¢â€â‚¬ QUICK_START.md          # Endorsement letter / quick test guide
+├── api/                    # Async JSON endpoints (e.g. live chat)
+├── assets/
+│   ├── css/                # Global, login, and chat styles
+│   ├── js/                 # main.js, chat.js, login-portal.js, ...
+│   └── image/              # Logos and static images
+├── bootstrap/              # Env loader, mailer bootstrap
+├── config/                 # database.php, mail.php (+ local *.example files)
+├── controllers/            # Request handlers (Admin, Auth, Coordinator, ...)
+├── database/
+│   ├── schema.sql          # Base schema
+│   ├── seed.sql            # Seed data
+│   └── migration_*.sql     # Incremental migrations (run in order)
+├── lib/                    # Bundled libraries (PHPMailer copy)
+├── models/                 # Data access (User, Student, Enrollment, ...)
+├── template/               # Document templates (e.g. consent form)
+├── tools/                  # SMTP test, deploy helpers
+├── uploads/                # User uploads (COR, requirements, signatures) - not in git
+├── vendor/                 # Composer dependencies (dompdf, phpmailer, ...)
+├── views/
+│   ├── admin/              # Admin dashboards and management screens
+│   ├── coordinator/        # Coordinator dashboards, manage, students
+│   ├── partner/            # Host training establishment portal and submissions
+│   ├── student/            # Student portal pages
+│   ├── chat/               # Live chat UI
+│   ├── emails/             # Email HTML templates
+│   └── shared/             # Header, footer, login layout
+├── auth.php                # Login entry point
+├── index.php               # Main router (pretty URLs + actions)
+├── init.php                # App bootstrap, session, autoload
+├── helpers.php             # Shared helpers (upload, CSRF, routes, ...)
+├── mail.php                # Mail configuration loader
+├── composer.json
+├── .env.example            # Copy to .env for local environment variables
+├── HOSTINGER_DEPLOY.md     # Production deployment guide
+└── QUICK_START.md          # Endorsement letter / quick test guide
 ```
 
 ---
@@ -84,8 +84,8 @@ amaccmanagementsystem/
    ```
 
 3. **Environment**
-   - Copy `.env.example` Ã¢â€ â€™ `.env`
-   - Copy `config/mail.local.php.example` Ã¢â€ â€™ `config/mail.local.php` (SMTP credentials)
+   - Copy `.env.example` -> `.env`
+   - Copy `config/mail.local.php.example` -> `config/mail.local.php` (SMTP credentials)
    - Set database credentials in `config/database.php`
 
 4. **Database**
@@ -121,4 +121,4 @@ See **[HOSTINGER_DEPLOY.md](HOSTINGER_DEPLOY.md)** for Git auto-deploy and zip-b
 
 ## License
 
-Internal / academic use Ã¢â‚¬â€ AMA Computer College OJT program.
+Internal / academic use - AMA Computer College OJT program.
