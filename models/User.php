@@ -5,6 +5,7 @@ class User
     private ?bool $coordinatorSignatureReady = null;
     private ?bool $namePartsReady = null;
     private ?bool $deactivationReady = null;
+    private ?bool $lastLoginReady = null;
 
     public function __construct(private PDO $db) {}
 
@@ -320,6 +321,27 @@ class User
         }
 
         $this->deactivationReady = true;
+    }
+
+    public function ensureLastLoginSupport(): void
+    {
+        if ($this->lastLoginReady === true) {
+            return;
+        }
+
+        $stmt = $this->db->query("SHOW COLUMNS FROM users LIKE 'last_login_at'");
+        if (!$stmt->fetch()) {
+            $this->db->exec('ALTER TABLE users ADD COLUMN last_login_at DATETIME NULL AFTER password_changed');
+        }
+
+        $this->lastLoginReady = true;
+    }
+
+    public function recordLogin(int $id): void
+    {
+        $this->ensureLastLoginSupport();
+        $stmt = $this->db->prepare('UPDATE users SET last_login_at = NOW() WHERE id = ?');
+        $stmt->execute([$id]);
     }
 
     public function updatePassword(int $id, string $password, int $passwordChanged = 1): void

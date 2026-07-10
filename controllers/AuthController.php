@@ -66,6 +66,8 @@ class AuthController extends BaseController
 
                 session_regenerate_id(true);
 
+                (new User($this->db))->recordLogin((int)$user['id']);
+
                 $_SESSION['user'] = [
 
                     'id' => (int)$user['id'],

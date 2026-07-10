@@ -13,10 +13,10 @@ $coordOjtStatus = static function (array $student): array {
 $coordPredeploymentDisplay = static function (string $status): array {
     $completedStates = ['forwarded', 'accepted', 'orientation_scheduled', 'orientation_completed'];
     if (in_array($status, $completedStates, true)) {
-        return ['label' => 'âœ“ Completed', 'class' => 'completed', 'reviewable' => false];
+        return ['label' => 'Completed', 'class' => 'completed', 'reviewable' => false];
     }
     if ($status === 'approved') {
-        return ['label' => 'âœ“ Completed', 'class' => 'completed', 'reviewable' => true];
+        return ['label' => 'Completed', 'class' => 'completed', 'reviewable' => true];
     }
     if ($status === 'submitted') {
         return ['label' => 'In Review', 'class' => 'submitted', 'reviewable' => true];
@@ -26,10 +26,10 @@ $coordPredeploymentDisplay = static function (string $status): array {
 
 $formatOjtDate = static function (?string $date): string {
     if ($date === null || trim($date) === '') {
-        return 'â€”';
+        return '-';
     }
     $ts = strtotime($date);
-    return $ts ? date('M d, Y', $ts) : 'â€”';
+    return $ts ? date('M d, Y', $ts) : '-';
 };
 
 $termOptions = [];
@@ -91,7 +91,7 @@ ksort($termOptions);
             <div class="ms-directory-toolbar" role="group" aria-label="Filter students">
                 <div class="ms-search-wrap">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14Z"/></svg>
-                    <input class="table-search ms-table-search" type="search" placeholder="Search by student name or IDâ€¦" aria-label="Search students">
+                    <input class="table-search ms-table-search" type="search" placeholder="Search by student name or ID..." aria-label="Search students">
                 </div>
                 <label class="filter-select-wrap ms-filter-select ms-per-page-select">
                     <span class="visually-hidden">Rows per page</span>
@@ -112,7 +112,7 @@ ksort($termOptions);
                         <option value="completed">Completed</option>
                     </select>
                 </label>
-                <label class="filter-select-wrap ms-filter-select">
+                <label class="filter-select-wrap ms-filter-select ms-term-filter">
                     <span class="visually-hidden">Term / Batch</span>
                     <select data-ms-term-filter aria-label="Filter by term or batch">
                         <option value="all">Term / Batch</option>
@@ -323,7 +323,7 @@ ksort($termOptions);
                 <div class="requirement-review-modal-header">
                     <div>
                         <h2>Review Documents</h2>
-                        <p><?= e($s['name']) ?> â€¢ <?= e($s['student_no']) ?></p>
+                        <p><?= e($s['name']) ?> &middot; <?= e($s['student_no']) ?></p>
                     </div>
                     <span class="badge <?= e($s['predeployment_status'] ?? 'not_submitted') ?>" data-modal-status-badge><?= e(str_replace('_', ' ', $s['predeployment_status'] ?? 'not_submitted')) ?></span>
                 </div>

@@ -16,12 +16,209 @@ class AdminController extends BaseController
                 'active' => $enroll->activeCount(),
             ],
             'companies' => $company->all(),
+            'recentActivities' => $this->recentActivities(6),
             'charts' => [
                 'statusDistribution' => $enroll->statusDistribution(),
                 'completionRates' => $enroll->completionRatesByCourse(),
-                'monthlyTrends' => $enroll->monthlyEnrollmentTrends(),
                 'courseStudents' => $enroll->studentProgressByCourse(),
             ],
+        ]);
+    }
+
+    /**
+     * Aggregate recent deployment, login, and student request events for the admin dashboard feed.
+     *
+     * @return list<array{type:string,title:string,detail:string,time:string,link:string}>
+     */
+    private function recentActivities(int $limit = 6): array
+    {
+        $events = [];
+        $placementLink = route_url('admin.ojt_placement');
+        $fetch = max(12, min(100, $limit * 3));
+
+        try {
+            $stmt = $this->db->query(
+                'SELECT e.predeployment_status, e.status, e.forwarded_at, e.accepted_at,
+                        e.orientation_datetime, e.official_start_date, e.created_at,
+                        u.first_name, u.middle_name, u.last_name, u.name AS student_name,
+                        s.course, c.name AS company_name
+                 FROM ojt_enrollments e
+                 JOIN students s ON s.id = e.student_id
+                 JOIN users u ON u.id = s.user_id
+                 LEFT JOIN partner_companies c ON c.id = e.company_id
+                 WHERE e.forwarded_at IS NOT NULL
+                    OR e.accepted_at IS NOT NULL
+                    OR e.orientation_datetime IS NOT NULL
+                    OR e.official_start_date IS NOT NULL
+                 ORDER BY GREATEST(
+                    COALESCE(e.accepted_at, "1970-01-01"),
+                    COALESCE(e.forwarded_at, "1970-01-01"),
+                    COALESCE(e.orientation_datetime, "1970-01-01"),
+                    COALESCE(CONCAT(e.official_start_date, " 00:00:00"), "1970-01-01")
+                 ) DESC
+                 LIMIT ' . (int)$fetch
+            );
+
+            foreach ($stmt->fetchAll() as $row) {
+                $studentName = full_name($row);
+                if ($studentName === '') {
+                    $studentName = (string)($row['student_name'] ?? 'Student');
+                }
+                $company = trim((string)($row['company_name'] ?? ''));
+                $detail = $company !== '' ? $studentName . ' — ' . $company : $studentName;
+                $status = (string)($row['predeployment_status'] ?? '');
+
+                if ((!empty($row['official_start_date']) && $status === 'orientation_completed')
+                    || ((string)($row['status'] ?? '') === 'active' && !empty($row['official_start_date']))) {
+                    $events[] = [
+                        'type' => 'ojt_started',
+                        'title' => 'Student OJT started',
+                        'detail' => $detail,
+                        'time' => (string)$row['official_start_date'] . ' 08:00:00',
+                        'link' => $placementLink,
+                    ];
+                }
+
+                if (!empty($row['orientation_datetime']) && in_array($status, ['orientation_scheduled', 'orientation_completed'], true)) {
+                    $events[] = [
+                        'type' => 'orientation',
+                        'title' => 'Orientation scheduled',
+                        'detail' => $detail,
+                        'time' => (string)$row['orientation_datetime'],
+                        'link' => $placementLink,
+                    ];
+                }
+
+                if (!empty($row['accepted_at'])) {
+                    $events[] = [
+                        'type' => 'deployment_accepted',
+                        'title' => 'Deployment accepted',
+                        'detail' => $detail,
+                        'time' => (string)$row['accepted_at'],
+                        'link' => $placementLink,
+                    ];
+                }
+
+                if (!empty($row['forwarded_at'])) {
+                    $events[] = [
+                        'type' => 'deployment_forwarded',
+                        'title' => 'Deployment documents forwarded',
+                        'detail' => $detail,
+                        'time' => (string)$row['forwarded_at'],
+                        'link' => $placementLink,
+                    ];
+                }
+            }
+        } catch (Throwable) {
+            // ignore if enrollment/deployment columns unavailable
+        }
+
+        try {
+            (new User($this->db))->ensureLastLoginSupport();
+            $stmt = $this->db->query(
+                "SELECT first_name, middle_name, last_name, name, role, last_login_at
+                 FROM users
+                 WHERE last_login_at IS NOT NULL
+                   AND role IN ('student', 'coordinator', 'partner', 'admin')
+                 ORDER BY last_login_at DESC
+                 LIMIT " . (int)$fetch
+            );
+            $roleLabels = [
+                'student' => 'Student',
+                'coordinator' => 'Coordinator',
+                'partner' => 'Host Training Establishment',
+                'admin' => 'Admin',
+            ];
+            foreach ($stmt->fetchAll() as $row) {
+                $name = full_name($row);
+                if ($name === '') {
+                    $name = (string)($row['name'] ?? 'User');
+                }
+                $role = (string)($row['role'] ?? '');
+                $roleLabel = $roleLabels[$role] ?? ucfirst($role);
+                $events[] = [
+                    'type' => 'login',
+                    'title' => $roleLabel . ' logged in',
+                    'detail' => $name,
+                    'time' => (string)($row['last_login_at'] ?? ''),
+                    'link' => match ($role) {
+                        'student' => route_url('admin.users'),
+                        'coordinator' => route_url('admin.coordinators'),
+                        'partner' => route_url('admin.partners'),
+                        default => route_url('admin.dashboard'),
+                    },
+                ];
+            }
+        } catch (Throwable) {
+            // ignore if last_login_at not available yet
+        }
+
+        try {
+            $stmt = $this->db->query(
+                "SELECT r.first_name, r.middle_name, r.last_name, r.created_at, r.email_verified_at,
+                        COALESCE(p.code, p.name, '') AS program_label
+                 FROM student_registration_requests r
+                 LEFT JOIN programs p ON p.id = r.program_id
+                 WHERE r.status IN ('pending_approval', 'pending')
+                 ORDER BY COALESCE(r.email_verified_at, r.created_at) DESC
+                 LIMIT " . (int)$fetch
+            );
+            foreach ($stmt->fetchAll() as $row) {
+                $name = full_name($row);
+                if ($name === '') {
+                    $name = 'Student';
+                }
+                $program = trim((string)($row['program_label'] ?? ''));
+                $events[] = [
+                    'type' => 'registration',
+                    'title' => 'New student account request',
+                    'detail' => $program !== '' ? $name . ' - ' . $program : $name,
+                    'time' => (string)($row['email_verified_at'] ?? $row['created_at'] ?? ''),
+                    'link' => route_url('admin.registration_requests'),
+                ];
+            }
+        } catch (Throwable) {
+            // ignore if registration table missing
+        }
+
+        try {
+            $stmt = $this->db->query(
+                "SELECT pr.created_at, pr.email, pr.identifier,
+                        u.first_name, u.middle_name, u.last_name, u.name AS user_name
+                 FROM password_reset_requests pr
+                 JOIN users u ON u.id = pr.user_id
+                 WHERE pr.status = 'pending' AND pr.role = 'student'
+                 ORDER BY pr.created_at DESC
+                 LIMIT " . (int)$fetch
+            );
+            foreach ($stmt->fetchAll() as $row) {
+                $name = full_name($row);
+                if ($name === '') {
+                    $name = (string)($row['user_name'] ?? 'Student');
+                }
+                $identifier = trim((string)($row['identifier'] ?? $row['email'] ?? ''));
+                $events[] = [
+                    'type' => 'password',
+                    'title' => 'Student password reset request',
+                    'detail' => $identifier !== '' ? $name . ' - ' . $identifier : $name,
+                    'time' => (string)($row['created_at'] ?? ''),
+                    'link' => route_url('admin.password_reset_requests'),
+                ];
+            }
+        } catch (Throwable) {
+            // ignore if password reset table missing
+        }
+
+        usort($events, static fn (array $a, array $b): int => strcmp($b['time'], $a['time']));
+        return array_slice($events, 0, max(1, $limit));
+    }
+
+    public function recentActivitiesPage(): void
+    {
+        require_role('admin');
+        $this->renderAppPage('admin/recent_activities', [
+            'title' => 'Recent Activities',
+            'activities' => $this->recentActivities(100),
         ]);
     }
 
@@ -172,7 +369,184 @@ class AdminController extends BaseController
             'title' => 'Manage Student',
             'students' => (new Student($this->db))->allForAdmin(),
             'programs' => (new Program($this->db))->all(true),
+            'coordinators' => (new User($this->db))->byRole('coordinator'),
         ]);
+    }
+
+    public function checkStudentNo(): void
+    {
+        require_role('admin');
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store, no-cache, must-revalidate');
+
+        $studentNo = trim((string)($_GET['student_no'] ?? ''));
+        if ($studentNo === '') {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'message' => 'Student ID/USN is required.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if (!preg_match('/^\d+$/', $studentNo)) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'message' => 'Student ID/USN must contain numbers only.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $exists = (new Student($this->db))->existsByStudentNo($studentNo);
+        echo json_encode([
+            'ok' => true,
+            'exists' => $exists,
+            'available' => !$exists,
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    public function checkStudentEmail(): void
+    {
+        require_role('admin');
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store, no-cache, must-revalidate');
+
+        $email = strtolower(trim((string)($_GET['email'] ?? '')));
+        if ($email === '') {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'message' => 'Email is required.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'message' => 'Enter a valid email address.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $exists = (new User($this->db))->findByEmail($email) !== null;
+        echo json_encode([
+            'ok' => true,
+            'exists' => $exists,
+            'available' => !$exists,
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    public function createStudent(): void
+    {
+        require_role('admin');
+        $p = $this->post();
+        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+        $corPath = null;
+        try {
+            $studentNo = trim((string)($p['student_no'] ?? ''));
+            if ($studentNo === '') {
+                throw new RuntimeException('Student ID/USN is required.');
+            }
+            if (!preg_match('/^\d+$/', $studentNo)) {
+                throw new RuntimeException('Student ID/USN must contain numbers only.');
+            }
+            if ((new Student($this->db))->existsByStudentNo($studentNo)) {
+                throw new RuntimeException('This Student ID/USN is already registered.');
+            }
+
+            $email = strtolower(trim((string)($p['email'] ?? '')));
+            if ($email === '') {
+                throw new RuntimeException('Email is required.');
+            }
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                throw new RuntimeException('A valid email address is required.');
+            }
+            if ((new User($this->db))->findByEmail($email)) {
+                throw new RuntimeException('This email address is already registered.');
+            }
+
+            $coordinatorId = (int)($p['coordinator_id'] ?? 0);
+            if ($coordinatorId <= 0) {
+                throw new RuntimeException('Select a coordinator for this student.');
+            }
+            $coordinator = (new User($this->db))->find($coordinatorId);
+            if (!$coordinator || ($coordinator['role'] ?? '') !== 'coordinator' || (int)($coordinator['is_active'] ?? 0) !== 1) {
+                throw new RuntimeException('Select a valid active coordinator.');
+            }
+
+            $program = (new Program($this->db))->find((int)($p['program_id'] ?? 0));
+            if (!$program) {
+                throw new RuntimeException('Select a valid program/course.');
+            }
+
+            $firstName = trim((string)($p['first_name'] ?? ''));
+            $middleName = trim((string)($p['middle_name'] ?? ''));
+            $lastName = trim((string)($p['last_name'] ?? ''));
+            $fullName = full_name_from_parts($firstName, $lastName, $middleName !== '' ? $middleName : null);
+            if ($fullName === '') {
+                throw new RuntimeException('First name and last name are required.');
+            }
+            if (!in_array(trim((string)($p['year_level'] ?? '')), ['3rd Year', '4th Year'], true)) {
+                throw new RuntimeException('Select a valid year level.');
+            }
+
+            $birthdate = trim((string)($p['birthdate'] ?? ''));
+            if ($birthdate === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $birthdate)) {
+                throw new RuntimeException('Select a valid birthdate.');
+            }
+            $birthdateObj = new DateTime($birthdate);
+            $age = (new DateTime())->diff($birthdateObj)->y;
+            if ($age < 20) {
+                throw new RuntimeException('Student must be at least 20 years old to be eligible for OJT.');
+            }
+
+            $password = random_password();
+            $corPath = upload_cor($_FILES['cor_file'] ?? []);
+
+            $this->db->beginTransaction();
+            $userId = (new User($this->db))->create(
+                $firstName,
+                $lastName,
+                $email,
+                $password,
+                'student',
+                (int)current_user()['id'],
+                0,
+                $middleName !== '' ? $middleName : null
+            );
+            (new Student($this->db))->create(
+                $userId,
+                $studentNo,
+                $program['name'],
+                trim((string)$p['year_level']),
+                $corPath,
+                $coordinatorId,
+                (int)$program['id'],
+                '',
+                $birthdate
+            );
+            $this->db->commit();
+
+            $coordName = full_name($coordinator) ?: (string)($coordinator['name'] ?? 'coordinator');
+            $successMessage = 'Student profile created and assigned to ' . $coordName . '. Login credentials will be emailed when the coordinator enrolls the student.';
+            if ($isAjax) {
+                flash('success', $successMessage);
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'ok' => true,
+                    'message' => $successMessage,
+                    'redirect' => route_url('admin.users'),
+                ]);
+                exit;
+            }
+            flash('success', $successMessage);
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            if ($corPath && is_file(__DIR__ . '/../' . $corPath)) {
+                @unlink(__DIR__ . '/../' . $corPath);
+            }
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                http_response_code(422);
+                echo json_encode(['ok' => false, 'message' => $e->getMessage()]);
+                exit;
+            }
+            flash('error', $e->getMessage());
+        }
+        redirect('index.php?r=admin_users');
     }
 
     public function evaluations(): void

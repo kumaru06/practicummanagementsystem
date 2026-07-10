@@ -25,6 +25,8 @@
     initWizards();
     initEnrollmentAutomation();
     initEnrollmentDirectory();
+    initEnrollmentWizardModal();
+    initEnrollmentWizardSelectPortals();
     initEnrollmentCorUpload();
     initViewToggles();
     initTimelineDetails();
@@ -50,6 +52,7 @@
     initEnrollmentFilters();
     initMyStudentsDirectory();
     initAdminStudentsDirectory();
+    initAdminCreateStudentModal();
     document.querySelector('#modal .modal-close')?.addEventListener('click', closeSlidePanel);
     document.addEventListener('click', handleOutsideMenus);
     document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeSlidePanel(); closeAdminActionMenus(); closeNotifications(); closeRequirementReviewModals(); closeRegistrationRequestsReview(); closeCustomSelects(); closeCustomDatePickers(); closeDtrTimePicker(); } });
@@ -1309,6 +1312,13 @@ function closeCustomSelects(except = null) {
         custom.classList.remove('is-open');
         custom.querySelector('.custom-select-trigger')?.setAttribute('aria-expanded', 'false');
     });
+    // Portaled menus usually sync via MutationObserver; force-hide when everything closes
+    if (!except) {
+        document.querySelectorAll('.enr-wizard-select-menu.is-open').forEach(menu => {
+            menu.classList.remove('is-open');
+            menu.hidden = true;
+        });
+    }
 }
 
 function closeCustomDatePickers(except = null) {
@@ -3124,7 +3134,7 @@ function initLiveFieldAvailability({
 
 function initStudentNoAvailability() {
     initLiveFieldAvailability({
-        input: document.querySelector('form:not(#studentRegisterForm) input[name="student_no"][data-student-no-check]'),
+        input: document.querySelector('form:not(#studentRegisterForm):not(#asuCreateStudentForm) input[name="student_no"][data-student-no-check]'),
         route: 'coordinator_check_student_no',
         paramName: 'student_no',
         messageSelector: '[data-student-no-message]',
@@ -3137,7 +3147,7 @@ function initStudentNoAvailability() {
 
 function initEmailAvailability() {
     initLiveFieldAvailability({
-        input: document.querySelector('form:not(#studentRegisterForm) input[name="email"][data-email-check]'),
+        input: document.querySelector('form:not(#studentRegisterForm):not(#asuCreateStudentForm) input[name="email"][data-email-check]'),
         route: 'coordinator_check_email',
         paramName: 'email',
         messageSelector: '[data-email-message]',
@@ -3146,6 +3156,121 @@ function initEmailAvailability() {
         takenMessage: 'This email address is already registered.',
         availableMessage: 'Email address is available.',
     });
+}
+
+function initAdminCreateStudentAvailability() {
+    const form = document.getElementById('asuCreateStudentForm');
+    if (!form) return;
+
+    initLiveFieldAvailability({
+        input: form.querySelector('input[name="student_no"][data-admin-student-no-check]'),
+        route: 'admin_check_student_no',
+        paramName: 'student_no',
+        messageSelector: '[data-admin-student-no-message]',
+        sanitize: value => value.replace(/\D/g, ''),
+        canCheck: value => /^\d+$/.test(value),
+        takenMessage: 'This Student ID/USN is already registered.',
+        availableMessage: 'Student ID/USN is available.',
+    });
+
+    initLiveFieldAvailability({
+        input: form.querySelector('input[name="email"][data-admin-student-email-check]'),
+        route: 'admin_check_student_email',
+        paramName: 'email',
+        messageSelector: '[data-admin-student-email-message]',
+        sanitize: value => value.trim().toLowerCase(),
+        canCheck: value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
+        takenMessage: 'This email address is already registered.',
+        availableMessage: 'Email address is available.',
+    });
+}
+
+function initAdminCreateStudentModal() {
+    const overlay = document.getElementById('asuCreateStudentOverlay');
+    const openBtn = document.querySelector('[data-asu-create-student]');
+    const closeBtn = document.getElementById('asuCreateStudentClose');
+    const cancelBtn = document.getElementById('asuCreateStudentCancel');
+    const form = document.getElementById('asuCreateStudentForm');
+    if (!overlay || !openBtn || !closeBtn || !cancelBtn || !form) return;
+    if (overlay.dataset.ready === '1') return;
+    overlay.dataset.ready = '1';
+
+    const MODAL_ANIM_MS = 300;
+    let closeTimer = null;
+
+    const dropzone = form.querySelector('[data-asu-cor-dropzone]');
+    const fileInput = form.querySelector('#asuCorFileInput');
+    const browseBtn = form.querySelector('[data-asu-cor-browse]');
+    const fileName = form.querySelector('[data-asu-cor-filename]');
+    const clearBtn = form.querySelector('[data-asu-cor-clear]');
+
+    const syncFileLabel = () => {
+        const file = fileInput?.files?.[0];
+        if (fileName) fileName.textContent = file ? file.name : 'No file chosen';
+        if (clearBtn) clearBtn.hidden = !file;
+    };
+
+    browseBtn?.addEventListener('click', () => fileInput?.click());
+    clearBtn?.addEventListener('click', () => {
+        if (!fileInput) return;
+        fileInput.value = '';
+        syncFileLabel();
+    });
+    fileInput?.addEventListener('change', syncFileLabel);
+    dropzone?.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropzone.classList.add('is-dragover');
+    });
+    dropzone?.addEventListener('dragleave', () => dropzone.classList.remove('is-dragover'));
+    dropzone?.addEventListener('drop', e => {
+        e.preventDefault();
+        dropzone.classList.remove('is-dragover');
+        if (!fileInput || !e.dataTransfer?.files?.length) return;
+        fileInput.files = e.dataTransfer.files;
+        syncFileLabel();
+    });
+
+    const finishClose = () => {
+        overlay.classList.remove('is-closing');
+        overlay.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('is-asu-create-open');
+        closeTimer = null;
+    };
+
+    const closeModal = () => {
+        if (!overlay.classList.contains('open') || overlay.classList.contains('is-closing')) return;
+        if (closeTimer) clearTimeout(closeTimer);
+        overlay.classList.add('is-closing');
+        overlay.classList.remove('open');
+        closeTimer = window.setTimeout(finishClose, MODAL_ANIM_MS);
+    };
+
+    const openModal = () => {
+        if (closeTimer) {
+            clearTimeout(closeTimer);
+            closeTimer = null;
+        }
+        overlay.classList.remove('is-closing');
+        overlay.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('is-asu-create-open');
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => overlay.classList.add('open'));
+        });
+    };
+
+    openBtn.addEventListener('click', openModal);
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', e => {
+        if (e.target === overlay) closeModal();
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
+    });
+
+    initAdminCreateStudentAvailability();
+    initCustomFilterSelects();
+    initCustomDatePickers();
 }
 
 function initStudentRegistrationPasswordIndicators() {
@@ -3820,7 +3945,7 @@ function handleOutsideMenus(event) {
     document.querySelectorAll('.column-options.open').forEach(menu => {
         if (!menu.parentElement.contains(event.target)) menu.classList.remove('open');
     });
-    if (!event.target.closest('.custom-select') && !event.target.closest('.asu-program-filter-menu')) closeCustomSelects();
+    if (!event.target.closest('.custom-select') && !event.target.closest('.asu-program-filter-menu') && !event.target.closest('.enr-wizard-select-menu')) closeCustomSelects();
     if (!event.target.closest('.filter-date-picker') && !event.target.closest('.global-cal-panel')) closeCustomDatePickers();
     if (!event.target.closest('.form-datetime-picker') && !event.target.closest('.global-datetime-panel')) closeGlobalDtPanel();
     if (!event.target.closest('.dtr-time-panel') && !event.target.closest('[data-time-picker-trigger]')) closeDtrTimePicker();
@@ -3910,12 +4035,68 @@ function openSlidePanel(html) {
     const body  = document.getElementById('modal-body');
     if (!modal || !body) return;
     body.innerHTML = html;
-    modal.classList.add('open');
-    modal.addEventListener('click', e => { if (e.target === modal) closeSlidePanel(); }, { once: true });
+    if (modal._closeTimer) {
+        clearTimeout(modal._closeTimer);
+        modal._closeTimer = null;
+    }
+    modal.classList.remove('is-closing');
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            modal.classList.add('open');
+        });
+    });
+    if (!modal.dataset.closeBound) {
+        modal.dataset.closeBound = '1';
+        modal.addEventListener('click', e => {
+            if (e.target === modal) closeSlidePanel();
+        });
+    }
 }
+
 function closeSlidePanel() {
-    document.getElementById('modal')?.classList.remove('open');
-    document.getElementById('studentModal')?.classList.remove('open');
+    const modal = document.getElementById('modal');
+    if (modal && (modal.classList.contains('open') || modal.classList.contains('is-closing'))) {
+        if (!modal.classList.contains('is-closing')) {
+            const ANIM_MS = 280;
+            if (modal._closeTimer) clearTimeout(modal._closeTimer);
+            modal.classList.add('is-closing');
+            modal.classList.remove('open');
+            modal._closeTimer = window.setTimeout(() => {
+                modal.classList.remove('is-closing');
+                modal._closeTimer = null;
+            }, ANIM_MS);
+        }
+    }
+    closeStudentModal();
+}
+
+function closeStudentModal() {
+    const modal = document.getElementById('studentModal');
+    if (!modal) return;
+    if (!modal.classList.contains('open') && !modal.classList.contains('is-closing')) return;
+    if (modal.classList.contains('is-closing')) return;
+
+    const ANIM_MS = 280;
+    if (modal._closeTimer) clearTimeout(modal._closeTimer);
+    modal.classList.add('is-closing');
+    modal.classList.remove('open');
+    modal._closeTimer = window.setTimeout(() => {
+        modal.classList.remove('is-closing');
+        modal._closeTimer = null;
+    }, ANIM_MS);
+}
+
+function openStudentModal() {
+    const modal = document.getElementById('studentModal');
+    if (!modal) return;
+    if (modal._closeTimer) {
+        clearTimeout(modal._closeTimer);
+        modal._closeTimer = null;
+    }
+    modal.classList.remove('is-closing');
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => modal.classList.add('open'));
+    });
 }
 
 function closeAdminActionMenus() {
@@ -3965,7 +4146,9 @@ function renderDashboardCharts() {
     if (!window.dashboardCharts) return;
 
     function drawAll() {
-        drawBars('monthlyChart', window.dashboardCharts.monthlyTrends || [], '', false, true);
+        if (document.getElementById('monthlyChart')) {
+            drawBars('monthlyChart', window.dashboardCharts.monthlyTrends || [], '', false, true);
+        }
         drawStatusPie('statusChart', window.dashboardCharts.statusDistribution || []);
         drawBars('courseChart',  window.dashboardCharts.completionRates || [], '%', true);
     }
@@ -4569,8 +4752,6 @@ function drawLine(id, data) {
         ctx.restore();
     });}
 
-function closeStudentModal() { closeSlidePanel(); }
-
 function closeRequirementReviewModals() {
     document.querySelectorAll('.requirement-review-modal.open').forEach(modal => modal.classList.remove('open'));
 }
@@ -5159,7 +5340,7 @@ function initStudentModal() {
         const emailInput = document.getElementById('sm-email-input');
         if (emailInput) emailInput.value = d.email || '';
 
-        modal.classList.add('open');
+        openStudentModal();
     });
 
     const params = new URLSearchParams(window.location.search);
@@ -5359,12 +5540,40 @@ function initCoordinatorDirectory() {
 
 function initEnrollmentDirectory() {
     document.querySelectorAll('[data-enrollment-directory]').forEach(directory => {
+        if (directory.dataset.enrDirReady === '1') return;
+        directory.dataset.enrDirReady = '1';
+
         const table = directory.querySelector('[data-enrollment-directory-table]');
-        const wizardForm = document.querySelector('[data-wizard]');
+        const wizardForm = document.querySelector('.enr-wizard-overlay [data-wizard], [data-wizard]');
         const studentSelect = wizardForm?.querySelector('[name="student_id"]');
-        if (!table || !studentSelect) return;
+        const openBtn = directory.querySelector('[data-enr-open-wizard]');
+        const exportBtn = directory.querySelector('[data-enr-export]');
+        if (!table) return;
+
+        exportBtn?.addEventListener('click', () => exportCsv(table));
+
+        const openWizardForStudent = studentId => {
+            if (!studentSelect) return;
+            if (studentId) {
+                studentSelect.value = String(studentId);
+                studentSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                studentSelect._syncCustomSelect?.();
+            }
+            window.openEnrollmentWizardModal?.();
+        };
+
+        openBtn?.addEventListener('click', () => openWizardForStudent(''));
+
+        directory.querySelectorAll('[data-enr-enroll-student]').forEach(btn => {
+            btn.addEventListener('click', e => {
+                e.preventDefault();
+                e.stopPropagation();
+                openWizardForStudent(btn.dataset.enrEnrollStudent || '');
+            });
+        });
 
         table.tBodies[0]?.addEventListener('click', event => {
+            if (event.target.closest('[data-enr-enroll-student]')) return;
             const row = event.target.closest('.enrollment-directory-row');
             if (!row) return;
 
@@ -5381,12 +5590,124 @@ function initEnrollmentDirectory() {
                 return;
             }
 
-            studentSelect.value = studentId;
-            studentSelect.dispatchEvent(new Event('change', { bubbles: true }));
-            studentSelect._syncCustomSelect?.();
-            const wizardPanel = document.getElementById('enrollment-wizard-panel');
-            (wizardPanel || wizardForm).scrollIntoView({ behavior: 'smooth', block: 'start' });
+            openWizardForStudent(studentId);
         });
+    });
+}
+
+function initEnrollmentWizardSelectPortal(select) {
+    if (!select || select.dataset.enhanced !== '1' || select.dataset.enrMenuPortal === '1') return;
+
+    const wrap = select.closest('label') || select.parentElement;
+    const custom = wrap?.querySelector('.custom-select');
+    const trigger = custom?.querySelector('.custom-select-trigger');
+    const menu = custom?.querySelector('.custom-select-menu');
+    if (!custom || !trigger || !menu) return;
+
+    select.dataset.enrMenuPortal = '1';
+    document.body.appendChild(menu);
+    menu.classList.add('enr-wizard-select-menu');
+    menu.hidden = true;
+
+    const syncMenu = () => {
+        const open = custom.classList.contains('is-open');
+        menu.classList.toggle('is-open', open);
+        if (!open) {
+            menu.hidden = true;
+            menu.style.width = '';
+            menu.style.left = '';
+            menu.style.top = '';
+            menu.style.bottom = '';
+            menu.style.maxHeight = '';
+            return;
+        }
+
+        menu.hidden = false;
+        const rect = trigger.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom - 16;
+        const spaceAbove = rect.top - 16;
+        const openUp = spaceBelow < 160 && spaceAbove > spaceBelow;
+        const maxHeight = Math.max(140, Math.min(320, openUp ? spaceAbove : spaceBelow));
+
+        menu.style.position = 'fixed';
+        menu.style.left = `${Math.round(rect.left)}px`;
+        menu.style.width = `${Math.round(rect.width)}px`;
+        menu.style.zIndex = '10060';
+        menu.style.maxHeight = `${maxHeight}px`;
+        menu.style.overflowY = 'auto';
+
+        if (openUp) {
+            menu.style.top = 'auto';
+            menu.style.bottom = `${Math.round(window.innerHeight - rect.top + 6)}px`;
+        } else {
+            menu.style.bottom = 'auto';
+            menu.style.top = `${Math.round(rect.bottom + 6)}px`;
+        }
+    };
+
+    const observer = new MutationObserver(() => requestAnimationFrame(syncMenu));
+    observer.observe(custom, { attributes: true, attributeFilter: ['class'] });
+    window.addEventListener('resize', syncMenu);
+    window.addEventListener('scroll', syncMenu, true);
+    requestAnimationFrame(syncMenu);
+}
+
+function initEnrollmentWizardSelectPortals() {
+    const overlay = document.getElementById('enrWizardOverlay');
+    if (!overlay) return;
+    overlay.querySelectorAll('select').forEach(select => initEnrollmentWizardSelectPortal(select));
+}
+
+function initEnrollmentWizardModal() {
+    const overlay = document.getElementById('enrWizardOverlay');
+    const closeBtn = document.getElementById('enrWizardClose');
+    if (!overlay || !closeBtn) return;
+    if (overlay.dataset.ready === '1') return;
+    overlay.dataset.ready = '1';
+
+    const MODAL_ANIM_MS = 300;
+    let closeTimer = null;
+
+    const finishClose = () => {
+        overlay.classList.remove('is-closing');
+        overlay.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('is-enr-wizard-open');
+        closeCustomSelects();
+        closeTimer = null;
+    };
+
+    const closeModal = () => {
+        if (!overlay.classList.contains('open') || overlay.classList.contains('is-closing')) return;
+        if (closeTimer) clearTimeout(closeTimer);
+        closeCustomSelects();
+        overlay.classList.add('is-closing');
+        overlay.classList.remove('open');
+        closeTimer = window.setTimeout(finishClose, MODAL_ANIM_MS);
+    };
+
+    const openModal = () => {
+        if (closeTimer) {
+            clearTimeout(closeTimer);
+            closeTimer = null;
+        }
+        overlay.classList.remove('is-closing');
+        overlay.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('is-enr-wizard-open');
+        initEnrollmentWizardSelectPortals();
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => overlay.classList.add('open'));
+        });
+    };
+
+    window.openEnrollmentWizardModal = openModal;
+    window.closeEnrollmentWizardModal = closeModal;
+
+    closeBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', e => {
+        if (e.target === overlay) closeModal();
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
     });
 }
 
@@ -5798,6 +6119,7 @@ const ROLE_AJAX_ROUTES = {
         'admin_programs',
         'admin_reports',
         'admin_report',
+        'admin_recent_activities',
         'chat',
     ]),
     coordinator: new Set([
@@ -6009,10 +6331,14 @@ function reinitAppPageContent() {
     initPasswordResetRequests();
     initAdminUserActions();
     initAdminStudentsDirectory();
+    initAdminCreateStudentModal();
     initCoordinatorAvailability();
     initPartnerAvailability();
+    initWizards();
     initEnrollmentAutomation();
     initEnrollmentDirectory();
+    initEnrollmentWizardModal();
+    initEnrollmentWizardSelectPortals();
     initEnrollmentCorUpload();
     initEnrollmentFilters();
     initMyStudentsDirectory();
@@ -6028,7 +6354,10 @@ function reinitAppPageContent() {
     try { initWeeklyReportUpload(); } catch (err) { console.warn('Weekly report upload init failed:', err); }
     document.querySelectorAll('.content .data-table').forEach(table => enhanceTable(table));
 
-    if (!document.getElementById('monthlyChart')) {
+    // Only clear chart data when no dashboard chart canvases remain (admin no longer has monthlyChart).
+    if (!document.getElementById('monthlyChart')
+        && !document.getElementById('statusChart')
+        && !document.getElementById('courseChart')) {
         window.dashboardCharts = null;
     }
     renderDashboardCharts();

@@ -31,6 +31,7 @@ CREATE TABLE users (
   created_by INT NULL,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   password_changed TINYINT(1) NOT NULL DEFAULT 1,
+  last_login_at DATETIME NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_users_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;

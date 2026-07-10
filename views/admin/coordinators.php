@@ -70,22 +70,25 @@ $inactiveCoordinators = $totalCoordinators - $activeCoordinators;
                             title="ID Number must contain digits only"
                             oninput="this.value=this.value.replace(/[^0-9]/g,'')"
                             data-coordinator-id-check>
-                        <span class="field-check-message" data-coordinator-id-message hidden aria-live="polite"></span>
+                        <span class="field-check-message field-check-message--slot" data-coordinator-id-message hidden aria-live="polite"></span>
                     </label>
                     <label class="aco-field">
                         <span class="aco-field-label">First Name <em>*</em></span>
                         <input required name="first_name" autocomplete="given-name" placeholder="e.g. Maria"
                             data-capitalize-words pattern="[A-Za-z\s\-\.]+" title="First name must contain letters only">
+                        <span class="field-check-message field-check-message--slot field-check-message--reserve" aria-hidden="true"></span>
                     </label>
                     <label class="aco-field">
                         <span class="aco-field-label">Middle Name</span>
                         <input name="middle_name" autocomplete="additional-name" placeholder="Optional"
                             data-capitalize-words pattern="[A-Za-z\s\-\.]*" title="Middle name must contain letters only">
+                        <span class="field-check-message field-check-message--slot field-check-message--reserve" aria-hidden="true"></span>
                     </label>
                     <label class="aco-field">
                         <span class="aco-field-label">Last Name <em>*</em></span>
                         <input required name="last_name" autocomplete="family-name" placeholder="e.g. Santos"
                             data-capitalize-words pattern="[A-Za-z\s\-\.]+" title="Last name must contain letters only">
+                        <span class="field-check-message field-check-message--slot field-check-message--reserve" aria-hidden="true"></span>
                     </label>
                     <label class="aco-field">
                         <span class="aco-field-label">Email <em>*</em></span>
@@ -93,11 +96,12 @@ $inactiveCoordinators = $totalCoordinators - $activeCoordinators;
                             pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
                             title="Please enter a valid email address"
                             data-coordinator-email-check>
-                        <span class="field-check-message" data-coordinator-email-message hidden aria-live="polite"></span>
+                        <span class="field-check-message field-check-message--slot" data-coordinator-email-message hidden aria-live="polite"></span>
                     </label>
                     <label class="aco-field">
                         <span class="aco-field-label">Department <em>*</em></span>
                         <input required name="department" value="OJT Department" autocomplete="organization">
+                        <span class="field-check-message field-check-message--slot field-check-message--reserve" aria-hidden="true"></span>
                     </label>
                     <label class="aco-field aco-field--signature">
                         <span class="aco-field-label">Signature <em>*</em></span>

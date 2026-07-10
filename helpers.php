@@ -89,6 +89,9 @@ function route_url(string $route, array $params = []): string
         'partner.login.post' => 'auth.php?portal=partner',
         'admin.dashboard' => 'index.php?r=admin',
         'admin.users' => 'index.php?r=admin_users',
+        'admin.create_student' => 'index.php?r=admin_create_student',
+        'admin.check_student_no' => 'index.php?r=admin_check_student_no',
+        'admin.check_student_email' => 'index.php?r=admin_check_student_email',
         'admin.registration_requests' => 'index.php?r=admin_registration_requests',
         'admin.password_reset_requests' => 'index.php?r=admin_password_reset_requests',
         'student.register' => 'register.php',
@@ -102,6 +105,7 @@ function route_url(string $route, array $params = []): string
         'admin.ojt_placement' => 'index.php?r=admin_ojt_placement',
         'admin.reports' => 'index.php?r=admin_reports',
         'admin.report' => 'index.php?r=admin_report',
+        'admin.recent_activities' => 'index.php?r=admin_recent_activities',
         'coordinator.dashboard' => 'index.php?r=coordinator',
         'coordinator.manage' => 'index.php?r=coordinator_manage',
         'coordinator.students' => 'index.php?r=coordinator_students',
@@ -852,4 +856,43 @@ function admin_report_by_slug(string $slug): ?array
 function coordinator_avatar_tone(int $id): int
 {
     return (abs($id) % 6) + 1;
+}
+
+function format_activity_time(?string $datetime): string
+{
+    if ($datetime === null || trim($datetime) === '') {
+        return '';
+    }
+
+    try {
+        $then = new DateTimeImmutable($datetime);
+    } catch (Throwable) {
+        return '';
+    }
+
+    $now = new DateTimeImmutable('now');
+    $diffSeconds = $now->getTimestamp() - $then->getTimestamp();
+
+    if ($diffSeconds < 0) {
+        return $then->format('g:i A');
+    }
+
+    if ($diffSeconds < 60) {
+        return 'Just now';
+    }
+
+    if ($then->format('Y-m-d') === $now->format('Y-m-d')) {
+        return $then->format('g:i A');
+    }
+
+    $yesterday = $now->modify('-1 day');
+    if ($then->format('Y-m-d') === $yesterday->format('Y-m-d')) {
+        return 'Yesterday';
+    }
+
+    if ($diffSeconds < 7 * 24 * 60 * 60) {
+        return $then->format('D');
+    }
+
+    return $then->format('M j');
 }

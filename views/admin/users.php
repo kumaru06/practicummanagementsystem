@@ -77,7 +77,6 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
                 <input class="table-search asu-table-search" type="search" placeholder="Search students..." autocomplete="off">
             </div>
-            <?php if ($totalStudents > 0): ?>
             <div class="asu-toolbar-actions">
                 <?php if ($programs): ?>
                 <label class="filter-select-wrap asu-filter-select">
@@ -89,9 +88,14 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
                     </select>
                 </label>
                 <?php endif; ?>
+                <button class="btn btn-primary asu-create-student-btn" type="button" data-asu-create-student>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                    Create Student
+                </button>
+                <?php if ($totalStudents > 0): ?>
                 <button class="btn btn-small asu-export-btn" type="button" data-asu-export>Export CSV</button>
+                <?php endif; ?>
             </div>
-            <?php endif; ?>
         </div>
 
         <?php if ($totalStudents === 0): ?>
@@ -331,5 +335,133 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+<?php
+$coordinators = $coordinators ?? [];
+$activeCoordinators = array_values(array_filter(
+    $coordinators,
+    static fn ($c) => (int)($c['is_active'] ?? 0) === 1
+));
+?>
+<div class="asu-create-overlay" id="asuCreateStudentOverlay" aria-hidden="true">
+    <div class="asu-create-modal" role="dialog" aria-modal="true" aria-labelledby="asuCreateStudentTitle">
+        <div class="asu-create-modal-head">
+            <div class="asu-create-modal-head-main">
+                <div class="asu-create-modal-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5ZM8 13h8v2H8v-2Zm0 4h8v2H8v-2Zm0-8h5v2H8V9Z"/></svg>
+                </div>
+                <div>
+                    <h2 id="asuCreateStudentTitle">Create Student from COR</h2>
+                    <p>Add a student account, upload COR, and assign an OJT coordinator.</p>
+                </div>
+            </div>
+            <button type="button" class="asu-create-modal-close" id="asuCreateStudentClose" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="form js-validate asu-create-form" id="asuCreateStudentForm" data-submit-async="1" data-submit-processing-title="Creating student profile..." data-submit-processing-message="Saving student details and uploading the COR document. Please wait.">
+            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="admin_create_student">
+
+            <div class="asu-create-modal-body">
+                <div class="asu-create-section">
+                    <div class="asu-create-section-head">1. Student Identity</div>
+                    <div class="asu-create-fields">
+                        <label class="asu-create-field asu-create-field--full">
+                            <span>Student ID/USN <em>*</em></span>
+                            <input required name="student_no" autocomplete="off" inputmode="numeric" pattern="\d+" title="Student ID/USN must contain numbers only" oninput="this.value=this.value.replace(/\D/g,'')" data-admin-student-no-check placeholder="e.g. 2024001234">
+                            <span class="field-check-message" data-admin-student-no-message hidden aria-live="polite"></span>
+                        </label>
+                        <label class="asu-create-field">
+                            <span>First Name <em>*</em></span>
+                            <input required name="first_name" autocomplete="given-name" pattern="[A-Za-z\s\-\.]+" title="First name must contain letters only" data-capitalize-words placeholder="e.g. Kuramu">
+                        </label>
+                        <label class="asu-create-field">
+                            <span>Middle Name</span>
+                            <input name="middle_name" autocomplete="additional-name" pattern="[A-Za-z\s\-\.]*" title="Middle name must contain letters only" data-capitalize-words placeholder="Optional">
+                        </label>
+                        <label class="asu-create-field">
+                            <span>Last Name <em>*</em></span>
+                            <input required name="last_name" autocomplete="family-name" pattern="[A-Za-z\s\-\.]+" title="Last name must contain letters only" data-capitalize-words placeholder="e.g. Doreyan">
+                        </label>
+                        <label class="asu-create-field asu-create-field--full">
+                            <span>Email <em>*</em></span>
+                            <input required type="email" name="email" autocomplete="email" data-admin-student-email-check placeholder="student@ama.edu.ph">
+                            <span class="field-check-message" data-admin-student-email-message hidden aria-live="polite"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="asu-create-section">
+                    <div class="asu-create-section-head">2. Academic Details</div>
+                    <div class="asu-create-fields">
+                        <label class="asu-create-field asu-create-field--full">
+                            <span>Course <em>*</em></span>
+                            <select required name="program_id">
+                                <option value="">— Select course —</option>
+                                <?php foreach ($programs as $program): ?>
+                                    <option value="<?= (int)$program['id'] ?>"><?= e($program['code'] . ' — ' . $program['name'] . ' (' . $program['required_hours'] . ' hrs)') ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                        <label class="asu-create-field">
+                            <span>Year Level <em>*</em></span>
+                            <select required name="year_level">
+                                <option value="">— Select year level —</option>
+                                <option value="3rd Year">3rd Year</option>
+                                <option value="4th Year">4th Year</option>
+                            </select>
+                        </label>
+                        <label class="asu-create-field">
+                            <span>Birthdate <em>*</em></span>
+                            <span class="filter-date-picker form-date-picker is-placeholder" data-date-required="1" data-date-max="<?= date('Y-m-d', strtotime('-20 years')) ?>">
+                                <input type="hidden" name="birthdate" value="">
+                                <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select birthdate">
+                                    <span class="filter-date-value">mm/dd/yyyy</span>
+                                    <span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span>
+                                </button>
+                                <div class="filter-date-panel" hidden></div>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="asu-create-section">
+                    <div class="asu-create-section-head">3. Assignment & COR</div>
+                    <div class="asu-create-fields">
+                        <label class="asu-create-field asu-create-field--full">
+                            <span>Assign Coordinator <em>*</em></span>
+                            <select required name="coordinator_id">
+                                <option value="">— Select coordinator —</option>
+                                <?php foreach ($activeCoordinators as $coord): ?>
+                                    <option value="<?= (int)$coord['id'] ?>"><?= e(full_name($coord) ?: ($coord['name'] ?? 'Coordinator')) ?><?= !empty($coord['department']) ? ' — ' . e($coord['department']) : '' ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                        <label class="asu-create-field asu-create-field--full asu-create-file-field">
+                            <span>COR PDF/JPG/PNG <em>*</em></span>
+                            <div class="asu-create-file-row" data-asu-cor-dropzone>
+                                <input required type="file" name="cor_file" accept=".pdf,.jpg,.jpeg,.png" id="asuCorFileInput">
+                                <button type="button" class="asu-create-file-choose" data-asu-cor-browse>Choose file</button>
+                                <span class="asu-create-file-name muted" data-asu-cor-filename>No file chosen</span>
+                                <button type="button" class="asu-create-file-clear" data-asu-cor-clear hidden aria-label="Remove file">&times;</button>
+                            </div>
+                            <small class="muted">PDF, JPG, or PNG. Credentials are emailed when the coordinator enrolls the student.</small>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="asu-create-modal-actions">
+                <button type="button" class="btn btn-small" id="asuCreateStudentCancel">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <span class="btn-text">Create Student</span>
+                    <span class="spinner"></span>
+                </button>
+            </div>
+        </form>
     </div>
 </div>
