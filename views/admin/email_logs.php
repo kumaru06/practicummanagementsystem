@@ -12,7 +12,6 @@
     <div class="section-head">
         <div>
             <h2>Filter Email Activity</h2>
-            <p class="muted">Review real PHPMailer SMTP delivery attempts, failures, and errors.</p>
         </div>
         <span class="hero-pill soft">Real-time audit trail</span>
     </div>

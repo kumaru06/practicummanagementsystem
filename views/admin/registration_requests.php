@@ -13,7 +13,6 @@ $pendingCount = count($requests ?? []);
             <div class="reg-req-card-copy">
                 <span class="reg-req-eyebrow">Student Self-Registration</span>
                 <h2>Pending Student Account Requests</h2>
-                <p>Review email-verified student applications awaiting administrator approval.</p>
             </div>
             <?php if ($pendingCount > 0): ?>
                 <div class="reg-req-pending-badge" aria-live="polite">

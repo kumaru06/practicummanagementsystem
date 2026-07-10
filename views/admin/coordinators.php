@@ -49,7 +49,6 @@ $inactiveCoordinators = $totalCoordinators - $activeCoordinators;
                 </span>
                 <span class="aco-create-panel-copy">
                     <strong>Create OJT Coordinator</strong>
-                    <span>Provision access, assign department, and upload endorsement signature.</span>
                 </span>
             </span>
             <span class="aco-create-panel-chevron" aria-hidden="true">
@@ -137,7 +136,6 @@ $inactiveCoordinators = $totalCoordinators - $activeCoordinators;
             <div class="aco-directory-copy">
                 <span class="aco-eyebrow">Coordinator Directory</span>
                 <h2>All Coordinators</h2>
-                <p>Search, filter, and manage OJT coordinator accounts from one directory.</p>
             </div>
             <div class="aco-directory-badge" aria-live="polite">
                 <strong><?= $totalCoordinators ?></strong>

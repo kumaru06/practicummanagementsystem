@@ -23,7 +23,10 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
     <div class="asu-stats-strip">
         <article class="asu-stat-card asu-stat-total">
             <div class="asu-stat-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
             </div>
             <div class="asu-stat-body">
                 <span>Total Students</span>
@@ -32,7 +35,11 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
         </article>
         <article class="asu-stat-card asu-stat-active">
             <div class="asu-stat-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 11-2-2 1.41-1.41L10 11.17l3.59-3.59L15 9l-5 5z"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <polyline points="16 11 18 13 22 9"/>
+                </svg>
             </div>
             <div class="asu-stat-body">
                 <span>Active Accounts</span>
@@ -41,7 +48,12 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
         </article>
         <article class="asu-stat-card asu-stat-inactive">
             <div class="asu-stat-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8 0-1.85.63-3.55 1.69-4.9L16.9 18.31C15.55 19.37 13.85 20 12 20zm6.31-3.1L7.1 5.69C8.45 4.63 10.15 4 12 4c4.42 0 8 3.58 8 8 0 1.85-.63 3.55-1.69 4.9z"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <line x1="17" y1="8" x2="22" y2="13"/>
+                    <line x1="22" y1="8" x2="17" y2="13"/>
+                </svg>
             </div>
             <div class="asu-stat-body">
                 <span>Inactive</span>
@@ -50,7 +62,10 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
         </article>
         <article class="asu-stat-card asu-stat-ojt">
             <div class="asu-stat-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="2" y="7" width="20" height="14" rx="2"/>
+                    <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                </svg>
             </div>
             <div class="asu-stat-body">
                 <span>OJT In Progress</span>
@@ -64,7 +79,6 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
             <div class="asu-directory-copy">
                 <span class="asu-eyebrow">Student Directory</span>
                 <h2>Enrolled Students</h2>
-                <p>Search, review profiles, and manage student account status from one place.</p>
             </div>
             <div class="asu-directory-badge" aria-live="polite">
                 <strong><?= $totalStudents ?></strong>

@@ -4758,9 +4758,30 @@ function closeRequirementReviewModals() {
 
 function closeRegistrationRequestsReview() {
     const panel = document.getElementById('regReqReviewPanel');
-    if (!panel || panel.hidden) return;
-    panel.hidden = true;
-    document.querySelectorAll('.reg-req-row.is-selected-row').forEach(row => row.classList.remove('is-selected-row'));
+    if (!panel || panel.hidden || panel.classList.contains('is-closing')) return;
+
+    const finishClose = () => {
+        panel.hidden = true;
+        panel.classList.remove('is-opening', 'is-closing');
+        document.querySelectorAll('.reg-req-row.is-selected-row').forEach(row => row.classList.remove('is-selected-row'));
+    };
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+        finishClose();
+        return;
+    }
+
+    panel.classList.remove('is-opening');
+    panel.classList.add('is-closing');
+
+    const onAnimEnd = (event) => {
+        if (event.target !== panel || event.animationName !== 'regReqSlideUp') return;
+        panel.removeEventListener('animationend', onAnimEnd);
+        finishClose();
+    };
+
+    panel.addEventListener('animationend', onAnimEnd);
 }
 
 function initRegistrationRequestsReview() {
@@ -4859,7 +4880,7 @@ function initRegistrationRequestsReview() {
     });
 
     const openReview = (row) => {
-        if (!panel || !row) return;
+        if (!panel || !row || panel.classList.contains('is-closing')) return;
 
         document.querySelectorAll('.reg-req-row.is-selected-row').forEach(r => r.classList.remove('is-selected-row'));
         row.classList.add('is-selected-row');
@@ -4901,8 +4922,18 @@ function initRegistrationRequestsReview() {
             setCoordinatorError(false);
         }
 
+        const wasHidden = panel.hidden;
+        panel.classList.remove('is-closing');
         panel.hidden = false;
-        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        if (wasHidden) {
+            panel.classList.remove('is-opening');
+            // Restart slide-down animation when opening from hidden.
+            void panel.offsetWidth;
+            panel.classList.add('is-opening');
+        }
+
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
     root.querySelectorAll('[data-reg-req-review]').forEach(button => {
