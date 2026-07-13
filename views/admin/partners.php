@@ -12,6 +12,15 @@ $totalPrograms = count($programs);
     class="form js-validate"
     data-require-checkbox-group="program_ids[]"
     data-require-checkbox-message="Select at least one accepted program/course."
+    data-confirm-submit="Create this Host Training Establishment and email login credentials?"
+    data-confirm-title="Review &amp; create"
+    data-confirm-ok="Create establishment"
+    data-confirm-cancel="Go back"
+    data-confirm-async="1"
+    data-confirm-processing-title="Creating establishment..."
+    data-confirm-processing-message="Saving details, generating credentials, and sending the welcome email."
+    data-confirm-success-title="Establishment created"
+    data-confirm-success-ok="Done"
 >
     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="action" value="admin_create_company">
@@ -60,57 +69,137 @@ $totalPrograms = count($programs);
 
     <div class="partner-admin-layout">
 
-        <section class="partner-panel partner-form-card">
-            <div class="partner-panel-head">
-                <div class="partner-icon-wrap partner-icon-wrap--add" aria-hidden="true">
+        <section class="partner-panel partner-form-card partner-create-card" data-partner-create-accordion>
+            <button
+                type="button"
+                class="partner-create-hero"
+                data-partner-create-toggle
+                aria-expanded="false"
+                aria-controls="partnerCreateBody"
+            >
+                <span class="partner-create-hero-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-                </div>
-                <div class="partner-panel-head-text">
-                    <h2>Add Host Training Establishment</h2>
-                </div>
-            </div>
+                </span>
+                <span class="partner-create-hero-copy">
+                    <span class="partner-create-eyebrow">New establishment</span>
+                    <span class="partner-create-title">Add Host Training Establishment</span>
+                </span>
+                <span class="partner-create-chevron" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                </span>
+            </button>
 
-            <div class="partner-form-section">
-                <div class="partner-form-section-head">Company Info</div>
+            <div class="partner-create-body" id="partnerCreateBody">
+                <div class="partner-create-body-inner">
+                    <section class="partner-create-block">
+                        <div class="partner-create-block-head">
+                            <span class="partner-create-step">01</span>
+                            <div>
+                                <h3>Company information</h3>
+                                <p>Basic profile used for login, email delivery, and directory listing.</p>
+                            </div>
+                        </div>
 
-                <div class="partner-form-fields">
-                    <label class="partner-field">
-                        <span class="partner-field-label">Company Name <em>*</em></span>
-                        <input form="create-partner-form" required name="company_name" placeholder="e.g. TechLog Dev Inc." autocomplete="organization">
-                    </label>
-                    <label class="partner-field">
-                        <span class="partner-field-label">Contact Person <em>*</em></span>
-                        <input form="create-partner-form" required name="contact_person" placeholder="Full name" autocomplete="name">
-                    </label>
-                    <label class="partner-field">
-                        <span class="partner-field-label">Email Address <em>*</em></span>
-                        <input form="create-partner-form" required type="email" name="contact_email" placeholder="partner@company.com" autocomplete="email"
-                            data-partner-email-check>
-                        <span class="field-check-message" data-partner-email-message hidden aria-live="polite"></span>
-                    </label>
-                    <label class="partner-field">
-                        <span class="partner-field-label">Contact Number <em>*</em></span>
-                        <input form="create-partner-form" required name="contact_number" placeholder="+63 951 192 5735" inputmode="numeric" autocomplete="tel-national" maxlength="16" data-phone-format="ph" pattern="\+63\s9\d{2}\s\d{3}\s\d{4}" title="Use format +63 951 192 5735">
-                    </label>
-                </div>
+                        <div class="partner-form-fields">
+                            <label class="partner-field">
+                                <span class="partner-field-label">Company Name <em>*</em></span>
+                                <input form="create-partner-form" required name="company_name" placeholder="e.g. TechLog Dev Inc." autocomplete="organization">
+                            </label>
+                            <label class="partner-field">
+                                <span class="partner-field-label">Contact Person <em>*</em></span>
+                                <input form="create-partner-form" required name="contact_person" placeholder="Full name" autocomplete="name">
+                            </label>
+                            <label class="partner-field">
+                                <span class="partner-field-label">Email Address <em>*</em></span>
+                                <input form="create-partner-form" required type="email" name="contact_email" placeholder="partner@company.com" autocomplete="email"
+                                    data-partner-email-check>
+                                <span class="field-check-message" data-partner-email-message hidden aria-live="polite"></span>
+                            </label>
+                            <label class="partner-field">
+                                <span class="partner-field-label">Contact Number <em>*</em></span>
+                                <input form="create-partner-form" required name="contact_number" placeholder="+63 951 192 5735" inputmode="numeric" autocomplete="tel-national" maxlength="16" data-phone-format="ph" pattern="\+63\s9\d{2}\s\d{3}\s\d{4}" title="Use format +63 951 192 5735">
+                            </label>
+                        </div>
 
-                <label class="partner-field partner-field--full">
-                    <span class="partner-field-label">Company Address <em>*</em></span>
-                    <textarea form="create-partner-form" required name="address" maxlength="500" rows="3" placeholder="Street, city, province"></textarea>
-                </label>
+                        <label class="partner-field partner-field--full">
+                            <span class="partner-field-label">Company Address <em>*</em></span>
+                            <textarea form="create-partner-form" required name="address" maxlength="500" rows="3" placeholder="Street, city, province"></textarea>
+                        </label>
 
-                <div class="partner-credential-strip">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-                    <div>
-                        <strong>Auto credential delivery</strong>
-                        <span>A temporary password is generated and emailed to the partner on creation.</span>
-                    </div>
-                </div>
+                        <div class="partner-create-meta">
+                            <div class="partner-create-note">
+                                <span class="partner-create-note-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                                </span>
+                                <div class="partner-create-note-copy">
+                                    <strong>Credentials are emailed automatically</strong>
+                                    <span>A temporary password is generated and sent to the partner on creation.</span>
+                                </div>
+                            </div>
 
-                <div class="partner-id-preview">
-                    <span class="partner-id-preview-label">HTE ID (Auto-Generated)</span>
-                    <strong class="partner-id-preview-value"><?= e($nextPartnerId ?? 'HTE-' . date('Y') . '-0001') ?></strong>
-                    <small>Assigned on save and included in the welcome email.</small>
+                            <div class="partner-create-id">
+                                <span>Next HTE ID</span>
+                                <strong><?= e($nextPartnerId ?? 'HTE-' . date('Y') . '-0001') ?></strong>
+                                <small>Assigned on save and included in the welcome email.</small>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="partner-create-block">
+                        <div class="partner-create-block-head">
+                            <span class="partner-create-step">02</span>
+                            <div>
+                                <h3>Accepted programs <em>*</em></h3>
+                                <p>Select every program this establishment is approved to host.</p>
+                            </div>
+                        </div>
+
+                        <?php if (empty($programs)): ?>
+                            <div class="partner-empty-state partner-empty-state--compact">
+                                <div class="partner-empty-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                                </div>
+                                <strong>No programs available yet</strong>
+                                <span>Create programs first in Degree Program before adding Host Training Establishments.</span>
+                            </div>
+                        <?php else: ?>
+                            <div class="partner-programs-grid">
+                                <?php foreach ($programs as $program): ?>
+                                    <label class="partner-program-option partner-program-option--card" form="create-partner-form">
+                                        <input form="create-partner-form" type="checkbox" name="program_ids[]" value="<?= (int)$program['id'] ?>">
+                                        <span class="partner-program-copy">
+                                            <strong><?= e($program['code']) ?></strong>
+                                            <span><?= e($program['name']) ?></span>
+                                        </span>
+                                        <em><?= (int)$program['required_hours'] ?> hrs</em>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </section>
+
+                    <section class="partner-create-block partner-create-block--footer">
+                        <div class="partner-create-block-head">
+                            <span class="partner-create-step">03</span>
+                            <div>
+                                <h3>Agreement &amp; create</h3>
+                                <p>Upload the signed MOA/MOU, then create the establishment account.</p>
+                            </div>
+                        </div>
+
+                        <div class="partner-create-footer">
+                            <label class="partner-upload-field">
+                                <span class="partner-upload-title">Upload MOA/MOU <span class="field-required">*</span></span>
+                                <input form="create-partner-form" required type="file" name="moa_mou_file" accept=".pdf,.jpg,.jpeg,.png">
+                                <small class="muted partner-upload-note">Required. PDF, JPG, or PNG up to 8MB.</small>
+                            </label>
+                            <button form="create-partner-form" class="btn partner-create-btn" type="submit">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                                <span class="btn-text">Create Host Training Establishment</span>
+                                <span class="spinner"></span>
+                            </button>
+                        </div>
+                    </section>
                 </div>
             </div>
         </section>
@@ -307,53 +396,6 @@ $totalPrograms = count($programs);
                 <div class="pagination"></div>
             </footer>
         <?php endif; ?>
-    </section>
-
-    <section class="partner-panel partner-full-card">
-        <div class="partner-panel-head">
-            <div class="partner-icon-wrap partner-icon-wrap--programs" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3 1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>
-            </div>
-            <div class="partner-panel-head-text">
-                <h2>Accepted Programs <span class="field-required">*</span></h2>
-            </div>
-        </div>
-
-        <?php if (empty($programs)): ?>
-            <div class="partner-empty-state partner-empty-state--compact">
-                <div class="partner-empty-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-                </div>
-                <strong>No programs available yet</strong>
-                <span>Create programs first in Degree Program before adding Host Training Establishments.</span>
-            </div>
-        <?php else: ?>
-            <div class="partner-programs-grid">
-                <?php foreach ($programs as $program): ?>
-                    <label class="partner-program-option partner-program-option--card" form="create-partner-form">
-                        <input form="create-partner-form" type="checkbox" name="program_ids[]" value="<?= (int)$program['id'] ?>">
-                        <span class="partner-program-copy">
-                            <strong><?= e($program['code']) ?></strong>
-                            <span><?= e($program['name']) ?></span>
-                        </span>
-                        <em><?= (int)$program['required_hours'] ?> hrs</em>
-                    </label>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-
-        <div class="partner-programs-footer">
-            <label class="partner-upload-field">
-                <span class="partner-upload-title">Upload MOA/MOU <span class="field-required">*</span></span>
-                <input form="create-partner-form" required type="file" name="moa_mou_file" accept=".pdf,.jpg,.jpeg,.png">
-                <small class="muted partner-upload-note">Required. PDF, JPG, or PNG up to 8MB.</small>
-            </label>
-            <button form="create-partner-form" class="btn partner-create-btn" type="submit">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-                <span class="btn-text">Create Host Training Establishment</span>
-                <span class="spinner"></span>
-            </button>
-        </div>
     </section>
 
 </div>

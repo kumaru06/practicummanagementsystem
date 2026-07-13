@@ -54,6 +54,8 @@
     initAdminStudentsDirectory();
     initAdminProgramsDirectory();
     initAdminPartnersDirectory();
+    initPartnerCreateAccordion();
+    initPartnerCreateReviewConfirm();
     initAdminCreateStudentModal();
     document.querySelector('#modal .modal-close')?.addEventListener('click', closeSlidePanel);
     document.addEventListener('click', handleOutsideMenus);
@@ -166,6 +168,8 @@ function buildConfirmCardHtml({
     title = '',
     titleId = 'app-confirm-title',
     message = '',
+    messageHtml = '',
+    iconSvg = '',
     actionsHtml = '',
     centered = false,
     busy = false,
@@ -176,37 +180,42 @@ function buildConfirmCardHtml({
         : '';
 
     const iconMap = {
-        alert: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>',
-        confirm: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 14-4-4 1.41-1.41L11 12.17l6.59-6.59L19 7l-8 8z"/></svg>',
-        success: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>',
+        alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>',
+        confirm: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/><path d="m9 14 2 2 4-4"/></svg>',
+        review: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>',
+        success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>',
         processing: '',
     };
 
     let bodyHtml = '';
+    const resolvedIcon = iconSvg || iconMap[variant] || iconMap.confirm;
 
     if (centered) {
         const markHtml = variant === 'processing'
             ? '<span class="app-confirm-spinner" aria-hidden="true"></span>'
-            : (iconMap[variant] || '');
+            : resolvedIcon;
 
         bodyHtml = `
             <div class="app-confirm-stage app-confirm-stage--center">
                 <div class="app-confirm-mark app-confirm-mark--${variant}" aria-hidden="true">${markHtml}</div>
                 <h2 id="${titleId}">${escapeHtml(title)}</h2>
-                ${message ? `<p class="app-confirm-message">${escapeHtml(message)}</p>` : ''}
+                ${messageHtml || (message ? `<p class="app-confirm-message">${escapeHtml(message)}</p>` : '')}
                 ${processingDots}
             </div>
         `;
     } else {
         const iconHtml = variant === 'processing'
             ? '<span class="app-confirm-spinner" aria-hidden="true"></span>'
-            : (iconMap[variant] || iconMap.confirm);
+            : resolvedIcon;
+
+        const contentHtml = messageHtml
+            || (message ? `<div class="app-confirm-message-box"><p class="app-confirm-message">${escapeHtml(message)}</p></div>` : '');
 
         bodyHtml = `
             <div class="app-confirm-stage">
                 <div class="app-confirm-icon app-confirm-icon--${variant}" aria-hidden="true">${iconHtml}</div>
                 <h2 id="${titleId}">${escapeHtml(title)}</h2>
-                ${message ? `<div class="app-confirm-message-box"><p class="app-confirm-message">${escapeHtml(message)}</p></div>` : ''}
+                ${contentHtml}
                 ${processingDots}
             </div>
         `;
@@ -230,10 +239,12 @@ function showConfirmModal(message, options = {}) {
         const overlay = document.createElement('div');
         overlay.className = 'app-confirm-overlay';
         overlay.innerHTML = buildConfirmCardHtml({
-            variant: 'confirm',
+            variant: options.variant || 'confirm',
             title: options.title || 'Confirm action',
             titleId: 'app-confirm-title',
-            message,
+            message: options.messageHtml ? '' : message,
+            messageHtml: options.messageHtml || '',
+            iconSvg: options.iconSvg || '',
             actionsHtml: `
                 <div class="app-confirm-actions app-confirm-actions--stacked">
                     <button class="app-confirm-btn app-confirm-btn--primary app-confirm-ok" type="button">${escapeHtml(options.confirmText || 'Continue')}</button>
@@ -241,6 +252,9 @@ function showConfirmModal(message, options = {}) {
                 </div>
             `,
         });
+        if (options.preLine) {
+            overlay.querySelector('.app-confirm-message')?.classList.add('app-confirm-message--preline');
+        }
 
         const close = value => {
             overlay.classList.remove('is-open');
@@ -326,6 +340,13 @@ function showProcessingModal(overlay, options = {}) {
 }
 
 function showSuccessModal(overlay, message, options = {}) {
+    const canMorph = Boolean(
+        overlay?.querySelector('.app-confirm-card--processing .app-confirm-mark--processing')
+    );
+    if (canMorph) {
+        return morphProcessingToSuccess(overlay, message, options);
+    }
+
     const target = replaceConfirmOverlay(overlay);
     return new Promise(resolve => {
         setConfirmOverlayCard(target, buildConfirmCardHtml({
@@ -350,6 +371,75 @@ function showSuccessModal(overlay, message, options = {}) {
         };
         target.querySelector('.app-confirm-success-ok')?.addEventListener('click', finish);
         target.querySelector('.app-confirm-success-ok')?.focus();
+    });
+}
+
+function morphProcessingToSuccess(overlay, message, options = {}) {
+    return new Promise(resolve => {
+        const card = overlay.querySelector('.app-confirm-card');
+        const stage = overlay.querySelector('.app-confirm-stage');
+        const mark = overlay.querySelector('.app-confirm-mark');
+        const title = overlay.querySelector('h2');
+        const messageEl = overlay.querySelector('.app-confirm-message');
+        const dots = overlay.querySelector('.app-confirm-dots');
+        if (!card || !mark || !stage) {
+            showSuccessModal(replaceConfirmOverlay(overlay), message, options).then(resolve);
+            return;
+        }
+
+        dots?.classList.add('is-fading-out');
+        mark.classList.add('is-morphing');
+
+        window.setTimeout(() => {
+            dots?.remove();
+            card.classList.remove('app-confirm-card--processing');
+            card.classList.add('app-confirm-card--success');
+            card.removeAttribute('aria-busy');
+            card.setAttribute('role', 'alertdialog');
+
+            mark.classList.remove('app-confirm-mark--processing');
+            mark.classList.add('app-confirm-mark--success', 'is-check-in');
+            mark.innerHTML = `
+                <svg class="app-confirm-check" viewBox="0 0 24 24" aria-hidden="true" fill="none">
+                    <circle class="app-confirm-check-ring" cx="12" cy="12" r="10"></circle>
+                    <path class="app-confirm-check-path" d="M7.2 12.4l3.1 3.1 6.5-6.6"></path>
+                </svg>
+            `;
+
+            if (title) title.textContent = options.title || 'Success';
+            if (messageEl) {
+                messageEl.textContent = message || '';
+            } else if (message) {
+                const p = document.createElement('p');
+                p.className = 'app-confirm-message';
+                p.textContent = message;
+                stage.appendChild(p);
+            }
+
+            let footer = overlay.querySelector('.app-confirm-footer');
+            if (!footer) {
+                footer = document.createElement('div');
+                footer.className = 'app-confirm-footer';
+                footer.innerHTML = `
+                    <div class="app-confirm-actions app-confirm-actions--single">
+                        <button class="app-confirm-btn app-confirm-btn--primary app-confirm-success-ok" type="button">${escapeHtml(options.confirmText || 'Done')}</button>
+                    </div>
+                `;
+                card.appendChild(footer);
+            }
+
+            const finish = () => {
+                dismissConfirmOverlay(overlay).then(() => {
+                    if (options.redirect) {
+                        window.location.href = options.redirect;
+                    }
+                    resolve();
+                });
+            };
+            const okBtn = footer.querySelector('.app-confirm-success-ok');
+            okBtn?.addEventListener('click', finish);
+            window.setTimeout(() => okBtn?.focus(), 280);
+        }, 180);
     });
 }
 
@@ -2972,6 +3062,10 @@ function initForms() {
                     confirmText: form.dataset.confirmOk || 'Submit',
                     cancelText: form.dataset.confirmCancel || 'Review again',
                     persistOnConfirm: isAsyncConfirm,
+                    preLine: form.dataset.confirmPreline === '1',
+                    variant: form.dataset.confirmVariant || 'confirm',
+                    messageHtml: form._confirmMessageHtml || '',
+                    iconSvg: form._confirmIconSvg || '',
                 }).then(result => {
                     const confirmed = result === true || result?.confirmed === true;
                     if (!confirmed) return;
@@ -6015,6 +6109,109 @@ function initAdminStudentsProgramFilterPortal(programFilter) {
     requestAnimationFrame(syncMenu);
 }
 
+function buildPartnerCreateReviewHtml(form) {
+    const valueOf = name => {
+        const el = form.elements.namedItem(name)
+            || document.querySelector(`[name="${name}"][form="${form.id}"]`);
+        if (!el) return '';
+        if (el instanceof RadioNodeList) return (el.value || '').trim();
+        return String(el.value || '').trim();
+    };
+
+    const rows = [
+        ['Company', valueOf('company_name') || '—'],
+        ['Contact', valueOf('contact_person') || '—'],
+        ['Email', valueOf('contact_email') || '—'],
+        ['Phone', valueOf('contact_number') || '—'],
+        ['Address', valueOf('address') || '—'],
+        ['Programs', (() => {
+            const programs = [...document.querySelectorAll(`input[type="checkbox"][name="program_ids[]"][form="${form.id}"]:checked`)]
+                .map(input => input.closest('label')?.querySelector('.partner-program-copy strong')?.textContent?.trim() || input.value)
+                .filter(Boolean);
+            return programs.length ? programs.join(', ') : 'None selected';
+        })()],
+        ['MOA/MOU', document.querySelector(`input[type="file"][name="moa_mou_file"][form="${form.id}"]`)?.files?.[0]?.name || 'No file selected'],
+    ];
+
+    const rowsHtml = rows.map(([label, value]) => `
+        <div class="app-confirm-review-row">
+            <dt>${escapeHtml(label)}</dt>
+            <dd title="${escapeHtml(value)}">${escapeHtml(value)}</dd>
+        </div>
+    `).join('');
+
+    return `
+        <div class="app-confirm-review">
+            <p class="app-confirm-review-intro">Please review the details below before creating this account.</p>
+            <dl class="app-confirm-review-list">${rowsHtml}</dl>
+            <p class="app-confirm-review-note">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="14" x="3" y="5" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+                <span>Login credentials will be emailed automatically after creation.</span>
+            </p>
+        </div>
+    `;
+}
+
+const PARTNER_CREATE_REVIEW_ICON = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+        <path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/>
+        <path d="m9 14 2 2 4-4"/>
+    </svg>
+`;
+
+function initPartnerCreateReviewConfirm() {
+    const form = document.getElementById('create-partner-form');
+    if (!form || form.dataset.reviewConfirmReady === '1') return;
+    form.dataset.reviewConfirmReady = '1';
+    form.dataset.confirmVariant = 'review';
+    form.dataset.confirmPreline = '0';
+
+    form.addEventListener('submit', () => {
+        form._confirmMessageHtml = buildPartnerCreateReviewHtml(form);
+        form._confirmIconSvg = PARTNER_CREATE_REVIEW_ICON;
+        form.dataset.confirmSubmit = 'review';
+    }, true);
+}
+
+function initPartnerCreateAccordion() {
+    document.querySelectorAll('[data-partner-create-accordion]').forEach(card => {
+        if (card.dataset.accordionReady === '1') return;
+        card.dataset.accordionReady = '1';
+
+        const toggle = card.querySelector('[data-partner-create-toggle]');
+        if (!toggle) return;
+
+        const setOpen = (open, { scroll = false } = {}) => {
+            card.classList.toggle('is-open', open);
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            if (open && scroll) {
+                window.setTimeout(() => {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 40);
+            }
+        };
+
+        const shouldStartOpen = Boolean(
+            document.querySelector('.content .alert.danger, .content .alert.error, .flash.danger')
+        );
+        setOpen(shouldStartOpen);
+
+        toggle.addEventListener('click', () => {
+            const willOpen = !card.classList.contains('is-open');
+            setOpen(willOpen, { scroll: willOpen });
+        });
+
+        card.addEventListener('invalid', event => {
+            const target = event.target;
+            if (!(target instanceof HTMLElement)) return;
+            const formId = target.getAttribute('form') || target.closest('form')?.id;
+            if (formId !== 'create-partner-form') return;
+            setOpen(true, { scroll: true });
+        }, true);
+    });
+}
+
 function initAdminPartnersDirectory() {
     document.querySelectorAll('[data-admin-partners-directory]').forEach(directory => {
         bindAdminDirectoryActions(directory);
@@ -6682,6 +6879,8 @@ function reinitAppPageContent() {
     initAdminStudentsDirectory();
     initAdminProgramsDirectory();
     initAdminPartnersDirectory();
+    initPartnerCreateAccordion();
+    initPartnerCreateReviewConfirm();
     initAdminCreateStudentModal();
     initCoordinatorAvailability();
     initPartnerAvailability();

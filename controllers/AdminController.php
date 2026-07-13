@@ -849,6 +849,7 @@ class AdminController extends BaseController
     {
         require_role('admin');
         $p = $this->post();
+        $isAjax = $this->isAjaxRequest();
         $moaMouFile = null;
         try {
             $password = random_password();
@@ -906,13 +907,25 @@ class AdminController extends BaseController
                 'roleLabel' => 'Host Training Establishment',
                 'loginUrl' => absolute_route_url('partner.login'),
             ]);
-            flash('success', 'Host Training Establishment account created and credentials email was processed.');
+            $successMessage = 'Host Training Establishment account created and credentials email was processed.';
+            if ($isAjax) {
+                flash('success', $successMessage);
+                $this->respondJson([
+                    'ok' => true,
+                    'message' => $successMessage,
+                    'redirect' => route_url('admin.partners'),
+                ]);
+            }
+            flash('success', $successMessage);
         } catch (Throwable $e) {
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();
             }
             if ($moaMouFile && is_file(__DIR__ . '/../' . $moaMouFile)) {
                 @unlink(__DIR__ . '/../' . $moaMouFile);
+            }
+            if ($isAjax) {
+                $this->respondJson(['ok' => false, 'message' => $e->getMessage()], 422);
             }
             flash('error', $e->getMessage());
         }
