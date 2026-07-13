@@ -67,7 +67,7 @@
                                     <span class="ps-v2-student-avatar"><?= e(strtoupper(substr($row['student_name'], 0, 1))) ?></span>
                                     <span class="ps-v2-student-info">
                                         <strong><?= e($row['student_name']) ?></strong>
-                                        <?php $studentMeta = $row['student_no'] . ' Â· ' . $row['course']; ?>
+                                        <?php $studentMeta = $row['student_no'] . '  ·  ' . $row['course']; ?>
                                         <span class="ps-v2-student-meta-marquee" data-ps-meta-marquee title="<?= e($studentMeta) ?>">
                                             <span class="ps-v2-student-meta-track">
                                                 <small><?= e($studentMeta) ?></small>

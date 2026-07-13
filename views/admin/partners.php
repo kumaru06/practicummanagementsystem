@@ -108,152 +108,206 @@ $totalPrograms = count($programs);
                 </div>
 
                 <div class="partner-id-preview">
-                    <span class="partner-id-preview-label">Partner ID (Auto-Generated)</span>
-                    <strong class="partner-id-preview-value"><?= e($nextPartnerId ?? 'IP-' . date('Y') . '-0001') ?></strong>
+                    <span class="partner-id-preview-label">HTE ID (Auto-Generated)</span>
+                    <strong class="partner-id-preview-value"><?= e($nextPartnerId ?? 'HTE-' . date('Y') . '-0001') ?></strong>
                     <small>Assigned on save and included in the welcome email.</small>
                 </div>
             </div>
         </section>
 
-        <section class="partner-panel partner-directory-card">
-            <div class="partner-panel-head partner-panel-head--split">
-                <div class="partner-panel-head-main">
-                    <div class="partner-icon-wrap partner-icon-wrap--directory" aria-hidden="true">
-                        <svg viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
-                    </div>
-                    <div class="partner-panel-head-text">
-                        <div class="partner-panel-title-row">
-                            <h2>Host Training Establishment Directory</h2>
-                            <span class="partner-count-badge"><?= (int)$totalPartners ?> listed</span>
-                        </div>
-                    </div>
+    </div>
+
+    <section class="card asu-directory-card partner-hte-directory admin-partners-page" data-admin-partners-directory>
+        <div class="asu-directory-head">
+            <div class="asu-directory-copy">
+                <span class="asu-eyebrow">HTE Directory</span>
+                <h2>Host Training Establishments</h2>
+            </div>
+            <div class="asu-directory-badge" aria-live="polite">
+                <strong><?= (int)$totalPartners ?></strong>
+                <span>Listed</span>
+            </div>
+        </div>
+
+        <?php if (!$partners): ?>
+            <div class="asu-empty">
+                <div class="asu-empty-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
+                </div>
+                <p class="asu-empty-title">No Host Training Establishments yet</p>
+                <p class="asu-empty-sub">Use the form above to add your first Host Training Establishment.</p>
+            </div>
+        <?php else: ?>
+            <div class="asu-toolbar">
+                <div class="asu-search-wrap">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                    <input class="table-search asu-table-search" type="search" placeholder="Search establishments..." autocomplete="off">
+                </div>
+                <div class="asu-toolbar-actions">
+                    <label class="filter-select-wrap asu-filter-select">
+                        <select data-asu-partner-status-filter data-select-label="Status" aria-label="Filter by status">
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </label>
                 </div>
             </div>
 
-            <?php if ($partners): ?>
-                <div class="partner-directory-scroll">
-                    <div class="partner-company-grid">
+            <div class="table-wrap asu-table-wrap">
+                <table class="data-table no-row-details asu-students-table asu-partners-table" data-no-tools data-per-page="10">
+                    <thead>
+                        <tr>
+                            <th data-sort>Company</th>
+                            <th data-sort>Contact</th>
+                            <th data-sort>Email</th>
+                            <th data-sort>HTE ID</th>
+                            <th data-sort>Phone</th>
+                            <th>Programs</th>
+                            <th>Status</th>
+                            <th class="asu-col-action">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
                         <?php foreach ($partners as $u): ?>
-                            <?php $selectedProgramIds = array_values(array_filter(array_map('intval', explode(',', (string)($u['accepted_program_ids'] ?? ''))))); ?>
-                            <article class="partner-company-card">
-                                <div class="partner-company-top">
-                                    <div class="partner-company-brand">
-                                        <span class="partner-company-avatar"><?= e(strtoupper(substr($u['name'] ?? 'P', 0, 1))) ?></span>
-                                        <div class="partner-company-brand-copy">
-                                            <h3 class="partner-company-name" title="<?= e($u['name']) ?>"><?= e($u['name']) ?></h3>
-                                            <p><?= e($u['contact_person'] ?? '—') ?></p>
-                                        </div>
+                            <?php
+                                $selectedProgramIds = array_values(array_filter(array_map('intval', explode(',', (string)($u['accepted_program_ids'] ?? '')))));
+                                $programCodes = array_values(array_filter(array_map('trim', explode(',', (string)($u['accepted_programs'] ?? '')))));
+                                $programDetails = [];
+                                foreach ($programs as $program) {
+                                    if (!in_array((int)$program['id'], $selectedProgramIds, true)) {
+                                        continue;
+                                    }
+                                    $programDetails[] = [
+                                        'code' => (string)($program['code'] ?? ''),
+                                        'name' => (string)($program['name'] ?? ''),
+                                        'hours' => (int)($program['required_hours'] ?? 0),
+                                    ];
+                                }
+                                if (!$programDetails && $programCodes) {
+                                    foreach ($programCodes as $programCode) {
+                                        $programDetails[] = [
+                                            'code' => $programCode,
+                                            'name' => '',
+                                            'hours' => 0,
+                                        ];
+                                    }
+                                }
+                                $programCount = count($programDetails);
+                                $isActive = !empty($u['is_active']);
+                                $initial = strtoupper(mb_substr((string)($u['name'] ?? 'H'), 0, 1));
+                                $searchHaystack = strtolower(trim(
+                                    ($u['name'] ?? '') . ' ' .
+                                    ($u['contact_person'] ?? '') . ' ' .
+                                    ($u['email'] ?? '') . ' ' .
+                                    ($u['partner_id'] ?? '') . ' ' .
+                                    ($u['contact_number'] ?? '') . ' ' .
+                                    ($u['accepted_programs'] ?? '')
+                                ));
+                            ?>
+                            <tr data-partner-status="<?= $isActive ? 'active' : 'inactive' ?>"
+                                data-search="<?= e($searchHaystack) ?>">
+                                <td class="asu-name-cell">
+                                    <div class="asu-student-cell">
+                                        <span class="asu-student-avatar aco-avatar-tone--<?= (abs((int)($u['user_id'] ?? $u['id'] ?? 0)) % 6) + 1 ?>">
+                                            <?= e($initial) ?>
+                                        </span>
+                                        <span title="<?= e($u['name'] ?? '') ?>"><?= e($u['name'] ?? '—') ?></span>
                                     </div>
-                                    <span class="badge partner-company-status <?= $u['is_active'] ? 'active' : 'inactive' ?>"><?= $u['is_active'] ? 'Active' : 'Inactive' ?></span>
-                                </div>
-
-                                <div class="partner-company-meta">
-                                    <div class="partner-meta-item">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
-                                        <div>
-                                            <span>Partner ID</span>
-                                            <strong><?= e($u['partner_id'] ?? '—') ?></strong>
-                                        </div>
-                                    </div>
-                                    <div class="partner-meta-item">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg>
-                                        <div>
-                                            <span>Email</span>
-                                            <strong title="<?= e($u['email']) ?>"><?= e($u['email']) ?></strong>
-                                        </div>
-                                    </div>
-                                    <div class="partner-meta-item">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-                                        <div>
-                                            <span>Phone</span>
-                                            <strong><?= e($u['contact_number'] ?: '—') ?></strong>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="partner-company-doc-row">
-                                    <div class="partner-company-doc-copy">
-                                        <span class="partner-company-doc-label">MOA / MOU</span>
-                                        <?php if (empty($u['moa_mou_file'])): ?>
-                                            <span class="partner-doc-missing">Not uploaded</span>
-                                        <?php endif; ?>
-                                    </div>
-                                    <?php if (!empty($u['moa_mou_file'])): ?>
-                                        <a class="btn btn-small partner-company-doc-btn" target="_blank" rel="noopener noreferrer" href="index.php?r=admin_partner_document&amp;company_id=<?= (int)$u['id'] ?>">
-                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-                                            View Document
-                                        </a>
+                                </td>
+                                <td class="asu-name-cell"><?= e($u['contact_person'] ?? '—') ?></td>
+                                <td>
+                                    <?php if (!empty($u['email'])): ?>
+                                        <a class="asu-email-link" href="mailto:<?= e($u['email']) ?>"><?= e($u['email']) ?></a>
+                                    <?php else: ?>
+                                        <span class="muted">—</span>
                                     <?php endif; ?>
-                                </div>
-
-                                <div class="partner-program-tags">
-                                    <?php foreach (array_filter(array_map('trim', explode(',', (string)($u['accepted_programs'] ?? '')))) as $programCode): ?>
-                                        <span><?= e($programCode) ?></span>
-                                    <?php endforeach; ?>
-                                    <?php if (empty(trim((string)($u['accepted_programs'] ?? '')))): ?>
-                                        <span class="partner-tag-empty">Not set</span>
+                                </td>
+                                <td class="center-cell">
+                                    <?php if (!empty($u['partner_id'])): ?>
+                                        <span class="asu-usn-badge"><?= e($u['partner_id']) ?></span>
+                                    <?php else: ?>
+                                        <span class="muted">—</span>
                                     <?php endif; ?>
-                                </div>
-
-                                <div class="partner-company-footer">
-                                    <details class="partner-company-action partner-company-edit">
-                                        <summary class="btn btn-small partner-action-btn">
-                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                                            Edit Programs
-                                        </summary>
-                                        <form method="post" class="partner-company-edit-form">
-                                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                            <input type="hidden" name="action" value="admin_update_company_programs">
-                                            <input type="hidden" name="company_id" value="<?= (int)$u['id'] ?>">
-
-                                            <div class="partner-program-picker">
-                                                <?php foreach ($programs as $program): ?>
-                                                    <label class="partner-program-option">
-                                                        <input
-                                                            type="checkbox"
-                                                            name="program_ids[]"
-                                                            value="<?= (int)$program['id'] ?>"
-                                                            <?= in_array((int)$program['id'], $selectedProgramIds, true) ? 'checked' : '' ?>
-                                                        >
-                                                        <span class="partner-program-copy">
-                                                            <strong><?= e($program['code']) ?></strong>
-                                                            <span><?= e($program['name']) ?></span>
-                                                        </span>
-                                                        <em><?= (int)$program['required_hours'] ?> hrs</em>
-                                                    </label>
-                                                <?php endforeach; ?>
-                                            </div>
-
-                                            <button class="btn btn-small btn-primary" type="submit">Save Programs</button>
-                                        </form>
-                                    </details>
-                                    <form method="post" class="inline partner-company-action">
-                                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                        <input type="hidden" name="action" value="admin_toggle_user">
-                                        <input type="hidden" name="user_id" value="<?= (int)$u['user_id'] ?>">
-                                        <input type="hidden" name="active" value="<?= $u['is_active'] ? 0 : 1 ?>">
-                                        <input type="hidden" name="redirect" value="admin_partners">
-                                        <button class="btn btn-small partner-action-btn <?= $u['is_active'] ? 'partner-action-btn--danger' : 'btn-primary' ?>" type="submit">
-                                            <?= $u['is_active'] ? 'Deactivate' : 'Activate' ?>
+                                </td>
+                                <td><?= e($u['contact_number'] ?: '—') ?></td>
+                                <td class="center-cell asu-partners-programs-cell">
+                                    <?php if ($programCount > 0): ?>
+                                        <button
+                                            type="button"
+                                            class="asu-partner-programs-btn"
+                                            data-asu-view-programs
+                                            data-company="<?= e($u['name'] ?? 'Host Training Establishment') ?>"
+                                            data-programs="<?= e(json_encode($programDetails, JSON_UNESCAPED_UNICODE)) ?>"
+                                        >
+                                            <span class="asu-partner-programs-count"><?= (int)$programCount ?></span>
+                                            <span>View</span>
                                         </button>
-                                    </form>
-                                </div>
-                            </article>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            <?php else: ?>
-                <div class="partner-empty-state">
-                    <div class="partner-empty-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
-                    </div>
-                    <strong>No Host Training Establishments yet</strong>
-                    <span>Use the form on the left to add your first Host Training Establishment.</span>
-                </div>
-            <?php endif; ?>
-        </section>
+                                    <?php else: ?>
+                                        <span class="muted">Not set</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="center-cell">
+                                    <span class="asu-status-pill <?= $isActive ? 'is-active' : 'is-inactive' ?>">
+                                        <?= $isActive ? 'Active' : 'Inactive' ?>
+                                    </span>
+                                </td>
+                                <td class="admin-users-action-cell asu-col-action">
+                                    <details class="admin-user-action-menu">
+                                        <summary class="admin-user-action-trigger" aria-label="Establishment actions">
+                                            <svg class="admin-user-action-trigger-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>
+                                            <span>Actions</span>
+                                            <svg class="admin-user-action-trigger-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                                        </summary>
+                                        <div class="admin-user-action-panel">
+                                            <?php if (!empty($u['moa_mou_file'])): ?>
+                                                <a class="admin-user-action-item" target="_blank" rel="noopener noreferrer" href="index.php?r=admin_partner_document&amp;company_id=<?= (int)$u['id'] ?>">
+                                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                                                    View MOA / MOU
+                                                </a>
+                                            <?php endif; ?>
 
-    </div>
+                                            <button
+                                                type="button"
+                                                class="admin-user-action-item"
+                                                data-asu-edit-programs
+                                                data-company-id="<?= (int)$u['id'] ?>"
+                                                data-company="<?= e($u['name'] ?? 'Host Training Establishment') ?>"
+                                                data-selected-ids="<?= e(json_encode($selectedProgramIds)) ?>"
+                                            >
+                                                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                                                Edit Programs
+                                            </button>
+
+                                            <form method="post" class="inline">
+                                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                                <input type="hidden" name="action" value="admin_toggle_user">
+                                                <input type="hidden" name="user_id" value="<?= (int)$u['user_id'] ?>">
+                                                <input type="hidden" name="active" value="<?= $isActive ? 0 : 1 ?>">
+                                                <input type="hidden" name="redirect" value="admin_partners">
+                                                <button class="admin-user-action-item <?= $isActive ? 'admin-user-action-item--danger' : 'admin-user-action-item--success' ?>" type="submit">
+                                                    <?php if ($isActive): ?>
+                                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z"/></svg>
+                                                        Deactivate
+                                                    <?php else: ?>
+                                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                                                        Activate
+                                                    <?php endif; ?>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </details>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <footer class="asu-table-footer">
+                <div class="pagination"></div>
+            </footer>
+        <?php endif; ?>
+    </section>
 
     <section class="partner-panel partner-full-card">
         <div class="partner-panel-head">
@@ -303,3 +357,55 @@ $totalPrograms = count($programs);
     </section>
 
 </div>
+
+<div class="asu-partner-programs-overlay" id="asuPartnerProgramsOverlay" aria-hidden="true">
+    <div class="asu-partner-programs-modal" role="dialog" aria-modal="true" aria-labelledby="asuPartnerProgramsTitle">
+        <div class="asu-partner-programs-modal-head">
+            <div>
+                <span class="asu-eyebrow">Accepted Programs</span>
+                <h2 id="asuPartnerProgramsTitle">Host Training Establishment</h2>
+                <p class="asu-partner-programs-modal-sub" data-asu-programs-count></p>
+            </div>
+            <button type="button" class="asu-partner-programs-close" data-asu-programs-close aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+        </div>
+        <div class="asu-partner-programs-modal-body" data-asu-programs-list></div>
+    </div>
+</div>
+
+<div class="asu-partner-programs-overlay" id="asuPartnerEditProgramsOverlay" aria-hidden="true">
+    <div class="asu-partner-programs-modal asu-partner-edit-programs-modal" role="dialog" aria-modal="true" aria-labelledby="asuPartnerEditProgramsTitle">
+        <div class="asu-partner-programs-modal-head">
+            <div>
+                <span class="asu-eyebrow">Edit Programs</span>
+                <h2 id="asuPartnerEditProgramsTitle">Host Training Establishment</h2>
+                <p class="asu-partner-programs-modal-sub">Select the programs this establishment can accept.</p>
+            </div>
+            <button type="button" class="asu-partner-programs-close" data-asu-edit-programs-close aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+        </div>
+        <form method="post" class="asu-partner-edit-programs-form" id="asuPartnerEditProgramsForm">
+            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="admin_update_company_programs">
+            <input type="hidden" name="company_id" value="" data-asu-edit-company-id>
+            <div class="asu-partner-programs-modal-body asu-partner-edit-programs-body" data-asu-edit-programs-list></div>
+            <div class="asu-partner-edit-programs-footer">
+                <button type="button" class="btn btn-small" data-asu-edit-programs-close>Cancel</button>
+                <button type="submit" class="btn btn-small btn-primary">Save Programs</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+window.asuPartnerProgramCatalog = <?= json_encode(array_map(static function ($program) {
+    return [
+        'id' => (int)$program['id'],
+        'code' => (string)($program['code'] ?? ''),
+        'name' => (string)($program['name'] ?? ''),
+        'hours' => (int)($program['required_hours'] ?? 0),
+    ];
+}, $programs ?? []), JSON_UNESCAPED_UNICODE) ?>;
+</script>

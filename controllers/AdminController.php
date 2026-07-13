@@ -288,7 +288,7 @@ class AdminController extends BaseController
     private function validateAcademicTerm(string $term): string
     {
         $term = trim($term);
-        // Normalize en-dash (â€“) and em-dash (â€”) to regular hyphen, and non-breaking spaces to space
+        // Normalize en-dash ( - ) and em-dash ( - ) to regular hyphen, and non-breaking spaces to space
         $term = str_replace(["\u{2013}", "\u{2014}", "\u{00A0}"], ['-', '-', ' '], $term);
         $term = preg_replace('/\s+/', ' ', $term);
         if ($term === '') {
@@ -1055,7 +1055,7 @@ class AdminController extends BaseController
             ];
             $reasonLabel = $reasonLabels[$reason] ?? ucwords(str_replace('_', ' ', $reason));
             if ($reason === 'other' && $notes !== '') {
-                $reasonLabel .= ' â€” ' . $notes;
+                $reasonLabel .= ' - ' . $notes;
             }
 
             $sent = (new Email($this->db))->send(
@@ -1074,7 +1074,7 @@ class AdminController extends BaseController
             if ($sent) {
                 $message .= ' A notification was sent to ' . $target['email'] . '.';
             } else {
-                $message .= ' Email notification could not be sent â€” check Email Logs.';
+                $message .= ' Email notification could not be sent - check Email Logs.';
             }
             flash($sent ? 'success' : 'error', $message);
         } catch (Throwable $e) {

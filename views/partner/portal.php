@@ -89,7 +89,7 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
 
             <label class="pp-roster-search">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-                <input type="search" class="pp-search-input" placeholder="Search name, ID, or emailâ€¦" aria-label="Search students">
+                <input type="search" class="pp-search-input" placeholder="Search name, ID, or email..." aria-label="Search students">
             </label>
 
             <div class="pp-roster-list">
@@ -132,7 +132,7 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                         <span class="pp-roster-avatar" aria-hidden="true"><?= e($initial) ?></span>
                         <span class="pp-roster-body">
                             <strong><?= e($s['student_name']) ?></strong>
-                            <small><?= e(trim(($s['course'] ?? '') . ' Â· ' . ($s['student_no'] ?? ''))) ?></small>
+                            <small><?= e(trim(($s['course'] ?? '') . '  ·  ' . ($s['student_no'] ?? ''))) ?></small>
                             <span class="pp-chip <?= e($meta['chip']) ?>"><?= e($meta['label']) ?></span>
                         </span>
                         <svg class="pp-roster-chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m7.5 5 5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -155,7 +155,7 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                         <span class="pp-student-avatar" aria-hidden="true"><?= e($selInitial) ?></span>
                         <div>
                             <h2><?= e($selected['student_name']) ?></h2>
-                            <p><?= e($selected['course'] . ' ' . $selected['year_level']) ?> Â· <?= e($selected['student_no']) ?> Â· <?= e($selected['student_email']) ?></p>
+                            <p><?= e($selected['course'] . ' ' . $selected['year_level']) ?>  ·  <?= e($selected['student_no']) ?>  ·  <?= e($selected['student_email']) ?></p>
                         </div>
                         <span class="pp-chip <?= e($selMeta['chip']) ?> pp-chip--lg"><?= e($selMeta['label']) ?></span>
                     </div>
@@ -215,7 +215,7 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                                         <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
                                         <?= e($req['requirement_name']) ?>
                                     </span>
-                                    <?= !empty($req['file_path']) ? '<a class="pp-doc-btn pp-doc-btn--ghost" target="_blank" href="' . e($req['file_path']) . '">View</a>' : '<span class="pp-muted">â€”</span>' ?>
+                                    <?= !empty($req['file_path']) ? '<a class="pp-doc-btn pp-doc-btn--ghost" target="_blank" href="' . e($req['file_path']) . '">View</a>' : '<span class="pp-muted"> - </span>' ?>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -272,13 +272,13 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                                                 $dt = new DateTime($selected['orientation_datetime']);
                                                 echo e($dt->format('F j, Y \a\t g:i A'));
                                             } else {
-                                                echo 'â€”';
+                                                echo ' - ';
                                             }
                                         ?></div>
                                     </div>
                                     <div class="pp-orient-field">
                                         <span class="field-title">Notes</span>
-                                        <div class="pp-orient-value"><?= e($selected['orientation_notes'] ?? 'â€”') ?></div>
+                                        <div class="pp-orient-value"><?= e($selected['orientation_notes'] ?? ' - ') ?></div>
                                     </div>
                                 </div>
                             <?php elseif ($selected['predeployment_status'] === 'orientation_completed'): ?>
@@ -287,7 +287,7 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                                         <div class="ojt-completed-icon"><svg viewBox="0 0 20 20" width="20" height="20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg></div>
                                         <div>
                                             <strong>OJT is Active</strong>
-                                            <small>Orientation completed â€” hours are now being tracked</small>
+                                            <small>Orientation completed - hours are now being tracked</small>
                                         </div>
                                     </div>
                                     <div class="ojt-completed-timeline">
@@ -361,7 +361,7 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                                             <input type="hidden" name="projected_end_date" value="">
                                             <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select projected end date"><span class="filter-date-value">mm/dd/yyyy</span><span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span></button>
                                         </span>
-                                        <small class="muted">Leave blank to calculate from <?= (int)$selected['required_hours'] ?> required hours at 8 hrs/day, Monâ€“Sat.</small>
+                                        <small class="muted">Leave blank to calculate from <?= (int)$selected['required_hours'] ?> required hours at 8 hrs/day, Mon - Sat.</small>
                                     </label>
                                     <button class="btn btn-primary" type="submit">Mark Orientation Completed</button>
                                 </form>
@@ -373,7 +373,7 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                 <div class="pp-workspace-bottom">
                     <section class="pp-panel pp-panel--records">
                         <div class="pp-panel-head">
-                            <h3><?= e($selected['student_name']) ?> â€” Time Records</h3>
+                            <h3><?= e($selected['student_name']) ?> - Time Records</h3>
                         </div>
                         <div class="table-wrap">
                             <table class="data-table compact-table" data-no-enhance="1">

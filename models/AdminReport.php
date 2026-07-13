@@ -70,7 +70,7 @@ class AdminReport
                 $row['student_no'],
                 $row['course'],
                 $row['company_name'],
-                $row['coordinator_name'] ?: 'â€”',
+                $row['coordinator_name'] ?: ' - ',
                 $this->formatDate($row['start_date'] ?? null),
                 $this->formatDate($row['end_date'] ?? null),
                 number_format((float)$row['rendered_hours'], 1) . ' / ' . (int)$row['required_hours'] . ' hrs',
@@ -138,10 +138,10 @@ class AdminReport
         foreach ($companies as $company) {
             $rows[] = [
                 $company['name'],
-                $company['contact_person'] ?? 'â€”',
-                $company['contact_email'] ?? 'â€”',
-                $company['contact_number'] ?: 'â€”',
-                $company['accepted_programs'] ?: 'â€”',
+                $company['contact_person'] ?? ' - ',
+                $company['contact_email'] ?? ' - ',
+                $company['contact_number'] ?: ' - ',
+                $company['accepted_programs'] ?: ' - ',
                 !empty($company['is_active']) ? 'Active' : 'Inactive',
             ];
         }
@@ -256,14 +256,15 @@ class AdminReport
             SELECT
                 u.name AS student_name,
                 s.student_no,
-                w.week_start,
-                w.week_end,
+                w.week_no,
+                w.date_covered_start,
+                w.date_covered_end,
                 w.verification_status,
                 w.submitted_at
             FROM weekly_reports w
             JOIN students s ON s.id = w.student_id
             JOIN users u ON u.id = s.user_id
-            ORDER BY w.week_start DESC, u.name
+            ORDER BY COALESCE(w.date_covered_start, w.submitted_at) DESC, w.week_no DESC, u.name
             LIMIT 500
         ');
         $rows = [];
@@ -271,8 +272,9 @@ class AdminReport
             $rows[] = [
                 $row['student_name'],
                 $row['student_no'],
-                $this->formatDate($row['week_start'] ?? null),
-                $this->formatDate($row['week_end'] ?? null),
+                'Week ' . (int)$row['week_no'],
+                $this->formatDate($row['date_covered_start'] ?? null),
+                $this->formatDate($row['date_covered_end'] ?? null),
                 ucfirst((string)($row['verification_status'] ?? 'pending')),
                 $this->formatDate($row['submitted_at'] ?? null, true),
             ];
@@ -280,7 +282,7 @@ class AdminReport
 
         return [
             'description' => 'Weekly reports submitted by students.',
-            'columns' => ['Student', 'Student ID', 'Week Start', 'Week End', 'Status', 'Submitted'],
+            'columns' => ['Student', 'Student ID', 'Week', 'Date Covered Start', 'Date Covered End', 'Status', 'Submitted'],
             'rows' => $rows,
             'ready' => true,
         ];
@@ -431,8 +433,8 @@ class AdminReport
             $rows[] = [
                 $row['student_name'],
                 $row['student_no'],
-                $row['coordinator_name'] ?: 'â€”',
-                $row['coordinator_grade'] !== null ? number_format((float)$row['coordinator_grade'], 2) . '%' : 'â€”',
+                $row['coordinator_name'] ?: ' - ',
+                $row['coordinator_grade'] !== null ? number_format((float)$row['coordinator_grade'], 2) . '%' : ' - ',
                 ucfirst((string)$row['coordinator_status']),
                 $this->formatDate($row['updated_at'] ?? null, true),
             ];
@@ -511,8 +513,8 @@ class AdminReport
                         $student['student_no'],
                         $req['requirement_name'] ?? 'Requirement',
                         'Missing',
-                        'â€”',
-                        'â€”',
+                        ' - ',
+                        ' - ',
                     ];
                 }
             }
@@ -657,7 +659,7 @@ class AdminReport
     private function formatDate(?string $date, bool $includeTime = false): string
     {
         if (!$date || strtotime($date) === false) {
-            return 'â€”';
+            return ' - ';
         }
 
         return $includeTime

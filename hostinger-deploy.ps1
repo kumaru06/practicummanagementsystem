@@ -12,19 +12,27 @@ $configFile = if ($ConfigPath -ne "") { $ConfigPath } else { Join-Path $localRoo
 $exampleFile = Join-Path $localRoot "hostinger.deploy.json.example"
 $zipPath = Join-Path (Split-Path $localRoot -Parent) "amaccmanagementsystem_deploy.zip"
 
-$excludeDirNames = @('.git', '.idea', '.vscode', 'vendor')
+$excludeDirNames = @('.git', '.idea', '.vscode', 'vendor', 'node_modules', 'tests', 'agent-transcripts')
 $excludeFileNames = @(
+    '.env',
     'hostinger.deploy.json',
     'hostinger.deploy.json.example',
     'hostinger-deploy.ps1',
     'deploy.ps1',
     'deploy.bat',
     'deploy-zip.bat',
+    'deploy-mailer.bat',
+    'deploy-vendor.bat',
+    'setup-hostinger.bat',
     'setup-hostinger.ps1',
+    'build-mailer-zip.ps1',
+    'build-vendor-zip.ps1',
     'upload.ps1',
-    'HOSTINGER_DEPLOY.md'
+    'HOSTINGER_DEPLOY.md',
+    'QUICK_START.md',
+    'README.md'
 )
-$excludeFilePatterns = @('*.zip', 'debug-*.log', 'hostinger_export.sql')
+$excludeFilePatterns = @('*.zip', 'debug-*.log', 'hostinger_export.sql', 'tmp_*.php')
 
 function Write-Step([string]$Message, [string]$Color = 'White') {
     Write-Host $Message -ForegroundColor $Color

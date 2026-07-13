@@ -1,4 +1,4 @@
-<section class="card">
+<section class="card reports-detail">
     <div class="section-head section-head-split">
         <div>
             <p class="reports-breadcrumb muted"><a href="<?= e(route_url('admin.reports')) ?>">Reports</a> / <?= e($report['category']) ?></p>
@@ -11,9 +11,9 @@
     </div>
 
     <?php if (empty($ready)): ?>
-        <p class="muted" style="padding:24px 0">This report is not available yet.</p>
+        <p class="muted reports-detail-empty">This report is not available yet.</p>
     <?php elseif (empty($rows)): ?>
-        <p class="muted" style="padding:24px 0">No records found for this report yet.</p>
+        <p class="muted reports-detail-empty">No records found for this report yet.</p>
     <?php else: ?>
         <div class="reports-summary muted"><?= count($rows) ?> record<?= count($rows) === 1 ? '' : 's' ?></div>
         <input class="table-search table-search-wide" placeholder="Search report...">

@@ -73,7 +73,7 @@
                         <span class="chat-window__avatar" id="chatActiveAvatar"><?= e(strtoupper(substr((string)$selectedPartner['name'], 0, 1))) ?></span>
                         <div>
                             <strong id="chatActiveName"><?= e((string)$selectedPartner['name']) ?></strong>
-                            <small id="chatActiveMeta"><?= e(ucwords(str_replace('_', ' ', (string)$selectedPartner['role']))) ?> Â· <?= e((string)$selectedPartner['email']) ?></small>
+                            <small id="chatActiveMeta"><?= e(ucwords(str_replace('_', ' ', (string)$selectedPartner['role']))) ?>  ·  <?= e((string)$selectedPartner['email']) ?></small>
                         </div>
                     </div>
                     <span class="chat-window__tag" id="chatActiveTag"><?= e(strtoupper((string)$selectedPartner['role'])) ?></span>

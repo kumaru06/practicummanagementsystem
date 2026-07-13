@@ -17,7 +17,7 @@
         </span>
         <div>
             <h2>Host Training Establishment Evaluation</h2>
-            <p class="muted"><?= e($student['name'] ?? 'Student') ?> Â· <?= e($student['student_no'] ?? '') ?></p>
+            <p class="muted"><?= e($student['name'] ?? 'Student') ?>  ·  <?= e($student['student_no'] ?? '') ?></p>
         </div>
         <div class="eval-result-grade">
             <span class="eval-result-grade-value"><?= e(number_format($grade, 2)) ?>%</span>

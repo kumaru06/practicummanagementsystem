@@ -98,7 +98,7 @@ $programCoverage = count($uniquePrograms);
         <div class="cdoc-toolbar" role="region" aria-label="Agreement filters">
             <label class="cdoc-search" for="cdoc-search-input">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4a6 6 0 0 1 4.74 9.67l4.3 4.29-1.42 1.42-4.29-4.3A6 6 0 1 1 10 4Zm0 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg>
-                <input id="cdoc-search-input" type="search" placeholder="Search company, contact, email, program, or addressâ€¦" data-cdoc-search autocomplete="off">
+                <input id="cdoc-search-input" type="search" placeholder="Search company, contact, email, program, or address..." data-cdoc-search autocomplete="off">
             </label>
             <div class="cdoc-filter-group" aria-label="Filter by status">
                 <button class="cdoc-filter is-active" type="button" data-cdoc-filter="all">All</button>
@@ -147,7 +147,7 @@ $programCoverage = count($uniquePrograms);
                     </div>
                     <div class="cdoc-document-copy">
                         <strong><?= e($documentName) ?></strong>
-                        <span><?= e($documentExt) ?> â€¢ <?= e($documentSizeLabel) ?></span>
+                        <span><?= e($documentExt) ?> - <?= e($documentSizeLabel) ?></span>
                     </div>
                 </div>
 

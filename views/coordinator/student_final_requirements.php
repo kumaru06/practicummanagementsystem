@@ -182,7 +182,7 @@
                     <span class="cfp-panel-icon cfp-panel-icon--eval"><?= $sectionEvalIcon ?></span>
                     <div>
                         <h2>Student Evaluations</h2>
-                        <p>Coordinator-only â€” not shared with host training establishments.</p>
+                        <p>Coordinator-only - not shared with host training establishments.</p>
                     </div>
                 </div>
                 <div class="cfp-panel-progress" role="progressbar" aria-valuenow="<?= $evalPct ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Evaluations progress">

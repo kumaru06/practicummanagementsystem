@@ -8,7 +8,7 @@ $selectedRole = $role ?? '';
 $identifierLabels = [
     'student' => 'USN (Student ID)',
     'coordinator' => 'Coordinator ID',
-    'partner' => 'Partner ID',
+    'partner' => 'HTE ID',
 ];
 $identifierLabel = $selectedRole ? ($identifierLabels[$selectedRole] ?? 'Account ID') : 'Account ID';
 $flashSuccess = $flashSuccess ?? flash('success');

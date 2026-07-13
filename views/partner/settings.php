@@ -73,20 +73,20 @@ $profilePhotoUrl = partner_profile_photo_url($company ?? null);
 
                 <dl class="ip-settings-meta">
                     <div class="ip-settings-meta__item">
-                        <dt>Partner ID</dt>
-                        <dd><?= e($company['partner_id'] ?? 'â€”') ?></dd>
+                        <dt>HTE ID</dt>
+                        <dd><?= e($company['partner_id'] ?? ' - ') ?></dd>
                     </div>
                     <div class="ip-settings-meta__item">
                         <dt>Email</dt>
-                        <dd><?= e($contactEmail !== '' ? $contactEmail : 'â€”') ?></dd>
+                        <dd><?= e($contactEmail !== '' ? $contactEmail : ' - ') ?></dd>
                     </div>
                     <div class="ip-settings-meta__item">
                         <dt>Contact Number</dt>
-                        <dd><?= e($company['contact_number'] ?? 'â€”') ?></dd>
+                        <dd><?= e($company['contact_number'] ?? ' - ') ?></dd>
                     </div>
                     <div class="ip-settings-meta__item ip-settings-meta__item--full">
                         <dt>Address</dt>
-                        <dd><?= e($company['address'] ?? 'â€”') ?></dd>
+                        <dd><?= e($company['address'] ?? ' - ') ?></dd>
                     </div>
                 </dl>
             </div>

@@ -90,7 +90,7 @@ class CoordinatorController extends BaseController
         $finalModel = new FinalRequirement($this->db);
         $evalModel = new StudentEvaluation($this->db);
         $data = [
-            'title' => 'Final Requirements â€” ' . ($student['name'] ?? 'Student'),
+            'title' => 'Final Requirements - ' . ($student['name'] ?? 'Student'),
             'student' => $student,
             'finalRequirement' => $finalModel->getByStudent($studentId),
             'studentEvaluation' => $evalModel->getByStudent($studentId),
@@ -109,7 +109,7 @@ class CoordinatorController extends BaseController
                 flash('error', 'This document has not been submitted yet.');
                 redirect('index.php?r=coordinator_student_final&student_id=' . $studentId);
             }
-            $data['title'] = $section['name'] . ' â€” ' . ($student['name'] ?? 'Student');
+            $data['title'] = $section['name'] . ' - ' . ($student['name'] ?? 'Student');
             $data['finalDoc'] = $doc;
             $view = match ($doc) {
                 'job_description' => 'coordinator/final/job_description',
@@ -127,7 +127,7 @@ class CoordinatorController extends BaseController
                 flash('error', 'This evaluation has not been submitted yet.');
                 redirect('index.php?r=coordinator_student_final&student_id=' . $studentId);
             }
-            $data['title'] = 'OJT Coordinator Evaluation â€” ' . ($student['name'] ?? 'Student');
+            $data['title'] = 'OJT Coordinator Evaluation - ' . ($student['name'] ?? 'Student');
             $data['evalType'] = 'coordinator';
             $this->renderAppPage('coordinator/evaluations/coordinator', $data);
             return;
@@ -139,7 +139,7 @@ class CoordinatorController extends BaseController
                 flash('error', 'This evaluation has not been submitted yet.');
                 redirect('index.php?r=coordinator_student_final&student_id=' . $studentId);
             }
-            $data['title'] = 'Host Training Establishment Evaluation â€” ' . ($student['name'] ?? 'Student');
+            $data['title'] = 'Host Training Establishment Evaluation - ' . ($student['name'] ?? 'Student');
             $data['evalType'] = 'industry_partner';
             $this->renderAppPage('coordinator/evaluations/industry_partner', $data);
             return;
@@ -310,7 +310,7 @@ class CoordinatorController extends BaseController
             $tempPassword = random_password();
             (new User($this->db))->updatePassword((int)$student['user_id'], $tempPassword, 0);
             $email = new Email($this->db);
-            $email->send($student['email'], 'You are now enrolled in OJT â€“ AMA Computer College', 'student_enrollment', 'student_enrollment', [
+            $email->send($student['email'], 'You are now enrolled in OJT - AMA Computer College', 'student_enrollment', 'student_enrollment', [
                 'student' => $student,
                 'company' => $company,
                 'academicTerm' => $academicTerm,

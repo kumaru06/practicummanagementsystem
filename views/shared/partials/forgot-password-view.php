@@ -3,7 +3,7 @@ $selectedRole = $role ?? '';
 $identifierLabels = [
     'student' => 'USN (Student ID)',
     'coordinator' => 'Coordinator ID',
-    'partner' => 'Partner ID',
+    'partner' => 'HTE ID',
 ];
 $identifierLabel = $identifierLabels[$selectedRole] ?? 'Account ID';
 $roleLabels = [
@@ -18,7 +18,7 @@ $forgotFormAction = route_url('forgot.password');
 $leadMessages = [
     'student' => 'Enter your registered email and USN (Student ID). An admin will review your request.',
     'coordinator' => 'Enter your registered email and Coordinator ID. An admin will review your request.',
-    'partner' => 'Enter your registered email and Partner ID. An admin will review your request.',
+    'partner' => 'Enter your registered email and HTE ID. An admin will review your request.',
 ];
 $leadMessage = $leadMessages[$selectedRole] ?? 'Enter your registered email and account ID. An admin will review your request.';
 $embeddedInPortal = !empty($embeddedInPortal);

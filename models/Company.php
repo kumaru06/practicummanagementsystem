@@ -25,8 +25,18 @@ class Company
             $this->db->exec('ALTER TABLE partner_companies ADD UNIQUE KEY uq_partner_companies_partner_id (partner_id)');
         }
 
+        $this->migrateLegacyPartnerIdPrefix();
         $this->backfillPartnerIds();
         $this->partnerIdSupportReady = true;
+    }
+
+    private function migrateLegacyPartnerIdPrefix(): void
+    {
+        $this->db->exec(
+            "UPDATE partner_companies
+             SET partner_id = CONCAT('HTE-', SUBSTRING(partner_id, 4))
+             WHERE partner_id LIKE 'IP-%'"
+        );
     }
 
     public function peekNextPartnerId(): string
@@ -38,14 +48,14 @@ class Company
     private function generatePartnerId(): string
     {
         $year = date('Y');
-        $prefix = 'IP-' . $year . '-';
+        $prefix = 'HTE-' . $year . '-';
         $stmt = $this->db->prepare(
             'SELECT partner_id FROM partner_companies WHERE partner_id LIKE ? ORDER BY partner_id DESC LIMIT 1'
         );
         $stmt->execute([$prefix . '%']);
         $last = (string)($stmt->fetchColumn() ?: '');
         $next = 1;
-        if ($last !== '' && preg_match('/IP-\d{4}-(\d+)$/', $last, $matches)) {
+        if ($last !== '' && preg_match('/HTE-\d{4}-(\d+)$/', $last, $matches)) {
             $next = (int)$matches[1] + 1;
         }
         return $prefix . str_pad((string)$next, 4, '0', STR_PAD_LEFT);

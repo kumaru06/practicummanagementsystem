@@ -661,7 +661,7 @@ function initForgotPasswordShell(root = document) {
         const labels = {
             student: 'USN (Student ID)',
             coordinator: 'Coordinator ID',
-            partner: 'Partner ID',
+            partner: 'HTE ID',
         };
         const syncLabel = () => {
             if (!label) return;

@@ -90,19 +90,19 @@ Login to Gmail/email client for Host Training Establishment:
 
 ```
 amaccmanagementsystem/
-â”œâ”€â”€ composer.json                          (âœ… UPDATED - added dompdf)
-â”œâ”€â”€ models/
-â”‚   â”œâ”€â”€ EndorsementLetter.php              (âœ… NEW - PDF generation)
-â”‚   â”œâ”€â”€ Enrollment.php                     (âœ… UPDATED - new query method)
-â”‚   â””â”€â”€ Email.php                          (âœ… UPDATED - string attachments)
-â”œâ”€â”€ controllers/
-â”‚   â””â”€â”€ CoordinatorController.php          (âœ… UPDATED - auto PDF generation)
-â”œâ”€â”€ views/
-â”‚   â””â”€â”€ coordinator/my_students.php        (âœ… UPDATED - removed file upload)
-â”œâ”€â”€ vendor/
-â”‚   â”œâ”€â”€ dompdf/dompdf/                     (âœ… NEW - installed by composer)
-â”‚   â””â”€â”€ ...
-â””â”€â”€ ENDORSEMENT_LETTER_*.md                (âœ… NEW - documentation)
+â”œ-- composer.json                          (âœ… UPDATED - added dompdf)
+â”œ-- models/
+â”‚   â”œ-- EndorsementLetter.php              (âœ… NEW - PDF generation)
+â”‚   â”œ-- Enrollment.php                     (âœ… UPDATED - new query method)
+â”‚   â””-- Email.php                          (âœ… UPDATED - string attachments)
+â”œ-- controllers/
+â”‚   â””-- CoordinatorController.php          (âœ… UPDATED - auto PDF generation)
+â”œ-- views/
+â”‚   â””-- coordinator/my_students.php        (âœ… UPDATED - removed file upload)
+â”œ-- vendor/
+â”‚   â”œ-- dompdf/dompdf/                     (âœ… NEW - installed by composer)
+â”‚   â””-- ...
+â””-- ENDORSEMENT_LETTER_*.md                (âœ… NEW - documentation)
 ```
 
 ---
@@ -122,7 +122,7 @@ amaccmanagementsystem/
    â†“
 4. Builds professional HTML letter
    â†“
-5. Dompdf converts HTML â†’ PDF (binary)
+5. Dompdf converts HTML -> PDF (binary)
    â†“
 6. Email class attaches PDF using addStringAttachment()
    â†“

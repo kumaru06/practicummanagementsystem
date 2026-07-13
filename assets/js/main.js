@@ -52,6 +52,8 @@
     initEnrollmentFilters();
     initMyStudentsDirectory();
     initAdminStudentsDirectory();
+    initAdminProgramsDirectory();
+    initAdminPartnersDirectory();
     initAdminCreateStudentModal();
     document.querySelector('#modal .modal-close')?.addEventListener('click', closeSlidePanel);
     document.addEventListener('click', handleOutsideMenus);
@@ -575,12 +577,12 @@ function initCoordinatorCardAlignment() {
 }
 
 function initAdminDirectoryActions() {
-    document.querySelectorAll('.admin-users-page, .admin-coordinators-page').forEach(page => {
+    document.querySelectorAll('.admin-users-page, .admin-coordinators-page, [data-admin-programs-directory], [data-admin-partners-directory]').forEach(page => {
         bindAdminDirectoryActions(page);
     });
 }
 
-/* â”€â”€ Global shared calendar panel (escapes all overflow/transform ancestors) â”€â”€ */
+/* -- Global shared calendar panel (escapes all overflow/transform ancestors) -- */
 let _globalCalPanel = null;
 let _globalCalActivePicker = null;
 let _globalCalState = null;
@@ -689,7 +691,7 @@ function closeGlobalCalPanel() {
     _globalCalState = null;
 }
 
-/* â”€â”€ Global DateTime Picker (calendar + time) â”€â”€ */
+/* -- Global DateTime Picker (calendar + time) -- */
 let _globalDtPanel = null;
 let _globalDtActivePicker = null;
 let _globalDtState = null;
@@ -799,7 +801,7 @@ function buildDateTimePanel(state) {
         ? `${state.hour}:${String(state.minute).padStart(2, '0')} ${state.period}`
         : '--:--';
 
-    return `<div class="datetime-panel-layout">${calendarHtml}<div class="datetime-time-picker"><div class="datetime-time-header">Time Â· ${previewTime}</div><div class="datetime-time-cols"><div class="datetime-time-col">${hours.join('')}</div><div class="datetime-time-col">${minutes.join('')}</div><div class="datetime-time-period-col">${periods}</div></div><div class="datetime-confirm-row"><button class="btn btn-small" type="button" data-dt-confirm>Done</button></div></div></div>`;
+    return `<div class="datetime-panel-layout">${calendarHtml}<div class="datetime-time-picker"><div class="datetime-time-header">Time  ·  ${previewTime}</div><div class="datetime-time-cols"><div class="datetime-time-col">${hours.join('')}</div><div class="datetime-time-col">${minutes.join('')}</div><div class="datetime-time-period-col">${periods}</div></div><div class="datetime-confirm-row"><button class="btn btn-small" type="button" data-dt-confirm>Done</button></div></div></div>`;
 }
 
 function positionGlobalDtPanel(trigger) {
@@ -939,7 +941,7 @@ function initCustomDatePickers() {
         };
 
         if (isFormPicker) {
-            // Remove the inline placeholder panel â€” all rendering is via global panel
+            // Remove the inline placeholder panel - all rendering is via global panel
             picker.querySelector('.filter-date-panel')?.remove();
 
             trigger.addEventListener('click', event => {
@@ -4102,17 +4104,21 @@ function openStudentModal() {
 function closeAdminActionMenus() {
     document.querySelectorAll('.admin-user-action-menu[open], .admin-user-action-submenu[open], .admin-user-action-other[open]').forEach(menu => {
         menu.removeAttribute('open');
-        const panel = menu.classList.contains('admin-user-action-menu')
-            ? menu.querySelector(':scope > .admin-user-action-panel')
-            : null;
-        if (panel) {
-            panel.classList.remove('is-fixed-panel');
-            panel.style.top = '';
-            panel.style.left = '';
-            panel.style.right = '';
-            panel.style.bottom = '';
-            panel.style.width = '';
+    });
+    document.querySelectorAll('.admin-user-action-panel.is-fixed-panel').forEach(panel => {
+        const host = panel._actionMenuHost;
+        if (panel.dataset.portaled === '1' && host) {
+            host.appendChild(panel);
+            delete panel.dataset.portaled;
         }
+        panel.classList.remove('is-fixed-panel');
+        panel.style.top = '';
+        panel.style.left = '';
+        panel.style.right = '';
+        panel.style.bottom = '';
+        panel.style.width = '';
+        panel.style.visibility = '';
+        panel.style.pointerEvents = '';
     });
 }
 function escapeHtml(value) {
@@ -4174,7 +4180,7 @@ function renderDashboardCharts() {
         });
     }
 }
-// â”€â”€â”€ Chart helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Chart helpers ------------------------------------------------------------
 const CHART_COLORS = ['#642525', '#4b2030', '#261c4b', '#1b2a63', '#8B1A1A', '#c0392b', '#64748b'];
 const CHART_BAR_COLOR = '#4b2030';
 const CHART_BAR_GRADIENT = ['#4b2030', '#261c4b', '#642525'];
@@ -4381,7 +4387,7 @@ function drawPie(id, data) {
     ctx.fillStyle = '#64748b';
     ctx.fillText('Total', cx, cy + 10);
 
-    // legend below donut â€” centred horizontally
+    // legend below donut - centred horizontally
     const legendTop = donutSpace + 8;
     const swatchW   = 12;
     const colW      = 110; // fixed column width for centering
@@ -4413,10 +4419,10 @@ function drawPie(id, data) {
     });
 }
 
-// â”€â”€â”€ Bar chart (auto horizontal when many bars) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Bar chart (auto horizontal when many bars) -----------------------------
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function fmtBarLabel(lbl) {
-    // "2025-11" â†’ "Nov '25"
+    // "2025-11" -> "Nov '25"
     const m = String(lbl).match(/^(\d{4})-(\d{2})$/);
     if (m) return MONTH_NAMES[parseInt(m[2], 10) - 1] + ' \'' + m[1].slice(2);
     return String(lbl);
@@ -4526,7 +4532,7 @@ function drawHBars(id, data, suffix = '') {
         const x    = padL;
         hitRegions.push({ y, h: barH, label: d.label, val });
 
-        // label â€” truncate by pixel width, not character count
+        // label - truncate by pixel width, not character count
         chartFont(ctx, 12, '600');
         ctx.fillStyle = '#172033';
         ctx.textAlign = 'right';
@@ -4570,7 +4576,7 @@ function attachCourseChartInteraction() {
     if (!canvas || canvas._interactionAttached) return;
     canvas._interactionAttached = true;
 
-    // â”€â”€ Tooltip element â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Tooltip element ------------------------------------------------------
     let tip = document.getElementById('_courseTooltip');
     if (!tip) {
         tip = document.createElement('div');
@@ -4640,7 +4646,7 @@ function attachCourseChartInteraction() {
     });
 }
 
-// â”€â”€â”€ Line chart â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Line chart --------------------------------------------------------------
 function drawLine(id, data) {
     const p = prepCanvas(id);
     if (!p) return;
@@ -4728,10 +4734,10 @@ function drawLine(id, data) {
         ctx.textBaseline = 'bottom';
         ctx.fillText(pt.d.value, pt.x, pt.y - 12);
 
-        // x label â€“ draw after dots so we can do rotation outside the per-dot loop
+        // x label - draw after dots so we can do rotation outside the per-dot loop
     });
 
-    // x-axis labels: skip any that would overlap, rotate -35Â°
+    // x-axis labels: skip any that would overlap, rotate -35°
     chartFont(ctx, 11, '500');
     ctx.fillStyle = '#64748b';
     const labelY = pad.top + gH + 10;
@@ -4745,7 +4751,7 @@ function drawLine(id, data) {
         lastDrawnX = pt.x;
         ctx.save();
         ctx.translate(pt.x, labelY);
-        ctx.rotate(-Math.PI / 5); // -36Â°
+        ctx.rotate(-Math.PI / 5); // -36°
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
         ctx.fillText(String(pt.d.label), 0, 0);
@@ -5193,7 +5199,7 @@ function initRequirementReviewModals() {
                     if (subtitle) {
                         subtitle.textContent = data.requirement_status === 'approved'
                             ? 'Reviewed and approved'
-                            : 'Rejected â€” needs revision';
+                            : 'Rejected - needs revision';
                     }
                     const actions = article.querySelector('[data-review-actions]');
                     if (actions) {
@@ -5266,7 +5272,7 @@ function initStudentModal() {
     document.getElementById('studentModalClose')?.addEventListener('click', closeStudentModal);
     modal.addEventListener('click', e => { if (e.target === modal) closeStudentModal(); });
 
-    // Open handler â€” event delegation on table body
+    // Open handler - event delegation on table body
     document.addEventListener('click', e => {
         const btn = e.target.closest('.student-view-btn');
         if (!btn) return;
@@ -5396,17 +5402,37 @@ function bindAdminDirectoryActions(page) {
 
     const resetActionPanel = panel => {
         if (!panel) return;
+        const host = panel._actionMenuHost;
+        if (panel.dataset.portaled === '1' && host) {
+            host.appendChild(panel);
+            delete panel.dataset.portaled;
+        }
         panel.classList.remove('is-fixed-panel');
         panel.style.top = '';
         panel.style.left = '';
         panel.style.right = '';
         panel.style.bottom = '';
         panel.style.width = '';
+        panel.style.visibility = '';
+        panel.style.pointerEvents = '';
+    };
+
+    const getActionPanel = menu => {
+        if (!menu) return null;
+        if (menu._actionPanel && document.contains(menu._actionPanel)) {
+            return menu._actionPanel;
+        }
+        const panel = menu.querySelector(':scope > .admin-user-action-panel');
+        if (panel) {
+            menu._actionPanel = panel;
+            panel._actionMenuHost = menu;
+        }
+        return panel || null;
     };
 
     const positionActionPanel = menu => {
         if (!menu?.classList.contains('admin-user-action-menu')) return;
-        const panel = menu.querySelector(':scope > .admin-user-action-panel');
+        const panel = getActionPanel(menu);
         const trigger = menu.querySelector('.admin-user-action-trigger');
         if (!panel || !trigger) return;
 
@@ -5415,7 +5441,16 @@ function bindAdminDirectoryActions(page) {
             return;
         }
 
+        if (panel.parentElement !== document.body) {
+            document.body.appendChild(panel);
+            panel.dataset.portaled = '1';
+            panel._actionMenuHost = menu;
+            menu._actionPanel = panel;
+        }
+
         panel.classList.add('is-fixed-panel');
+        panel.style.visibility = 'hidden';
+        panel.style.pointerEvents = 'none';
         const panelWidth = panel.offsetWidth || 210;
         const panelHeight = panel.offsetHeight || 1;
         const rect = trigger.getBoundingClientRect();
@@ -5423,12 +5458,13 @@ function bindAdminDirectoryActions(page) {
         left = Math.max(8, Math.min(left, window.innerWidth - panelWidth - 8));
         let top = rect.bottom + 6;
         if (top + panelHeight > window.innerHeight - 8) {
-            top = rect.top - panelHeight - 6;
+            top = Math.max(8, rect.top - panelHeight - 6);
         }
-        top = Math.max(8, top);
         panel.style.left = `${left}px`;
         panel.style.top = `${top}px`;
         panel.style.right = 'auto';
+        panel.style.visibility = '';
+        panel.style.pointerEvents = '';
     };
 
     const repositionOpenMenus = () => {
@@ -5445,9 +5481,11 @@ function bindAdminDirectoryActions(page) {
         page.querySelectorAll('.admin-user-action-menu').forEach(menu => {
             if (menu !== except) {
                 menu.removeAttribute('open');
-                resetActionPanel(menu.querySelector(':scope > .admin-user-action-panel'));
+                resetActionPanel(getActionPanel(menu));
             }
             resetNestedMenus(menu);
+            const panel = getActionPanel(menu);
+            if (panel) resetNestedMenus(panel);
         });
     };
 
@@ -5457,7 +5495,7 @@ function bindAdminDirectoryActions(page) {
 
         if (!menu.open) {
             if (menu.classList.contains('admin-user-action-menu')) {
-                resetActionPanel(menu.querySelector(':scope > .admin-user-action-panel'));
+                resetActionPanel(getActionPanel(menu));
             }
             resetNestedMenus(menu);
             return;
@@ -5488,7 +5526,7 @@ function bindAdminDirectoryActions(page) {
         }
     });
 
-    const directoryTable = page.querySelector('.aco-coordinators-table, .asu-students-table');
+    const directoryTable = page.querySelector('.aco-coordinators-table, .asu-students-table, .asu-programs-table, .asu-partners-table');
     if (directoryTable?._rerender && !directoryTable.dataset.actionMenusHooked) {
         directoryTable.dataset.actionMenusHooked = '1';
         const originalRerender = directoryTable._rerender;
@@ -5502,7 +5540,9 @@ function bindAdminDirectoryActions(page) {
         if (event.target.closest('.student-view-btn')) {
             return;
         }
-        if (!event.target.closest('.admin-user-action-menu')) {
+        const inMenu = event.target.closest('.admin-user-action-menu');
+        const inPortaledPanel = event.target.closest('.admin-user-action-panel.is-fixed-panel');
+        if (!inMenu && !inPortaledPanel) {
             closeAllActionMenus();
         }
     });
@@ -5975,6 +6015,285 @@ function initAdminStudentsProgramFilterPortal(programFilter) {
     requestAnimationFrame(syncMenu);
 }
 
+function initAdminPartnersDirectory() {
+    document.querySelectorAll('[data-admin-partners-directory]').forEach(directory => {
+        bindAdminDirectoryActions(directory);
+
+        if (directory.dataset.partnersDirReady === '1') return;
+        directory.dataset.partnersDirReady = '1';
+
+        const table = directory.querySelector('.asu-partners-table');
+        const statusFilter = directory.querySelector('[data-asu-partner-status-filter]');
+        const search = directory.querySelector('.table-search');
+        if (!table) return;
+
+        let statusValue = 'all';
+
+        const applyFilters = () => {
+            if (!statusFilter) {
+                table._applyRowFilter = null;
+                search?.dispatchEvent(new Event('input'));
+                return;
+            }
+            table._applyRowFilter = row => {
+                if (statusValue === 'all') return true;
+                return row.dataset.partnerStatus === statusValue;
+            };
+            search?.dispatchEvent(new Event('input'));
+        };
+
+        table._resetDirectoryFilters = () => {
+            statusValue = 'all';
+            if (statusFilter) {
+                statusFilter.value = 'all';
+                statusFilter._syncCustomSelect?.();
+            }
+            table._applyRowFilter = null;
+        };
+
+        statusFilter?.addEventListener('change', () => {
+            statusValue = statusFilter.value || 'all';
+            applyFilters();
+        });
+
+        requestAnimationFrame(applyFilters);
+    });
+
+    initAdminPartnerProgramsModal();
+}
+
+function initAdminPartnerProgramsModal() {
+    const overlay = document.getElementById('asuPartnerProgramsOverlay');
+    const editOverlay = document.getElementById('asuPartnerEditProgramsOverlay');
+    if (overlay && overlay.dataset.ready !== '1') {
+        overlay.dataset.ready = '1';
+
+        const titleEl = document.getElementById('asuPartnerProgramsTitle');
+        const countEl = overlay.querySelector('[data-asu-programs-count]');
+        const listEl = overlay.querySelector('[data-asu-programs-list]');
+
+        const closeModal = () => {
+            overlay.classList.remove('is-open');
+            overlay.setAttribute('aria-hidden', 'true');
+        };
+
+        const openModal = (companyName, programs) => {
+            if (titleEl) titleEl.textContent = companyName || 'Host Training Establishment';
+            if (countEl) {
+                const total = programs.length;
+                countEl.textContent = `${total} program${total === 1 ? '' : 's'} accepted`;
+            }
+            if (listEl) {
+                listEl.innerHTML = programs.map(program => {
+                    const code = escapeHtml(program.code || '—');
+                    const name = escapeHtml(program.name || 'Program');
+                    const hours = Number(program.hours || 0);
+                    const hoursLabel = hours > 0 ? `${hours} hrs` : '';
+                    return `<article class="asu-partner-program-row">
+                        <strong>${code}</strong>
+                        <span>${name}</span>
+                        <em>${escapeHtml(hoursLabel)}</em>
+                    </article>`;
+                }).join('');
+            }
+            overlay.classList.add('is-open');
+            overlay.setAttribute('aria-hidden', 'false');
+        };
+
+        document.addEventListener('click', event => {
+            const trigger = event.target.closest('[data-asu-view-programs]');
+            if (trigger) {
+                event.preventDefault();
+                event.stopPropagation();
+                closeAdminActionMenus();
+                let programs = [];
+                try {
+                    programs = JSON.parse(trigger.dataset.programs || '[]');
+                } catch (error) {
+                    programs = [];
+                }
+                if (!Array.isArray(programs)) programs = [];
+                openModal(trigger.dataset.company || 'Host Training Establishment', programs);
+                return;
+            }
+
+            if (event.target === overlay || event.target.closest('[data-asu-programs-close]')) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && overlay.classList.contains('is-open')) {
+                closeModal();
+            }
+        });
+    }
+
+    if (!editOverlay || editOverlay.dataset.ready === '1') return;
+    editOverlay.dataset.ready = '1';
+
+    const editTitleEl = document.getElementById('asuPartnerEditProgramsTitle');
+    const editListEl = editOverlay.querySelector('[data-asu-edit-programs-list]');
+    const editCompanyIdInput = editOverlay.querySelector('[data-asu-edit-company-id]');
+
+    const closeEditModal = () => {
+        editOverlay.classList.remove('is-open');
+        editOverlay.setAttribute('aria-hidden', 'true');
+    };
+
+    const openEditModal = (companyName, companyId, selectedIds) => {
+        const catalog = Array.isArray(window.asuPartnerProgramCatalog) ? window.asuPartnerProgramCatalog : [];
+        if (editTitleEl) editTitleEl.textContent = companyName || 'Host Training Establishment';
+        if (editCompanyIdInput) editCompanyIdInput.value = String(companyId || '');
+        const selected = new Set((selectedIds || []).map(id => String(id)));
+        if (editListEl) {
+            if (!catalog.length) {
+                editListEl.innerHTML = '<p class="muted">No programs available yet.</p>';
+            } else {
+                editListEl.innerHTML = catalog.map(program => {
+                    const id = String(program.id);
+                    const checked = selected.has(id) ? ' checked' : '';
+                    const hours = Number(program.hours || 0);
+                    return `<label class="partner-program-option asu-partner-edit-option">
+                        <input type="checkbox" name="program_ids[]" value="${escapeHtml(id)}"${checked}>
+                        <span class="partner-program-copy">
+                            <strong>${escapeHtml(program.code || '')}</strong>
+                            <span>${escapeHtml(program.name || '')}</span>
+                        </span>
+                        <em>${hours > 0 ? `${hours} hrs` : ''}</em>
+                    </label>`;
+                }).join('');
+            }
+        }
+        closeAdminActionMenus();
+        editOverlay.classList.add('is-open');
+        editOverlay.setAttribute('aria-hidden', 'false');
+    };
+
+    document.addEventListener('click', event => {
+        const trigger = event.target.closest('[data-asu-edit-programs]');
+        if (trigger) {
+            event.preventDefault();
+            event.stopPropagation();
+            let selectedIds = [];
+            try {
+                selectedIds = JSON.parse(trigger.dataset.selectedIds || '[]');
+            } catch (error) {
+                selectedIds = [];
+            }
+            if (!Array.isArray(selectedIds)) selectedIds = [];
+            openEditModal(
+                trigger.dataset.company || 'Host Training Establishment',
+                trigger.dataset.companyId || '',
+                selectedIds
+            );
+            return;
+        }
+
+        if (event.target === editOverlay || event.target.closest('[data-asu-edit-programs-close]')) {
+            closeEditModal();
+        }
+    });
+
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && editOverlay.classList.contains('is-open')) {
+            closeEditModal();
+        }
+    });
+}
+
+function initAdminProgramsDirectory() {
+    document.querySelectorAll('[data-admin-programs-directory]').forEach(directory => {
+        if (directory.dataset.programsDirReady === '1') return;
+        directory.dataset.programsDirReady = '1';
+
+        const table = directory.querySelector('.asu-programs-table');
+        const statusFilter = directory.querySelector('[data-asu-program-status-filter]');
+        const search = directory.querySelector('.table-search');
+        if (!table) return;
+
+        let statusValue = 'all';
+
+        const snapshotRow = row => {
+            const fields = [...row.querySelectorAll('[data-program-field]')];
+            row._programSnapshot = fields.map(field => field.value);
+        };
+
+        const syncDirtyState = row => {
+            const fields = [...row.querySelectorAll('[data-program-field]')];
+            const snapshot = row._programSnapshot || [];
+            const dirty = fields.some((field, index) => field.value !== snapshot[index]);
+            row.classList.toggle('is-dirty', dirty);
+        };
+
+        const applyFilters = () => {
+            if (!statusFilter) {
+                table._applyRowFilter = null;
+                search?.dispatchEvent(new Event('input'));
+                return;
+            }
+            table._applyRowFilter = row => {
+                if (statusValue === 'all') return true;
+                return row.dataset.programStatus === statusValue;
+            };
+            search?.dispatchEvent(new Event('input'));
+        };
+
+        table._resetDirectoryFilters = () => {
+            statusValue = 'all';
+            if (statusFilter) {
+                statusFilter.value = 'all';
+                statusFilter._syncCustomSelect?.();
+            }
+            table._applyRowFilter = null;
+        };
+
+        statusFilter?.addEventListener('change', () => {
+            statusValue = statusFilter.value || 'all';
+            applyFilters();
+        });
+
+        table.querySelectorAll('tr.asu-program-row').forEach(snapshotRow);
+
+        table.addEventListener('input', event => {
+            const field = event.target.closest('[data-program-field]');
+            if (!field) return;
+            const row = field.closest('tr.asu-program-row');
+            if (row) syncDirtyState(row);
+        });
+
+        table.addEventListener('change', event => {
+            const field = event.target.closest('[data-program-field]');
+            if (!field) return;
+            const row = field.closest('tr.asu-program-row');
+            if (!row) return;
+
+            if (field.matches('[data-program-status-field]')) {
+                row.dataset.programStatus = field.value === '1' ? 'active' : 'inactive';
+                applyFilters();
+            }
+            syncDirtyState(row);
+        });
+
+        directory.addEventListener('submit', async event => {
+            const deleteForm = event.target.closest('[data-program-delete]');
+            if (!deleteForm || !directory.contains(deleteForm)) return;
+
+            event.preventDefault();
+            const row = deleteForm.closest('tr');
+            const code = row?.querySelector('.asu-program-code-input')?.value?.trim() || 'this program';
+            const confirmed = await showConfirmModal(`Delete ${code}? This cannot be undone.`, {
+                title: 'Delete program',
+                confirmText: 'Delete',
+                variant: 'danger',
+            });
+            if (confirmed) deleteForm.submit();
+        });
+
+        requestAnimationFrame(applyFilters);
+    });
+}
+
 function initAdminStudentsDirectory() {
     document.querySelectorAll('[data-admin-students-directory]').forEach(directory => {
         const table = directory.querySelector('.asu-students-table');
@@ -6360,8 +6679,9 @@ function reinitAppPageContent() {
     initRequirementReviewModals();
     initRegistrationRequestsReview();
     initPasswordResetRequests();
-    initAdminUserActions();
     initAdminStudentsDirectory();
+    initAdminProgramsDirectory();
+    initAdminPartnersDirectory();
     initAdminCreateStudentModal();
     initCoordinatorAvailability();
     initPartnerAvailability();
@@ -6384,6 +6704,8 @@ function reinitAppPageContent() {
     initStudentModal();
     try { initWeeklyReportUpload(); } catch (err) { console.warn('Weekly report upload init failed:', err); }
     document.querySelectorAll('.content .data-table').forEach(table => enhanceTable(table));
+    // Bind action menus after tables are enhanced so pagination hooks attach correctly.
+    initAdminUserActions();
 
     // Only clear chart data when no dashboard chart canvases remain (admin no longer has monthlyChart).
     if (!document.getElementById('monthlyChart')
@@ -6806,7 +7128,7 @@ function initLiveChat() {
         const roleLabel = formatRoleLabel(button.dataset.partnerRole || partnerRole);
 
         if (activeNameEl) activeNameEl.textContent = partnerName;
-        if (activeMetaEl) activeMetaEl.textContent = roleLabel + ' Â· ' + partnerEmail;
+        if (activeMetaEl) activeMetaEl.textContent = roleLabel + '  ·  ' + partnerEmail;
         if (activeAvatarEl) activeAvatarEl.textContent = partnerName.charAt(0).toUpperCase();
         if (activeTagEl) activeTagEl.textContent = String(button.dataset.partnerRole || partnerRole).toUpperCase();
         if (typingLabelEl) typingLabelEl.textContent = partnerName + ' is typing...';

@@ -456,7 +456,7 @@ function mail_error_hint(string $error): string
 {
     $from = defined('MAIL_FROM_EMAIL') ? MAIL_FROM_EMAIL : 'your mailbox';
     if (stripos($error, 'Disabled by user') !== false || stripos($error, '554') !== false || stripos($error, 'suspended') !== false) {
-        return 'Hostinger mailbox ' . $from . ' is suspended or disabled. Create or re-enable a mailbox in hPanel â†’ Emails, then update SMTP_USERNAME, SMTP_PASSWORD, and MAIL_FROM_EMAIL in .env.';
+        return 'Hostinger mailbox ' . $from . ' is suspended or disabled. Create or re-enable a mailbox in hPanel -> Emails, then update SMTP_USERNAME, SMTP_PASSWORD, and MAIL_FROM_EMAIL in .env.';
     }
     if (stripos($error, 'Could not authenticate') !== false) {
         return 'SMTP authentication failed for ' . $from . '. Check SMTP_USERNAME and SMTP_PASSWORD in .env (use the full email address and mailbox password).';
@@ -616,7 +616,7 @@ function projected_ojt_end_date(string $startDate, int $requiredHours, int $hour
     $date = new DateTimeImmutable($startDate);
     $workedDays = 0;
     while ($workedDays < $daysNeeded) {
-        $weekday = (int)$date->format('N'); // 1=Mon â€¦ 6=Sat, 7=Sun
+        $weekday = (int)$date->format('N'); // 1=Mon ... 6=Sat, 7=Sun
         if ($weekday <= 6) {
             $workedDays++;
         }
@@ -700,10 +700,10 @@ function format_dtr_schedule(array $dtr): string
     $dayType = normalize_dtr_day_type($dtr['day_type'] ?? 'full');
 
     if ($dayType === 'sick') {
-        return 'Sick leave â€” no attendance';
+        return 'Sick leave - no attendance';
     }
     if ($dayType === 'absent') {
-        return 'Absent â€” no attendance';
+        return 'Absent - no attendance';
     }
 
     $morningIn = trim((string)($dtr['morning_time_in'] ?? ''));
@@ -719,7 +719,7 @@ function format_dtr_schedule(array $dtr): string
 
     if ($dayType === 'half_am' && $morningIn !== '' && $morningOut !== '') {
         return sprintf(
-            'Half AM %sâ€“%s',
+            'Half AM %s - %s',
             format_dtr_time_display($morningIn),
             format_dtr_time_display($morningOut)
         );
@@ -727,7 +727,7 @@ function format_dtr_schedule(array $dtr): string
 
     if ($dayType === 'half_pm' && $afternoonIn !== '' && $afternoonOut !== '') {
         return sprintf(
-            'Half PM %sâ€“%s',
+            'Half PM %s - %s',
             format_dtr_time_display($afternoonIn),
             format_dtr_time_display($afternoonOut)
         );
@@ -735,7 +735,7 @@ function format_dtr_schedule(array $dtr): string
 
     if ($morningIn !== '' && $morningOut !== '' && $afternoonIn !== '' && $afternoonOut !== '') {
         return sprintf(
-            'AM %sâ€“%s Â· PM %sâ€“%s',
+            'AM %s - %s  ·  PM %s - %s',
             format_dtr_time_display($morningIn),
             format_dtr_time_display($morningOut),
             format_dtr_time_display($afternoonIn),
@@ -745,7 +745,7 @@ function format_dtr_schedule(array $dtr): string
 
     if ($morningIn !== '' && $morningOut !== '') {
         return sprintf(
-            'AM %sâ€“%s',
+            'AM %s - %s',
             format_dtr_time_display($morningIn),
             format_dtr_time_display($morningOut)
         );
@@ -753,7 +753,7 @@ function format_dtr_schedule(array $dtr): string
 
     if ($afternoonIn !== '' && $afternoonOut !== '') {
         return sprintf(
-            'PM %sâ€“%s',
+            'PM %s - %s',
             format_dtr_time_display($afternoonIn),
             format_dtr_time_display($afternoonOut)
         );
@@ -771,28 +771,26 @@ function admin_report_categories(): array
     return [
         [
             'id' => 'student',
-            'title' => 'Student Reports',
+            'title' => 'Students',
             'icon' => 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z',
             'items' => [
                 ['label' => 'Active Students', 'slug' => 'active_students'],
                 ['label' => 'Completed OJT Students', 'slug' => 'completed_ojt_students'],
                 ['label' => 'Pending Students', 'slug' => 'pending_students'],
-                ['label' => 'Student Attendance Summary', 'slug' => 'student_attendance_summary'],
             ],
         ],
         [
             'id' => 'company',
-            'title' => 'Company Reports',
+            'title' => 'Companies',
             'icon' => 'M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z',
             'items' => [
                 ['label' => 'Partner Company List', 'slug' => 'partner_company_list'],
                 ['label' => 'Students Per Company', 'slug' => 'students_per_company'],
-                ['label' => 'Company Evaluation Results', 'slug' => 'company_evaluation_results'],
             ],
         ],
         [
             'id' => 'attendance',
-            'title' => 'Attendance Reports',
+            'title' => 'Attendance',
             'icon' => 'M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm0 16H5V9h14v10Zm-9-8H7v3h3v3h3v-3h3v-3h-3V8h-3v3Z',
             'items' => [
                 ['label' => 'Daily Attendance', 'slug' => 'daily_attendance'],
@@ -803,7 +801,7 @@ function admin_report_categories(): array
         ],
         [
             'id' => 'evaluation',
-            'title' => 'Evaluation Reports',
+            'title' => 'Evaluations',
             'icon' => 'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z',
             'items' => [
                 ['label' => 'Industry Supervisor Evaluation', 'slug' => 'industry_supervisor_evaluation'],
@@ -814,7 +812,7 @@ function admin_report_categories(): array
         ],
         [
             'id' => 'requirements',
-            'title' => 'Requirements Reports',
+            'title' => 'Requirements',
             'icon' => 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5ZM8 13h8v2H8v-2Zm0 4h8v2H8v-2Z',
             'items' => [
                 ['label' => 'Submitted Requirements', 'slug' => 'submitted_requirements'],
@@ -825,7 +823,7 @@ function admin_report_categories(): array
         ],
         [
             'id' => 'completion',
-            'title' => 'Completion Reports',
+            'title' => 'Completion',
             'icon' => 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 14-4-4 1.4-1.4 2.6 2.6 5.6-5.6L18 9l-7 7Z',
             'items' => [
                 ['label' => 'Completion Rate by Course', 'slug' => 'completion_rate_by_course'],

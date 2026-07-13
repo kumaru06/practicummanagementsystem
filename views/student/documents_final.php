@@ -87,7 +87,7 @@
 <div class="final-req-page final-req-v2">
     <nav class="final-req-breadcrumb" aria-label="Breadcrumb">
         <a href="index.php?r=student_documents">Documents</a>
-        <span class="final-req-breadcrumb-sep" aria-hidden="true">â€º</span>
+        <span class="final-req-breadcrumb-sep" aria-hidden="true">></span>
         <span aria-current="page">Final Requirements</span>
     </nav>
 
@@ -125,7 +125,7 @@
             <span class="final-req-section-icon final-req-section-icon--docs"><?= $sectionDocsIcon ?></span>
             <div class="final-req-section-copy">
                 <span class="fr-section-eyebrow">Step 1</span>
-                <h2>Student â€” Submit the Following</h2>
+                <h2>Student - Submit the Following</h2>
                 <p class="muted">Please input the required information below.</p>
             </div>
             <span class="fr-section-chip"><?= (int)$docSubmitted ?>/<?= (int)$docTotal ?> done</span>

@@ -6,7 +6,7 @@
         <p>Hello <?= e($name ?? 'User') ?>,</p>
         <p>Your <?= e($roleLabel ?? 'account') ?> account credentials are below.</p>
         <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:16px;margin:18px 0">
-            <?php if (!empty($partnerId ?? '')): ?><p style="margin:0 0 8px"><strong>Partner ID:</strong> <?= e($partnerId) ?></p><?php endif; ?>
+            <?php if (!empty($partnerId ?? '')): ?><p style="margin:0 0 8px"><strong>HTE ID:</strong> <?= e($partnerId) ?></p><?php endif; ?>
             <?php if (!empty($usn ?? '')): ?><p style="margin:0 0 8px"><strong>USN:</strong> <?= e($usn) ?></p><?php endif; ?>
             <p style="margin:0 0 8px"><strong>Email:</strong> <?= e($email ?? '') ?></p>
             <p style="margin:0"><strong>Temporary Password:</strong> <?= e($password ?? '') ?></p>

@@ -74,6 +74,7 @@ class PasswordResetRequest
 
         if ($role === 'partner') {
             (new Company($this->db))->ensurePartnerIdSupport();
+            $normalizedId = preg_replace('/^IP-/i', 'HTE-', trim($identifier)) ?: trim($identifier);
             $stmt = $this->db->prepare(
                 'SELECT u.*
                  FROM users u
@@ -81,7 +82,7 @@ class PasswordResetRequest
                  WHERE u.role = "partner" AND u.email = ? AND pc.partner_id = ? AND u.is_active = 1
                  LIMIT 1'
             );
-            $stmt->execute([$email, $identifier]);
+            $stmt->execute([$email, $normalizedId]);
             return hydrate_user_record($stmt->fetch() ?: null);
         }
 
@@ -283,7 +284,7 @@ class PasswordResetRequest
         return match ($role) {
             'student' => 'USN (Student ID)',
             'coordinator' => 'Coordinator ID',
-            'partner' => 'Partner ID',
+            'partner' => 'HTE ID',
             default => 'Account ID',
         };
     }
