@@ -6108,6 +6108,19 @@ body.is-coordinator-edit-open {
     min-width: 240px;
 }
 
+.ojt-placement-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.ojt-placement-toolbar .asu-filter-select {
+    min-width: 150px;
+}
+
 .section-head h2 {
     font-size: clamp(1.2rem, 1.6vw, 1.6rem);
     letter-spacing: -0.03em;

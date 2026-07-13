@@ -54,6 +54,7 @@
     initAdminStudentsDirectory();
     initAdminProgramsDirectory();
     initAdminPartnersDirectory();
+    initAdminOjtPlacementDirectory();
     initPartnerCreateAccordion();
     initPartnerCreateReviewConfirm();
     initAdminCreateStudentModal();
@@ -6282,6 +6283,42 @@ function initAdminPartnersDirectory() {
     initAdminPartnerProgramsModal();
 }
 
+function initAdminOjtPlacementDirectory() {
+    document.querySelectorAll('[data-ojt-placement-directory]').forEach(directory => {
+        if (directory.dataset.ojtPlacementReady === '1') return;
+        directory.dataset.ojtPlacementReady = '1';
+
+        const table = directory.querySelector('.data-table');
+        const statusFilter = directory.querySelector('[data-ojt-placement-status-filter]');
+        const search = directory.querySelector('.table-search');
+        if (!table || !statusFilter) return;
+
+        let statusValue = statusFilter.value || 'active';
+
+        const applyFilters = () => {
+            table._applyRowFilter = row => {
+                if (statusValue === 'all') return true;
+                return row.dataset.placementStatus === statusValue;
+            };
+            search?.dispatchEvent(new Event('input'));
+        };
+
+        table._resetDirectoryFilters = () => {
+            statusValue = 'active';
+            statusFilter.value = 'active';
+            statusFilter._syncCustomSelect?.();
+            applyFilters();
+        };
+
+        statusFilter.addEventListener('change', () => {
+            statusValue = statusFilter.value || 'active';
+            applyFilters();
+        });
+
+        requestAnimationFrame(applyFilters);
+    });
+}
+
 function initAdminPartnerProgramsModal() {
     const overlay = document.getElementById('asuPartnerProgramsOverlay');
     const editOverlay = document.getElementById('asuPartnerEditProgramsOverlay');
@@ -6902,6 +6939,7 @@ function reinitAppPageContent() {
     initAdminStudentsDirectory();
     initAdminProgramsDirectory();
     initAdminPartnersDirectory();
+    initAdminOjtPlacementDirectory();
     initPartnerCreateAccordion();
     initPartnerCreateReviewConfirm();
     initAdminCreateStudentModal();
