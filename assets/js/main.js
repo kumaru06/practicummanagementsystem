@@ -3738,15 +3738,15 @@ function updateWizardSummary(form) {
     const end = form.querySelector('[name="term_end_date"]')?.value || '-';
     const hours = form.querySelector('[name="required_hours"]')?.value || '-';
     box.innerHTML = `
-        <h3><span class="confirm-icon"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>Confirm Enrollment</h3>
+        <h3><span class="confirm-icon"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>Review & confirm</h3>
         <div class="confirm-grid">
             <div class="confirm-row"><span class="confirm-label">Student</span><span class="confirm-value">${escapeHtml(student)}</span></div>
-            <div class="confirm-row"><span class="confirm-label">Company</span><span class="confirm-value">${escapeHtml(company)}</span></div>
-            <div class="confirm-row"><span class="confirm-label">Academic Term</span><span class="confirm-value">${escapeHtml(term)}</span></div>
-            <div class="confirm-row"><span class="confirm-label">Schedule</span><span class="confirm-value">${escapeHtml(start)} to ${escapeHtml(end)}</span></div>
-            <div class="confirm-row"><span class="confirm-label">Required Hours</span><span class="confirm-value">${escapeHtml(hours)}</span></div>
+            <div class="confirm-row"><span class="confirm-label">Host</span><span class="confirm-value">${escapeHtml(company)}</span></div>
+            <div class="confirm-row"><span class="confirm-label">Term</span><span class="confirm-value">${escapeHtml(term)}</span></div>
+            <div class="confirm-row"><span class="confirm-label">Schedule</span><span class="confirm-value">${escapeHtml(start)} → ${escapeHtml(end)}</span></div>
+            <div class="confirm-row"><span class="confirm-label">Hours</span><span class="confirm-value">${escapeHtml(hours)} hrs</span></div>
         </div>
-        <div class="confirm-note"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg><span>Submitting will send the student enrollment and company deployment emails.</span></div>`;
+        <div class="confirm-note"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg><span>This will enroll the student and email both the student and host training establishment.</span></div>`;
 }
 
 function initEnrollmentAutomation() {
