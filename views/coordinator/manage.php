@@ -180,7 +180,7 @@ $totalStudents = count($students);
                         <h3>Select a student</h3>
                         <p class="muted">Choose an unenrolled student from your roster.</p>
                     </div>
-                    <label><span>Student <span class="field-required">*</span></span><select required name="student_id"><option value="">— Select student —</option><?php foreach ($students as $s): ?><option value="<?= (int)$s['id'] ?>" data-program-id="<?= (int)($s['program_id'] ?? 0) ?>" data-required-hours="<?= (int)($s['program_required_hours'] ?? 0) ?>" data-is-enrolled="<?= !empty($s['enrollment_id']) ? '1' : '0' ?>"><?= e($s['name'] . ' - ' . $s['student_no'] . ' (' . ($s['program_code'] ?? $s['course']) . ')' . ' - ' . (!empty($s['enrollment_id']) ? 'Enrolled' : 'Unenrolled')) ?></option><?php endforeach; ?></select></label>
+                    <label><span>Student <span class="field-required">*</span></span><select required name="student_id"><option value="">— Select student —</option><?php foreach ($students as $s): if (!empty($s['enrollment_id'])) continue; ?><option value="<?= (int)$s['id'] ?>" data-program-id="<?= (int)($s['program_id'] ?? 0) ?>" data-required-hours="<?= (int)($s['program_required_hours'] ?? 0) ?>" data-is-enrolled="0"><?= e($s['name'] . ' - ' . $s['student_no'] . ' (' . ($s['program_code'] ?? $s['course']) . ')') ?></option><?php endforeach; ?></select></label>
                     <div class="wizard-actions enrollment-wizard-actions enrollment-wizard-actions--end">
                         <button class="btn btn-primary wizard-next enrollment-wizard-next" type="button">
                             Continue
