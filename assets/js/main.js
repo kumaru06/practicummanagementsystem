@@ -3673,6 +3673,9 @@ function initCounters() {
 
 function initWizards() {
     document.querySelectorAll('[data-wizard]').forEach(form => {
+        if (form.dataset.wizardReady === '1') return;
+        form.dataset.wizardReady = '1';
+
         let index = 0;
         const panels = [...form.querySelectorAll('.wizard-step')];
         const stepIndicators = [...form.querySelectorAll('[data-wizard-step-indicator]')];
@@ -3689,6 +3692,12 @@ function initWizards() {
             legacySteps.forEach((s, i) => s.classList.toggle('active', i <= index));
             updateWizardSummary(form);
         };
+        form._wizardGoTo = show;
+        form._wizardReset = () => {
+            form.querySelectorAll('.touched').forEach(field => field.classList.remove('touched'));
+            form.querySelectorAll('.date-required-error').forEach(picker => picker.classList.remove('date-required-error'));
+            show(0);
+        };
         form.querySelectorAll('.wizard-next').forEach(btn => btn.addEventListener('click', () => {
             const studentSelect = form.querySelector('[name="student_id"]');
             const selectedStudent = studentSelect?.selectedOptions?.[0];
@@ -3698,6 +3707,7 @@ function initWizards() {
                     confirmText: 'OK'
                 });
                 studentSelect.value = '';
+                studentSelect._syncCustomSelect?.();
                 updateWizardSummary(form);
                 return;
             }
@@ -3741,14 +3751,18 @@ function updateWizardSummary(form) {
 function initEnrollmentAutomation() {
     document.querySelectorAll('form [name="student_id"]').forEach(studentSelect => {
         const form = studentSelect.closest('form');
-        const companySelect = form?.querySelector('[name="company_id"]');
-        const hoursInput = form?.querySelector('[name="required_hours"]');
-        const companyDocPreview = form?.querySelector('[data-company-doc-preview]');
-        const companyDocLink = form?.querySelector('[data-company-doc-link]');
-        if (!form || !companySelect || !hoursInput) return;
+        if (!form || form.dataset.enrollAutoReady === '1') return;
+
+        const companySelect = form.querySelector('[name="company_id"]');
+        const hoursInput = form.querySelector('[name="required_hours"]');
+        const companyDocPreview = form.querySelector('[data-company-doc-preview]');
+        const companyDocLink = form.querySelector('[data-company-doc-link]');
+        if (!companySelect || !hoursInput) return;
+        form.dataset.enrollAutoReady = '1';
         const clearSelection = () => {
             studentSelect.value = '';
             hoursInput.value = '';
+            studentSelect._syncCustomSelect?.();
         };
         const resetCompanies = () => {
             [...companySelect.options].forEach(option => {
@@ -3771,18 +3785,28 @@ function initEnrollmentAutomation() {
                 });
                 return;
             }
-            const programId = selected?.dataset.programId || '';
-            const requiredHours = selected?.dataset.requiredHours || '';
-            hoursInput.value = requiredHours;
-            [...companySelect.options].forEach(option => {
-                if (!option.value) return;
-                const accepted = (option.dataset.programIds || '').split(',').filter(Boolean);
-                const visible = !programId || accepted.includes(programId);
-                option.hidden = !visible;
-                option.disabled = !visible;
-            });
-            if (companySelect.selectedOptions[0]?.disabled) companySelect.value = '';
-            companySelect._syncCustomSelect?.();
+            hoursInput.value = selected?.dataset.requiredHours || '';
+            resetCompanies();
+            updateWizardSummary(form);
+        };
+        form._resetEnrollmentFields = (studentId = '') => {
+            const termSelect = form.querySelector('[name="academic_term"]');
+            if (studentId) {
+                studentSelect.value = String(studentId);
+            } else {
+                clearSelection();
+            }
+            studentSelect._syncCustomSelect?.();
+            resetCompanies();
+            if (termSelect) {
+                termSelect.value = '';
+                termSelect._syncCustomSelect?.();
+            }
+            syncAcademicTermDates(form);
+            if (studentId) {
+                hoursInput.value = studentSelect.selectedOptions[0]?.dataset.requiredHours || '';
+            }
+            syncCompanyDocument();
             updateWizardSummary(form);
         };
         const syncCompanyDocument = () => {
@@ -5710,7 +5734,6 @@ function initEnrollmentDirectory() {
 
         const table = directory.querySelector('[data-enrollment-directory-table]');
         const wizardForm = document.querySelector('.enr-wizard-overlay [data-wizard], [data-wizard]');
-        const studentSelect = wizardForm?.querySelector('[name="student_id"]');
         const openBtn = directory.querySelector('[data-enr-open-wizard]');
         const exportBtn = directory.querySelector('[data-enr-export]');
         if (!table) return;
@@ -5718,12 +5741,9 @@ function initEnrollmentDirectory() {
         exportBtn?.addEventListener('click', () => exportCsv(table));
 
         const openWizardForStudent = studentId => {
-            if (!studentSelect) return;
-            if (studentId) {
-                studentSelect.value = String(studentId);
-                studentSelect.dispatchEvent(new Event('change', { bubbles: true }));
-                studentSelect._syncCustomSelect?.();
-            }
+            if (!wizardForm) return;
+            wizardForm._wizardReset?.();
+            wizardForm._resetEnrollmentFields?.(studentId || '');
             window.openEnrollmentWizardModal?.();
         };
 
@@ -5838,6 +5858,9 @@ function initEnrollmentWizardModal() {
         overlay.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('is-enr-wizard-open');
         closeCustomSelects();
+        const wizardForm = overlay.querySelector('[data-wizard]');
+        wizardForm?._wizardReset?.();
+        wizardForm?._resetEnrollmentFields?.('');
         closeTimer = null;
     };
 

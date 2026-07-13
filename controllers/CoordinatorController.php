@@ -285,8 +285,9 @@ class CoordinatorController extends BaseController
             if (!$program) {
                 throw new RuntimeException('Student has no valid program/course assigned.');
             }
-            if (!(new Company($this->db))->acceptsProgram($companyId, (int)$program['id'])) {
-                throw new RuntimeException('Selected Host Training Establishment does not accept the student\'s program/course.');
+            $company = (new Company($this->db))->find($companyId);
+            if (!$company) {
+                throw new RuntimeException('Selected Host Training Establishment was not found.');
             }
             $requiredHours = (int)$program['required_hours'];
             $academicTerm = trim($p['academic_term'] ?? '');
@@ -306,7 +307,6 @@ class CoordinatorController extends BaseController
                 $termEndDate = (string)$termRow['term_end_date'];
             }
             (new Enrollment($this->db))->create($studentId, $companyId, null, null, $requiredHours, $academicTerm, $termStartDate, $termEndDate);
-            $company = (new Company($this->db))->find($companyId);
             $tempPassword = random_password();
             (new User($this->db))->updatePassword((int)$student['user_id'], $tempPassword, 0);
             $email = new Email($this->db);
