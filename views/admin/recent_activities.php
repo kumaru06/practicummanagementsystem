@@ -44,8 +44,19 @@ $typeBadges = [
             $when = (string)($activity['time'] ?? '');
             $dateLabel = $when !== '' ? date('M j, Y', strtotime($when)) : '—';
             $timeLabel = $when !== '' ? date('g:i A', strtotime($when)) : '—';
+            $detailFields = [];
+            if ($type === 'login') {
+                $detailFields[] = [
+                    'label' => 'IP Address',
+                    'value' => (string)($activity['ip'] ?? '—'),
+                ];
+                $detailFields[] = [
+                    'label' => 'Device',
+                    'value' => (string)($activity['device'] ?? '—'),
+                ];
+            }
         ?>
-        <tr>
+        <tr<?= $detailFields !== [] ? ' data-detail-fields="' . e(json_encode($detailFields, JSON_UNESCAPED_UNICODE)) . '"' : '' ?>>
             <td><?= e((string)($activity['title'] ?? '')) ?></td>
             <td><span class="badge <?= e($badgeClass) ?>"><?= e($category) ?></span></td>
             <td><?= e((string)($activity['detail'] ?? '')) ?></td>

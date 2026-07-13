@@ -4120,9 +4120,10 @@ function attachRowDetails(table) {
         row.addEventListener('click', e => {
             if (e.target.closest('a,button,form,input,select,textarea,summary,details,.admin-user-action-menu,.admin-user-action-panel')) return;
             const headers = [...table.tHead.rows[0].cells].map(th => th.innerText.trim());
-            let extraFields = [];
+            let prependFields = [];
+            let appendFields = [];
             if (row.dataset.idNumber) {
-                extraFields.push({
+                prependFields.push({
                     label: 'ID Number',
                     value: row.dataset.idNumber,
                 });
@@ -4130,14 +4131,14 @@ function attachRowDetails(table) {
             if (row.dataset.detailFields) {
                 try {
                     const parsed = JSON.parse(row.dataset.detailFields);
-                    if (Array.isArray(parsed)) extraFields = parsed;
+                    if (Array.isArray(parsed)) appendFields = parsed;
                 } catch {
-                    extraFields = [];
+                    appendFields = [];
                 }
             }
-            const extraHtml = extraFields.map(field => `<div class="detail-row"><span>${escapeHtml(field?.label || 'Field')}</span><strong>${escapeHtml(field?.value || '-')}</strong></div>`).join('');
-            const html = extraHtml + [...row.cells].map((cell, i) => `<div class="detail-row"><span>${escapeHtml(headers[i] || 'Field')}</span><strong>${escapeHtml(cell.innerText.trim())}</strong></div>`).join('');
-            openSlidePanel('<h2>Record Details</h2>' + html);
+            const fieldHtml = (fields) => fields.map(field => `<div class="detail-row"><span>${escapeHtml(field?.label || 'Field')}</span><strong>${escapeHtml(field?.value || '-')}</strong></div>`).join('');
+            const cellsHtml = [...row.cells].map((cell, i) => `<div class="detail-row"><span>${escapeHtml(headers[i] || 'Field')}</span><strong>${escapeHtml(cell.innerText.trim())}</strong></div>`).join('');
+            openSlidePanel('<h2>Record Details</h2>' + fieldHtml(prependFields) + cellsHtml + fieldHtml(appendFields));
         });
     });
 }

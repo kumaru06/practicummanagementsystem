@@ -116,7 +116,8 @@ class AdminController extends BaseController
         try {
             (new User($this->db))->ensureLastLoginSupport();
             $stmt = $this->db->query(
-                "SELECT first_name, middle_name, last_name, name, role, last_login_at
+                "SELECT first_name, middle_name, last_name, name, role, last_login_at,
+                        last_login_ip, last_login_device
                  FROM users
                  WHERE last_login_at IS NOT NULL
                    AND role IN ('student', 'coordinator', 'partner', 'admin')
@@ -136,11 +137,15 @@ class AdminController extends BaseController
                 }
                 $role = (string)($row['role'] ?? '');
                 $roleLabel = $roleLabels[$role] ?? ucfirst($role);
+                $ip = trim((string)($row['last_login_ip'] ?? ''));
+                $device = trim((string)($row['last_login_device'] ?? ''));
                 $events[] = [
                     'type' => 'login',
                     'title' => $roleLabel . ' logged in',
                     'detail' => $name,
                     'time' => (string)($row['last_login_at'] ?? ''),
+                    'ip' => $ip !== '' ? $ip : '—',
+                    'device' => $device !== '' ? $device : '—',
                     'link' => match ($role) {
                         'student' => route_url('admin.users'),
                         'coordinator' => route_url('admin.coordinators'),

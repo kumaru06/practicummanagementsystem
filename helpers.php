@@ -4,6 +4,77 @@ function e(?string $value): string
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+function client_ip(): string
+{
+    $candidates = [
+        $_SERVER['HTTP_CF_CONNECTING_IP'] ?? null,
+        $_SERVER['HTTP_X_FORWARDED_FOR'] ?? null,
+        $_SERVER['HTTP_X_REAL_IP'] ?? null,
+        $_SERVER['REMOTE_ADDR'] ?? null,
+    ];
+
+    foreach ($candidates as $candidate) {
+        if (!is_string($candidate) || trim($candidate) === '') {
+            continue;
+        }
+        // X-Forwarded-For may contain a comma-separated list; use the first public-looking hop.
+        $parts = array_map('trim', explode(',', $candidate));
+        foreach ($parts as $ip) {
+            if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                return $ip;
+            }
+        }
+    }
+
+    return 'Unknown';
+}
+
+function client_device_label(?string $userAgent = null): string
+{
+    $ua = trim((string)($userAgent ?? ($_SERVER['HTTP_USER_AGENT'] ?? '')));
+    if ($ua === '') {
+        return 'Unknown device';
+    }
+
+    $os = 'Unknown OS';
+    if (preg_match('/Windows NT 10\.0/i', $ua)) {
+        $os = 'Windows 10/11';
+    } elseif (preg_match('/Windows NT 6\.3/i', $ua)) {
+        $os = 'Windows 8.1';
+    } elseif (preg_match('/Windows NT 6\.1/i', $ua)) {
+        $os = 'Windows 7';
+    } elseif (preg_match('/Windows/i', $ua)) {
+        $os = 'Windows';
+    } elseif (preg_match('/Android/i', $ua)) {
+        $os = 'Android';
+    } elseif (preg_match('/iPhone|iPad|iPod/i', $ua)) {
+        $os = 'iOS';
+    } elseif (preg_match('/Mac OS X/i', $ua)) {
+        $os = 'macOS';
+    } elseif (preg_match('/Linux/i', $ua)) {
+        $os = 'Linux';
+    } elseif (preg_match('/CrOS/i', $ua)) {
+        $os = 'Chrome OS';
+    }
+
+    $browser = 'Unknown browser';
+    if (preg_match('/Edg\//i', $ua)) {
+        $browser = 'Microsoft Edge';
+    } elseif (preg_match('/OPR\/|Opera/i', $ua)) {
+        $browser = 'Opera';
+    } elseif (preg_match('/SamsungBrowser/i', $ua)) {
+        $browser = 'Samsung Internet';
+    } elseif (preg_match('/Chrome\//i', $ua) && !preg_match('/Edg\//i', $ua)) {
+        $browser = 'Chrome';
+    } elseif (preg_match('/Firefox\//i', $ua)) {
+        $browser = 'Firefox';
+    } elseif (preg_match('/Safari\//i', $ua) && !preg_match('/Chrome\//i', $ua)) {
+        $browser = 'Safari';
+    }
+
+    return $browser . ' on ' . $os;
+}
+
 function full_name_from_parts(string $firstName, string $lastName, ?string $middleName = null): string
 {
     $parts = array_filter(

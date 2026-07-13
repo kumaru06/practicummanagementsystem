@@ -329,9 +329,15 @@ class User
             return;
         }
 
-        $stmt = $this->db->query("SHOW COLUMNS FROM users LIKE 'last_login_at'");
-        if (!$stmt->fetch()) {
-            $this->db->exec('ALTER TABLE users ADD COLUMN last_login_at DATETIME NULL AFTER password_changed');
+        foreach ([
+            'last_login_at' => 'DATETIME NULL AFTER password_changed',
+            'last_login_ip' => 'VARCHAR(45) NULL AFTER last_login_at',
+            'last_login_device' => 'VARCHAR(190) NULL AFTER last_login_ip',
+        ] as $column => $definition) {
+            $stmt = $this->db->query("SHOW COLUMNS FROM users LIKE '{$column}'");
+            if (!$stmt->fetch()) {
+                $this->db->exec("ALTER TABLE users ADD COLUMN {$column} {$definition}");
+            }
         }
 
         $this->lastLoginReady = true;
@@ -340,8 +346,10 @@ class User
     public function recordLogin(int $id): void
     {
         $this->ensureLastLoginSupport();
-        $stmt = $this->db->prepare('UPDATE users SET last_login_at = NOW() WHERE id = ?');
-        $stmt->execute([$id]);
+        $stmt = $this->db->prepare(
+            'UPDATE users SET last_login_at = NOW(), last_login_ip = ?, last_login_device = ? WHERE id = ?'
+        );
+        $stmt->execute([client_ip(), client_device_label(), $id]);
     }
 
     public function updatePassword(int $id, string $password, int $passwordChanged = 1): void
