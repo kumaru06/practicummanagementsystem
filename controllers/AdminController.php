@@ -146,16 +146,51 @@ class AdminController extends BaseController
                     'time' => (string)($row['last_login_at'] ?? ''),
                     'ip' => $ip !== '' ? $ip : '—',
                     'device' => $device !== '' ? $device : '—',
-                    'link' => match ($role) {
-                        'student' => route_url('admin.users'),
-                        'coordinator' => route_url('admin.coordinators'),
-                        'partner' => route_url('admin.partners'),
-                        default => route_url('admin.dashboard'),
-                    },
+                    'link' => '',
                 ];
             }
         } catch (Throwable) {
             // ignore if last_login_at not available yet
+        }
+
+        try {
+            (new User($this->db))->ensureLastLogoutSupport();
+            $stmt = $this->db->query(
+                "SELECT first_name, middle_name, last_name, name, role, last_logout_at,
+                        last_logout_ip, last_logout_device
+                 FROM users
+                 WHERE last_logout_at IS NOT NULL
+                   AND role IN ('student', 'coordinator', 'partner', 'admin')
+                 ORDER BY last_logout_at DESC
+                 LIMIT " . (int)$fetch
+            );
+            $roleLabels = [
+                'student' => 'Student',
+                'coordinator' => 'Coordinator',
+                'partner' => 'Host Training Establishment',
+                'admin' => 'Admin',
+            ];
+            foreach ($stmt->fetchAll() as $row) {
+                $name = full_name($row);
+                if ($name === '') {
+                    $name = (string)($row['name'] ?? 'User');
+                }
+                $role = (string)($row['role'] ?? '');
+                $roleLabel = $roleLabels[$role] ?? ucfirst($role);
+                $ip = trim((string)($row['last_logout_ip'] ?? ''));
+                $device = trim((string)($row['last_logout_device'] ?? ''));
+                $events[] = [
+                    'type' => 'logout',
+                    'title' => $roleLabel . ' logged out',
+                    'detail' => $name,
+                    'time' => (string)($row['last_logout_at'] ?? ''),
+                    'ip' => $ip !== '' ? $ip : '—',
+                    'device' => $device !== '' ? $device : '—',
+                    'link' => '',
+                ];
+            }
+        } catch (Throwable) {
+            // ignore if last_logout_at not available yet
         }
 
         try {

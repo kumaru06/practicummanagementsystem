@@ -31,6 +31,7 @@
                         'registration' => '<path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-8 2h6v2h-6V5ZM7 7h10v2H7V7Zm0 4h10v2H7v-2Zm0 4h7v2H7v-2Z"/>',
                         'password' => '<path d="M12 2a5 5 0 0 1 5 5v3h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1V7a5 5 0 0 1 5-5Zm0 2a3 3 0 0 0-3 3v3h6V7a3 3 0 0 0-3-3Zm0 9a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"/>',
                         'login' => '<path d="M16 13v-2H7V8l-5 4 5 4v-3h9Zm1-9H9a2 2 0 0 0-2 2v3h2V6h8v12H9v-3H7v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z"/>',
+                        'logout' => '<path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5ZM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5Z"/>',
                         'deployment_forwarded' => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5ZM8 13h8v2H8v-2Zm0 4h8v2H8v-2Zm0-8h5v2H8V9Z"/>',
                         'deployment_accepted' => '<path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z"/>',
                         'orientation' => '<path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm0 16H5V8h14v11ZM8 10h3v3H8v-3Zm5 0h3v3h-3v-3Zm-5 5h3v3H8v-3Zm5 0h3v3h-3v-3Z"/>',
@@ -39,15 +40,22 @@
                     $iconSvg = $iconSvgs[$type] ?? $iconSvgs['ojt_started'];
                     $tone = match ($type) {
                         'registration', 'login' => 'blue',
+                        'logout' => 'slate',
                         'password' => 'amber',
                         'deployment_accepted', 'ojt_started' => 'green',
                         'deployment_forwarded' => 'slate',
                         'orientation' => 'violet',
                         default => 'green',
                     };
+                    $link = trim((string)($activity['link'] ?? ''));
+                    $isClickable = $link !== '' && $link !== '#';
                     ?>
                     <li>
-                        <a class="recent-activity-item" href="<?= e((string)($activity['link'] ?? '#')) ?>">
+                        <?php if ($isClickable): ?>
+                        <a class="recent-activity-item" href="<?= e($link) ?>">
+                        <?php else: ?>
+                        <div class="recent-activity-item recent-activity-item--static">
+                        <?php endif; ?>
                             <span class="recent-activity-item-icon recent-activity-item-icon--<?= e($tone) ?>" aria-hidden="true">
                                 <svg viewBox="0 0 24 24"><?= $iconSvg ?></svg>
                             </span>
@@ -58,7 +66,11 @@
                             <time class="recent-activity-item-time" datetime="<?= e((string)($activity['time'] ?? '')) ?>">
                                 <?= e(format_activity_time($activity['time'] ?? null)) ?>
                             </time>
+                        <?php if ($isClickable): ?>
                         </a>
+                        <?php else: ?>
+                        </div>
+                        <?php endif; ?>
                     </li>
                 <?php endforeach; ?>
             </ul>

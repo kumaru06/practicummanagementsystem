@@ -6,6 +6,7 @@ class User
     private ?bool $namePartsReady = null;
     private ?bool $deactivationReady = null;
     private ?bool $lastLoginReady = null;
+    private ?bool $lastLogoutReady = null;
 
     public function __construct(private PDO $db) {}
 
@@ -348,6 +349,41 @@ class User
         $this->ensureLastLoginSupport();
         $stmt = $this->db->prepare(
             'UPDATE users SET last_login_at = NOW(), last_login_ip = ?, last_login_device = ? WHERE id = ?'
+        );
+        $stmt->execute([client_ip(), client_device_label(), $id]);
+    }
+
+    public function ensureLastLogoutSupport(): void
+    {
+        if ($this->lastLogoutReady === true) {
+            return;
+        }
+
+        $this->ensureLastLoginSupport();
+
+        foreach ([
+            'last_logout_at' => 'DATETIME NULL AFTER last_login_device',
+            'last_logout_ip' => 'VARCHAR(45) NULL AFTER last_logout_at',
+            'last_logout_device' => 'VARCHAR(190) NULL AFTER last_logout_ip',
+        ] as $column => $definition) {
+            $stmt = $this->db->query("SHOW COLUMNS FROM users LIKE '{$column}'");
+            if (!$stmt->fetch()) {
+                $this->db->exec("ALTER TABLE users ADD COLUMN {$column} {$definition}");
+            }
+        }
+
+        $this->lastLogoutReady = true;
+    }
+
+    public function recordLogout(int $id): void
+    {
+        if ($id <= 0) {
+            return;
+        }
+        $this->ensureLastLoginSupport();
+        $this->ensureLastLogoutSupport();
+        $stmt = $this->db->prepare(
+            'UPDATE users SET last_logout_at = NOW(), last_logout_ip = ?, last_logout_device = ? WHERE id = ?'
         );
         $stmt->execute([client_ip(), client_device_label(), $id]);
     }

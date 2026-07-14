@@ -58,6 +58,8 @@
     initPartnerCreateAccordion();
     initPartnerCreateReviewConfirm();
     initAdminCreateStudentModal();
+    initAdminActivitiesFeed();
+    initEmailLogsFeed();
     document.querySelector('#modal .modal-close')?.addEventListener('click', closeSlidePanel);
     document.addEventListener('click', handleOutsideMenus);
     document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeSlidePanel(); closeAdminActionMenus(); closeNotifications(); closeRequirementReviewModals(); closeRegistrationRequestsReview(); closeCustomSelects(); closeCustomDatePickers(); closeDtrTimePicker(); } });
@@ -4253,18 +4255,161 @@ function formatLabel(value) {
 
 function initEmailLogViews() {
     document.querySelectorAll('.email-log-view').forEach(button => {
+        if (button.dataset.emailLogBound === '1') return;
+        button.dataset.emailLogBound = '1';
         button.addEventListener('click', () => {
             const data = button.dataset;
+            const statusRaw = String(data.status || 'sent').toLowerCase();
+            const isFailed = statusRaw === 'failed' || statusRaw === 'fail';
+            const statusClass = isFailed ? 'failed' : 'sent';
+            const statusLabel = isFailed ? 'Failed' : 'Sent';
+            const errorText = String(data.error || '').trim();
+            const showError = isFailed && errorText && errorText.toLowerCase() !== 'no error message';
+
+            const iconSvg = isFailed
+                ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm3.5 13.5L12 12l-3.5 3.5-1.5-1.5L10.5 10.5 7 7l1.5-1.5L12 9.5l3.5-3.5L17 7l-3.5 3.5L17 14l-1.5 1.5Z"/></svg>'
+                : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1.5 14.5-4-4L8 11l2.5 2.5L16 8l1.5 1.5-7 7Z"/></svg>';
+
             openSlidePanel(`
-                <h2>Email Log Details</h2>
-                <div class="detail-row"><span>Sent At</span><strong>${escapeHtml(data.sentAt || '')}</strong></div>
-                <div class="detail-row"><span>Recipient</span><strong>${escapeHtml(data.recipient || '')}</strong></div>
-                <div class="detail-row"><span>Subject</span><strong>${escapeHtml(data.subject || '')}</strong></div>
-                <div class="detail-row"><span>Type</span><strong>${escapeHtml(formatLabel(data.type || ''))}</strong></div>
-                <div class="detail-row"><span>Status</span><strong>${escapeHtml(formatLabel(data.status || ''))}</strong></div>
-                <div class="detail-row"><span>Error Message</span><strong>${escapeHtml(data.error || 'No error message')}</strong></div>
+                <div class="email-log-detail">
+                    <div class="email-log-detail__hero">
+                        <span class="email-log-detail__icon email-log-detail__icon--${statusClass}" aria-hidden="true">${iconSvg}</span>
+                        <div class="email-log-detail__intro">
+                            <p class="email-log-detail__eyebrow">Delivery record</p>
+                            <h2 class="email-log-detail__title">Email Log Details</h2>
+                            <span class="email-log-detail__status email-log-detail__status--${statusClass}">${escapeHtml(statusLabel)}</span>
+                        </div>
+                    </div>
+                    <dl class="email-log-detail__facts">
+                        <div class="email-log-detail__fact">
+                            <dt>Sent At</dt>
+                            <dd>${escapeHtml(data.sentAt || '—')}</dd>
+                        </div>
+                        <div class="email-log-detail__fact">
+                            <dt>Recipient</dt>
+                            <dd>${escapeHtml(data.recipient || '—')}</dd>
+                        </div>
+                        <div class="email-log-detail__fact">
+                            <dt>Subject</dt>
+                            <dd>${escapeHtml(data.subject || '—')}</dd>
+                        </div>
+                        <div class="email-log-detail__fact">
+                            <dt>Type</dt>
+                            <dd>${escapeHtml(formatLabel(data.type || '') || '—')}</dd>
+                        </div>
+                    </dl>
+                    ${showError ? `
+                    <div class="email-log-detail__alert">
+                        <div class="email-log-detail__alert-head">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1 21h22L12 2 1 21Zm12-3h-2v-2h2v2Zm0-4h-2v-4h2v4Z"/></svg>
+                            <span>Error Message</span>
+                        </div>
+                        <p>${escapeHtml(errorText)}</p>
+                    </div>` : `
+                    <div class="email-log-detail__note">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1.5 14.5-4-4L8 11l2.5 2.5L16 8l1.5 1.5-7 7Z"/></svg>
+                        <p>Message was accepted by the mail server with no recorded delivery error.</p>
+                    </div>`}
+                </div>
             `);
         });
+    });
+}
+
+function initEmailLogsFeed() {
+    document.querySelectorAll('[data-email-logs-feed]').forEach(root => {
+        if (root.dataset.emailFeedReady === '1') return;
+        root.dataset.emailFeedReady = '1';
+
+        const items = [...root.querySelectorAll('[data-email-item]')];
+        if (!items.length) return;
+
+        const searchInput = root.querySelector('[data-email-search]');
+        const empty = root.querySelector('[data-email-empty]');
+        const pager = root.querySelector('[data-email-pagination]');
+        const perPage = Math.max(1, parseInt(root.dataset.perPage || '12', 10) || 12);
+
+        let query = '';
+        let page = 1;
+
+        const matches = item => {
+            const hay = (item.dataset.search || '').toLowerCase();
+            return !query || hay.includes(query);
+        };
+
+        const syncDaySections = () => {
+            root.querySelectorAll('[data-email-day]').forEach(day => {
+                const visible = [...day.querySelectorAll('[data-email-item]')].some(
+                    item => !item.classList.contains('is-hidden')
+                );
+                day.classList.toggle('is-hidden', !visible);
+            });
+        };
+
+        const renderPager = totalPages => {
+            if (!pager) return;
+            pager.innerHTML = '';
+            if (totalPages <= 1) return;
+
+            const addBtn = (label, targetPage, opts = {}) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'ael-page-btn' + (opts.active ? ' is-active' : '');
+                btn.textContent = label;
+                btn.disabled = !!opts.disabled;
+                btn.addEventListener('click', () => {
+                    page = targetPage;
+                    apply();
+                });
+                pager.appendChild(btn);
+            };
+
+            addBtn('‹', Math.max(1, page - 1), { disabled: page <= 1 });
+            for (let i = 1; i <= totalPages; i += 1) {
+                if (totalPages > 7 && Math.abs(i - page) > 2 && i !== 1 && i !== totalPages) {
+                    if (i === 2 || i === totalPages - 1) {
+                        const dots = document.createElement('span');
+                        dots.className = 'ael-page-btn';
+                        dots.style.border = 'none';
+                        dots.style.background = 'transparent';
+                        dots.style.cursor = 'default';
+                        dots.textContent = '…';
+                        pager.appendChild(dots);
+                    }
+                    continue;
+                }
+                addBtn(String(i), i, { active: i === page });
+            }
+            addBtn('›', Math.min(totalPages, page + 1), { disabled: page >= totalPages });
+        };
+
+        const apply = () => {
+            const matched = items.filter(matches);
+            const totalPages = Math.max(1, Math.ceil(matched.length / perPage));
+            if (page > totalPages) page = totalPages;
+
+            const start = (page - 1) * perPage;
+            const end = start + perPage;
+            const pageSet = new Set(matched.slice(start, end));
+
+            items.forEach(item => {
+                item.classList.toggle('is-hidden', !pageSet.has(item));
+            });
+
+            syncDaySections();
+
+            const showEmpty = matched.length === 0;
+            empty?.classList.toggle('is-hidden', !showEmpty);
+            renderPager(showEmpty ? 0 : totalPages);
+        };
+
+        searchInput?.addEventListener('input', () => {
+            query = (searchInput.value || '').trim().toLowerCase();
+            page = 1;
+            apply();
+        });
+
+        apply();
     });
 }
 
@@ -6552,6 +6697,160 @@ function initAdminProgramsDirectory() {
     });
 }
 
+function initAdminActivitiesFeed() {
+    document.querySelectorAll('[data-activities-feed]').forEach(root => {
+        if (root.dataset.activitiesReady === '1') return;
+        root.dataset.activitiesReady = '1';
+
+        const items = [...root.querySelectorAll('[data-activities-item]')];
+        if (!items.length) return;
+
+        const searchInput = root.querySelector('[data-activities-search]');
+        const chips = [...root.querySelectorAll('[data-activities-chip]')];
+        const empty = root.querySelector('[data-activities-empty]');
+        const feed = root.querySelector('[data-activities-list]');
+        const pager = root.querySelector('[data-activities-pagination]');
+        const exportBtn = root.querySelector('[data-activities-export]');
+        const resetBtn = root.querySelector('[data-activities-reset]');
+        const perPage = Math.max(1, parseInt(root.dataset.perPage || '20', 10) || 20);
+
+        let filter = 'all';
+        let query = '';
+        let page = 1;
+
+        const matches = item => {
+            const category = (item.dataset.category || '').toLowerCase();
+            const hay = (item.dataset.search || '').toLowerCase();
+            const chipOk = filter === 'all' || category === filter.toLowerCase();
+            const searchOk = !query || hay.includes(query);
+            return chipOk && searchOk;
+        };
+
+        const syncDaySections = () => {
+            root.querySelectorAll('[data-activities-day]').forEach(day => {
+                const visible = [...day.querySelectorAll('[data-activities-item]')].some(
+                    item => !item.classList.contains('is-hidden')
+                );
+                day.classList.toggle('is-hidden', !visible);
+            });
+        };
+
+        const renderPager = totalPages => {
+            if (!pager) return;
+            pager.innerHTML = '';
+            if (totalPages <= 1) return;
+
+            const addBtn = (label, targetPage, opts = {}) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'aa-page-btn' + (opts.active ? ' is-active' : '');
+                btn.textContent = label;
+                btn.disabled = !!opts.disabled;
+                btn.addEventListener('click', () => {
+                    page = targetPage;
+                    apply();
+                });
+                pager.appendChild(btn);
+            };
+
+            addBtn('‹', Math.max(1, page - 1), { disabled: page <= 1 });
+            for (let i = 1; i <= totalPages; i += 1) {
+                if (totalPages > 7 && Math.abs(i - page) > 2 && i !== 1 && i !== totalPages) {
+                    if (i === 2 || i === totalPages - 1) {
+                        const dots = document.createElement('span');
+                        dots.className = 'aa-page-btn';
+                        dots.style.border = 'none';
+                        dots.style.background = 'transparent';
+                        dots.style.cursor = 'default';
+                        dots.textContent = '…';
+                        pager.appendChild(dots);
+                    }
+                    continue;
+                }
+                addBtn(String(i), i, { active: i === page });
+            }
+            addBtn('›', Math.min(totalPages, page + 1), { disabled: page >= totalPages });
+        };
+
+        const apply = () => {
+            const matched = items.filter(matches);
+            const totalPages = Math.max(1, Math.ceil(matched.length / perPage));
+            if (page > totalPages) page = totalPages;
+
+            const start = (page - 1) * perPage;
+            const end = start + perPage;
+            const pageSet = new Set(matched.slice(start, end));
+
+            items.forEach(item => {
+                item.classList.toggle('is-hidden', !pageSet.has(item));
+            });
+
+            syncDaySections();
+
+            const showEmpty = matched.length === 0;
+            empty?.classList.toggle('is-hidden', !showEmpty);
+            feed?.classList.toggle('is-hidden', showEmpty);
+            renderPager(showEmpty ? 0 : totalPages);
+        };
+
+        chips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                filter = chip.dataset.filter || 'all';
+                page = 1;
+                chips.forEach(c => {
+                    const active = c === chip;
+                    c.classList.toggle('is-active', active);
+                    c.setAttribute('aria-selected', active ? 'true' : 'false');
+                });
+                apply();
+            });
+        });
+
+        searchInput?.addEventListener('input', () => {
+            query = (searchInput.value || '').trim().toLowerCase();
+            page = 1;
+            apply();
+        });
+
+        resetBtn?.addEventListener('click', () => {
+            filter = 'all';
+            query = '';
+            page = 1;
+            if (searchInput) searchInput.value = '';
+            chips.forEach(c => {
+                const active = (c.dataset.filter || '') === 'all';
+                c.classList.toggle('is-active', active);
+                c.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+            apply();
+        });
+
+        exportBtn?.addEventListener('click', () => {
+            const matched = items.filter(matches);
+            const rows = [
+                ['Activity', 'Category', 'Detail', 'When'],
+                ...matched.map(item => [
+                    item.dataset.title || '',
+                    item.dataset.category || '',
+                    item.dataset.detail || '',
+                    item.dataset.when || '',
+                ]),
+            ];
+            const csv = rows
+                .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+                .join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'recent-activities.csv';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        });
+
+        apply();
+    });
+}
+
 function initAdminStudentsDirectory() {
     document.querySelectorAll('[data-admin-students-directory]').forEach(directory => {
         const table = directory.querySelector('.asu-students-table');
@@ -6934,6 +7233,7 @@ function reinitAppPageContent() {
     initViewToggles();
     initTimelineDetails();
     initEmailLogViews();
+    initEmailLogsFeed();
     initRequirementReviewModals();
     initRegistrationRequestsReview();
     initPasswordResetRequests();
@@ -6944,6 +7244,7 @@ function reinitAppPageContent() {
     initPartnerCreateAccordion();
     initPartnerCreateReviewConfirm();
     initAdminCreateStudentModal();
+    initAdminActivitiesFeed();
     initCoordinatorAvailability();
     initPartnerAvailability();
     initWizards();
