@@ -298,7 +298,7 @@ class CoordinatorController extends BaseController
                 throw new RuntimeException('Please select a valid academic term.');
             }
             if (empty($termRow['term_start_date']) || empty($termRow['term_end_date'])) {
-                throw new RuntimeException('The selected academic term is missing start/end dates. Ask the admin to complete it in Degree Program.');
+                throw new RuntimeException('The selected academic term is missing start/end dates. Ask the admin to complete it in Academic Term.');
             }
             if ($termStartDate === '') {
                 $termStartDate = (string)$termRow['term_start_date'];

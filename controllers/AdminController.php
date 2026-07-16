@@ -321,6 +321,14 @@ class AdminController extends BaseController
         $this->renderAppPage('admin/programs', [
             'title' => 'Degree Program',
             'programs' => (new Program($this->db))->all(),
+        ]);
+    }
+
+    public function manageTerms(): void
+    {
+        require_role('admin');
+        $this->renderAppPage('admin/terms', [
+            'title' => 'Academic Term',
             'terms' => (new Term($this->db))->all(),
         ]);
     }
@@ -372,21 +380,22 @@ class AdminController extends BaseController
             if ($endDate < $startDate) {
                 throw new RuntimeException('Term end date must be on or after the start date.');
             }
+            $isActive = (int)($p['is_active'] ?? 1);
 
             $terms = new Term($this->db);
             $termId = (int)($p['term_id'] ?? 0);
 
             if ($termId > 0) {
-                $terms->update($termId, $termLabel, $startDate, $endDate);
+                $terms->update($termId, $termLabel, $startDate, $endDate, $isActive);
                 flash('success', 'Term updated.');
             } else {
-                $terms->create($termLabel, $startDate, $endDate);
+                $terms->create($termLabel, $startDate, $endDate, $isActive);
                 flash('success', 'Term added.');
             }
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
-        redirect('index.php?r=admin_programs');
+        redirect('index.php?r=admin_terms');
     }
 
     public function deleteTerm(): void
@@ -399,7 +408,7 @@ class AdminController extends BaseController
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
-        redirect('index.php?r=admin_programs');
+        redirect('index.php?r=admin_terms');
     }
 
     public function manageUsers(): void

@@ -17,17 +17,17 @@ class Term
                 term_label VARCHAR(120) NOT NULL UNIQUE,
                 term_start_date DATE NULL,
                 term_end_date DATE NULL,
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB'
         );
 
         $this->db->exec('ALTER TABLE programs MODIFY term VARCHAR(120) NOT NULL DEFAULT ""');
 
-        foreach (['term_start_date DATE NULL', 'term_end_date DATE NULL'] as $column) {
+        foreach (['term_start_date DATE NULL', 'term_end_date DATE NULL', 'is_active TINYINT(1) NOT NULL DEFAULT 1'] as $column) {
             try {
                 $this->db->exec('ALTER TABLE program_terms ADD COLUMN ' . $column);
             } catch (Throwable) {
-                // Column already exists.
             }
         }
 
@@ -50,11 +50,11 @@ class Term
         return $row ?: null;
     }
 
-    public function create(string $label, string $startDate, string $endDate): int
+    public function create(string $label, string $startDate, string $endDate, int $isActive = 1): int
     {
         $this->ensureStorage();
-        $stmt = $this->db->prepare('INSERT INTO program_terms (term_label, term_start_date, term_end_date) VALUES (?, ?, ?)');
-        $stmt->execute([trim($label), $startDate, $endDate]);
+        $stmt = $this->db->prepare('INSERT INTO program_terms (term_label, term_start_date, term_end_date, is_active) VALUES (?, ?, ?, ?)');
+        $stmt->execute([trim($label), $startDate, $endDate, $isActive]);
         return (int)$this->db->lastInsertId();
     }
 
@@ -69,7 +69,7 @@ class Term
         $stmt->execute([$label]);
     }
 
-    public function update(int $id, string $label, string $startDate, string $endDate): void
+    public function update(int $id, string $label, string $startDate, string $endDate, int $isActive = 1): void
     {
         $this->ensureStorage();
         $label = trim($label);
@@ -80,8 +80,8 @@ class Term
             throw new RuntimeException('Term not found.');
         }
 
-        $stmt = $this->db->prepare('UPDATE program_terms SET term_label = ?, term_start_date = ?, term_end_date = ? WHERE id = ?');
-        $stmt->execute([$label, $startDate, $endDate, $id]);
+        $stmt = $this->db->prepare('UPDATE program_terms SET term_label = ?, term_start_date = ?, term_end_date = ?, is_active = ? WHERE id = ?');
+        $stmt->execute([$label, $startDate, $endDate, $isActive, $id]);
     }
 
     public function delete(int $id): void

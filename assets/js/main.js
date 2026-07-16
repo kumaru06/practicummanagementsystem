@@ -58,6 +58,7 @@
     initPartnerCreateAccordion();
     initPartnerCreateReviewConfirm();
     initAdminCreateStudentModal();
+    initAdminTermsPage();
     initAdminActivitiesFeed();
     initEmailLogsFeed();
     document.querySelector('#modal .modal-close')?.addEventListener('click', closeSlidePanel);
@@ -3368,6 +3369,170 @@ function initAdminCreateStudentModal() {
     });
 
     initAdminCreateStudentAvailability();
+    initCustomFilterSelects();
+    initCustomDatePickers();
+}
+
+function initAdminTermsPage() {
+    const page = document.querySelector('[data-admin-terms-page]');
+    if (!page || page.dataset.termsReady === '1') return;
+    page.dataset.termsReady = '1';
+
+    const directory = page.querySelector('[data-admin-terms-directory]');
+    const table = directory?.querySelector('.atm-terms-table');
+    const statusFilter = directory?.querySelector('[data-atm-status-filter]');
+    const search = directory?.querySelector('.table-search');
+    let statusValue = 'all';
+
+    const applyFilters = () => {
+        if (!table) return;
+        table._applyRowFilter = statusValue === 'all'
+            ? null
+            : row => row.dataset.termStatus === statusValue;
+        search?.dispatchEvent(new Event('input'));
+    };
+
+    if (table) {
+        table._resetDirectoryFilters = () => {
+            statusValue = 'all';
+            if (statusFilter) {
+                statusFilter.value = 'all';
+                statusFilter._syncCustomSelect?.();
+            }
+            table._applyRowFilter = null;
+        };
+        statusFilter?.addEventListener('change', () => {
+            statusValue = statusFilter.value || 'all';
+            applyFilters();
+        });
+        requestAnimationFrame(applyFilters);
+    }
+
+    page.addEventListener('submit', async event => {
+        const deleteForm = event.target.closest('[data-atm-delete]');
+        if (!deleteForm || !page.contains(deleteForm)) return;
+
+        event.preventDefault();
+        const termLabel = deleteForm.dataset.termLabel?.trim() || 'this term';
+        const confirmed = await showConfirmModal(
+            `Delete "${termLabel}"? Coordinators will no longer see it when enrolling students.`,
+            {
+                title: 'Delete academic term',
+                confirmText: 'Delete term',
+                cancelText: 'Keep term',
+                variant: 'alert',
+                iconSvg: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"/></svg>',
+            }
+        );
+        if (confirmed) deleteForm.submit();
+    });
+
+    const overlay = document.getElementById('atmTermOverlay');
+    const form = document.getElementById('atmTermForm');
+    const closeBtn = document.getElementById('atmTermModalClose');
+    const cancelBtn = document.getElementById('atmTermModalCancel');
+    const titleEl = document.getElementById('atmTermModalTitle');
+    const subEl = overlay?.querySelector('[data-atm-modal-sub]');
+    const submitLabel = overlay?.querySelector('[data-atm-submit-label]');
+    const termIdInput = document.getElementById('atmTermId');
+    const termLabelInput = document.getElementById('atmTermLabel');
+    const startPicker = document.getElementById('atmStartPicker');
+    const endPicker = document.getElementById('atmEndPicker');
+    if (!overlay || !form || !closeBtn || !cancelBtn || !termIdInput || !termLabelInput) return;
+
+    const MODAL_ANIM_MS = 300;
+    let closeTimer = null;
+
+    const finishClose = () => {
+        overlay.classList.remove('is-closing');
+        overlay.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('is-asu-create-open');
+        closeTimer = null;
+    };
+
+    const closeModal = () => {
+        if (!overlay.classList.contains('open') || overlay.classList.contains('is-closing')) return;
+        if (closeTimer) clearTimeout(closeTimer);
+        overlay.classList.add('is-closing');
+        overlay.classList.remove('open');
+        closeTimer = window.setTimeout(finishClose, MODAL_ANIM_MS);
+    };
+
+    const statusSelect = document.getElementById('atmTermStatus');
+
+    const resetForm = () => {
+        form.reset();
+        termIdInput.value = '';
+        termLabelInput.value = '';
+        setFormDatePickerValue(startPicker, '');
+        setFormDatePickerValue(endPicker, '');
+        if (statusSelect) statusSelect.value = '1';
+        form.querySelectorAll('.is-invalid, .date-required-error').forEach(el => {
+            el.classList.remove('is-invalid', 'date-required-error');
+        });
+    };
+
+    const setModalMode = (mode) => {
+        const isEdit = mode === 'edit';
+        if (titleEl) titleEl.textContent = isEdit ? 'Edit Academic Term' : 'Add Academic Term';
+        if (subEl) {
+            subEl.textContent = isEdit
+                ? 'Update the term label and date range used for enrollment.'
+                : 'Create a term and date range for coordinator enrollment.';
+        }
+        if (submitLabel) submitLabel.textContent = isEdit ? 'Update Term' : 'Save Term';
+    };
+
+    const openModal = (mode = 'add', data = null) => {
+        if (closeTimer) {
+            clearTimeout(closeTimer);
+            closeTimer = null;
+        }
+        resetForm();
+        setModalMode(mode);
+        if (mode === 'edit' && data) {
+            termIdInput.value = data.id || '';
+            termLabelInput.value = data.label || '';
+            setFormDatePickerValue(startPicker, data.start || '');
+            setFormDatePickerValue(endPicker, data.end || '');
+            if (statusSelect) statusSelect.value = data.active ?? '1';
+        }
+        overlay.classList.remove('is-closing');
+        overlay.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('is-asu-create-open');
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                overlay.classList.add('open');
+                termLabelInput.focus();
+            });
+        });
+    };
+
+    page.querySelectorAll('[data-atm-open-modal]').forEach(btn => {
+        btn.addEventListener('click', () => openModal('add'));
+    });
+
+    page.addEventListener('click', e => {
+        const editBtn = e.target.closest('[data-atm-edit]');
+        if (!editBtn || !page.contains(editBtn)) return;
+        openModal('edit', {
+            id: editBtn.dataset.termId || '',
+            label: editBtn.dataset.termLabel || '',
+            start: editBtn.dataset.termStart || '',
+            end: editBtn.dataset.termEnd || '',
+            active: editBtn.dataset.termActive ?? '1',
+        });
+    });
+
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', e => {
+        if (e.target === overlay) closeModal();
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
+    });
+
     initCustomFilterSelects();
     initCustomDatePickers();
 }
@@ -7024,6 +7189,7 @@ const ROLE_AJAX_ROUTES = {
         'admin_evaluations',
         'admin_ojt_placement',
         'admin_programs',
+        'admin_terms',
         'admin_reports',
         'admin_report',
         'admin_recent_activities',
@@ -7244,6 +7410,7 @@ function reinitAppPageContent() {
     initPartnerCreateAccordion();
     initPartnerCreateReviewConfirm();
     initAdminCreateStudentModal();
+    initAdminTermsPage();
     initAdminActivitiesFeed();
     initCoordinatorAvailability();
     initPartnerAvailability();

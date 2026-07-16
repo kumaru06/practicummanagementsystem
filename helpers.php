@@ -171,6 +171,7 @@ function route_url(string $route, array $params = []): string
         'admin.coordinators' => 'index.php?r=admin_coordinators',
         'admin.partners' => 'index.php?r=admin_partners',
         'admin.programs' => 'index.php?r=admin_programs',
+        'admin.terms' => 'index.php?r=admin_terms',
         'admin.email_logs' => 'index.php?r=admin_email_logs',
         'admin.evaluations' => 'index.php?r=admin_evaluations',
         'admin.ojt_placement' => 'index.php?r=admin_ojt_placement',
