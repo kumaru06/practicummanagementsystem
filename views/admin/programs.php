@@ -93,8 +93,8 @@ $inactivePrograms = $totalPrograms - $activePrograms;
 
     </div>
 
-    <section class="programs-directory-v2" data-admin-programs-directory>
-        <div class="programs-directory-head">
+    <section class="card asu-directory-card programs-list-card" data-admin-programs-directory>
+        <div class="programs-directory-head programs-directory-head--in-card">
             <div class="programs-directory-copy">
                 <h2>Program List</h2>
                 <p>Manage hours, rename programs, or change their active status.</p>
@@ -123,76 +123,81 @@ $inactivePrograms = $totalPrograms - $activePrograms;
                 <p class="asu-empty-sub">Add your first program using the form above.</p>
             </div>
         <?php else: ?>
-            <div class="programs-grid-list">
-                <?php foreach ($programs as $p): ?>
-                    <?php
-                        $formId = 'program-form-' . (int)$p['id'];
-                        $isActive = (bool)$p['is_active'];
-                    ?>
-                    <article class="program-card asu-program-row"
-                        data-program-status="<?= $isActive ? 'active' : 'inactive' ?>"
-                        data-search="<?= e(strtolower(trim(($p['code'] ?? '') . ' ' . ($p['name'] ?? '') . ' ' . ($isActive ? 'active' : 'inactive')))) ?>">
-                        
-                        <form method="post" id="<?= e($formId) ?>" class="program-card-form">
-                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                            <input type="hidden" name="action" value="admin_save_program">
-                            <input type="hidden" name="program_id" value="<?= (int)$p['id'] ?>">
-                        </form>
-
-                        <div class="program-card-header">
-                            <div class="program-card-status">
-                                <label class="filter-select-wrap asu-program-status-wrap">
-                                    <select form="<?= e($formId) ?>" class="asu-program-status-select" name="is_active" data-select-label="Status" aria-label="Status" data-program-field data-program-status-field>
-                                        <option value="1" <?= $isActive ? 'selected' : '' ?>>Active</option>
-                                        <option value="0" <?= !$isActive ? 'selected' : '' ?>>Inactive</option>
-                                    </select>
-                                </label>
-                            </div>
-                            <details class="admin-user-action-menu asu-program-action-menu">
-                                <summary class="admin-user-action-trigger asu-program-action-trigger" aria-label="Program actions">
-                                    <svg class="admin-user-action-trigger-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>
-                                </summary>
-                                <div class="admin-user-action-panel">
-                                    <button form="<?= e($formId) ?>" class="admin-user-action-item asu-program-save-item" type="submit">
-                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4Zm-5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm3-10H5V5h10v4Z"/></svg>
-                                        Save changes
-                                    </button>
-                                    <form method="post" class="asu-program-delete-form" data-program-delete>
+            <div class="table-wrap asu-table-wrap programs-table-wrap">
+                <table class="data-table no-row-details asu-students-table asu-programs-table" data-no-tools data-per-page="10">
+                    <thead>
+                        <tr>
+                            <th data-sort>Code</th>
+                            <th data-sort>Program Name</th>
+                            <th data-sort>Hours</th>
+                            <th>Status</th>
+                            <th class="asu-col-action"><span class="visually-hidden">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($programs as $p): ?>
+                            <?php
+                                $formId = 'program-form-' . (int)$p['id'];
+                                $isActive = (bool)$p['is_active'];
+                            ?>
+                            <tr class="asu-program-row"
+                                data-program-status="<?= $isActive ? 'active' : 'inactive' ?>"
+                                data-search="<?= e(strtolower(trim(($p['code'] ?? '') . ' ' . ($p['name'] ?? '') . ' ' . ($isActive ? 'active' : 'inactive')))) ?>">
+                                <td class="asu-program-code-cell">
+                                    <form method="post" id="<?= e($formId) ?>" class="program-row-form">
                                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                        <input type="hidden" name="action" value="admin_delete_program">
+                                        <input type="hidden" name="action" value="admin_save_program">
                                         <input type="hidden" name="program_id" value="<?= (int)$p['id'] ?>">
-                                        <button class="admin-user-action-item admin-user-action-item--danger" type="submit">
-                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"/></svg>
-                                            Delete program
-                                        </button>
                                     </form>
-                                </div>
-                            </details>
-                        </div>
-                        
-                        <div class="program-card-body">
-                            <div class="program-card-field">
-                                <label>Program Code</label>
-                                <input form="<?= e($formId) ?>" class="asu-program-code-input" name="code" value="<?= e($p['code']) ?>" placeholder="Code" required aria-label="Program code" data-program-field>
-                            </div>
-                            <div class="program-card-field">
-                                <label>Program Name</label>
-                                <input form="<?= e($formId) ?>" class="asu-program-name-input" name="name" value="<?= e($p['name']) ?>" placeholder="Program Name" required aria-label="Program name" data-program-field>
-                            </div>
-                            <div class="program-card-field">
-                                <label>Required Hours</label>
-                                <div class="asu-program-hours-wrap">
-                                    <input form="<?= e($formId) ?>" class="asu-program-hours-input" type="number" min="1" name="required_hours" value="<?= (int)$p['required_hours'] ?>" placeholder="0" required aria-label="Required hours" data-program-field>
-                                    <span class="asu-program-hours-suffix">hrs</span>
-                                </div>
-                            </div>
-                        </div>
-                    </article>
-                <?php endforeach; ?>
+                                    <input form="<?= e($formId) ?>" class="asu-program-code-input" name="code" value="<?= e($p['code']) ?>" placeholder="Code" required aria-label="Program code" data-program-field>
+                                </td>
+                                <td class="asu-program-name-cell">
+                                    <input form="<?= e($formId) ?>" class="asu-program-name-input" name="name" value="<?= e($p['name']) ?>" placeholder="Program Name" required aria-label="Program name" data-program-field>
+                                </td>
+                                <td class="asu-program-hours-cell">
+                                    <div class="asu-program-hours-wrap">
+                                        <input form="<?= e($formId) ?>" class="asu-program-hours-input" type="number" min="1" name="required_hours" value="<?= (int)$p['required_hours'] ?>" placeholder="0" required aria-label="Required hours" data-program-field>
+                                        <span class="asu-program-hours-suffix">hrs</span>
+                                    </div>
+                                </td>
+                                <td class="asu-program-status-cell">
+                                    <label class="filter-select-wrap asu-program-status-wrap">
+                                        <select form="<?= e($formId) ?>" class="asu-program-status-select" name="is_active" data-select-label="Status" aria-label="Status" data-program-field data-program-status-field>
+                                            <option value="1" <?= $isActive ? 'selected' : '' ?>>Active</option>
+                                            <option value="0" <?= !$isActive ? 'selected' : '' ?>>Inactive</option>
+                                        </select>
+                                    </label>
+                                </td>
+                                <td class="asu-col-action asu-program-action-cell">
+                                    <details class="admin-user-action-menu asu-program-action-menu">
+                                        <summary class="admin-user-action-trigger asu-program-action-trigger" aria-label="Program actions">
+                                            <svg class="admin-user-action-trigger-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>
+                                        </summary>
+                                        <div class="admin-user-action-panel">
+                                            <button form="<?= e($formId) ?>" class="admin-user-action-item asu-program-save-item" type="submit">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4Zm-5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm3-10H5V5h10v4Z"/></svg>
+                                                Save changes
+                                            </button>
+                                            <form method="post" class="asu-program-delete-form" data-program-delete>
+                                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                                <input type="hidden" name="action" value="admin_delete_program">
+                                                <input type="hidden" name="program_id" value="<?= (int)$p['id'] ?>">
+                                                <button class="admin-user-action-item admin-user-action-item--danger" type="submit">
+                                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"/></svg>
+                                                    Delete program
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </details>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
-            <div class="programs-pagination-wrap">
+            <footer class="asu-table-footer">
                 <div class="pagination"></div>
-            </div>
+            </footer>
         <?php endif; ?>
     </section>
 
