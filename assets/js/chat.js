@@ -47,21 +47,57 @@ function initLiveChat() {
             .replace(/'/g, '&#039;');
     }
 
+    function parseMessageDate(dateString) {
+        const date = new Date(String(dateString || '').replace(' ', 'T'));
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
     function formatTime(dateString) {
-        const date = new Date(dateString.replace(' ', 'T'));
-        if (Number.isNaN(date.getTime())) return dateString;
-        return date.toLocaleString(undefined, {
-            month: 'short',
-            day: 'numeric',
+        const date = parseMessageDate(dateString);
+        if (!date) return dateString;
+        return date.toLocaleTimeString(undefined, {
             hour: 'numeric',
             minute: '2-digit',
         });
+    }
+
+    function formatDayLabel(dateString) {
+        const date = parseMessageDate(dateString);
+        if (!date) return 'Earlier';
+
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(today.getDate() - 1);
+
+        const sameDay = function (a, b) {
+            return a.getFullYear() === b.getFullYear()
+                && a.getMonth() === b.getMonth()
+                && a.getDate() === b.getDate();
+        };
+
+        if (sameDay(date, today)) return 'Today';
+        if (sameDay(date, yesterday)) return 'Yesterday';
+        return date.toLocaleDateString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+        });
+    }
+
+    function dateKey(dateString) {
+        const date = parseMessageDate(dateString);
+        if (!date) return String(dateString || '');
+        return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
     }
 
     function formatRoleLabel(role) {
         return String(role || '')
             .replace(/_/g, ' ')
             .replace(/\b\w/g, function (char) { return char.toUpperCase(); });
+    }
+
+    function partnerInitial() {
+        return String(partnerName || 'C').charAt(0).toUpperCase();
     }
 
     function isCurrentConversation(id, role) {
@@ -76,21 +112,53 @@ function initLiveChat() {
         }
     }
 
-    function buildMessageNode(message) {
+    function buildDayDivider(label) {
+        const divider = document.createElement('div');
+        divider.className = 'chat-day-divider';
+        divider.setAttribute('role', 'separator');
+        divider.innerHTML = '<span>' + escapeHtml(label) + '</span>';
+        return divider;
+    }
+
+    function buildMessageNode(message, options) {
+        options = options || {};
         const isMine = Number(message.sender_id) === currentUserId
             && String(message.sender_role) === currentUserRole;
+        const isGrouped = Boolean(options.isGrouped);
+        const showAvatar = Boolean(options.showAvatar);
 
         const article = document.createElement('article');
-        article.className = 'chat-message' + (isMine ? ' is-mine' : ' is-theirs');
+        article.className = 'chat-message'
+            + (isMine ? ' is-mine' : ' is-theirs')
+            + (isGrouped ? ' is-grouped' : '')
+            + (showAvatar ? ' has-avatar' : '');
         article.dataset.messageId = String(message.id || '');
 
+        let avatarHtml = '';
+        if (!isMine) {
+            avatarHtml = showAvatar
+                ? '<span class="chat-message__avatar" aria-hidden="true">' + escapeHtml(partnerInitial()) + '</span>'
+                : '<span class="chat-message__avatar-spacer" aria-hidden="true"></span>';
+        }
+
         article.innerHTML =
+            avatarHtml +
+            '<div class="chat-message__stack">' +
             '<div class="chat-message__bubble"><p>' + escapeHtml(message.message_text || '') + '</p></div>' +
             '<time datetime="' + escapeHtml(message.created_at || '') + '">' +
             escapeHtml(formatTime(message.created_at || '')) +
-            '</time>';
+            '</time>' +
+            '</div>';
 
         return article;
+    }
+
+    function emptyStateHtml(messageHtml) {
+        return '' +
+            '<div class="chat-empty-state__icon" aria-hidden="true">' +
+            '<svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16v10H7l-3 3V5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>' +
+            '</div>' +
+            '<p>' + messageHtml + '</p>';
     }
 
     function clearMessagesPanel(message) {
@@ -100,8 +168,13 @@ function initLiveChat() {
         lastMessageCount = 0;
         messagesEl.innerHTML =
             '<div class="chat-empty-state chat-empty-state--inline" id="chatEmptyState">' +
-            '<p>' + escapeHtml(message || ('Loading conversation with ' + partnerName + '...')) + '</p>' +
+            emptyStateHtml(escapeHtml(message || ('Loading conversation with ' + partnerName + '...'))) +
             '</div>';
+    }
+
+    function isMineMessage(message) {
+        return Number(message.sender_id) === currentUserId
+            && String(message.sender_role) === currentUserRole;
     }
 
     function renderMessages(messages, force) {
@@ -122,14 +195,34 @@ function initLiveChat() {
             const empty = document.createElement('div');
             empty.className = 'chat-empty-state chat-empty-state--inline';
             empty.id = 'chatEmptyState';
-            empty.innerHTML = '<p>Start the conversation with ' + escapeHtml(partnerName) + '.</p>';
+            empty.innerHTML = emptyStateHtml('Start the conversation with <strong>' + escapeHtml(partnerName) + '</strong>.');
             messagesEl.appendChild(empty);
             lastMessageCount = 0;
             return;
         }
 
-        messages.forEach(function (message) {
-            messagesEl.appendChild(buildMessageNode(message));
+        let lastKey = null;
+        let prevMine = null;
+        messages.forEach(function (message, index) {
+            const key = dateKey(message.created_at || '');
+            const mine = isMineMessage(message);
+            const next = messages[index + 1] || null;
+            const nextMine = next ? isMineMessage(next) : null;
+            const nextKey = next ? dateKey(next.created_at || '') : null;
+            const showAvatar = !mine && (next === null || nextMine === true || nextKey !== key);
+            let isGrouped = prevMine !== null && prevMine === mine && key === lastKey;
+
+            if (key !== lastKey) {
+                lastKey = key;
+                isGrouped = false;
+                messagesEl.appendChild(buildDayDivider(formatDayLabel(message.created_at || '')));
+            }
+
+            messagesEl.appendChild(buildMessageNode(message, {
+                isGrouped: isGrouped,
+                showAvatar: showAvatar,
+            }));
+            prevMine = mine;
         });
 
         if (force || messages.length !== lastMessageCount) {
@@ -346,6 +439,7 @@ function initLiveChat() {
 
         const badge = button.querySelector('.chat-partner__badge');
         if (badge) badge.remove();
+        button.classList.remove('has-unread');
 
         if (typingIndicatorEl) typingIndicatorEl.hidden = true;
         if (inputEl) inputEl.value = '';
@@ -412,6 +506,25 @@ function initLiveChat() {
     });
 
     inputEl?.addEventListener('input', pulseTypingStatus);
+
+    function resizeComposer() {
+        if (!inputEl) return;
+        inputEl.style.height = 'auto';
+        inputEl.style.height = Math.min(inputEl.scrollHeight, 110) + 'px';
+    }
+
+    function relocateCharCounter() {
+        if (!composerEl) return;
+        const counter = composerEl.querySelector('.char-counter');
+        if (counter && counter.parentElement !== composerEl) {
+            composerEl.appendChild(counter);
+        }
+    }
+
+    inputEl?.addEventListener('input', resizeComposer);
+    resizeComposer();
+    window.setTimeout(relocateCharCounter, 0);
+    window.setTimeout(relocateCharCounter, 250);
 
     inputEl?.addEventListener('blur', function () {
         clearTypingStatus();

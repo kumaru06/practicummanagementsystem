@@ -1,4 +1,4 @@
-﻿document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
     initSidebar();
     initTextMarquees();
     initStudentMobileNav();
@@ -895,7 +895,7 @@ function buildDateTimePanel(state) {
         ? `${state.hour}:${String(state.minute).padStart(2, '0')} ${state.period}`
         : '--:--';
 
-    return `<div class="datetime-panel-layout">${calendarHtml}<div class="datetime-time-picker"><div class="datetime-time-header">Time  ·  ${previewTime}</div><div class="datetime-time-cols"><div class="datetime-time-col">${hours.join('')}</div><div class="datetime-time-col">${minutes.join('')}</div><div class="datetime-time-period-col">${periods}</div></div><div class="datetime-confirm-row"><button class="btn btn-small" type="button" data-dt-confirm>Done</button></div></div></div>`;
+    return `<div class="datetime-panel-layout">${calendarHtml}<div class="datetime-time-picker"><div class="datetime-time-header">Time  ?  ${previewTime}</div><div class="datetime-time-cols"><div class="datetime-time-col">${hours.join('')}</div><div class="datetime-time-col">${minutes.join('')}</div><div class="datetime-time-period-col">${periods}</div></div><div class="datetime-confirm-row"><button class="btn btn-small" type="button" data-dt-confirm>Done</button></div></div></div>`;
 }
 
 function positionGlobalDtPanel(trigger) {
@@ -2641,7 +2641,7 @@ function initDtrTimeLocks() {
             tasksPlaceholder: 'Describe the tasks you completed this morning...',
             confirmTitle: 'Confirm Half Day (Morning) DTR',
             confirmMessage: 'You are submitting a half-day morning DTR only. Afternoon attendance will not be recorded.',
-            summaryLabel: 'Half Day — Morning Only',
+            summaryLabel: 'Half Day ? Morning Only',
         },
         half_pm: {
             morning: false,
@@ -2654,7 +2654,7 @@ function initDtrTimeLocks() {
             tasksPlaceholder: 'Describe the tasks you completed this afternoon...',
             confirmTitle: 'Confirm Half Day (Afternoon) DTR',
             confirmMessage: 'You are submitting a half-day afternoon DTR only. Morning attendance will not be recorded.',
-            summaryLabel: 'Half Day — Afternoon Only',
+            summaryLabel: 'Half Day ? Afternoon Only',
         },
         sick: {
             morning: false,
@@ -2725,15 +2725,15 @@ function initDtrTimeLocks() {
             const pmOut = groups[3]?.input?.value || '';
 
             if (dayType === 'half_am') {
-                return `Morning: ${formatDtrTimeDisplay(amIn)} – ${formatDtrTimeDisplay(amOut)} · Afternoon: not included`;
+                return `Morning: ${formatDtrTimeDisplay(amIn)} ? ${formatDtrTimeDisplay(amOut)} ? Afternoon: not included`;
             }
             if (dayType === 'half_pm') {
-                return `Morning: not included · Afternoon: ${formatDtrTimeDisplay(pmIn)} – ${formatDtrTimeDisplay(pmOut)}`;
+                return `Morning: not included ? Afternoon: ${formatDtrTimeDisplay(pmIn)} ? ${formatDtrTimeDisplay(pmOut)}`;
             }
             if (dayType === 'sick' || dayType === 'absent') {
-                return 'No attendance times — 0 hours';
+                return 'No attendance times ? 0 hours';
             }
-            return `Morning: ${formatDtrTimeDisplay(amIn)} – ${formatDtrTimeDisplay(amOut)} · Afternoon: ${formatDtrTimeDisplay(pmIn)} – ${formatDtrTimeDisplay(pmOut)}`;
+            return `Morning: ${formatDtrTimeDisplay(amIn)} ? ${formatDtrTimeDisplay(amOut)} ? Afternoon: ${formatDtrTimeDisplay(pmIn)} ? ${formatDtrTimeDisplay(pmOut)}`;
         };
 
         const setWorkDate = date => {
@@ -2854,7 +2854,7 @@ function initDtrTimeLocks() {
 
             if (canSubmit) {
                 form.dataset.confirmTitle = config.confirmTitle || 'Submit DTR';
-                form.dataset.confirmSubmit = `${config.confirmMessage || 'Please verify before submitting.'} Work date: ${formatWorkDateDisplay(workDateInput?.value) || '—'}. ${buildScheduleSummary()}.`;
+                form.dataset.confirmSubmit = `${config.confirmMessage || 'Please verify before submitting.'} Work date: ${formatWorkDateDisplay(workDateInput?.value) || '?'}. ${buildScheduleSummary()}.`;
                 form.dataset.confirmOk = 'Yes, submit DTR';
             }
 
@@ -2862,7 +2862,7 @@ function initDtrTimeLocks() {
                 if (canSubmit && getDayType() !== 'full') {
                     submitSummary.innerHTML = `
                         <strong>${escapeHtml(config.summaryLabel || 'Ready to submit')}</strong>
-                        <span>Work date: ${escapeHtml(formatWorkDateDisplay(workDateInput?.value) || '—')}</span>
+                        <span>Work date: ${escapeHtml(formatWorkDateDisplay(workDateInput?.value) || '?')}</span>
                         <span>${escapeHtml(buildScheduleSummary())}</span>
                         <span class="dtr-submit-summary-note">Please review the summary above before submitting.</span>
                     `;
@@ -3594,7 +3594,7 @@ function closeRegistrationAndReturnToLogin(loginUrl) {
             window.opener.focus();
         }
     } catch {
-        // Cross-origin opener — ignore.
+        // Cross-origin opener ? ignore.
     }
 
     window.close();
@@ -3681,7 +3681,7 @@ function initRegisterPortalSelect(select) {
                 label.dataset.registerUpgraded = '1';
                 return;
             }
-            const match = text.match(/^(.+?)\s*[—-]\s*(.+)$/);
+            const match = text.match(/^(.+?)\s*[?-]\s*(.+)$/);
             if (!match) return;
             label.dataset.registerUpgraded = '1';
             label.innerHTML = `<span class="register-course-option-code">${escapeHtml(match[1].trim())}</span><span class="register-course-option-name">${escapeHtml(match[2].trim())}</span>`;
@@ -3910,7 +3910,7 @@ function updateWizardSummary(form) {
             <div class="confirm-row"><span class="confirm-label">Student</span><span class="confirm-value">${escapeHtml(student)}</span></div>
             <div class="confirm-row"><span class="confirm-label">Host</span><span class="confirm-value">${escapeHtml(company)}</span></div>
             <div class="confirm-row"><span class="confirm-label">Term</span><span class="confirm-value">${escapeHtml(term)}</span></div>
-            <div class="confirm-row"><span class="confirm-label">Schedule</span><span class="confirm-value">${escapeHtml(start)} → ${escapeHtml(end)}</span></div>
+            <div class="confirm-row"><span class="confirm-label">Schedule</span><span class="confirm-value">${escapeHtml(start)} ? ${escapeHtml(end)}</span></div>
             <div class="confirm-row"><span class="confirm-label">Hours</span><span class="confirm-value">${escapeHtml(hours)} hrs</span></div>
         </div>
         <div class="confirm-note"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg><span>This will enroll the student and email both the student and host training establishment.</span></div>`;
@@ -4148,7 +4148,7 @@ function enhanceTable(table) {
                 prev.type = 'button';
                 prev.className = 'ms-page-btn ms-page-prev';
                 prev.setAttribute('aria-label', 'Previous page');
-                prev.textContent = '‹';
+                prev.textContent = '?';
                 prev.disabled = page <= 1;
                 prev.onclick = () => { if (page > 1) { page--; render(); } };
                 pager.appendChild(prev);
@@ -4166,7 +4166,7 @@ function enhanceTable(table) {
                 next.type = 'button';
                 next.className = 'ms-page-btn ms-page-next';
                 next.setAttribute('aria-label', 'Next page');
-                next.textContent = '›';
+                next.textContent = '?';
                 next.disabled = page >= pages;
                 next.onclick = () => { if (page < pages) { page++; render(); } };
                 pager.appendChild(next);
@@ -4448,19 +4448,19 @@ function initEmailLogViews() {
                     <dl class="email-log-detail__facts">
                         <div class="email-log-detail__fact">
                             <dt>Sent At</dt>
-                            <dd>${escapeHtml(data.sentAt || '—')}</dd>
+                            <dd>${escapeHtml(data.sentAt || '?')}</dd>
                         </div>
                         <div class="email-log-detail__fact">
                             <dt>Recipient</dt>
-                            <dd>${escapeHtml(data.recipient || '—')}</dd>
+                            <dd>${escapeHtml(data.recipient || '?')}</dd>
                         </div>
                         <div class="email-log-detail__fact">
                             <dt>Subject</dt>
-                            <dd>${escapeHtml(data.subject || '—')}</dd>
+                            <dd>${escapeHtml(data.subject || '?')}</dd>
                         </div>
                         <div class="email-log-detail__fact">
                             <dt>Type</dt>
-                            <dd>${escapeHtml(formatLabel(data.type || '') || '—')}</dd>
+                            <dd>${escapeHtml(formatLabel(data.type || '') || '?')}</dd>
                         </div>
                     </dl>
                     ${showError ? `
@@ -4529,7 +4529,7 @@ function initEmailLogsFeed() {
                 pager.appendChild(btn);
             };
 
-            addBtn('‹', Math.max(1, page - 1), { disabled: page <= 1 });
+            addBtn('?', Math.max(1, page - 1), { disabled: page <= 1 });
             for (let i = 1; i <= totalPages; i += 1) {
                 if (totalPages > 7 && Math.abs(i - page) > 2 && i !== 1 && i !== totalPages) {
                     if (i === 2 || i === totalPages - 1) {
@@ -4538,14 +4538,14 @@ function initEmailLogsFeed() {
                         dots.style.border = 'none';
                         dots.style.background = 'transparent';
                         dots.style.cursor = 'default';
-                        dots.textContent = '…';
+                        dots.textContent = '?';
                         pager.appendChild(dots);
                     }
                     continue;
                 }
                 addBtn(String(i), i, { active: i === page });
             }
-            addBtn('›', Math.min(totalPages, page + 1), { disabled: page >= totalPages });
+            addBtn('?', Math.min(totalPages, page + 1), { disabled: page >= totalPages });
         };
 
         const apply = () => {
@@ -4676,7 +4676,7 @@ function roundRect(ctx, x, y, w, h, r) {
     ctx.closePath();
 }
 
-// ─── Donut / Pie ─────────────────────────────────────────────────────────────
+// --- Donut / Pie -------------------------------------------------------------
 const STATUS_PIE_SERIES = [
     { key: 'active', label: 'Active', color: '#16a34a' },
     { key: 'pending', label: 'Pending Requirements', color: '#f59e0b' },
@@ -5167,13 +5167,13 @@ function drawLine(id, data) {
         // x label - draw after dots so we can do rotation outside the per-dot loop
     });
 
-    // x-axis labels: skip any that would overlap, rotate -35°
+    // x-axis labels: skip any that would overlap, rotate -35?
     chartFont(ctx, 11, '500');
     ctx.fillStyle = '#64748b';
     const labelY = pad.top + gH + 10;
     const minGap = 52; // minimum px between label centres before skipping
     let lastDrawnX = -Infinity;
-    // decide step: draw every Nth label so neighbours are â‰¥ minGap apart
+    // decide step: draw every Nth label so neighbours are ? minGap apart
     const step = Math.ceil(minGap / (pts.length > 1 ? gW / (pts.length - 1) : 1));
     pts.forEach((pt, i) => {
         if (i % step !== 0 && i !== pts.length - 1) return;
@@ -5181,7 +5181,7 @@ function drawLine(id, data) {
         lastDrawnX = pt.x;
         ctx.save();
         ctx.translate(pt.x, labelY);
-        ctx.rotate(-Math.PI / 5); // -36°
+        ctx.rotate(-Math.PI / 5); // -36?
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
         ctx.fillText(String(pt.d.label), 0, 0);
@@ -5290,7 +5290,7 @@ function initRegistrationRequestsReview() {
         const trimmedEmail = (email || '').trim();
         const isVerified = (verifiedAt || '').trim() !== '';
         if (trimmedEmail === '') {
-            container.textContent = '—';
+            container.textContent = '?';
             return;
         }
         container.innerHTML = isVerified
@@ -5330,7 +5330,7 @@ function initRegistrationRequestsReview() {
             const el = panel.querySelector(`[data-reg-field="${field}"]`);
             if (!el || field === 'email') return;
             const value = (row.dataset[dataKey] || '').trim();
-            el.textContent = value !== '' ? value : '—';
+            el.textContent = value !== '' ? value : '?';
         });
 
         renderEmailField(
@@ -6454,11 +6454,11 @@ function buildPartnerCreateReviewHtml(form) {
     };
 
     const rows = [
-        ['Company', valueOf('company_name') || '—'],
-        ['Contact', valueOf('contact_person') || '—'],
-        ['Email', valueOf('contact_email') || '—'],
-        ['Phone', valueOf('contact_number') || '—'],
-        ['Address', valueOf('address') || '—'],
+        ['Company', valueOf('company_name') || '?'],
+        ['Contact', valueOf('contact_person') || '?'],
+        ['Email', valueOf('contact_email') || '?'],
+        ['Phone', valueOf('contact_number') || '?'],
+        ['Address', valueOf('address') || '?'],
         ['Programs', (() => {
             const programs = [...document.querySelectorAll(`input[type="checkbox"][name="program_ids[]"][form="${form.id}"]:checked`)]
                 .map(input => input.closest('label')?.querySelector('.partner-program-copy strong')?.textContent?.trim() || input.value)
@@ -6653,7 +6653,7 @@ function initAdminPartnerProgramsModal() {
             }
             if (listEl) {
                 listEl.innerHTML = programs.map(program => {
-                    const code = escapeHtml(program.code || '—');
+                    const code = escapeHtml(program.code || '?');
                     const name = escapeHtml(program.name || 'Program');
                     const hours = Number(program.hours || 0);
                     const hoursLabel = hours > 0 ? `${hours} hrs` : '';
@@ -6918,7 +6918,7 @@ function initAdminActivitiesFeed() {
                 pager.appendChild(btn);
             };
 
-            addBtn('‹', Math.max(1, page - 1), { disabled: page <= 1 });
+            addBtn('?', Math.max(1, page - 1), { disabled: page <= 1 });
             for (let i = 1; i <= totalPages; i += 1) {
                 if (totalPages > 7 && Math.abs(i - page) > 2 && i !== 1 && i !== totalPages) {
                     if (i === 2 || i === totalPages - 1) {
@@ -6927,14 +6927,14 @@ function initAdminActivitiesFeed() {
                         dots.style.border = 'none';
                         dots.style.background = 'transparent';
                         dots.style.cursor = 'default';
-                        dots.textContent = '…';
+                        dots.textContent = '?';
                         pager.appendChild(dots);
                     }
                     continue;
                 }
                 addBtn(String(i), i, { active: i === page });
             }
-            addBtn('›', Math.min(totalPages, page + 1), { disabled: page >= totalPages });
+            addBtn('?', Math.min(totalPages, page + 1), { disabled: page >= totalPages });
         };
 
         const apply = () => {
@@ -7543,8 +7543,6 @@ function initAppAjaxNav() {
 function initLiveChat() {
     'use strict';
 
-    destroyLiveChatIfNeeded();
-
     const app = document.getElementById('chatApp');
     if (!app) return;
 
@@ -7587,21 +7585,57 @@ function initLiveChat() {
             .replace(/'/g, '&#039;');
     }
 
+    function parseMessageDate(dateString) {
+        const date = new Date(String(dateString || '').replace(' ', 'T'));
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
     function formatTime(dateString) {
-        const date = new Date(dateString.replace(' ', 'T'));
-        if (Number.isNaN(date.getTime())) return dateString;
-        return date.toLocaleString(undefined, {
-            month: 'short',
-            day: 'numeric',
+        const date = parseMessageDate(dateString);
+        if (!date) return dateString;
+        return date.toLocaleTimeString(undefined, {
             hour: 'numeric',
             minute: '2-digit',
         });
+    }
+
+    function formatDayLabel(dateString) {
+        const date = parseMessageDate(dateString);
+        if (!date) return 'Earlier';
+
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(today.getDate() - 1);
+
+        const sameDay = function (a, b) {
+            return a.getFullYear() === b.getFullYear()
+                && a.getMonth() === b.getMonth()
+                && a.getDate() === b.getDate();
+        };
+
+        if (sameDay(date, today)) return 'Today';
+        if (sameDay(date, yesterday)) return 'Yesterday';
+        return date.toLocaleDateString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+        });
+    }
+
+    function dateKey(dateString) {
+        const date = parseMessageDate(dateString);
+        if (!date) return String(dateString || '');
+        return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
     }
 
     function formatRoleLabel(role) {
         return String(role || '')
             .replace(/_/g, ' ')
             .replace(/\b\w/g, function (char) { return char.toUpperCase(); });
+    }
+
+    function partnerInitial() {
+        return String(partnerName || 'C').charAt(0).toUpperCase();
     }
 
     function isCurrentConversation(id, role) {
@@ -7616,21 +7650,53 @@ function initLiveChat() {
         }
     }
 
-    function buildMessageNode(message) {
+    function buildDayDivider(label) {
+        const divider = document.createElement('div');
+        divider.className = 'chat-day-divider';
+        divider.setAttribute('role', 'separator');
+        divider.innerHTML = '<span>' + escapeHtml(label) + '</span>';
+        return divider;
+    }
+
+    function buildMessageNode(message, options) {
+        options = options || {};
         const isMine = Number(message.sender_id) === currentUserId
             && String(message.sender_role) === currentUserRole;
+        const isGrouped = Boolean(options.isGrouped);
+        const showAvatar = Boolean(options.showAvatar);
 
         const article = document.createElement('article');
-        article.className = 'chat-message' + (isMine ? ' is-mine' : ' is-theirs');
+        article.className = 'chat-message'
+            + (isMine ? ' is-mine' : ' is-theirs')
+            + (isGrouped ? ' is-grouped' : '')
+            + (showAvatar ? ' has-avatar' : '');
         article.dataset.messageId = String(message.id || '');
 
+        let avatarHtml = '';
+        if (!isMine) {
+            avatarHtml = showAvatar
+                ? '<span class="chat-message__avatar" aria-hidden="true">' + escapeHtml(partnerInitial()) + '</span>'
+                : '<span class="chat-message__avatar-spacer" aria-hidden="true"></span>';
+        }
+
         article.innerHTML =
+            avatarHtml +
+            '<div class="chat-message__stack">' +
             '<div class="chat-message__bubble"><p>' + escapeHtml(message.message_text || '') + '</p></div>' +
             '<time datetime="' + escapeHtml(message.created_at || '') + '">' +
             escapeHtml(formatTime(message.created_at || '')) +
-            '</time>';
+            '</time>' +
+            '</div>';
 
         return article;
+    }
+
+    function emptyStateHtml(messageHtml) {
+        return '' +
+            '<div class="chat-empty-state__icon" aria-hidden="true">' +
+            '<svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16v10H7l-3 3V5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>' +
+            '</div>' +
+            '<p>' + messageHtml + '</p>';
     }
 
     function clearMessagesPanel(message) {
@@ -7640,8 +7706,13 @@ function initLiveChat() {
         lastMessageCount = 0;
         messagesEl.innerHTML =
             '<div class="chat-empty-state chat-empty-state--inline" id="chatEmptyState">' +
-            '<p>' + escapeHtml(message || ('Loading conversation with ' + partnerName + '...')) + '</p>' +
+            emptyStateHtml(escapeHtml(message || ('Loading conversation with ' + partnerName + '...'))) +
             '</div>';
+    }
+
+    function isMineMessage(message) {
+        return Number(message.sender_id) === currentUserId
+            && String(message.sender_role) === currentUserRole;
     }
 
     function renderMessages(messages, force) {
@@ -7662,14 +7733,34 @@ function initLiveChat() {
             const empty = document.createElement('div');
             empty.className = 'chat-empty-state chat-empty-state--inline';
             empty.id = 'chatEmptyState';
-            empty.innerHTML = '<p>Start the conversation with ' + escapeHtml(partnerName) + '.</p>';
+            empty.innerHTML = emptyStateHtml('Start the conversation with <strong>' + escapeHtml(partnerName) + '</strong>.');
             messagesEl.appendChild(empty);
             lastMessageCount = 0;
             return;
         }
 
-        messages.forEach(function (message) {
-            messagesEl.appendChild(buildMessageNode(message));
+        let lastKey = null;
+        let prevMine = null;
+        messages.forEach(function (message, index) {
+            const key = dateKey(message.created_at || '');
+            const mine = isMineMessage(message);
+            const next = messages[index + 1] || null;
+            const nextMine = next ? isMineMessage(next) : null;
+            const nextKey = next ? dateKey(next.created_at || '') : null;
+            const showAvatar = !mine && (next === null || nextMine === true || nextKey !== key);
+            let isGrouped = prevMine !== null && prevMine === mine && key === lastKey;
+
+            if (key !== lastKey) {
+                lastKey = key;
+                isGrouped = false;
+                messagesEl.appendChild(buildDayDivider(formatDayLabel(message.created_at || '')));
+            }
+
+            messagesEl.appendChild(buildMessageNode(message, {
+                isGrouped: isGrouped,
+                showAvatar: showAvatar,
+            }));
+            prevMine = mine;
         });
 
         if (force || messages.length !== lastMessageCount) {
@@ -7857,7 +7948,7 @@ function initLiveChat() {
         const roleLabel = formatRoleLabel(button.dataset.partnerRole || partnerRole);
 
         if (activeNameEl) activeNameEl.textContent = partnerName;
-        if (activeMetaEl) activeMetaEl.textContent = roleLabel + '  ·  ' + partnerEmail;
+        if (activeMetaEl) activeMetaEl.textContent = roleLabel + ' · ' + partnerEmail;
         if (activeAvatarEl) activeAvatarEl.textContent = partnerName.charAt(0).toUpperCase();
         if (activeTagEl) activeTagEl.textContent = String(button.dataset.partnerRole || partnerRole).toUpperCase();
         if (typingLabelEl) typingLabelEl.textContent = partnerName + ' is typing...';
@@ -7886,6 +7977,7 @@ function initLiveChat() {
 
         const badge = button.querySelector('.chat-partner__badge');
         if (badge) badge.remove();
+        button.classList.remove('has-unread');
 
         if (typingIndicatorEl) typingIndicatorEl.hidden = true;
         if (inputEl) inputEl.value = '';
@@ -7953,6 +8045,25 @@ function initLiveChat() {
 
     inputEl?.addEventListener('input', pulseTypingStatus);
 
+    function resizeComposer() {
+        if (!inputEl) return;
+        inputEl.style.height = 'auto';
+        inputEl.style.height = Math.min(inputEl.scrollHeight, 110) + 'px';
+    }
+
+    function relocateCharCounter() {
+        if (!composerEl) return;
+        const counter = composerEl.querySelector('.char-counter');
+        if (counter && counter.parentElement !== composerEl) {
+            composerEl.appendChild(counter);
+        }
+    }
+
+    inputEl?.addEventListener('input', resizeComposer);
+    resizeComposer();
+    window.setTimeout(relocateCharCounter, 0);
+    window.setTimeout(relocateCharCounter, 250);
+
     inputEl?.addEventListener('blur', function () {
         clearTypingStatus();
     });
@@ -7983,10 +8094,6 @@ function initLiveChat() {
     });
 
     window.addEventListener('beforeunload', stopPolling);
-    window.__liveChatCleanup = () => {
-        stopPolling();
-        window.removeEventListener('beforeunload', stopPolling);
-    };
 
     if (messagesEl) {
         scrollToBottom(true);
@@ -7996,3 +8103,7 @@ function initLiveChat() {
         startPolling();
     }
 }
+
+
+
+
