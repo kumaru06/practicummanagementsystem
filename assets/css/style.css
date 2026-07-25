@@ -15795,6 +15795,7 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 .records-page .wr-section,
 .records-page .wr-week-row select,
 .records-page .wr-date-range input[type="date"],
+.records-page .wr-date-range .filter-date-picker,
 .records-page .wr-textarea-wrap textarea,
 .records-page .wr-dropzone,
 .records-page .filter-date-trigger,
@@ -15907,7 +15908,7 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 }
 
 .wr-week-row select,
-.wr-date-range input[type="date"] {
+.wr-date-range .filter-date-trigger {
     width: 100%;
     min-height: 50px;
     padding: 0 14px;
@@ -15924,7 +15925,8 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 }
 
 .wr-week-row select:focus,
-.wr-date-range input[type="date"]:focus,
+.wr-date-range .filter-date-picker.is-open .filter-date-trigger,
+.wr-date-range .filter-date-trigger:focus-visible,
 .wr-textarea-wrap textarea:focus {
     border-color: rgba(139, 26, 26, 0.52);
     outline: none;
@@ -15932,20 +15934,90 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 }
 
 .wr-date-range {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: end;
+    gap: 12px;
 }
 
-.wr-date-range input[type="date"] {
+.wr-date-field {
+    display: grid;
+    gap: 8px;
     min-width: 0;
-    flex: 1 1 0;
+}
+
+.wr-date-field-label {
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+
+.wr-date-range .filter-date-picker {
+    width: 100%;
+}
+
+.wr-date-range .filter-date-trigger {
+    width: 100%;
+    justify-content: space-between;
 }
 
 .wr-date-sep {
+    align-self: center;
+    margin-top: 18px;
     color: #94a3b8;
     font-weight: 800;
     flex-shrink: 0;
+}
+
+.global-cal-panel {
+    width: min(320px, calc(100vw - 24px));
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(139, 26, 26, 0.08);
+    box-shadow:
+        0 24px 60px rgba(15, 23, 42, 0.18),
+        0 0 0 1px rgba(255, 255, 255, 0.65) inset;
+}
+
+.global-cal-panel .filter-date-calendar-header {
+    margin-bottom: 2px;
+}
+
+.global-cal-panel .filter-date-nav {
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.global-cal-panel .filter-date-nav:hover,
+.global-cal-panel .filter-date-nav:focus-visible {
+    background: #fee2e2;
+    color: var(--navy-900);
+}
+
+.global-cal-panel .filter-date-day {
+    border-radius: 10px;
+    height: 38px;
+}
+
+.global-cal-panel .filter-date-day:hover,
+.global-cal-panel .filter-date-day:focus-visible {
+    background: #fff1f2;
+    color: var(--navy-900);
+}
+
+.global-cal-panel .filter-date-day.is-selected {
+    background: linear-gradient(135deg, #7f1d1d, #b91c1c);
+    box-shadow: 0 10px 20px rgba(127, 29, 29, 0.24);
+}
+
+.global-cal-panel .filter-date-action {
+    color: var(--navy-900);
+}
+
+.global-cal-panel .filter-date-action:hover {
+    color: #991b1b;
 }
 
 .wr-textarea-wrap {
@@ -16158,7 +16230,7 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 
 @media (max-width: 540px) {
     .wr-date-range {
-        flex-direction: column;
+        grid-template-columns: 1fr;
         align-items: stretch;
     }
     .wr-date-sep {
@@ -17600,10 +17672,10 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 }
 
 .student-reports-v2 {
-    --sr-radius: 10px;
+    --sr-radius: 5px;
     --sr-shadow: 0 18px 44px rgba(15, 23, 42, 0.06);
     display: grid;
-    gap: 24px;
+    gap: 28px;
     animation: srFadeIn 0.45s ease both;
 }
 
@@ -17613,7 +17685,7 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 }
 
 .sr-card {
-    padding: 24px;
+    padding: 28px;
     border: 1px solid rgba(219, 228, 240, 0.95);
     border-radius: var(--sr-radius);
     background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
@@ -17625,7 +17697,7 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    margin-bottom: 18px;
+    margin-bottom: 22px;
 }
 
 .sr-card-brand {
@@ -17639,8 +17711,8 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     flex-shrink: 0;
     border-radius: var(--sr-radius);
     border: 1px solid transparent;
@@ -17650,6 +17722,22 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 .sr-card-icon svg {
     width: 22px;
     height: 22px;
+    display: block;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.sr-card-icon svg path,
+.sr-card-icon svg rect,
+.sr-card-icon svg circle,
+.sr-card-icon svg line,
+.sr-card-icon svg polyline,
+.sr-card-icon svg polygon {
+    fill: none;
+    stroke: currentColor;
 }
 
 .sr-card-icon--dtr {
@@ -17712,14 +17800,14 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 .sr-stats-row {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 10px;
-    margin-bottom: 16px;
+    gap: 12px;
+    margin-bottom: 24px;
 }
 
 .sr-stat-chip {
     display: grid;
-    gap: 2px;
-    padding: 12px 14px;
+    gap: 6px;
+    padding: 16px 18px;
     border-radius: var(--sr-radius);
     border: 1px solid #e8edf4;
     background: linear-gradient(180deg, #ffffff, #f8fafc);
@@ -17763,7 +17851,11 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 
 .student-reports-v2 .table-tools .btn-small {
     border-radius: var(--sr-radius);
-    min-height: 36px;
+    min-height: 38px;
+    padding: 0 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .student-reports-v2 .column-options {
@@ -17771,6 +17863,7 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 }
 
 .sr-table-shell {
+    padding: 16px;
     border: 1px solid #e8edf4;
     border-radius: var(--sr-radius);
     background: #fff;
@@ -17778,8 +17871,8 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 }
 
 .sr-table-shell > .table-tools {
-    margin: 12px 12px 0;
-    padding: 10px 12px;
+    margin: 0 0 14px;
+    padding: 12px 14px;
     border: 1px solid #e8edf4;
     border-radius: var(--sr-radius);
     background: linear-gradient(180deg, #ffffff, #f8fafc);
@@ -17788,10 +17881,11 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 .sr-table-shell .sr-table-wrap {
     --reports-table-height: min(380px, 52vh);
     max-height: var(--reports-table-height);
+    margin: 0;
     overflow: auto;
     overscroll-behavior: contain;
-    border: 0;
-    border-radius: 0;
+    border: 1px solid #e8edf4;
+    border-radius: var(--sr-radius);
     background: transparent;
     -webkit-overflow-scrolling: touch;
 }
@@ -17800,7 +17894,7 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
     position: sticky;
     top: 0;
     z-index: 2;
-    padding: 12px 16px;
+    padding: 16px 18px;
     background: linear-gradient(180deg, #faf5f5, #f6eeee);
     color: #7f1d1d;
     font-size: .72rem;
@@ -17814,7 +17908,7 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 }
 
 .student-reports-v2 .sr-table td {
-    padding: 14px 16px;
+    padding: 18px;
     border-bottom: 1px solid #eef2f6;
     background: #fff;
     vertical-align: top;
@@ -17960,8 +18054,21 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 }
 
 .sr-file-btn svg {
-    width: 14px;
-    height: 14px;
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.sr-file-btn svg path,
+.sr-file-btn svg rect,
+.sr-file-btn svg circle,
+.sr-file-btn svg line {
+    fill: none;
+    stroke: currentColor;
 }
 
 .sr-file-btn:hover {
@@ -17980,7 +18087,7 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 }
 
 .student-reports-v2 .sr-empty-cell {
-    padding: 28px 16px;
+    padding: 44px 20px;
     text-align: center;
     font-size: .92rem;
     font-weight: 600;
@@ -17989,6 +18096,7 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 @media (max-width: 900px) {
     .sr-stats-row {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-bottom: 20px;
     }
 
     .sr-card-head {
@@ -18002,11 +18110,30 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 
 @media (max-width: 640px) {
     .sr-card {
-        padding: 18px;
+        padding: 20px;
     }
 
     .sr-stats-row {
         grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .sr-stat-chip {
+        padding: 14px 14px;
+    }
+
+    .sr-table-shell {
+        padding: 14px;
+    }
+
+    .sr-table-shell > .table-tools {
+        margin: 0 0 12px;
+        padding: 12px 14px;
+    }
+
+    .student-reports-v2 .sr-empty-cell {
+        padding: 32px 16px;
     }
 
     .student-reports-v2 .table-tools {
@@ -32184,6 +32311,226 @@ body.is-enr-wizard-open {
     .admin-email-logs-v2 .ael-shell {
         height: min(560px, calc(100dvh - var(--topbar-height, 76px) - 140px));
         max-height: min(560px, calc(100dvh - var(--topbar-height, 76px) - 140px));
+    }
+}
+
+/* Student dashboard enhancements */
+.student-dash-v2 .sd-alerts {
+    display: grid;
+    gap: 12px;
+}
+
+.student-dash-v2 .sd-alert {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    border-radius: var(--sd-radius);
+    border: 1px solid transparent;
+    background: #fff;
+    box-shadow: var(--sd-shadow);
+}
+
+.student-dash-v2 .sd-alert--danger {
+    border-color: rgba(220, 38, 38, 0.18);
+    background: linear-gradient(180deg, #fff5f5 0%, #fff 100%);
+}
+
+.student-dash-v2 .sd-alert--warning {
+    border-color: rgba(245, 158, 11, 0.22);
+    background: linear-gradient(180deg, #fffbeb 0%, #fff 100%);
+}
+
+.student-dash-v2 .sd-alert--info {
+    border-color: rgba(59, 130, 246, 0.18);
+    background: linear-gradient(180deg, #eff6ff 0%, #fff 100%);
+}
+
+.student-dash-v2 .sd-alert-copy strong {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.student-dash-v2 .sd-alert-copy p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.92rem;
+}
+
+.student-dash-v2 .sd-completion-card {
+    border: 1px solid rgba(139, 26, 26, 0.08);
+}
+
+.student-dash-v2 .sd-completion-card--cleared {
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.08), #fff 55%);
+}
+
+.student-dash-v2 .sd-clearance-list {
+    list-style: none;
+    margin: 14px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+}
+
+.student-dash-v2 .sd-clearance-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #64748b;
+    font-size: 0.92rem;
+}
+
+.student-dash-v2 .sd-clearance-list li.is-done {
+    color: #166534;
+}
+
+.student-dash-v2 .sd-clearance-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: #cbd5e1;
+    flex: 0 0 auto;
+}
+
+.student-dash-v2 .sd-clearance-list li.is-done .sd-clearance-dot {
+    background: #16a34a;
+}
+
+.student-dash-v2 .sd-cert-link {
+    display: inline-block;
+    margin-top: 12px;
+}
+
+.student-dash-v2 .sd-info-grid--support {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.student-dash-v2 .sd-contact-list,
+.student-dash-v2 .sd-schedule-list,
+.student-dash-v2 .sd-deadline-list,
+.student-dash-v2 .sd-updates-list {
+    display: grid;
+    gap: 14px;
+}
+
+.student-dash-v2 .sd-contact-item,
+.student-dash-v2 .sd-schedule-item,
+.student-dash-v2 .sd-deadline-item {
+    display: grid;
+    gap: 4px;
+}
+
+.student-dash-v2 .sd-contact-item > span,
+.student-dash-v2 .sd-schedule-item > span,
+.student-dash-v2 .sd-deadline-item > span {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #94a3b8;
+}
+
+.student-dash-v2 .sd-update-item {
+    display: grid;
+    gap: 4px;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    text-decoration: none;
+    color: inherit;
+    background: #fff;
+}
+
+.student-dash-v2 .sd-update-item.is-unread {
+    border-color: rgba(139, 26, 26, 0.18);
+    background: #fff7f7;
+}
+
+.student-dash-v2 .sd-update-item p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+.final-req-lock-banner {
+    grid-column: 1 / -1;
+}
+
+.final-req-action--disabled {
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.records-action-card .records-reject-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.records-reject-card {
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    padding: 16px;
+    background: #fff7f7;
+}
+
+.records-reject-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.records-resubmit-form {
+    display: grid;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.records-resubmit-form label {
+    display: grid;
+    gap: 6px;
+}
+
+.records-resubmit-times {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.records-resubmit-meta {
+    color: #64748b;
+    font-size: 0.92rem;
+}
+
+.sr-fix-btn {
+    display: inline-flex;
+    margin-top: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #b91c1c;
+    text-decoration: none;
+}
+
+.sr-fix-btn:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 900px) {
+    .student-dash-v2 .sd-info-grid--support {
+        grid-template-columns: 1fr;
+    }
+
+    .student-dash-v2 .sd-alert {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .records-resubmit-times {
+        grid-template-columns: 1fr;
     }
 }
 

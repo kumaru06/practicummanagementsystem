@@ -1,7 +1,10 @@
 -- Import this file into the same database where schema.sql was imported.
 
+-- SECURITY: the default admin password hash below is public in this repo, so the account
+-- is seeded with password_changed = 0. The system forces a new password on first login.
+-- Change it immediately after deployment and never reuse the shipped default.
 INSERT INTO users (id, name, email, password_hash, role, created_by, is_active, password_changed) VALUES
-(1, 'System Administrator', 'admin@ama.edu.ph', '$2y$10$9CHq.Pz4X5vuhbXpv5DE6O6FOtawSqC7eoj/kXj6UBJ3jgHH8Rp/O', 'admin', NULL, 1, 1);
+(1, 'System Administrator', 'admin@ama.edu.ph', '$2y$10$9CHq.Pz4X5vuhbXpv5DE6O6FOtawSqC7eoj/kXj6UBJ3jgHH8Rp/O', 'admin', NULL, 1, 0);
 
 -- ─── Default Degree Program ──────────────────────────────────────────────
 INSERT INTO programs (id, code, name, required_hours, is_active) VALUES

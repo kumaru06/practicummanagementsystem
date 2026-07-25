@@ -12,7 +12,7 @@ class StudentController extends BaseController
 
     public function changePasswordForm(): void
     {
-        require_role(['student', 'coordinator', 'partner']);
+        require_role(['student', 'coordinator', 'partner', 'admin']);
         $isFirstLogin = (int)(current_user()['password_changed'] ?? 1) === 0;
         $this->renderAppPage('student/change_password', [
             'title' => $isFirstLogin ? 'Change Temporary Password' : 'Change Password',
@@ -23,7 +23,7 @@ class StudentController extends BaseController
 
     public function verifyCurrentPassword(): void
     {
-        require_role(['student', 'coordinator', 'partner']);
+        require_role(['student', 'coordinator', 'partner', 'admin']);
         verify_csrf();
         header('Content-Type: application/json; charset=utf-8');
 
@@ -49,7 +49,7 @@ class StudentController extends BaseController
 
     public function changePassword(): void
     {
-        require_role(['student', 'coordinator', 'partner']);
+        require_role(['student', 'coordinator', 'partner', 'admin']);
         header('Content-Type: application/json; charset=utf-8');
 
         try {
@@ -87,7 +87,7 @@ class StudentController extends BaseController
                     ? 'Password changed successfully. You can now access your dashboard.'
                     : 'Password changed successfully.',
                 'redirect' => $wasTemporary
-                    ? route_url('student.dashboard')
+                    ? route_for_role(current_user()['role'])
                     : route_url('student.settings'),
             ], JSON_UNESCAPED_UNICODE);
         } catch (Throwable $e) {
@@ -249,7 +249,12 @@ class StudentController extends BaseController
         $data['activePanel'] = '';
         $data['activeKind'] = '';
 
-        if (array_key_exists($doc, FinalRequirement::SECTIONS)) {
+        if (!$data['canAccessFinalRequirements']) {
+            if ($doc !== '' || $eval !== '') {
+                flash('error', $data['finalRequirementsLockMessage']);
+                redirect('index.php?r=student_documents_final');
+            }
+        } elseif (array_key_exists($doc, FinalRequirement::SECTIONS)) {
             $data['activePanel'] = $doc;
             $data['activeKind'] = 'doc';
             $data['title'] = FinalRequirement::SECTIONS[$doc]['name'];
@@ -271,7 +276,10 @@ class StudentController extends BaseController
             flash('error', 'Student record not found.');
             redirect('index.php?r=student_documents_final');
         }
+        $enrollment = (new Enrollment($this->db))->detailsByStudent((int)$student['id']);
+        $approvedHours = (new Report($this->db))->totalHours((int)$student['id'], true);
         try {
+            assert_student_final_requirements($enrollment, $approvedHours);
             (new FinalRequirement($this->db))->saveJobDescription(
                 (int)$student['id'],
                 (string)($p['position_held'] ?? ''),
@@ -294,7 +302,10 @@ class StudentController extends BaseController
             flash('error', 'Student record not found.');
             redirect('index.php?r=student_documents_final');
         }
+        $enrollment = (new Enrollment($this->db))->detailsByStudent((int)$student['id']);
+        $approvedHours = (new Report($this->db))->totalHours((int)$student['id'], true);
         try {
+            assert_student_final_requirements($enrollment, $approvedHours);
             (new FinalRequirement($this->db))->saveCompanyProfile(
                 (int)$student['id'],
                 (string)($p['company_history'] ?? ''),
@@ -319,7 +330,10 @@ class StudentController extends BaseController
             flash('error', 'Student record not found.');
             redirect('index.php?r=student_documents_final');
         }
+        $enrollment = (new Enrollment($this->db))->detailsByStudent((int)$student['id']);
+        $approvedHours = (new Report($this->db))->totalHours((int)$student['id'], true);
         try {
+            assert_student_final_requirements($enrollment, $approvedHours);
             $fields = [];
             foreach (array_keys(FinalRequirement::PERSONAL_OBSERVATION_FIELDS) as $column) {
                 $fields[$column] = (string)($p[$column] ?? '');
@@ -343,6 +357,9 @@ class StudentController extends BaseController
             redirect('index.php?r=student_documents_final');
         }
         try {
+            $enrollment = (new Enrollment($this->db))->detailsByStudent((int)$student['id']);
+            $approvedHours = (new Report($this->db))->totalHours((int)$student['id'], true);
+            assert_student_final_requirements($enrollment, $approvedHours);
             $evalModel = new StudentEvaluation($this->db);
             $wasSubmitted = StudentEvaluation::statusFor($evalModel->getByStudent((int)$student['id']), 'industry_partner') === 'submitted';
             $ratings = [];
@@ -388,6 +405,9 @@ class StudentController extends BaseController
             redirect('index.php?r=student_documents_final');
         }
         try {
+            $enrollment = (new Enrollment($this->db))->detailsByStudent((int)$student['id']);
+            $approvedHours = (new Report($this->db))->totalHours((int)$student['id'], true);
+            assert_student_final_requirements($enrollment, $approvedHours);
             $evalModel = new StudentEvaluation($this->db);
             $wasSubmitted = StudentEvaluation::statusFor($evalModel->getByStudent((int)$student['id']), 'coordinator') === 'submitted';
             $ratings = [];
@@ -794,6 +814,99 @@ class StudentController extends BaseController
         }
     }
 
+    public function resubmitDtr(): void
+    {
+        require_role('student');
+        $p = $this->post();
+        $student = (new Student($this->db))->findByUser(current_user()['id']);
+        if (!$student) {
+            flash('error', 'Student record not found.');
+            redirect('index.php?r=student_records');
+        }
+        $dtrId = (int)($p['dtr_id'] ?? 0);
+        $enrollments = new Enrollment($this->db);
+        $enrollment = $enrollments->detailsByStudent((int)$student['id']);
+        $reportModel = new Report($this->db);
+        $existing = $reportModel->findDtr($dtrId);
+        try {
+            if (!$existing || (int)$existing['student_id'] !== (int)$student['id']) {
+                throw new RuntimeException('Daily time record not found.');
+            }
+            assert_student_dtr_resubmit($enrollment, $existing);
+            $reportModel->resubmitDtr(
+                $dtrId,
+                (int)$student['id'],
+                (string)($p['day_type'] ?? 'full'),
+                $p['morning_time_in'] ?? '',
+                $p['morning_time_out'] ?? '',
+                $p['afternoon_time_in'] ?? '',
+                $p['afternoon_time_out'] ?? '',
+                trim((string)($p['tasks_done'] ?? ''))
+            );
+            $enrollments->syncCompletion((int)$student['id']);
+            $company = (new Company($this->db))->findByEnrollmentStudent((int)$student['id']);
+            if ($company) {
+                (new Notification($this->db))->create(
+                    (int)$company['user_id'],
+                    'Corrected DTR pending approval',
+                    $student['name'] . ' resubmitted a corrected DTR for ' . date('M d, Y', strtotime((string)$existing['work_date'])) . '. Please review.',
+                    route_url('partner.submissions', ['student_id' => (int)$student['id'], 'tab' => 'dtr'])
+                );
+            }
+            flash('success', 'Corrected daily time record resubmitted. Awaiting Host Training Establishment approval.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+        redirect('index.php?r=student_records&resubmit_dtr=' . $dtrId);
+    }
+
+    public function resubmitWeekly(): void
+    {
+        require_role('student');
+        $p = $this->post();
+        $student = (new Student($this->db))->findByUser(current_user()['id']);
+        if (!$student) {
+            flash('error', 'Student record not found.');
+            redirect('index.php?r=student_records');
+        }
+        $weeklyId = (int)($p['weekly_id'] ?? 0);
+        $enrollments = new Enrollment($this->db);
+        $enrollment = $enrollments->detailsByStudent((int)$student['id']);
+        $reportModel = new Report($this->db);
+        $existing = $reportModel->findWeekly($weeklyId);
+        try {
+            if (!$existing || (int)$existing['student_id'] !== (int)$student['id']) {
+                throw new RuntimeException('Weekly report not found.');
+            }
+            assert_student_weekly_resubmit($enrollment, $existing);
+            $reportModel->resubmitWeekly(
+                $weeklyId,
+                (int)$student['id'],
+                (string)($p['accomplishments'] ?? ''),
+                (string)($p['date_covered_start'] ?? ''),
+                (string)($p['date_covered_end'] ?? ''),
+                (string)($p['report_text'] ?? '')
+            );
+            if (!empty($_FILES['proof_files']['name'][0] ?? '')) {
+                $reportModel->clearWeeklyProofFiles($weeklyId);
+                $this->uploadProofFiles($reportModel, $weeklyId, (int)$student['id']);
+            }
+            $company = (new Company($this->db))->findByEnrollmentStudent((int)$student['id']);
+            if ($company) {
+                (new Notification($this->db))->create(
+                    (int)$company['user_id'],
+                    'Corrected weekly report pending approval',
+                    $student['name'] . ' resubmitted corrected weekly report #' . (int)$existing['week_no'] . '. Please review.',
+                    route_url('partner.submissions', ['student_id' => (int)$student['id'], 'tab' => 'weekly'])
+                );
+            }
+            flash('success', 'Corrected weekly report resubmitted. Awaiting Host Training Establishment approval.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+        redirect('index.php?r=student_records&resubmit_weekly=' . $weeklyId);
+    }
+
     private function studentPageData(string $title): array
     {
         require_role('student');
@@ -806,17 +919,55 @@ class StudentController extends BaseController
             $enrollment['predeployment_status'] = $studentModel->effectivePredeploymentStatus((int)$student['id'], $enrollment['predeployment_status'] ?? null, $requirements);
         }
         $reports = new Report($this->db);
+        $dtrs = $student ? $reports->dtrByStudent((int)$student['id']) : [];
+        $weeklyReports = $student ? $reports->weeklyByStudent((int)$student['id']) : [];
+        $approvedHours = $student ? $reports->totalHours((int)$student['id'], true) : 0.0;
+        $finalRequirement = $student ? (new FinalRequirement($this->db))->getByStudent((int)$student['id']) : [];
+        $studentEvaluation = $student ? (new StudentEvaluation($this->db))->getByStudent((int)$student['id']) : [];
+        $hteEvaluation = null;
+        if (!empty($enrollment['id'])) {
+            $hteEvaluation = (new Evaluation($this->db))->byEnrollment((int)$enrollment['id']);
+        }
+        $canSubmitReports = $enrollmentModel->allowsReports($enrollment);
+        $canAccessFinalRequirements = enrollment_allows_final_requirements($enrollment, $approvedHours);
+        $ojtCompletion = student_ojt_completion_status([
+            'enrollment' => $enrollment,
+            'approvedHours' => $approvedHours,
+            'finalRequirement' => $finalRequirement,
+            'studentEvaluation' => $studentEvaluation,
+            'hteEvaluation' => $hteEvaluation,
+        ]);
+        $pageContext = [
+            'requirements' => $requirements,
+            'dtrs' => $dtrs,
+            'weeklyReports' => $weeklyReports,
+            'predeploymentStatus' => $enrollment ? ($enrollment['predeployment_status'] ?? 'not_submitted') : 'not_submitted',
+            'canSubmitReports' => $canSubmitReports,
+            'canAccessFinalRequirements' => $canAccessFinalRequirements,
+            'ojtCompletion' => $ojtCompletion,
+        ];
+
         return [
             'title' => $title,
             'student' => $student,
             'enrollment' => $enrollment,
-            'canSubmitReports' => $enrollmentModel->allowsReports($enrollment),
+            'canSubmitReports' => $canSubmitReports,
             'reportLockMessage' => $enrollmentModel->reportLockMessage($enrollment),
-            'dtrs' => $student ? $reports->dtrByStudent((int)$student['id']) : [],
+            'canAccessFinalRequirements' => $canAccessFinalRequirements,
+            'finalRequirementsLockMessage' => enrollment_final_requirements_lock_message($enrollment, $approvedHours),
+            'approvedHours' => $approvedHours,
+            'dtrs' => $dtrs,
             'dtrDraft' => $student ? $reports->dtrDraftByStudent((int)$student['id']) : [],
-            'weeklyReports' => $student ? $reports->weeklyByStudent((int)$student['id']) : [],
+            'weeklyReports' => $weeklyReports,
             'hours' => $student ? $reports->totalHours((int)$student['id']) : 0,
             'requirements' => $requirements,
+            'finalRequirement' => $finalRequirement,
+            'studentEvaluation' => $studentEvaluation,
+            'hteEvaluation' => $hteEvaluation,
+            'ojtCompletion' => $ojtCompletion,
+            'actionAlerts' => student_action_alerts($pageContext),
+            'upcomingDeadlines' => student_upcoming_deadlines(array_merge($pageContext, ['enrollment' => $enrollment])),
+            'recentNotifications' => (new Notification($this->db))->recentForUser((int)current_user()['id'], 5),
         ];
     }
 }

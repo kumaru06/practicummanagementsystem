@@ -1,4 +1,13 @@
 <?php
+$__cookieSecure = (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off')
+    || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'httponly' => true,
+    'secure' => $__cookieSecure,
+    'samesite' => 'Lax',
+]);
 session_start();
 require_once __DIR__ . '/bootstrap/env.php';
 require_once __DIR__ . '/config/database.php';

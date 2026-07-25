@@ -4,6 +4,10 @@ class AuthController extends BaseController
 
 {
 
+    private const MAX_LOGIN_ATTEMPTS_PER_IP = 10;
+
+    private const LOGIN_ATTEMPT_WINDOW_MINUTES = 15;
+
     public function login(?string $portalRole = null): void
 
     {
@@ -50,9 +54,21 @@ class AuthController extends BaseController
 
             $password = $_POST['password'] ?? '';
 
+            $loginIp = client_ip();
+
+            if ($this->loginIsRateLimited($loginIp)) {
+
+                flash('error', 'Too many failed login attempts. Please wait a few minutes before trying again.');
+
+                redirect($portalRole ? 'auth.php?portal=' . urlencode($portalRole) : 'auth.php');
+
+            }
+
             $user = (new User($this->db))->findForLogin($identifier, $portalRole);
 
             if ($user && (int)$user['is_active'] === 1 && password_verify($password, $user['password_hash'])) {
+
+                $this->recordLoginAttempt($loginIp, true);
 
                 if (($user['role'] ?? '') !== $portalRole) {
 
@@ -89,6 +105,8 @@ class AuthController extends BaseController
                 redirect(route_for_role($user['role']));
 
             }
+
+            $this->recordLoginAttempt($loginIp, false);
 
             flash('error', 'Invalid credentials or inactive account.');
 
@@ -805,6 +823,55 @@ class AuthController extends BaseController
                 $link
             );
         }
+    }
+
+    private function loginIsRateLimited(string $ip): bool
+    {
+        if ($ip === '' || $ip === 'Unknown') {
+            return false;
+        }
+        $this->ensureLoginAttemptsTable();
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM login_attempts
+             WHERE successful = 0
+               AND ip_address = ?
+               AND attempted_at >= (NOW() - INTERVAL ' . self::LOGIN_ATTEMPT_WINDOW_MINUTES . ' MINUTE)'
+        );
+        $stmt->execute([$ip]);
+        return (int)$stmt->fetchColumn() >= self::MAX_LOGIN_ATTEMPTS_PER_IP;
+    }
+
+    private function recordLoginAttempt(string $ip, bool $successful): void
+    {
+        if ($ip === '' || $ip === 'Unknown') {
+            return;
+        }
+        $this->ensureLoginAttemptsTable();
+        if ($successful) {
+            $reset = $this->db->prepare('DELETE FROM login_attempts WHERE ip_address = ?');
+            $reset->execute([$ip]);
+            return;
+        }
+        $stmt = $this->db->prepare('INSERT INTO login_attempts (ip_address, successful) VALUES (?, 0)');
+        $stmt->execute([$ip]);
+    }
+
+    private function ensureLoginAttemptsTable(): void
+    {
+        static $ready = false;
+        if ($ready) {
+            return;
+        }
+        $this->db->exec(
+            'CREATE TABLE IF NOT EXISTS login_attempts (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                ip_address VARCHAR(45) NOT NULL,
+                successful TINYINT(1) NOT NULL DEFAULT 0,
+                attempted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_login_attempts_ip (ip_address, attempted_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+        );
+        $ready = true;
     }
 
 }

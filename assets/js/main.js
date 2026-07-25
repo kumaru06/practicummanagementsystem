@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initPasswordResetRequests();
     initNotifications();
     try { initWeeklyReportUpload(); } catch (err) { console.warn('Weekly report upload init failed:', err); }
+    try { initWeeklyReportResubmitDateRange(); } catch (err) { console.warn('Weekly report date range init failed:', err); }
     initMoaLibrary();
     initCoordinatorCardAlignment();
     initCapitalizeWordInputs();
@@ -1044,6 +1045,8 @@ function initCustomDatePickers() {
                 closeCustomSelects();
                 closeGlobalCalPanel();
                 if (!isOpen) {
+                    state.max = parseCustomDateValue(picker.dataset.dateMax || '') || null;
+                    state.min = parseCustomDateValue(picker.dataset.dateMin || '') || null;
                     picker.classList.add('is-open');
                     trigger.setAttribute('aria-expanded', 'true');
                     openGlobalCalPanel({ picker, trigger, input, state, sync });
@@ -7065,6 +7068,8 @@ function initWeeklyReportUpload() {
     const form = document.getElementById('weeklyReportForm');
     if (!form) return;
 
+    initWeeklyReportDateRange(form);
+
     const dropzone = document.getElementById('wrDropzone');
     const fileInput = document.getElementById('wrFileInput');
     const browseLink = document.getElementById('wrBrowseLink');
@@ -7172,6 +7177,42 @@ function initWeeklyReportUpload() {
             dynamicInput.files = dt.files;
             form.appendChild(dynamicInput);
         }
+    });
+}
+
+function initWeeklyReportDateRange(form) {
+    const range = form.querySelector('[data-wr-date-range]');
+    if (!range) return;
+
+    const startPicker = range.querySelector('[data-wr-date="start"]');
+    const endPicker = range.querySelector('[data-wr-date="end"]');
+    if (!startPicker || !endPicker) return;
+
+    const syncConstraints = () => {
+        const startVal = startPicker.querySelector('input[type="hidden"]')?.value || '';
+        const endVal = endPicker.querySelector('input[type="hidden"]')?.value || '';
+        if (startVal) {
+            endPicker.dataset.dateMin = startVal;
+        } else {
+            delete endPicker.dataset.dateMin;
+        }
+        if (endVal) {
+            startPicker.dataset.dateMax = endVal;
+        } else {
+            delete startPicker.dataset.dateMax;
+        }
+    };
+
+    startPicker.querySelector('input[type="hidden"]')?.addEventListener('change', syncConstraints);
+    endPicker.querySelector('input[type="hidden"]')?.addEventListener('change', syncConstraints);
+    syncConstraints();
+}
+
+function initWeeklyReportResubmitDateRange() {
+    document.querySelectorAll('.records-resubmit-form [data-wr-date-range]').forEach(range => {
+        const wrapper = range.closest('form');
+        if (!wrapper) return;
+        initWeeklyReportDateRange(wrapper);
     });
 }
 
@@ -7432,6 +7473,7 @@ function reinitAppPageContent() {
     initPartnerSubmissions();
     initStudentModal();
     try { initWeeklyReportUpload(); } catch (err) { console.warn('Weekly report upload init failed:', err); }
+    try { initWeeklyReportResubmitDateRange(); } catch (err) { console.warn('Weekly report date range init failed:', err); }
     document.querySelectorAll('.content .data-table').forEach(table => enhanceTable(table));
     // Bind action menus after tables are enhanced so pagination hooks attach correctly.
     initAdminUserActions();

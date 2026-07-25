@@ -1,0 +1,12 @@
+<?php
+// Copy to config/mail.local.dev.php for LOCAL development (Laragon / *.test / localhost).
+// This file is auto-loaded by config/mail.php on local hosts when SMTP_PASSWORD is not set in .env.
+// The real config/mail.local.dev.php is gitignored — NEVER commit real credentials.
+//
+// define('SMTP_HOST', 'smtp.hostinger.com');
+// define('SMTP_PORT', 465);
+// define('SMTP_SECURE', 'ssl');
+// define('SMTP_USERNAME', 'your-mailbox@example.com');
+// define('SMTP_PASSWORD', 'your_email_password');
+// define('MAIL_FROM_EMAIL', 'your-mailbox@example.com');
+// define('MAIL_FROM_NAME', 'AMA Education System - College Department');

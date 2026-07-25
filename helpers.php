@@ -192,6 +192,7 @@ function route_url(string $route, array $params = []): string
         'student.documents' => 'index.php?r=student_documents',
         'student.settings' => 'index.php?r=student_settings',
         'student.evaluation' => 'index.php?r=student_evaluation',
+        'student.documents.final' => 'index.php?r=student_documents_final',
         'student.profile' => 'index.php?r=student_profile',
         'student.password.edit' => 'index.php?r=student_password',
         'student.chat' => 'index.php?r=chat',
@@ -502,6 +503,347 @@ function assert_student_report_submission(?array $enrollment, ?string $workDate 
             throw new RuntimeException($workDateError);
         }
     }
+}
+
+function assert_student_dtr_resubmit(?array $enrollment, array $dtrRow): void
+{
+    if (!$enrollment) {
+        throw new RuntimeException('Enrollment record not found.');
+    }
+    if (strtolower((string)($dtrRow['verification_status'] ?? '')) !== 'rejected') {
+        throw new RuntimeException('Only rejected daily time records can be corrected and resubmitted.');
+    }
+    $workDateError = validate_dtr_work_date($enrollment, (string)($dtrRow['work_date'] ?? ''));
+    if ($workDateError !== null) {
+        throw new RuntimeException($workDateError);
+    }
+}
+
+function assert_student_weekly_resubmit(?array $enrollment, array $weeklyRow): void
+{
+    if (!$enrollment) {
+        throw new RuntimeException('Enrollment record not found.');
+    }
+    if (strtolower((string)($weeklyRow['verification_status'] ?? '')) !== 'rejected') {
+        throw new RuntimeException('Only rejected weekly reports can be corrected and resubmitted.');
+    }
+    if (($enrollment['predeployment_status'] ?? '') !== 'orientation_completed') {
+        throw new RuntimeException('Weekly report resubmission is unavailable until your OJT deployment is active.');
+    }
+}
+
+function student_enrollment_required_hours(?array $enrollment): float
+{
+    return max(0, (float)($enrollment['required_hours'] ?? 0));
+}
+
+function enrollment_hours_complete(?array $enrollment, float $approvedHours): bool
+{
+    $required = student_enrollment_required_hours($enrollment);
+    if ($required <= 0) {
+        return false;
+    }
+
+    return $approvedHours >= $required;
+}
+
+function enrollment_allows_final_requirements(?array $enrollment, float $approvedHours): bool
+{
+    if (!$enrollment) {
+        return false;
+    }
+    if (enrollment_hours_complete($enrollment, $approvedHours)) {
+        return true;
+    }
+    if (($enrollment['status'] ?? '') === 'completed') {
+        return true;
+    }
+    $projectedEnd = $enrollment['projected_end_date'] ?? $enrollment['end_date'] ?? null;
+    if ($projectedEnd && strtotime((string)$projectedEnd) !== false) {
+        return date('Y-m-d') >= date('Y-m-d', strtotime((string)$projectedEnd));
+    }
+
+    return false;
+}
+
+function enrollment_final_requirements_lock_message(?array $enrollment, float $approvedHours): string
+{
+    if (!$enrollment) {
+        return 'Final requirements unlock after you are enrolled and deployed for OJT.';
+    }
+    if (enrollment_allows_final_requirements($enrollment, $approvedHours)) {
+        return 'Final requirements are unlocked.';
+    }
+    $required = student_enrollment_required_hours($enrollment);
+    $remaining = max(0, $required - $approvedHours);
+    $projectedEnd = $enrollment['projected_end_date'] ?? $enrollment['end_date'] ?? null;
+    if ($projectedEnd && strtotime((string)$projectedEnd) !== false) {
+        return 'Final requirements unlock when you complete your required OJT hours or on your projected end date (' . date('M d, Y', strtotime((string)$projectedEnd)) . '). You still need ' . number_format($remaining, 2) . ' approved hour(s).';
+    }
+
+    return 'Final requirements unlock after you complete all required OJT hours (' . number_format($required, 2) . ' approved hours). You still need ' . number_format($remaining, 2) . ' approved hour(s).';
+}
+
+function assert_student_final_requirements(?array $enrollment, float $approvedHours): void
+{
+    if (!enrollment_allows_final_requirements($enrollment, $approvedHours)) {
+        throw new RuntimeException(enrollment_final_requirements_lock_message($enrollment, $approvedHours));
+    }
+}
+
+/**
+ * @return array<int, array{type:string,title:string,message:string,route:string,label:string,count:int}>
+ */
+function student_action_alerts(array $context): array
+{
+    $alerts = [];
+    $requirements = $context['requirements'] ?? [];
+    $dtrs = $context['dtrs'] ?? [];
+    $weeklyReports = $context['weeklyReports'] ?? [];
+    $predeployment = $context['predeploymentStatus'] ?? 'not_submitted';
+
+    $rejectedRequirements = array_filter($requirements, static fn ($req) => ($req['status'] ?? '') === 'rejected');
+    if ($rejectedRequirements) {
+        $alerts[] = [
+            'type' => 'danger',
+            'title' => 'Pre-deployment document rejected',
+            'message' => count($rejectedRequirements) . ' requirement file(s) need correction before coordinator review can continue.',
+            'route' => route_url('student.documents'),
+            'label' => 'Fix documents',
+            'count' => count($rejectedRequirements),
+        ];
+    } elseif ($predeployment === 'needs_revision') {
+        $alerts[] = [
+            'type' => 'warning',
+            'title' => 'Document revision required',
+            'message' => 'Replace the rejected pre-deployment file and wait for coordinator review.',
+            'route' => route_url('student.documents'),
+            'label' => 'Review documents',
+            'count' => 1,
+        ];
+    }
+
+    $rejectedDtrs = array_filter($dtrs, static fn ($row) => strtolower((string)($row['verification_status'] ?? '')) === 'rejected');
+    if ($rejectedDtrs) {
+        $alerts[] = [
+            'type' => 'danger',
+            'title' => 'Rejected daily time record(s)',
+            'message' => count($rejectedDtrs) . ' DTR entr' . (count($rejectedDtrs) === 1 ? 'y was' : 'ies were') . ' rejected by your Host Training Establishment. Correct and resubmit them.',
+            'route' => route_url('student.records'),
+            'label' => 'Fix DTR',
+            'count' => count($rejectedDtrs),
+        ];
+    }
+
+    $rejectedWeekly = array_filter($weeklyReports, static fn ($row) => strtolower((string)($row['verification_status'] ?? '')) === 'rejected');
+    if ($rejectedWeekly) {
+        $alerts[] = [
+            'type' => 'danger',
+            'title' => 'Rejected weekly report(s)',
+            'message' => count($rejectedWeekly) . ' weekly report(s) need correction before they can be approved.',
+            'route' => route_url('student.records'),
+            'label' => 'Fix weekly report',
+            'count' => count($rejectedWeekly),
+        ];
+    }
+
+    $canSubmitReports = (bool)($context['canSubmitReports'] ?? false);
+    if ($canSubmitReports) {
+        $today = date('Y-m-d');
+        $hasTodayDtr = false;
+        foreach ($dtrs as $dtr) {
+            if (($dtr['work_date'] ?? '') === $today) {
+                $hasTodayDtr = true;
+                break;
+            }
+        }
+        if (!$hasTodayDtr) {
+            $alerts[] = [
+                'type' => 'info',
+                'title' => 'Submit today\'s DTR',
+                'message' => 'You have not logged attendance for today yet.',
+                'route' => route_url('student.records'),
+                'label' => 'Submit DTR',
+                'count' => 1,
+            ];
+        }
+    }
+
+    $canAccessFinalRequirements = (bool)($context['canAccessFinalRequirements'] ?? false);
+    $ojtCompletion = $context['ojtCompletion'] ?? [];
+    if ($canAccessFinalRequirements && ($ojtCompletion['status'] ?? '') !== 'cleared') {
+        $pendingFinalItems = 0;
+        foreach (($ojtCompletion['checklist'] ?? []) as $item) {
+            if (($item['key'] ?? '') !== 'hte_evaluation' && empty($item['done'])) {
+                $pendingFinalItems++;
+            }
+        }
+        if ($pendingFinalItems > 0) {
+            $alerts[] = [
+                'type' => 'warning',
+                'title' => 'Complete final OJT requirements',
+                'message' => 'Your practicum hours are complete or your end date has arrived. Finish your final documents and self-evaluations.',
+                'route' => route_url('student.documents.final'),
+                'label' => 'Open final requirements',
+                'count' => $pendingFinalItems,
+            ];
+        }
+    }
+
+    return $alerts;
+}
+
+/**
+ * @return array{status:string,label:string,message:string,percent:int,checklist:array<int,array{key:string,label:string,done:bool}>}
+ */
+function student_ojt_completion_status(array $context): array
+{
+    $enrollment = $context['enrollment'] ?? null;
+    $approvedHours = (float)($context['approvedHours'] ?? 0);
+    $requiredHours = student_enrollment_required_hours($enrollment);
+    $finalRequirement = $context['finalRequirement'] ?? [];
+    $studentEvaluation = $context['studentEvaluation'] ?? [];
+    $hteEvaluation = $context['hteEvaluation'] ?? null;
+
+    $hoursDone = enrollment_hours_complete($enrollment, $approvedHours);
+    $finalDocsDone = true;
+    foreach (array_keys(FinalRequirement::SECTIONS) as $section) {
+        if ((string)($finalRequirement[$section . '_status'] ?? 'pending') !== 'submitted') {
+            $finalDocsDone = false;
+            break;
+        }
+    }
+    $selfEvalDone = true;
+    foreach (array_keys(FinalRequirement::EVALUATION_SECTIONS) as $section) {
+        if (StudentEvaluation::statusFor($studentEvaluation, $section) !== 'submitted') {
+            $selfEvalDone = false;
+            break;
+        }
+    }
+    $hteEvalDone = !empty($hteEvaluation) && (
+        !empty($hteEvaluation['final_grade'])
+        || !empty($hteEvaluation['criteria_ratings'])
+    );
+
+    $checklist = [
+        ['key' => 'hours', 'label' => 'Required OJT hours approved', 'done' => $hoursDone],
+        ['key' => 'final_docs', 'label' => 'Final documents submitted', 'done' => $finalDocsDone],
+        ['key' => 'self_eval', 'label' => 'Self-evaluations completed', 'done' => $selfEvalDone],
+        ['key' => 'hte_evaluation', 'label' => 'HTE final evaluation received', 'done' => $hteEvalDone],
+    ];
+    $doneCount = count(array_filter($checklist, static fn ($item) => !empty($item['done'])));
+    $percent = count($checklist) > 0 ? (int)round(($doneCount / count($checklist)) * 100) : 0;
+
+    if ($doneCount === count($checklist)) {
+        return [
+            'status' => 'cleared',
+            'label' => 'OJT Cleared',
+            'message' => 'Congratulations. Your OJT requirements, self-evaluations, and Host Training Establishment evaluation are complete.',
+            'percent' => 100,
+            'checklist' => $checklist,
+        ];
+    }
+    if ($hoursDone && (!$finalDocsDone || !$selfEvalDone)) {
+        return [
+            'status' => 'finals_pending',
+            'label' => 'Final Requirements Pending',
+            'message' => 'Your required hours are complete. Finish your final documents and self-evaluations to close your OJT.',
+            'percent' => $percent,
+            'checklist' => $checklist,
+        ];
+    }
+    if ($hoursDone) {
+        return [
+            'status' => 'hours_complete',
+            'label' => 'Hours Complete',
+            'message' => 'Your required OJT hours are complete. Complete remaining clearance items when ready.',
+            'percent' => $percent,
+            'checklist' => $checklist,
+        ];
+    }
+
+    $remaining = max(0, $requiredHours - $approvedHours);
+
+    return [
+        'status' => 'in_progress',
+        'label' => 'OJT In Progress',
+        'message' => $requiredHours > 0
+            ? number_format($approvedHours, 2) . ' of ' . number_format($requiredHours, 2) . ' approved hours completed. ' . number_format($remaining, 2) . ' hour(s) remaining.'
+            : 'Continue submitting your DTR and weekly reports on schedule.',
+        'percent' => $requiredHours > 0 ? min(100, (int)round(($approvedHours / $requiredHours) * 100)) : 0,
+        'checklist' => $checklist,
+    ];
+}
+
+/**
+ * @return array<int, array{label:string,date:?string,note:string,type:string}>
+ */
+function student_upcoming_deadlines(array $context): array
+{
+    $deadlines = [];
+    $enrollment = $context['enrollment'] ?? null;
+    if (!$enrollment) {
+        return $deadlines;
+    }
+
+    $projectedEnd = $enrollment['projected_end_date'] ?? $enrollment['end_date'] ?? null;
+    if ($projectedEnd && strtotime((string)$projectedEnd) !== false) {
+        $deadlines[] = [
+            'label' => 'Projected OJT end date',
+            'date' => date('Y-m-d', strtotime((string)$projectedEnd)),
+            'note' => 'Target completion date for your deployment.',
+            'type' => 'end',
+        ];
+    }
+
+    $orientation = $enrollment['orientation_datetime'] ?? null;
+    if ($orientation && strtotime((string)$orientation) !== false && ($enrollment['predeployment_status'] ?? '') === 'orientation_scheduled') {
+        $deadlines[] = [
+            'label' => 'Orientation schedule',
+            'date' => date('Y-m-d H:i', strtotime((string)$orientation)),
+            'note' => trim((string)($enrollment['orientation_notes'] ?? '')) ?: 'Attend your company orientation on time.',
+            'type' => 'orientation',
+        ];
+    }
+
+    if (!empty($context['canSubmitReports'])) {
+        $deadlines[] = [
+            'label' => 'Daily DTR',
+            'date' => date('Y-m-d'),
+            'note' => 'Submit your attendance record before end of day.',
+            'type' => 'daily',
+        ];
+        $deadlines[] = [
+            'label' => 'Weekly narrative report',
+            'date' => null,
+            'note' => 'Submit one weekly report for each practicum week.',
+            'type' => 'weekly',
+        ];
+    }
+
+    return $deadlines;
+}
+
+function render_form_date_picker(string $name, string $value = '', array $attributes = []): void
+{
+    $value = trim($value);
+    $isPlaceholder = $value === '' || strtotime($value) === false;
+    $display = $isPlaceholder ? 'mm/dd/yyyy' : date('m/d/Y', strtotime($value));
+    $storedValue = $isPlaceholder ? '' : date('Y-m-d', strtotime($value));
+    $attrPairs = '';
+    foreach ($attributes as $key => $attrValue) {
+        $attrPairs .= ' ' . $key . '="' . e((string)$attrValue) . '"';
+    }
+    ?>
+    <span class="filter-date-picker form-date-picker wr-date-picker<?= $isPlaceholder ? ' is-placeholder' : '' ?>" data-date-required="1"<?= $attrPairs ?>>
+        <input type="hidden" name="<?= e($name) ?>" value="<?= e($storedValue) ?>">
+        <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select date">
+            <span class="filter-date-value"><?= e($display) ?></span>
+            <span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span>
+        </button>
+        <div class="filter-date-panel" hidden></div>
+    </span>
+    <?php
 }
 
 function assert_orientation_datetime(string $dateTime): void

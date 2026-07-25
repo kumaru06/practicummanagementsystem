@@ -279,6 +279,114 @@ class Report
         $stmt->execute([$status, $verifierUserId, $notes, $weeklyId]);
     }
 
+    public function resubmitDtr(
+        int $dtrId,
+        int $studentId,
+        string $dayType,
+        string $morningIn,
+        string $morningOut,
+        string $afternoonIn,
+        string $afternoonOut,
+        string $tasks
+    ): void {
+        $row = $this->findDtr($dtrId);
+        if (!$row || (int)$row['student_id'] !== $studentId) {
+            throw new RuntimeException('Daily time record not found.');
+        }
+        if (strtolower((string)($row['verification_status'] ?? '')) !== 'rejected') {
+            throw new RuntimeException('Only rejected daily time records can be corrected and resubmitted.');
+        }
+        if (!trim($tasks)) {
+            throw new RuntimeException('Tasks done is required.');
+        }
+
+        $this->ensureDtrSessionColumns();
+        $this->ensureDtrDayTypeColumn();
+        $dayType = normalize_dtr_day_type($dayType);
+        $times = $this->validateDtrTimes($dayType, $morningIn, $morningOut, $afternoonIn, $afternoonOut);
+
+        $stmt = $this->db->prepare(
+            'UPDATE daily_time_records SET
+                day_type = ?, time_in = ?, time_out = ?,
+                morning_time_in = ?, morning_time_out = ?, afternoon_time_in = ?, afternoon_time_out = ?,
+                hours = ?, tasks_done = ?,
+                verification_status = "pending", verified_by = NULL, verified_at = NULL, verification_notes = NULL
+             WHERE id = ? AND student_id = ?'
+        );
+        $stmt->execute([
+            $dayType,
+            $times['time_in'],
+            $times['time_out'],
+            $times['morning_in'],
+            $times['morning_out'],
+            $times['afternoon_in'],
+            $times['afternoon_out'],
+            $times['hours'],
+            trim($tasks),
+            $dtrId,
+            $studentId,
+        ]);
+    }
+
+    public function resubmitWeekly(
+        int $weeklyId,
+        int $studentId,
+        ?string $accomplishments,
+        ?string $dateCoveredStart,
+        ?string $dateCoveredEnd,
+        ?string $reportText = null
+    ): void {
+        $row = $this->findWeekly($weeklyId);
+        if (!$row || (int)$row['student_id'] !== $studentId) {
+            throw new RuntimeException('Weekly report not found.');
+        }
+        if (strtolower((string)($row['verification_status'] ?? '')) !== 'rejected') {
+            throw new RuntimeException('Only rejected weekly reports can be corrected and resubmitted.');
+        }
+
+        $accomplishments = trim((string)$accomplishments);
+        if ($accomplishments === '') {
+            throw new RuntimeException('Weekly accomplishments are required.');
+        }
+        if (mb_strlen($accomplishments) > 2000) {
+            $accomplishments = mb_substr($accomplishments, 0, 2000);
+        }
+
+        $dateStart = null;
+        $dateEnd = null;
+        if ($dateCoveredStart && strtotime($dateCoveredStart) !== false) {
+            $dateStart = date('Y-m-d', strtotime($dateCoveredStart));
+        }
+        if ($dateCoveredEnd && strtotime($dateCoveredEnd) !== false) {
+            $dateEnd = date('Y-m-d', strtotime($dateCoveredEnd));
+        }
+        if (!$dateStart || !$dateEnd) {
+            throw new RuntimeException('Date covered is required.');
+        }
+
+        $stmt = $this->db->prepare(
+            'UPDATE weekly_reports SET
+                date_covered_start = ?, date_covered_end = ?, report_text = ?, accomplishments = ?,
+                verification_status = "pending", verified_by = NULL, verified_at = NULL, verification_notes = NULL
+             WHERE id = ? AND student_id = ?'
+        );
+        $stmt->execute([
+            $dateStart,
+            $dateEnd,
+            trim((string)$reportText),
+            $accomplishments,
+            $weeklyId,
+            $studentId,
+        ]);
+    }
+
+    public function clearWeeklyProofFiles(int $weeklyReportId): void
+    {
+        $this->ensureWeeklyReportFilesTable();
+        $stmt = $this->db->prepare('DELETE FROM weekly_report_files WHERE weekly_report_id = ?');
+        $stmt->execute([$weeklyReportId]);
+    }
+
     public function addWeekly(int $studentId, int $weekNo, ?string $text, ?string $filePath, ?string $accomplishments = null, ?string $dateCoveredStart = null, ?string $dateCoveredEnd = null): int
     {
         if ($weekNo < 1) {

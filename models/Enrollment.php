@@ -146,7 +146,7 @@ class Enrollment
 
     public function detailsByStudent(int $studentId): ?array
     {
-        $stmt = $this->db->prepare('SELECT e.*, pc.name company_name, pc.address company_address, pc.contact_person, pc.contact_email FROM ojt_enrollments e JOIN partner_companies pc ON pc.id = e.company_id WHERE e.student_id = ?');
+        $stmt = $this->db->prepare('SELECT e.*, pc.name company_name, pc.address company_address, pc.contact_person, pc.contact_email, pc.contact_number company_phone, coord_u.name coordinator_name, coord_u.email coordinator_email, c.department coordinator_department FROM ojt_enrollments e JOIN partner_companies pc ON pc.id = e.company_id LEFT JOIN students s ON s.id = e.student_id LEFT JOIN users coord_u ON coord_u.id = s.coordinator_id LEFT JOIN coordinators c ON c.user_id = coord_u.id WHERE e.student_id = ?');
         $stmt->execute([$studentId]);
         $enrollment = $stmt->fetch() ?: null;
         if ($enrollment) {

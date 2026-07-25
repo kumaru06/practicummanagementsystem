@@ -97,6 +97,15 @@
             <h1 class="fr-hero-title">Final Requirements</h1>
             <p>Submit your final documents and complete evaluations before OJT completion.</p>
         </div>
+        <?php if (!($canAccessFinalRequirements ?? false)): ?>
+            <div class="final-req-banner warning final-req-lock-banner">
+                <span class="final-req-banner-icon"><?= $infoIcon ?></span>
+                <div>
+                    <strong>Final requirements are locked</strong>
+                    <p><?= e($finalRequirementsLockMessage ?? 'Complete your required OJT hours first.') ?></p>
+                </div>
+            </div>
+        <?php endif; ?>
         <div class="fr-hero-stats">
             <div class="fr-hero-stat">
                 <span>Overall</span>
@@ -148,6 +157,10 @@
                     $statusLabel = $status === 'submitted' ? 'Submitted' : 'Pending';
                     $actionLabel = $status === 'submitted' ? 'Edit' : 'Input';
                     $actionClass = $status === 'submitted' ? 'final-req-action final-req-action--edit' : 'final-req-action final-req-action--primary';
+                    if (!($canAccessFinalRequirements ?? false)) {
+                        $actionLabel = 'Locked';
+                        $actionClass = 'final-req-action final-req-action--disabled';
+                    }
                     $rowIconMeta = $docRowIcons[$key] ?? ['class' => 'final-req-row-icon final-req-row-icon--company', 'svg' => $docRowIcons['company_profile']['svg']];
                     $rowStateClass = $status === 'submitted' ? 'is-complete' : 'is-pending';
                 ?>
@@ -206,6 +219,10 @@
                     $statusLabel = $status === 'submitted' ? 'Completed' : 'Pending';
                     $actionLabel = $status === 'submitted' ? 'Edit' : 'Evaluate';
                     $actionClass = $status === 'submitted' ? 'final-req-action final-req-action--edit' : 'final-req-action final-req-action--primary';
+                    if (!($canAccessFinalRequirements ?? false)) {
+                        $actionLabel = 'Locked';
+                        $actionClass = 'final-req-action final-req-action--disabled';
+                    }
                     $rowIconMeta = $evalRowIcons[$key] ?? $evalRowIcons['coordinator'];
                     $rowStateClass = $status === 'submitted' ? 'is-complete' : 'is-pending';
                 ?>

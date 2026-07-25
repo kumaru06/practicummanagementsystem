@@ -1,18 +1,18 @@
 <?php
 class User
 {
-    private ?bool $coordinatorIdNumberReady = null;
-    private ?bool $coordinatorSignatureReady = null;
-    private ?bool $namePartsReady = null;
-    private ?bool $deactivationReady = null;
-    private ?bool $lastLoginReady = null;
-    private ?bool $lastLogoutReady = null;
+    private static ?bool $coordinatorIdNumberReady = null;
+    private static ?bool $coordinatorSignatureReady = null;
+    private static ?bool $namePartsReady = null;
+    private static ?bool $deactivationReady = null;
+    private static ?bool $lastLoginReady = null;
+    private static ?bool $lastLogoutReady = null;
 
     public function __construct(private PDO $db) {}
 
     public function ensureNamePartsSupport(): void
     {
-        if ($this->namePartsReady === true) {
+        if (self::$namePartsReady === true) {
             return;
         }
 
@@ -47,12 +47,12 @@ class User
             ]);
         }
 
-        $this->namePartsReady = true;
+        self::$namePartsReady = true;
     }
 
     public function ensureCoordinatorSignatureSupport(): void
     {
-        if ($this->coordinatorSignatureReady === true) {
+        if (self::$coordinatorSignatureReady === true) {
             return;
         }
 
@@ -64,12 +64,12 @@ class User
             $this->db->exec('ALTER TABLE coordinators ADD COLUMN signature_file VARCHAR(255) NULL AFTER department');
         }
 
-        $this->coordinatorSignatureReady = true;
+        self::$coordinatorSignatureReady = true;
     }
 
     public function ensureCoordinatorIdNumberSupport(): void
     {
-        if ($this->coordinatorIdNumberReady === true) {
+        if (self::$coordinatorIdNumberReady === true) {
             return;
         }
 
@@ -89,7 +89,7 @@ class User
             $this->db->exec('ALTER TABLE coordinators ADD UNIQUE KEY uq_coordinators_id_number (id_number)');
         }
 
-        $this->coordinatorIdNumberReady = true;
+        self::$coordinatorIdNumberReady = true;
     }
 
     public function findByEmail(string $email): ?array
@@ -306,7 +306,7 @@ class User
 
     public function ensureDeactivationSupport(): void
     {
-        if ($this->deactivationReady === true) {
+        if (self::$deactivationReady === true) {
             return;
         }
 
@@ -321,12 +321,12 @@ class User
             }
         }
 
-        $this->deactivationReady = true;
+        self::$deactivationReady = true;
     }
 
     public function ensureLastLoginSupport(): void
     {
-        if ($this->lastLoginReady === true) {
+        if (self::$lastLoginReady === true) {
             return;
         }
 
@@ -341,7 +341,7 @@ class User
             }
         }
 
-        $this->lastLoginReady = true;
+        self::$lastLoginReady = true;
     }
 
     public function recordLogin(int $id): void
@@ -355,7 +355,7 @@ class User
 
     public function ensureLastLogoutSupport(): void
     {
-        if ($this->lastLogoutReady === true) {
+        if (self::$lastLogoutReady === true) {
             return;
         }
 
@@ -372,7 +372,7 @@ class User
             }
         }
 
-        $this->lastLogoutReady = true;
+        self::$lastLogoutReady = true;
     }
 
     public function recordLogout(int $id): void

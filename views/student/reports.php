@@ -59,7 +59,12 @@ $formatReportDate = static function (string $date): string {
     <header class="sr-card-head">
         <div class="sr-card-brand">
             <span class="sr-card-icon sr-card-icon--dtr" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M8 2v4M16 2v4"/>
+                    <path d="M3 10h18"/>
+                    <rect x="3" y="4" width="18" height="18" rx="2"/>
+                    <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/>
+                </svg>
             </span>
             <div>
                 <span class="sr-card-kicker">OJT Attendance</span>
@@ -123,7 +128,12 @@ $formatReportDate = static function (string $date): string {
                             <td><span class="sr-schedule-text"><?= e(format_dtr_schedule($d)) ?></span></td>
                             <td><span class="sr-hours-pill"><?= e((string)$d['hours']) ?></span></td>
                             <td><p class="sr-task-text"><?= e($d['tasks_done']) ?></p></td>
-                            <td class="sr-status-cell"><?= $statusBadge($d['verification_status'] ?? 'pending', $d['verification_notes'] ?? null) ?></td>
+                            <td class="sr-status-cell">
+                                <?= $statusBadge($d['verification_status'] ?? 'pending', $d['verification_notes'] ?? null) ?>
+                                <?php if ($status === 'rejected'): ?>
+                                    <a class="sr-fix-btn" href="index.php?r=student_records&amp;resubmit_dtr=<?= (int)$d['id'] ?>#resubmit-dtr-<?= (int)$d['id'] ?>">Fix &amp; resubmit</a>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -136,7 +146,11 @@ $formatReportDate = static function (string $date): string {
     <header class="sr-card-head">
         <div class="sr-card-brand">
             <span class="sr-card-icon sr-card-icon--weekly" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M10 13h4M10 17h4"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                    <rect x="8" y="2" width="8" height="4" rx="1"/>
+                    <path d="M9 12h6M9 16h4"/>
+                </svg>
             </span>
             <div>
                 <span class="sr-card-kicker">Weekly Narrative</span>
@@ -210,14 +224,23 @@ $formatReportDate = static function (string $date): string {
                             <td>
                                 <?php if (!empty($w['file_path'])): ?>
                                     <a class="sr-file-btn" target="_blank" href="<?= e(asset($w['file_path'])) ?>">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <path d="M14 2v6h6"/>
+                                            <path d="M10 13h4M10 17h4"/>
+                                        </svg>
                                         PDF
                                     </a>
                                 <?php else: ?>
                                     <span class="muted">-</span>
                                 <?php endif; ?>
                             </td>
-                            <td class="sr-status-cell"><?= $statusBadge($w['verification_status'] ?? 'pending', $w['verification_notes'] ?? null) ?></td>
+                            <td class="sr-status-cell">
+                                <?= $statusBadge($w['verification_status'] ?? 'pending', $w['verification_notes'] ?? null) ?>
+                                <?php if ($status === 'rejected'): ?>
+                                    <a class="sr-fix-btn" href="index.php?r=student_records&amp;resubmit_weekly=<?= (int)$w['id'] ?>#resubmit-weekly-<?= (int)$w['id'] ?>">Fix &amp; resubmit</a>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

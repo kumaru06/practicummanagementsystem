@@ -1,4 +1,125 @@
 <div class="grid two records-page">
+    <?php
+    $formatDtrTimeValue = static function (?string $time): string {
+        if (!$time) {
+            return '';
+        }
+        return substr((string)$time, 0, 5);
+    };
+    $rejectedDtrs = array_values(array_filter($dtrs ?? [], static fn ($row) => strtolower((string)($row['verification_status'] ?? '')) === 'rejected'));
+    $rejectedWeekly = array_values(array_filter($weeklyReports ?? [], static fn ($row) => strtolower((string)($row['verification_status'] ?? '')) === 'rejected'));
+    $resubmitDtrId = (int)($_GET['resubmit_dtr'] ?? 0);
+    $resubmitWeeklyId = (int)($_GET['resubmit_weekly'] ?? 0);
+    ?>
+    <?php if (!empty($rejectedDtrs) || !empty($rejectedWeekly)): ?>
+    <section class="card records-action-card" style="grid-column: 1 / -1;">
+        <div class="section-head">
+            <div>
+                <h2>Correct Rejected Submissions</h2>
+                <p class="muted">Review the rejection reason, update your entry, and resubmit for Host Training Establishment approval.</p>
+            </div>
+        </div>
+        <div class="records-reject-grid">
+            <?php foreach ($rejectedDtrs as $rejectedDtr): ?>
+                <?php
+                    $dtrId = (int)$rejectedDtr['id'];
+                    $isOpen = $resubmitDtrId === $dtrId || ($resubmitDtrId === 0 && count($rejectedDtrs) === 1);
+                    $dayType = normalize_dtr_day_type($rejectedDtr['day_type'] ?? 'full');
+                ?>
+                <article class="records-reject-card<?= $isOpen ? ' is-open' : '' ?>" id="resubmit-dtr-<?= $dtrId ?>">
+                    <header class="records-reject-head">
+                        <div>
+                            <strong>DTR · <?= e($rejectedDtr['work_date']) ?></strong>
+                            <span class="rec-status-badge rec-badge-danger">REJECTED</span>
+                        </div>
+                        <a class="btn btn-small" href="index.php?r=student_records&amp;resubmit_dtr=<?= $dtrId ?>#resubmit-dtr-<?= $dtrId ?>">Correct entry</a>
+                    </header>
+                    <?php if (!empty($rejectedDtr['verification_notes'])): ?>
+                        <div class="rec-reject-reason"><strong>Reason:</strong> <?= e($rejectedDtr['verification_notes']) ?></div>
+                    <?php endif; ?>
+                    <?php if ($isOpen): ?>
+                        <form method="post" class="form records-resubmit-form">
+                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                            <input type="hidden" name="action" value="student_resubmit_dtr">
+                            <input type="hidden" name="dtr_id" value="<?= $dtrId ?>">
+                            <div class="records-resubmit-meta">
+                                <span><strong>Work date:</strong> <?= e($rejectedDtr['work_date']) ?></span>
+                            </div>
+                            <label>
+                                <span>Day Type</span>
+                                <select name="day_type" required>
+                                    <?php foreach (dtr_day_types() as $value => $label): ?>
+                                        <option value="<?= e($value) ?>"<?= $dayType === $value ? ' selected' : '' ?>><?= e($label) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </label>
+                            <div class="records-resubmit-times">
+                                <label><span>Morning In</span><input type="time" name="morning_time_in" value="<?= e($formatDtrTimeValue($rejectedDtr['morning_time_in'] ?? $rejectedDtr['time_in'] ?? '')) ?>"></label>
+                                <label><span>Morning Out</span><input type="time" name="morning_time_out" value="<?= e($formatDtrTimeValue($rejectedDtr['morning_time_out'] ?? '')) ?>"></label>
+                                <label><span>Afternoon In</span><input type="time" name="afternoon_time_in" value="<?= e($formatDtrTimeValue($rejectedDtr['afternoon_time_in'] ?? '')) ?>"></label>
+                                <label><span>Afternoon Out</span><input type="time" name="afternoon_time_out" value="<?= e($formatDtrTimeValue($rejectedDtr['afternoon_time_out'] ?? $rejectedDtr['time_out'] ?? '')) ?>"></label>
+                            </div>
+                            <label>
+                                <span>Tasks Done</span>
+                                <textarea required maxlength="500" name="tasks_done" rows="4"><?= e($rejectedDtr['tasks_done'] ?? '') ?></textarea>
+                            </label>
+                            <button class="btn btn-primary" type="submit">Resubmit DTR</button>
+                        </form>
+                    <?php endif; ?>
+                </article>
+            <?php endforeach; ?>
+
+            <?php foreach ($rejectedWeekly as $rejectedReport): ?>
+                <?php
+                    $weeklyId = (int)$rejectedReport['id'];
+                    $isOpen = $resubmitWeeklyId === $weeklyId || ($resubmitWeeklyId === 0 && empty($rejectedDtrs) && count($rejectedWeekly) === 1);
+                ?>
+                <article class="records-reject-card<?= $isOpen ? ' is-open' : '' ?>" id="resubmit-weekly-<?= $weeklyId ?>">
+                    <header class="records-reject-head">
+                        <div>
+                            <strong>Weekly Report · Week <?= (int)$rejectedReport['week_no'] ?></strong>
+                            <span class="rec-status-badge rec-badge-danger">REJECTED</span>
+                        </div>
+                        <a class="btn btn-small" href="index.php?r=student_records&amp;resubmit_weekly=<?= $weeklyId ?>#resubmit-weekly-<?= $weeklyId ?>">Correct entry</a>
+                    </header>
+                    <?php if (!empty($rejectedReport['verification_notes'])): ?>
+                        <div class="rec-reject-reason"><strong>Reason:</strong> <?= e($rejectedReport['verification_notes']) ?></div>
+                    <?php endif; ?>
+                    <?php if ($isOpen): ?>
+                        <form method="post" enctype="multipart/form-data" class="form records-resubmit-form">
+                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                            <input type="hidden" name="action" value="student_resubmit_weekly">
+                            <input type="hidden" name="weekly_id" value="<?= $weeklyId ?>">
+                            <div class="records-resubmit-meta">
+                                <span><strong>Week:</strong> <?= (int)$rejectedReport['week_no'] ?></span>
+                            </div>
+                            <div class="records-resubmit-times wr-date-range" data-wr-date-range>
+                                <div class="wr-date-field">
+                                    <span class="wr-date-field-label">Start date</span>
+                                    <?php render_form_date_picker('date_covered_start', (string)($rejectedReport['date_covered_start'] ?? ''), ['data-wr-date' => 'start']); ?>
+                                </div>
+                                <span class="wr-date-sep" aria-hidden="true">to</span>
+                                <div class="wr-date-field">
+                                    <span class="wr-date-field-label">End date</span>
+                                    <?php render_form_date_picker('date_covered_end', (string)($rejectedReport['date_covered_end'] ?? ''), ['data-wr-date' => 'end']); ?>
+                                </div>
+                            </div>
+                            <label>
+                                <span>Weekly accomplishments</span>
+                                <textarea required maxlength="2000" name="accomplishments" rows="5"><?= e(trim((string)($rejectedReport['accomplishments'] ?? $rejectedReport['report_text'] ?? ''))) ?></textarea>
+                            </label>
+                            <label>
+                                <span>Replace proof files (optional)</span>
+                                <input type="file" name="proof_files[]" multiple accept=".jpg,.jpeg,.png,.pdf">
+                            </label>
+                            <button class="btn btn-primary" type="submit">Resubmit weekly report</button>
+                        </form>
+                    <?php endif; ?>
+                </article>
+            <?php endforeach; ?>
+        </div>
+    </section>
+    <?php endif; ?>
     <?php if (!($canSubmitReports ?? false)): ?>
     <section class="card locked-card"><h2>Submit Daily Time Record</h2><p class="muted"><?= e($reportLockMessage ?? 'DTR is locked until your OJT deployment starts.') ?></p><button class="btn btn-primary" type="button" disabled>Submit DTR Locked</button></section>
     <section class="card locked-card"><h2>Submit Weekly Report</h2><p class="muted"><?= e($reportLockMessage ?? 'Weekly reports are locked until your OJT deployment starts.') ?></p><button class="btn btn-primary" type="button" disabled>Weekly Report Locked</button></section>
@@ -195,10 +316,16 @@
                     </div>
                     <div>
                         <span class="wr-field-label">Date Covered</span>
-                        <div class="wr-date-range">
-                            <input type="date" name="date_covered_start" required>
-                            <span class="wr-date-sep">-</span>
-                            <input type="date" name="date_covered_end" required>
+                        <div class="wr-date-range" data-wr-date-range>
+                            <div class="wr-date-field">
+                                <span class="wr-date-field-label">Start date</span>
+                                <?php render_form_date_picker('date_covered_start', '', ['data-wr-date' => 'start']); ?>
+                            </div>
+                            <span class="wr-date-sep" aria-hidden="true">to</span>
+                            <div class="wr-date-field">
+                                <span class="wr-date-field-label">End date</span>
+                                <?php render_form_date_picker('date_covered_end', '', ['data-wr-date' => 'end']); ?>
+                            </div>
                         </div>
                     </div>
                 </div>
