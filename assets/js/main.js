@@ -3625,7 +3625,12 @@ function initRegistrationSuccessCountdown() {
 
     const redirectUrl = panel.dataset.redirectUrl || '/';
     const countdownEl = panel.querySelector('[data-register-countdown-value]');
-    let remaining = Math.max(3, parseInt(panel.dataset.countdownSeconds || '10', 10) || 10);
+    const configuredSeconds = parseInt(panel.dataset.countdownSeconds ?? '10', 10);
+    if (!Number.isFinite(configuredSeconds) || configuredSeconds <= 0) {
+        return;
+    }
+
+    let remaining = Math.max(3, configuredSeconds);
 
     if (countdownEl) countdownEl.textContent = String(remaining);
 

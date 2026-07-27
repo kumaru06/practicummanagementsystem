@@ -431,6 +431,8 @@ class AuthController extends BaseController
 
 
         $submitted = isset($_GET['submitted']);
+        $verified = isset($_GET['verified']);
+        $verifiedAlready = isset($_GET['already']);
 
         $programs = (new Program($this->db))->all(true);
 
@@ -481,7 +483,7 @@ class AuthController extends BaseController
 
             flash('success', 'Your email is already verified. You can sign in while waiting for administrator approval.');
 
-            redirect('auth.php?portal=student');
+            redirect('register.php?verified=1&already=1');
 
         }
 
@@ -527,7 +529,7 @@ class AuthController extends BaseController
 
             );
 
-            redirect('auth.php?portal=student');
+            redirect('register.php?verified=1');
 
         } catch (Throwable $e) {
 

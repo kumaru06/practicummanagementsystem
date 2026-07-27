@@ -85,14 +85,24 @@
                 <div class="register-body">
                     <?php
                     $successMessage = flash('success');
-                    $isSuccess = !empty($submitted) || $successMessage;
+                    $isSuccess = !empty($submitted) || !empty($verified) || $successMessage;
                     if ($isSuccess):
+                        $isVerifiedView = !empty($verified);
+                        $successHeading = $isVerifiedView
+                            ? 'Email Verified'
+                            : 'Check Your Email';
+                        $successText = $successMessage ?: (
+                            $isVerifiedView
+                                ? 'Your email address has been verified. You can sign in to the student portal while waiting for administrator approval.'
+                                : 'Your registration has been submitted. Please verify your email within 12 hours to activate your account. After verification, you can sign in while waiting for administrator approval.'
+                        );
+                        $showCountdown = !$isVerifiedView;
                     ?>
                         <div
-                            class="register-success-panel"
+                            class="register-success-panel<?= $isVerifiedView ? ' register-success-panel--verified' : '' ?>"
                             data-register-success
                             data-redirect-url="<?= e(route_url('student.login')) ?>"
-                            data-countdown-seconds="10"
+                            data-countdown-seconds="<?= $showCountdown ? '10' : '0' ?>"
                         >
                             <div class="register-success-icon" aria-hidden="true">
                                 <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -100,11 +110,13 @@
                                     <path d="M15 24.5 21 30.5 33 18" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
                             </div>
-                            <h2 class="register-success-heading">Check Your Email</h2>
-                            <p class="register-success-text"><?= e($successMessage ?: 'Your registration has been submitted. Please verify your email within 12 hours to activate your account. After verification, you can sign in while waiting for administrator approval.') ?></p>
+                            <h2 class="register-success-heading"><?= e($successHeading) ?></h2>
+                            <p class="register-success-text"><?= e($successText) ?></p>
+                            <?php if ($showCountdown): ?>
                             <p class="register-countdown" data-register-countdown aria-live="polite">
                                 Closing this page in <strong data-register-countdown-value>10</strong> seconds&hellip;
                             </p>
+                            <?php endif; ?>
                             <a class="btn btn-primary register-success-btn" href="<?= e(route_url('student.login')) ?>" data-register-close-login data-login-url="<?= e(route_url('student.login')) ?>">Go to Student Login Now</a>
                         </div>
                     <?php else: ?>
