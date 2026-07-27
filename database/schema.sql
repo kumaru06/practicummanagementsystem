@@ -166,6 +166,7 @@ CREATE TABLE daily_time_records (
   hours DECIMAL(6,2) NOT NULL,
   tasks_done TEXT NOT NULL,
   submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_dtr_student_date (student_id, work_date),
   CONSTRAINT fk_dtr_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
@@ -195,6 +196,7 @@ CREATE TABLE weekly_reports (
   report_text TEXT NULL,
   file_path VARCHAR(255) NULL,
   submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_weekly_student_week (student_id, week_no),
   CONSTRAINT fk_reports_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 

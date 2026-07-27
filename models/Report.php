@@ -40,19 +40,27 @@ class Report
                 hours, tasks_done
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
-        $stmt->execute([
-            $studentId,
-            date('Y-m-d', strtotime($date)),
-            $dayType,
-            $times['time_in'],
-            $times['time_out'],
-            $times['morning_in'],
-            $times['morning_out'],
-            $times['afternoon_in'],
-            $times['afternoon_out'],
-            $times['hours'],
-            trim($tasks),
-        ]);
+        try {
+            $stmt->execute([
+                $studentId,
+                date('Y-m-d', strtotime($date)),
+                $dayType,
+                $times['time_in'],
+                $times['time_out'],
+                $times['morning_in'],
+                $times['morning_out'],
+                $times['afternoon_in'],
+                $times['afternoon_out'],
+                $times['hours'],
+                trim($tasks),
+            ]);
+        } catch (PDOException $e) {
+            // Unique-key race: a second concurrent submit for the same day.
+            if ((int)($e->errorInfo[1] ?? 0) === 1062) {
+                throw new RuntimeException('A daily time record already exists for this date.');
+            }
+            throw $e;
+        }
     }
 
     public function dtrDraftByStudent(int $studentId): array
@@ -398,7 +406,15 @@ class Report
             throw new RuntimeException('A weekly report already exists for this week.');
         }
         $stmt = $this->db->prepare('INSERT INTO weekly_reports (student_id, week_no, date_covered_start, date_covered_end, report_text, accomplishments, file_path) VALUES (?, ?, ?, ?, ?, ?, ?)');
-        $stmt->execute([$studentId, $weekNo, $dateCoveredStart, $dateCoveredEnd, $text, $accomplishments, $filePath]);
+        try {
+            $stmt->execute([$studentId, $weekNo, $dateCoveredStart, $dateCoveredEnd, $text, $accomplishments, $filePath]);
+        } catch (PDOException $e) {
+            // Unique-key race: a second concurrent submit for the same week.
+            if ((int)($e->errorInfo[1] ?? 0) === 1062) {
+                throw new RuntimeException('A weekly report already exists for this week.');
+            }
+            throw $e;
+        }
         return (int)$this->db->lastInsertId();
     }
 

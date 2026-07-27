@@ -379,13 +379,19 @@ function flash(?string $key = null, ?string $message = null): ?string
 
 function temporary_report_unlock_enabled(): bool
 {
-    return defined('TEMPORARY_REPORT_UNLOCK') && TEMPORARY_REPORT_UNLOCK;
+    // Workflow bypass — only ever honored on local/dev. A stray
+    // TEMPORARY_REPORT_UNLOCK=true in a production .env is ignored, so the
+    // pre-deployment / orientation gating can never be skipped on the live site.
+    return (defined('APP_IS_LOCAL') && APP_IS_LOCAL)
+        && (defined('TEMPORARY_REPORT_UNLOCK') && TEMPORARY_REPORT_UNLOCK);
 }
 
 function temporary_orientation_past_dates_allowed(): bool
 {
+    // Past-dated orientation / official-start is a local/dev testing aid only
+    // and is likewise ignored in production regardless of the .env flag.
     return (defined('APP_IS_LOCAL') && APP_IS_LOCAL)
-        || (defined('TEMPORARY_ORIENTATION_PAST_DATES') && TEMPORARY_ORIENTATION_PAST_DATES);
+        && (defined('TEMPORARY_ORIENTATION_PAST_DATES') && TEMPORARY_ORIENTATION_PAST_DATES);
 }
 
 function temporary_official_start_past_dates_allowed(): bool
