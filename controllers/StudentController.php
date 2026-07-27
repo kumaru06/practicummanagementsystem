@@ -205,7 +205,7 @@ class StudentController extends BaseController
             @mkdir($tempDir, 0755, true);
         }
         $options = new \Dompdf\Options();
-        $options->set('isRemoteEnabled', true);
+        $options->set('isRemoteEnabled', false);
         $options->set('tempDir', $tempDir);
         $options->set('fontDir', $tempDir);
         $options->set('fontCache', $tempDir);
@@ -641,19 +641,19 @@ class StudentController extends BaseController
         try {
             (new Report($this->db))->addDtr(
                 (int)$student['id'],
-                $p['work_date'],
+                (string)($p['work_date'] ?? ''),
                 (string)($p['day_type'] ?? 'full'),
                 $p['morning_time_in'] ?? '',
                 $p['morning_time_out'] ?? '',
                 $p['afternoon_time_in'] ?? '',
                 $p['afternoon_time_out'] ?? '',
-                trim($p['tasks_done'])
+                trim((string)($p['tasks_done'] ?? ''))
             );
             (new Report($this->db))->clearDtrDraft((int)$student['id']);
             $enrollments->syncCompletion((int)$student['id']);
             $company = (new Company($this->db))->findByEnrollmentStudent((int)$student['id']);
             if ($company) {
-                (new Notification($this->db))->create((int)$company['user_id'], 'New DTR pending approval', $student['name'] . ' submitted a DTR for ' . date('M d, Y', strtotime((string)$p['work_date'])) . '. Please review.', route_url('partner.submissions', ['student_id' => (int)$student['id'], 'tab' => 'dtr']));
+                (new Notification($this->db))->create((int)$company['user_id'], 'New DTR pending approval', $student['name'] . ' submitted a DTR for ' . date('M d, Y', strtotime((string)($p['work_date'] ?? ''))) . '. Please review.', route_url('partner.submissions', ['student_id' => (int)$student['id'], 'tab' => 'dtr']));
             }
             flash('success', 'Daily time record submitted. Awaiting Host Training Establishment approval.');
         } catch (Throwable $e) {
@@ -691,7 +691,7 @@ class StudentController extends BaseController
             $report = new Report($this->db);
             $reportId = $report->addWeekly(
                 (int)$student['id'],
-                (int)$p['week_no'],
+                (int)($p['week_no'] ?? 0),
                 trim($p['report_text'] ?? ''),
                 $pdfPath,
                 $accomplishments ?: null,
@@ -703,7 +703,7 @@ class StudentController extends BaseController
 
             $company = (new Company($this->db))->findByEnrollmentStudent((int)$student['id']);
             if ($company) {
-                (new Notification($this->db))->create((int)$company['user_id'], 'New Weekly Report pending approval', $student['name'] . ' submitted weekly report #' . (int)$p['week_no'] . '. Please review.', route_url('partner.submissions', ['student_id' => (int)$student['id'], 'tab' => 'weekly']));
+                (new Notification($this->db))->create((int)$company['user_id'], 'New Weekly Report pending approval', $student['name'] . ' submitted weekly report #' . (int)($p['week_no'] ?? 0) . '. Please review.', route_url('partner.submissions', ['student_id' => (int)$student['id'], 'tab' => 'weekly']));
             }
             flash('success', 'Weekly report submitted. Awaiting Host Training Establishment approval.');
         } catch (Throwable $e) {

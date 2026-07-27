@@ -3,6 +3,6 @@
 // hPanel → Databases → Management → use the exact MySQL database name and user shown there.
 // PHP on Hostinger uses host "localhost".
 define('_DB_HOST', 'localhost');
-define('_DB_NAME', 'u859158056_amaojtportal');
-define('_DB_USER', 'u859158056_amaojtportal');
+define('_DB_NAME', 'your_database_name');
+define('_DB_USER', 'your_database_user');
 define('_DB_PASS', 'your_mysql_password_from_hpanel');

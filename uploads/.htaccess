@@ -1,6 +1,12 @@
-# Block script execution in upload directories (shared hosting safety).
-<FilesMatch "\.(php|phtml|php3|php4|php5|phps|cgi|pl|asp|aspx)$">
-    Require all denied
+# Uploaded files are routed through serve.php by the root .htaccess rewrite,
+# which enforces login + per-file ownership before streaming the file.
+# As defense-in-depth, never allow scripts to execute from the uploads directory.
+<FilesMatch "\.(php|phtml|php3|php4|php5|phps|cgi|pl|asp|aspx|sh|htaccess)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
 </FilesMatch>
-
-

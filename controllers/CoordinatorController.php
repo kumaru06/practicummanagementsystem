@@ -43,17 +43,20 @@ class CoordinatorController extends BaseController
         $students = (new Student($this->db))->allByCoordinator($coordId);
         $studentModel = new Student($this->db);
         $enrollModel = new Enrollment($this->db);
-        $requirementsByStudent = [];
         $finalModel = new FinalRequirement($this->db);
         $studentEvalModel = new StudentEvaluation($this->db);
-        $finalRequirementsByStudent = [];
-        $studentEvaluationsByStudent = [];
+
+        $studentIds = array_map(static fn ($s) => (int)$s['id'], $students);
+        $requirementsByStudent = $studentModel->requirementsForStudents($studentIds);
+        $finalRequirementsByStudent = $finalModel->getByStudents($studentIds);
+        $studentEvaluationsByStudent = $studentEvalModel->getByStudents($studentIds);
+
         foreach ($students as &$student) {
             $studentId = (int)$student['id'];
-            $requirementsByStudent[$studentId] = $studentModel->requirements($studentId);
+            $requirementsByStudent[$studentId] ??= $studentModel->requirements($studentId);
+            $finalRequirementsByStudent[$studentId] ??= [];
+            $studentEvaluationsByStudent[$studentId] ??= [];
             $student['predeployment_status'] = $studentModel->effectivePredeploymentStatus($studentId, $student['predeployment_status'] ?? null, $requirementsByStudent[$studentId]);
-            $finalRequirementsByStudent[$studentId] = $finalModel->getByStudent($studentId);
-            $studentEvaluationsByStudent[$studentId] = $studentEvalModel->getByStudent($studentId);
         }
         unset($student);
         $totalStudents = count($students);
@@ -115,7 +118,11 @@ class CoordinatorController extends BaseController
                 'job_description' => 'coordinator/final/job_description',
                 'company_profile' => 'coordinator/final/company_profile',
                 'personal_observation' => 'coordinator/final/personal_observation',
+                default => '',
             };
+            if ($view === '') {
+                redirect('index.php?r=coordinator_student_final&student_id=' . $studentId);
+            }
             $this->renderAppPage($view, $data);
             return;
         }
@@ -510,8 +517,9 @@ class CoordinatorController extends BaseController
             exit;
 
         } catch (Throwable $e) {
+            error_log('Endorsement letter preview failed: ' . $e->getMessage());
             http_response_code(500);
-            exit('Error generating endorsement letter: ' . $e->getMessage());
+            exit('Unable to generate the endorsement letter right now. Please try again later.');
         }
     }
 

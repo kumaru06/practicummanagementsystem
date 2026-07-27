@@ -1,5 +1,9 @@
 RewriteEngine On
 
+# Serve uploaded files only through the authenticated proxy (access control).
+# Existing /uploads/... links keep working; serve.php checks login + ownership.
+RewriteRule ^uploads/(.+)$ serve.php?f=$1 [L,QSA]
+
 # Native replacements for the Laravel role-specific login portals.
 RewriteRule ^(admin|coordinator|student|partner)/login/?$ auth.php?portal=$1 [L,QSA]
 

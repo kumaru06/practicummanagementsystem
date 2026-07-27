@@ -56,6 +56,29 @@ class FinalRequirement
         return $stmt->fetch() ?: [];
     }
 
+    /**
+     * Batch fetch to avoid N+1 queries. Returns rows keyed by student_id.
+     *
+     * @param int[] $studentIds
+     * @return array<int, array<string, mixed>>
+     */
+    public function getByStudents(array $studentIds): array
+    {
+        $ids = array_values(array_unique(array_map('intval', $studentIds)));
+        if (!$ids) {
+            return [];
+        }
+        $this->ensureTable();
+        $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+        $stmt = $this->db->prepare("SELECT * FROM student_final_requirements WHERE student_id IN ($placeholders)");
+        $stmt->execute($ids);
+        $rows = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $rows[(int)$row['student_id']] = $row;
+        }
+        return $rows;
+    }
+
     public function statusFor(int $studentId, string $section): string
     {
         $row = $this->getByStudent($studentId);

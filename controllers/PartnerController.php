@@ -634,8 +634,9 @@ class PartnerController extends BaseController
             exit;
 
         } catch (Throwable $e) {
+            error_log('Endorsement letter view failed: ' . $e->getMessage());
             http_response_code(500);
-            exit('Error generating endorsement letter: ' . $e->getMessage());
+            exit('Unable to generate the endorsement letter right now. Please try again later.');
         }
     }
 

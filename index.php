@@ -80,12 +80,6 @@ if ($method === 'POST' && ($_POST['action'] ?? '') === 'mark_all_notifications_r
     redirect($_SERVER['HTTP_REFERER'] ?? 'index.php');
 }
 
-if (($_GET['action'] ?? '') === 'mark_all_notifications_read') {
-    (new Notification(db()))->markAllRead((int)current_user()['id']);
-    flash('success', 'Notifications marked as read.');
-    redirect($_SERVER['HTTP_REFERER'] ?? 'index.php');
-}
-
 if (($_GET['action'] ?? '') === 'read_notification') {
     $notificationId = (int)($_GET['id'] ?? 0);
     $userId = (int)current_user()['id'];

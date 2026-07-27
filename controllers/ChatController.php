@@ -10,6 +10,8 @@ class ChatController
     private string $role;
     private bool $messagesTableReady = false;
     private bool $typingTableReady = false;
+    /** @var list<array<string, mixed>>|null */
+    private ?array $chatPartnersCache = null;
 
     public function __construct(?PDO $db = null)
     {
@@ -180,10 +182,14 @@ class ChatController
     /** @return list<array<string, mixed>> */
     public function getChatPartners(): array
     {
+        if ($this->chatPartnersCache !== null) {
+            return $this->chatPartnersCache;
+        }
+
         $this->requireAuth();
         $this->ensureMessagesTable();
 
-        return match ($this->role) {
+        return $this->chatPartnersCache = match ($this->role) {
             'admin' => $this->partnersForAdmin(),
             'coordinator' => $this->partnersForCoordinator(),
             'student' => $this->partnersForStudent(),

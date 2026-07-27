@@ -183,6 +183,43 @@ class Student
         return $rows;
     }
 
+    /**
+     * Batch version of requirements() to avoid N+1 queries.
+     * Returns the full requirement set (with defaults) for every id, keyed by student_id.
+     *
+     * @param int[] $studentIds
+     * @return array<int, array<string, array<string, mixed>>>
+     */
+    public function requirementsForStudents(array $studentIds): array
+    {
+        $ids = array_values(array_unique(array_map('intval', $studentIds)));
+        $result = [];
+        if (!$ids) {
+            return $result;
+        }
+        $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+        $stmt = $this->db->prepare("SELECT * FROM student_requirements WHERE student_id IN ($placeholders)");
+        $stmt->execute($ids);
+        $byStudent = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $byStudent[(int)$row['student_id']][$row['requirement_key']] = $row;
+        }
+        $defs = $this->requirementDefinitions();
+        foreach ($ids as $sid) {
+            $rows = $byStudent[$sid] ?? [];
+            foreach ($defs as $key => $def) {
+                if (!isset($rows[$key])) {
+                    $rows[$key] = ['requirement_key' => $key, 'requirement_name' => $def['name'], 'notes' => $def['notes'], 'file_path' => null, 'status' => 'pending'];
+                } else {
+                    $rows[$key]['review_notes'] = $rows[$key]['notes'] ?? '';
+                    $rows[$key]['notes'] = $def['notes'];
+                }
+            }
+            $result[$sid] = $rows;
+        }
+        return $result;
+    }
+
     public function saveRequirement(int $studentId, string $key, string $filePath): void
     {
         $defs = $this->requirementDefinitions();
