@@ -1,5 +1,28 @@
 RewriteEngine On
 
+# ---------------------------------------------------------------------------
+# SECURITY: block direct HTTP access to secrets, configs and internal files.
+# This MUST come first so a real file (e.g. .env) is denied before Apache
+# gets a chance to serve it as a static download.
+# ---------------------------------------------------------------------------
+
+# 1) Forbid every dotfile / dot-directory (.env, .env.example, .git/, .gitignore, ...)
+#    except the ACME challenge folder that SSL renewals need.
+RewriteRule (?:^|/)\.(?!well-known/) - [F,L]
+
+# 2) Defense-in-depth (also covers hosts where mod_rewrite is off): deny by name.
+#    Matches the basename, so it also protects the same files inside subfolders
+#    (e.g. database/schema.sql, config/database.production.php.example).
+<FilesMatch "(?:^\.env|^composer\.(?:json|lock)$|^hostinger\.deploy\.json|\.(?:sql|log|md|ps1|bat|sh|ini|bak|old|dist|example)$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
 # Serve uploaded files only through the authenticated proxy (access control).
 # Existing /uploads/... links keep working; serve.php checks login + ownership.
 RewriteRule ^uploads/(.+)$ serve.php?f=$1 [L,QSA]
