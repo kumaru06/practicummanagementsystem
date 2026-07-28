@@ -1,5 +1,8 @@
 RewriteEngine On
 
+# Custom forbidden page (e.g. when someone hits /.env)
+ErrorDocument 403 /errors/403.html
+
 # ---------------------------------------------------------------------------
 # SECURITY: block direct HTTP access to secrets, configs and internal files.
 # This MUST come first so a real file (e.g. .env) is denied before Apache
