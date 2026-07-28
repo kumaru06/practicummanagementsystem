@@ -15,6 +15,8 @@ class AdminController extends BaseController
                 'students' => $users->countRole('student'),
                 'active' => $enroll->activeCount(),
             ],
+            'trends' => $this->dashboardTrends($users, $company, $enroll),
+            'pendingActions' => $this->pendingActions($enroll),
             'companies' => $company->all(),
             'recentActivities' => $this->recentActivities(6),
             'charts' => [
@@ -23,6 +25,102 @@ class AdminController extends BaseController
                 'courseStudents' => $enroll->studentProgressByCourse(),
             ],
         ]);
+    }
+
+    /**
+     * @return array<string, array{recent:int,previous:int,delta:int,percent:?float,direction:string,label:string}>
+     */
+    private function dashboardTrends(User $users, Company $company, Enrollment $enroll): array
+    {
+        return [
+            'coordinators' => build_metric_trend(
+                $users->countRoleCreatedInLastDays('coordinator', 30),
+                $users->countRoleCreatedBetweenDays('coordinator', 60, 30)
+            ),
+            'companies' => build_metric_trend(
+                $company->countCreatedInLastDays(30),
+                $company->countCreatedBetweenDays(60, 30)
+            ),
+            'students' => build_metric_trend(
+                $users->countRoleCreatedInLastDays('student', 30),
+                $users->countRoleCreatedBetweenDays('student', 60, 30)
+            ),
+            'active' => build_metric_trend(
+                $enroll->countActiveStartsInLastDays(30),
+                $enroll->countActiveStartsBetweenDays(60, 30)
+            ),
+        ];
+    }
+
+    /**
+     * @return list<array{key:string,title:string,detail:string,count:int,link:string,tone:string}>
+     */
+    private function pendingActions(Enrollment $enroll): array
+    {
+        $actions = [];
+        $placementLink = route_url('admin.ojt_placement');
+
+        try {
+            $registrationCount = (new StudentRegistrationRequest($this->db))->pendingCount();
+            if ($registrationCount > 0) {
+                $actions[] = [
+                    'key' => 'registration',
+                    'title' => 'Student registration requests',
+                    'detail' => 'New accounts waiting for admin approval',
+                    'count' => $registrationCount,
+                    'link' => route_url('admin.registration_requests'),
+                    'tone' => 'amber',
+                ];
+            }
+        } catch (Throwable) {
+            // ignore if registration table missing
+        }
+
+        try {
+            $passwordResetCount = (new PasswordResetRequest($this->db))->pendingCount();
+            if ($passwordResetCount > 0) {
+                $actions[] = [
+                    'key' => 'password',
+                    'title' => 'Password reset requests',
+                    'detail' => 'Students waiting for reset approval',
+                    'count' => $passwordResetCount,
+                    'link' => route_url('admin.password_reset_requests'),
+                    'tone' => 'rose',
+                ];
+            }
+        } catch (Throwable) {
+            // ignore if password reset table missing
+        }
+
+        try {
+            $forwardedCount = $enroll->countByPredeploymentStatus('forwarded');
+            if ($forwardedCount > 0) {
+                $actions[] = [
+                    'key' => 'deployment_forwarded',
+                    'title' => 'Deployments awaiting HTE acceptance',
+                    'detail' => 'Forwarded documents waiting for company response',
+                    'count' => $forwardedCount,
+                    'link' => $placementLink,
+                    'tone' => 'slate',
+                ];
+            }
+
+            $acceptedCount = $enroll->countByPredeploymentStatus('accepted');
+            if ($acceptedCount > 0) {
+                $actions[] = [
+                    'key' => 'orientation',
+                    'title' => 'Orientations to schedule',
+                    'detail' => 'Accepted deployments needing orientation date',
+                    'count' => $acceptedCount,
+                    'link' => $placementLink,
+                    'tone' => 'violet',
+                ];
+            }
+        } catch (Throwable) {
+            // ignore if enrollment columns unavailable
+        }
+
+        return $actions;
     }
 
     /**

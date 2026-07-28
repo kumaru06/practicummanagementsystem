@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initEnrollmentCorUpload();
     initViewToggles();
     initTimelineDetails();
+    initStudentTimelineFilters();
     initEmailLogViews();
     initRequirementReviewModals();
     initRegistrationRequestsReview();
@@ -4319,10 +4320,55 @@ function attachRowDetails(table) {
 }
 
 function initTimelineDetails() {
-    document.querySelectorAll('.timeline-item').forEach(item => {
-        item.addEventListener('click', () => {
+    document.querySelectorAll('.timeline-item[data-detail]').forEach(item => {
+        item.addEventListener('click', (event) => {
+            if (event.target.closest('a, button')) return;
             const parts = (item.dataset.detail || '').split('|');
-            openSlidePanel(`<h2>Activity Details</h2>${parts.map((p, i) => `<div class="detail-row"><span>${['Date','Time','Hours','Tasks'][i] || 'Info'}</span><strong>${escapeHtml(p)}</strong></div>`).join('')}`);
+            const labels = item.dataset.type === 'weekly'
+                ? ['Week', 'Submitted', 'Type', 'Summary']
+                : ['Date', 'Schedule', 'Hours', 'Tasks'];
+            openSlidePanel(`<h2>Activity Details</h2>${parts.map((p, i) => `<div class="detail-row"><span>${labels[i] || 'Info'}</span><strong>${escapeHtml(p)}</strong></div>`).join('')}`);
+        });
+    });
+}
+
+function initStudentTimelineFilters() {
+    const timeline = document.querySelector('[data-st-timeline]');
+    if (!timeline) return;
+
+    const filters = document.querySelectorAll('[data-st-filter]');
+    const items = timeline.querySelectorAll('.st-timeline-item');
+    const monthDividers = timeline.querySelectorAll('[data-st-month]');
+    if (!filters.length || !items.length) return;
+
+    filters.forEach(filterBtn => {
+        filterBtn.addEventListener('click', () => {
+            const filter = filterBtn.dataset.stFilter || 'all';
+
+            filters.forEach(btn => {
+                const active = btn === filterBtn;
+                btn.classList.toggle('is-active', active);
+                btn.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+
+            items.forEach(item => {
+                const type = item.dataset.type || '';
+                const show = filter === 'all' || type === filter;
+                item.classList.toggle('is-hidden', !show);
+            });
+
+            monthDividers.forEach(divider => {
+                let visible = false;
+                let node = divider.nextElementSibling;
+                while (node && !node.matches('[data-st-month]')) {
+                    if (node.matches('.st-timeline-item') && !node.classList.contains('is-hidden')) {
+                        visible = true;
+                        break;
+                    }
+                    node = node.nextElementSibling;
+                }
+                divider.classList.toggle('is-hidden', !visible);
+            });
         });
     });
 }
@@ -7444,6 +7490,7 @@ function reinitAppPageContent() {
     initConfirmActions();
     initViewToggles();
     initTimelineDetails();
+    initStudentTimelineFilters();
     initEmailLogViews();
     initEmailLogsFeed();
     initRequirementReviewModals();

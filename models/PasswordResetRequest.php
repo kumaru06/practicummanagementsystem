@@ -211,6 +211,14 @@ class PasswordResetRequest
         return (bool)$stmt->fetchColumn();
     }
 
+    public function pendingCount(): int
+    {
+        $this->ensureTable();
+        return (int)$this->db->query(
+            "SELECT COUNT(*) FROM password_reset_requests WHERE status = 'pending'"
+        )->fetchColumn();
+    }
+
     public function allPending(): array
     {
         $this->ensureTable();

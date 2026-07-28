@@ -15,6 +15,36 @@ class Enrollment
         return (int)$this->db->query('SELECT COUNT(*) FROM ojt_enrollments WHERE status = "active"')->fetchColumn();
     }
 
+    public function countByPredeploymentStatus(string $status): int
+    {
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM ojt_enrollments WHERE predeployment_status = ?');
+        $stmt->execute([$status]);
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function countActiveStartsInLastDays(int $days): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM ojt_enrollments
+             WHERE official_start_date IS NOT NULL
+               AND official_start_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)'
+        );
+        $stmt->execute([max(1, $days)]);
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function countActiveStartsBetweenDays(int $olderThanDays, int $newerThanDays): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM ojt_enrollments
+             WHERE official_start_date IS NOT NULL
+               AND official_start_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+               AND official_start_date < DATE_SUB(CURDATE(), INTERVAL ? DAY)'
+        );
+        $stmt->execute([max(1, $olderThanDays), max(0, $newerThanDays)]);
+        return (int)$stmt->fetchColumn();
+    }
+
     public function syncCompletion(int $studentId): void
     {
         $stmt = $this->db->prepare('SELECT e.id, e.required_hours, COALESCE(SUM(CASE WHEN d.verification_status = "approved" THEN d.hours ELSE 0 END), 0) rendered_hours FROM ojt_enrollments e LEFT JOIN daily_time_records d ON d.student_id = e.student_id WHERE e.student_id = ? AND e.status = "active" GROUP BY e.id, e.required_hours');

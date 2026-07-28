@@ -3,6 +3,7 @@ param(
     [switch]$SkipUpload,
     [switch]$IncludeProductionConfig,
     [switch]$Setup,
+    [switch]$ChangedOnly,
     [string]$ConfigPath = ""
 )
 
@@ -82,6 +83,61 @@ function Get-DeployFiles {
             Relative = ($relative -replace '\\', '/')
         }
     }
+}
+
+function Get-ChangedDeployFiles {
+    $gitRoot = (git -C $localRoot rev-parse --show-toplevel 2>$null)
+    if (-not $gitRoot) {
+        throw "ChangedOnly needs git. Run from the project folder or use deploy.bat for full upload."
+    }
+
+    $lines = @(git -C $localRoot status --porcelain)
+    if ($lines.Count -eq 0) {
+        return @()
+    }
+
+    $changed = @()
+    foreach ($line in $lines) {
+        if ($line.Length -lt 4) {
+            continue
+        }
+
+        $status = $line.Substring(0, 2)
+        $path = $line.Substring(3).Trim()
+        if ($path -match '^"(.+)"$') {
+            $path = $Matches[1] -replace '\\', '/'
+        } else {
+            $path = $path -replace '\\', '/'
+        }
+
+        if ($status -match '^[ RD]D') {
+            continue
+        }
+
+        if ($status -match '^R') {
+            $parts = $path -split ' -> '
+            if ($parts.Count -eq 2) {
+                $path = $parts[1].Trim()
+            }
+        }
+
+        $fullPath = Join-Path $localRoot $path
+        if (-not (Test-Path $fullPath -PathType Leaf)) {
+            continue
+        }
+
+        $relative = ($path -replace '\\', '/')
+        if (Test-DeployExcluded -RelativePath $relative -FileName (Split-Path $path -Leaf)) {
+            continue
+        }
+
+        $changed += [PSCustomObject]@{
+            FullName = $fullPath
+            Relative = $relative
+        }
+    }
+
+    return @($changed | Sort-Object Relative -Unique)
 }
 
 function Resolve-FtpHost {
@@ -193,10 +249,35 @@ if (-not $ZipOnly -and -not $SkipUpload) {
     Write-Host ""
 }
 
-$files = @(Get-DeployFiles)
+$files = if ($ChangedOnly) {
+    @(Get-ChangedDeployFiles)
+} else {
+    @(Get-DeployFiles)
+}
+
+if ($ChangedOnly) {
+    Write-Step "Mode: changed files only (git status)" Cyan
+}
+
 Write-Step "Files to deploy: $($files.Count)" Gray
 Write-Host ""
 
+if ($files.Count -eq 0) {
+    Write-Step "Nothing to deploy." Yellow
+    if ($ChangedOnly) {
+        Write-Step "Tip: edit a file first, then run deploy-changed.bat again." Gray
+    }
+    exit 0
+}
+
+if ($ChangedOnly) {
+    foreach ($file in $files) {
+        Write-Step "  - $($file.Relative)" Gray
+    }
+    Write-Host ""
+}
+
+if (-not $ChangedOnly) {
 Write-Step "[1/2] Building zip (forward-slash paths)..." Yellow
 if (Test-Path $zipPath) {
     Remove-Item $zipPath -Force
@@ -217,6 +298,7 @@ if ($ZipOnly -or $SkipUpload) {
     Write-Host ""
     Write-Step "Zip ready. Upload and extract in Hostinger File Manager -> public_html" Yellow
     exit 0
+}
 }
 
 Write-Host ""

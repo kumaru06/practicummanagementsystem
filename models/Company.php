@@ -186,6 +186,27 @@ class Company
         return (int)$this->db->query('SELECT COUNT(*) FROM partner_companies')->fetchColumn();
     }
 
+    public function countCreatedInLastDays(int $days): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM partner_companies
+             WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)'
+        );
+        $stmt->execute([max(1, $days)]);
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function countCreatedBetweenDays(int $olderThanDays, int $newerThanDays): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM partner_companies
+             WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+               AND created_at < DATE_SUB(NOW(), INTERVAL ? DAY)'
+        );
+        $stmt->execute([max(1, $olderThanDays), max(0, $newerThanDays)]);
+        return (int)$stmt->fetchColumn();
+    }
+
     public function syncPrograms(int $companyId, array $programIds): void
     {
         $this->db->prepare('DELETE FROM company_programs WHERE company_id = ?')->execute([$companyId]);

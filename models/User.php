@@ -446,6 +446,29 @@ class User
         return (int)$stmt->fetchColumn();
     }
 
+    public function countRoleCreatedInLastDays(string $role, int $days): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM users
+             WHERE role = ? AND is_active = 1
+               AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)'
+        );
+        $stmt->execute([$role, max(1, $days)]);
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function countRoleCreatedBetweenDays(string $role, int $olderThanDays, int $newerThanDays): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM users
+             WHERE role = ? AND is_active = 1
+               AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+               AND created_at < DATE_SUB(NOW(), INTERVAL ? DAY)'
+        );
+        $stmt->execute([$role, max(1, $olderThanDays), max(0, $newerThanDays)]);
+        return (int)$stmt->fetchColumn();
+    }
+
     private function normalizeNameParts(string $firstName, string $lastName, ?string $middleName = null): array
     {
         $firstName = trim($firstName);

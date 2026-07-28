@@ -224,7 +224,17 @@ class StudentController extends BaseController
 
     public function timeline(): void
     {
-        $this->renderAppPage('student/timeline', $this->studentPageData('Activity Timeline'));
+        $data = $this->studentPageData('Activity Timeline');
+        $preview = timeline_preview_data();
+        $data['dtrs'] = $preview['dtrs'];
+        $data['weeklyReports'] = $preview['weeklyReports'];
+        $data['timelineEntries'] = build_student_timeline_entries($data['dtrs'], $data['weeklyReports']);
+        $data['timelineStats'] = [
+            'dtrCount' => count($data['dtrs']),
+            'weeklyCount' => count($data['weeklyReports']),
+            'totalHours' => array_sum(array_map(static fn(array $d): float => (float)($d['hours'] ?? 0), $data['dtrs'])),
+        ];
+        $this->renderAppPage('student/timeline', $data);
     }
 
     public function documents(): void
