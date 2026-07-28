@@ -6343,6 +6343,92 @@ body.is-coordinator-edit-open {
     gap: 20px;
 }
 
+.admin-dash-v2 .admin-metric {
+    align-items: flex-start;
+    gap: 14px;
+    min-height: 0;
+    padding: 18px;
+    border-color: #eadfdf;
+    box-shadow: 0 1px 0 rgba(139, 26, 26, 0.04);
+}
+
+.admin-dash-v2 .admin-metric:hover {
+    transform: none;
+    box-shadow: 0 8px 22px rgba(139, 26, 26, 0.06);
+}
+
+.admin-dash-v2 .admin-metric-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 5px;
+    border: 1px solid #f0dede;
+    background: #fff;
+    color: #8B1A1A;
+}
+
+.admin-dash-v2 .admin-metric-icon svg {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    fill: currentColor;
+    display: block;
+}
+
+.admin-dash-v2 .admin-metric-body {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.admin-dash-v2 .admin-metric-body strong {
+    margin: 0;
+    font-size: clamp(1.65rem, 2.1vw, 2rem);
+    line-height: 1;
+    color: #1a1212;
+    letter-spacing: -0.04em;
+}
+
+.admin-dash-v2 .admin-metric-label {
+    margin: 0;
+    color: #6b5e5e;
+    font-size: 0.86rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.admin-dash-v2 .metric-trend {
+    align-self: flex-start;
+    margin-top: 6px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.admin-dash-v2 .metric-trend--up {
+    color: #047857;
+    background: #ecfdf5;
+}
+
+.admin-dash-v2 .metric-trend--down {
+    color: #9f1239;
+    background: #fff1f2;
+}
+
+.admin-dash-v2 .metric-trend--flat {
+    color: #64748b;
+    background: #f1f5f9;
+}
+
 .admin-dash-v2 > .cards {
     margin-bottom: 0;
 }

@@ -9,25 +9,29 @@ $metricCards = [
         'key' => 'coordinators',
         'value' => (int)($stats['coordinators'] ?? 0),
         'label' => 'Coordinators',
-        'icon' => '<path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/>',
+        // Material Icons: groups
+        'icon' => '<path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>',
     ],
     [
         'key' => 'companies',
         'value' => (int)($stats['companies'] ?? 0),
         'label' => 'Host Training Establishments',
-        'icon' => '<path d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/>',
+        // Material Icons: business
+        'icon' => '<path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/>',
     ],
     [
         'key' => 'students',
         'value' => (int)($stats['students'] ?? 0),
         'label' => 'Students',
-        'icon' => '<path d="M12 3 2 8l10 5 10-5-10-5Zm-6 9v4c2 3 10 3 12 0v-4l-6 3-6-3Z"/>',
+        // Material Icons: school
+        'icon' => '<path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3 1 9l11 6 9-4.91V17h2V9L12 3z"/>',
     ],
     [
         'key' => 'active',
         'value' => (int)($stats['active'] ?? 0),
         'label' => 'Active OJT',
-        'icon' => '<path d="m9 16.2-3.5-3.5L4 14.2 9 19l11-11-1.5-1.5L9 16.2Z"/>',
+        // Material Icons: work
+        'icon' => '<path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/>',
     ],
 ];
 
@@ -45,17 +49,19 @@ $pendingIcons = [
             $trend = $trends[$card['key']] ?? null;
             $direction = (string)($trend['direction'] ?? 'flat');
             ?>
-            <div class="card metric">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><?= $card['icon'] ?></svg>
-                <div>
+            <div class="card metric admin-metric">
+                <span class="admin-metric-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><?= $card['icon'] ?></svg>
+                </span>
+                <div class="admin-metric-body">
                     <strong><?= $card['value'] ?></strong>
-                    <span><?= e($card['label']) ?></span>
+                    <span class="admin-metric-label"><?= e($card['label']) ?></span>
                     <?php if ($trend): ?>
                         <span class="metric-trend metric-trend--<?= e($direction) ?>">
                             <?php if ($direction === 'up'): ?>
-                                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3 3 9h3v4h4V9h3L8 3Z"/></svg>
+                                <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 3 3 9h3v4h4V9h3L8 3Z"/></svg>
                             <?php elseif ($direction === 'down'): ?>
-                                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13 3 7h3V3h4v4h3L8 13Z"/></svg>
+                                <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 13 3 7h3V3h4v4h3L8 13Z"/></svg>
                             <?php else: ?>
                                 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
                             <?php endif; ?>
