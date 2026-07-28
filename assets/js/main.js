@@ -4640,7 +4640,7 @@ function renderDashboardCharts() {
             drawBars('monthlyChart', window.dashboardCharts.monthlyTrends || [], '', false, true);
         }
         drawStatusPie('statusChart', window.dashboardCharts.statusDistribution || []);
-        drawBars('courseChart',  window.dashboardCharts.completionRates || [], '%', true);
+        drawCourseRateChart('courseChart', window.dashboardCharts.completionRates || []);
     }
 
     drawAll();
@@ -4963,6 +4963,156 @@ function drawBars(id, data, suffix = '', forceHorizontal = false, forceVertical 
         ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
         ctx.fillText(labelStr, 0, 0); ctx.restore();
     });
+}
+
+function roundRectAll(ctx, x, y, w, h, r) {
+    if (w <= 0 || h <= 0) return;
+    r = Math.min(r, h / 2, w / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+}
+
+function formatCoursePct(val) {
+    const n = Number(val || 0);
+    if (!Number.isFinite(n)) return '0%';
+    if (Number.isInteger(n)) return `${n}%`;
+    return `${n.toFixed(1)}%`;
+}
+
+function courseBarGradient(ctx, x, y, w, h) {
+    const grad = ctx.createLinearGradient(x, y, x + Math.max(w, 1), y);
+    grad.addColorStop(0, '#6b1515');
+    grad.addColorStop(0.55, '#8B1A1A');
+    grad.addColorStop(1, '#c9a227');
+    return grad;
+}
+
+function drawCourseRateChart(id, data) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    if (!data.length) {
+        const p = prepCanvas(id);
+        if (p) drawEmpty(p.ctx, p.w, p.h);
+        return;
+    }
+
+    const rows = data.map(d => ({
+        label: String(d.label || 'Untitled'),
+        value: Math.max(0, Math.min(100, Number(d.value || 0))),
+    }));
+
+    const padL = 8;
+    const padR = 64;
+    const padTop = 28;
+    const padBot = 36;
+    const labelH = 18;
+    const barH = 12;
+    const rowGap = 28;
+    const rowH = labelH + 10 + barH;
+    const totalH = padTop + rows.length * rowH + (rows.length - 1) * rowGap + padBot;
+
+    const dpr = window.devicePixelRatio || 1;
+    c.style.width = '100%';
+    c.removeAttribute('width');
+    c.removeAttribute('height');
+    const cssW = c.offsetWidth || c.parentElement.clientWidth || 700;
+    c.width = cssW * dpr;
+    c.height = totalH * dpr;
+    c.style.setProperty('width', cssW + 'px', 'important');
+    c.style.setProperty('height', totalH + 'px', 'important');
+
+    const ctx = c.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, cssW, totalH);
+
+    const trackX = padL;
+    const trackW = cssW - padL - padR;
+    const ticks = [0, 25, 50, 75, 100];
+
+    // Soft plot background
+    roundRectAll(ctx, trackX - 4, padTop - 14, trackW + padR - 8, totalH - padTop - padBot + 22, 8);
+    ctx.fillStyle = '#fbf8f8';
+    ctx.fill();
+
+    // Grid + top tick labels
+    chartFont(ctx, 10, '600');
+    ctx.fillStyle = '#9a8585';
+    ctx.textBaseline = 'bottom';
+    ticks.forEach((tick, i) => {
+        const x = trackX + (tick / 100) * trackW;
+        ctx.strokeStyle = tick === 0 || tick === 100 ? '#eadfdf' : '#f0e6e6';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, padTop - 6);
+        ctx.lineTo(x, totalH - padBot + 4);
+        ctx.stroke();
+
+        ctx.textAlign = i === 0 ? 'left' : (i === ticks.length - 1 ? 'right' : 'center');
+        ctx.fillText(`${tick}%`, x, padTop - 8);
+    });
+
+    const hitRegions = [];
+    rows.forEach((row, i) => {
+        const y = padTop + i * (rowH + rowGap);
+        const barY = y + labelH + 10;
+        const fillW = (row.value / 100) * trackW;
+
+        hitRegions.push({ y, h: rowH, label: row.label, val: row.value });
+
+        // Course label (full, no mid-word cut)
+        chartFont(ctx, 12.5, '700');
+        ctx.fillStyle = '#1a1212';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        let label = row.label;
+        const maxLabelW = trackW + padR - 16;
+        while (label.length > 3 && ctx.measureText(label).width > maxLabelW) {
+            label = label.slice(0, -1);
+        }
+        if (label !== row.label) label = `${label.slice(0, -1)}\u2026`;
+        ctx.fillText(label, trackX, y);
+
+        // Track
+        roundRectAll(ctx, trackX, barY, trackW, barH, 999);
+        ctx.fillStyle = '#efe4e4';
+        ctx.fill();
+
+        // Fill
+        if (row.value > 0) {
+            const drawW = Math.max(fillW, row.value > 0 ? 8 : 0);
+            roundRectAll(ctx, trackX, barY, drawW, barH, 999);
+            ctx.fillStyle = courseBarGradient(ctx, trackX, barY, drawW, barH);
+            ctx.fill();
+
+            // Soft highlight on top edge
+            ctx.save();
+            roundRectAll(ctx, trackX, barY, drawW, barH, 999);
+            ctx.clip();
+            const shine = ctx.createLinearGradient(trackX, barY, trackX, barY + barH);
+            shine.addColorStop(0, 'rgba(255,255,255,0.28)');
+            shine.addColorStop(0.55, 'rgba(255,255,255,0)');
+            ctx.fillStyle = shine;
+            ctx.fillRect(trackX, barY, drawW, barH);
+            ctx.restore();
+        }
+
+        // Value
+        chartFont(ctx, 12, '800');
+        ctx.fillStyle = row.value > 0 ? '#8B1A1A' : '#9a8585';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(formatCoursePct(row.value), trackX + trackW + 10, barY + barH / 2);
+    });
+
+    window._courseHitRegions = hitRegions;
+    window._courseChartPadL = padL;
+    window._courseTotalH = totalH;
+    attachCourseChartInteraction();
 }
 
 function drawHBars(id, data, suffix = '') {

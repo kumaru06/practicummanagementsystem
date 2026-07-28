@@ -43,21 +43,23 @@ $pendingIcons = [
 ];
 ?>
 <div class="admin-dash-v2">
-    <div class="grid cards">
+    <div class="grid cards admin-stat-grid">
         <?php foreach ($metricCards as $card): ?>
             <?php
             $trend = $trends[$card['key']] ?? null;
             $direction = (string)($trend['direction'] ?? 'flat');
             ?>
-            <div class="card metric admin-metric">
-                <span class="admin-metric-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24"><?= $card['icon'] ?></svg>
-                </span>
-                <div class="admin-metric-body">
-                    <strong><?= $card['value'] ?></strong>
-                    <span class="admin-metric-label"><?= e($card['label']) ?></span>
+            <article class="admin-stat-card">
+                <header class="admin-stat-head">
+                    <span class="admin-stat-label"><?= e($card['label']) ?></span>
+                    <span class="admin-stat-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><?= $card['icon'] ?></svg>
+                    </span>
+                </header>
+                <div class="admin-stat-body">
+                    <strong class="admin-stat-value"><?= $card['value'] ?></strong>
                     <?php if ($trend): ?>
-                        <span class="metric-trend metric-trend--<?= e($direction) ?>">
+                        <p class="admin-stat-trend admin-stat-trend--<?= e($direction) ?>">
                             <?php if ($direction === 'up'): ?>
                                 <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 3 3 9h3v4h4V9h3L8 3Z"/></svg>
                             <?php elseif ($direction === 'down'): ?>
@@ -65,11 +67,11 @@ $pendingIcons = [
                             <?php else: ?>
                                 <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
                             <?php endif; ?>
-                            <?= e((string)$trend['label']) ?>
-                        </span>
+                            <span><?= e((string)$trend['label']) ?></span>
+                        </p>
                     <?php endif; ?>
                 </div>
-            </div>
+            </article>
         <?php endforeach; ?>
     </div>
 
@@ -201,11 +203,17 @@ $pendingIcons = [
             <canvas id="statusChart"></canvas>
         </section>
     </div>
-    <section class="card chart-card">
-        <div class="chart-header">
-            <h2 class="chart-title">Completion Rate by Course</h2>
+    <section class="card chart-card admin-course-card">
+        <header class="admin-course-head">
+            <div>
+                <span class="admin-course-eyebrow">Academic performance</span>
+                <h2 class="chart-title">Completion Rate by Course</h2>
+                <p class="admin-course-sub">Share of students who completed OJT requirements per program</p>
+            </div>
+        </header>
+        <div class="admin-course-body">
+            <canvas id="courseChart"></canvas>
         </div>
-        <canvas id="courseChart"></canvas>
     </section>
 </div>
 <script>window.dashboardCharts = <?= json_encode($charts, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;</script>
