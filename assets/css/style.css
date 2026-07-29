@@ -13022,24 +13022,27 @@ body.is-confirm-open .app-confirm-overlay {
 
 @media (max-width: 760px) {
     .docs-stepper {
-        display: flex;
+        display: grid;
+        grid-template-columns: 1fr;
         gap: 10px;
-        overflow-x: auto;
-        overscroll-behavior-x: contain;
-        -webkit-overflow-scrolling: touch;
-        scroll-snap-type: x proximity;
-        padding-bottom: 2px;
-        scrollbar-width: none;
-    }
-
-    .docs-stepper::-webkit-scrollbar {
-        display: none;
+        overflow: visible;
+        scroll-snap-type: none;
+        padding-bottom: 0;
     }
 
     .docs-step {
-        flex: 0 0 min(78vw, 280px);
-        min-height: 68px;
-        scroll-snap-align: start;
+        flex: none;
+        width: 100%;
+        min-width: 0;
+        min-height: 64px;
+    }
+
+    .docs-step-copy strong,
+    .docs-step-status {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+        overflow-wrap: anywhere;
     }
 
     .docs-stage-stats {
@@ -13054,6 +13057,9 @@ body.is-confirm-open .app-confirm-overlay {
 @media (max-width: 720px) {
     .docs-comply-page {
         gap: 14px;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
     }
 
     .docs-comply-head h1 {
@@ -13075,6 +13081,34 @@ body.is-confirm-open .app-confirm-overlay {
     .requirements-card,
     .predeploy-panel {
         max-width: 100%;
+        min-width: 0;
+    }
+
+    .predeploy-panel__stats {
+        grid-template-columns: 1fr !important;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .predeploy-stat {
+        flex-direction: row;
+        justify-content: flex-start;
+        align-items: center;
+        text-align: left;
+        gap: 12px;
+        min-width: 0 !important;
+        min-height: 0;
+        width: 100%;
+        padding: 12px 14px;
+    }
+
+    .predeploy-stat > span:last-child {
+        margin-left: auto;
+        white-space: nowrap;
+        overflow: visible;
+        text-overflow: unset;
+        font-size: 0.7rem;
+        letter-spacing: 0.02em;
     }
 
     .requirement-card-actions,
@@ -19517,6 +19551,12 @@ body.is-profile-crop-open {
     align-items: flex-start;
     gap: 14px;
     min-width: 0;
+    flex: 1 1 auto;
+}
+
+.sr-card-brand > div {
+    min-width: 0;
+    flex: 1 1 auto;
 }
 
 .sr-card-icon {
@@ -19586,6 +19626,9 @@ body.is-profile-crop-open {
     color: #64748b;
     font-size: .9rem;
     line-height: 1.5;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .sr-card-meta {
@@ -19680,6 +19723,8 @@ body.is-profile-crop-open {
     border-radius: var(--sr-radius);
     background: #fff;
     overflow: hidden;
+    max-width: 100%;
+    min-width: 0;
 }
 
 .sr-table-shell > .table-tools {
@@ -19693,6 +19738,9 @@ body.is-profile-crop-open {
 .sr-table-shell .sr-table-wrap {
     --reports-table-height: min(380px, 52vh);
     max-height: var(--reports-table-height);
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
     margin: 0;
     overflow: auto;
     overscroll-behavior: contain;
@@ -19700,6 +19748,11 @@ body.is-profile-crop-open {
     border-radius: var(--sr-radius);
     background: transparent;
     -webkit-overflow-scrolling: touch;
+}
+
+.student-reports-v2 .sr-table {
+    width: max-content;
+    min-width: 100%;
 }
 
 .student-reports-v2 .sr-table thead th {
@@ -19913,6 +19966,7 @@ body.is-profile-crop-open {
 
     .sr-card-head {
         flex-direction: column;
+        align-items: stretch;
     }
 
     .sr-card-meta {
@@ -19923,11 +19977,35 @@ body.is-profile-crop-open {
 @media (max-width: 720px) {
     .student-reports-v2 {
         gap: 14px;
+        max-width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
     }
 
     .sr-card {
         padding: 16px;
         border-radius: 5px;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .sr-card-head {
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .sr-card-head h2 {
+        font-size: 1.15rem;
+        overflow-wrap: anywhere;
+    }
+
+    .sr-card-head p {
+        font-size: 0.86rem;
+    }
+
+    .sr-card-meta {
+        width: 100%;
     }
 
     .sr-stats-row {
@@ -19942,12 +20020,11 @@ body.is-profile-crop-open {
     }
 
     .sr-table-shell {
-        padding: 12px;
+        padding: 10px;
     }
 
     .sr-table-wrap {
-        margin: 0 -4px;
-        padding: 0 4px;
+        margin: 0;
     }
 
     .student-reports-v2 .table-tools {
@@ -19959,12 +20036,18 @@ body.is-profile-crop-open {
     .student-reports-v2 .table-tools .column-menu,
     .student-reports-v2 .table-tools .column-toggle,
     .student-reports-v2 .table-tools input,
-    .student-reports-v2 .table-tools select {
+    .student-reports-v2 .table-tools select,
+    .student-reports-v2 .table-tools .btn-small {
         width: 100%;
     }
 
     .student-reports-v2 .rec-reject-reason {
         max-width: 100%;
+    }
+
+    .student-reports-v2 .sr-table thead th,
+    .student-reports-v2 .sr-table td {
+        padding: 12px 14px;
     }
 }
 
@@ -19984,7 +20067,7 @@ body.is-profile-crop-open {
     }
 
     .sr-table-shell {
-        padding: 14px;
+        padding: 10px;
     }
 
     .sr-table-shell > .table-tools {
@@ -36382,12 +36465,17 @@ body.is-enr-wizard-open {
     .role-student .predeploy-panel__stats,
     .role-student .docs-stage-section-head {
         min-width: 0;
+        max-width: 100%;
     }
 
     .role-student .predeploy-panel__stats {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: 1fr;
         gap: 8px;
+    }
+
+    .role-student .predeploy-stat {
+        min-width: 0 !important;
     }
 
     .role-student .dtr-sessions,
@@ -36401,10 +36489,6 @@ body.is-enr-wizard-open {
     .role-student .content {
         padding-left: 12px;
         padding-right: 12px;
-    }
-
-    .role-student .predeploy-panel__stats {
-        grid-template-columns: 1fr;
     }
 
     .role-student .docs-stage-stat {
