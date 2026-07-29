@@ -1,7 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     initSidebar();
+    initStudentNavReveal();
     initTextMarquees();
     initStudentMobileNav();
+    initStudentDashboardJourney();
+    initStudentDocsStepperScroll();
     initToasts();
     initFloatingLabels();
     initCustomFilterSelects();
@@ -73,12 +76,16 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initStudentProfilePhotoPreview() {
-    const input = document.querySelector('[data-profile-photo-input]');
+    const form = document.querySelector('[data-student-profile-form]');
+    const input = form?.querySelector('[data-profile-photo-input]') || document.querySelector('[data-profile-photo-input]');
     const preview = document.querySelector('[data-profile-photo-preview]');
     const fallback = document.querySelector('[data-profile-photo-fallback]');
     const inlinePreview = document.querySelector('[data-profile-photo-preview-inline]');
     const inlineFallback = document.querySelector('[data-profile-initial-inline]');
     const inlineAvatar = document.querySelector('[data-profile-inline-avatar]');
+    const cropEnabled = !!form?.hasAttribute('data-profile-photo-crop');
+    const genderSelect = form?.querySelector('[data-profile-gender-select]');
+    const genderPreview = form?.querySelector('[data-profile-gender-preview]');
 
     const setInlinePhoto = url => {
         if (!inlinePreview) return;
@@ -115,6 +122,13 @@ function initStudentProfilePhotoPreview() {
 
     const showFallback = () => showPhoto('');
 
+    const assignInputFile = file => {
+        if (!input || !file) return;
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+    };
+
     if (preview && fallback) {
         const previewSrc = (preview.getAttribute('src') || '').trim();
         if (!previewSrc) {
@@ -132,7 +146,176 @@ function initStudentProfilePhotoPreview() {
         setInlinePhoto('');
     }
 
-    input?.addEventListener('change', () => {
+    genderSelect?.addEventListener('change', () => {
+        if (!genderPreview) return;
+        const value = (genderSelect.value || '').trim();
+        genderPreview.textContent = value !== '' ? value : '—';
+    });
+
+    if (!input) return;
+
+    if (!cropEnabled) {
+        input.addEventListener('change', () => {
+            const file = input.files?.[0];
+            if (!file || !file.type.startsWith('image/')) {
+                if (file) {
+                    input.value = '';
+                    pushAppToast('Profile photo must be a JPG or PNG image.', 'error');
+                }
+                showFallback();
+                return;
+            }
+            showPhoto(URL.createObjectURL(file));
+        });
+        return;
+    }
+
+    initProfilePhotoCropModal({
+        input,
+        showPhoto,
+        showFallback,
+        assignInputFile,
+    });
+}
+
+function initProfilePhotoCropModal({ input, showPhoto, showFallback, assignInputFile }) {
+    const overlay = document.querySelector('[data-profile-crop-overlay]');
+    const stage = overlay?.querySelector('[data-profile-crop-stage]');
+    const cropImage = overlay?.querySelector('[data-profile-crop-image]');
+    const zoomInput = overlay?.querySelector('[data-profile-crop-zoom]');
+    const applyBtn = overlay?.querySelector('[data-profile-crop-apply]');
+    const cancelBtns = overlay?.querySelectorAll('[data-profile-crop-cancel]') || [];
+
+    if (!overlay || !stage || !cropImage || !zoomInput || !applyBtn) return;
+
+    const viewportSize = 320;
+    const outputSize = 640;
+    let objectUrl = '';
+    let pendingFile = null;
+    let baseScale = 1;
+    let zoomFactor = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+    let dragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragOriginX = 0;
+    let dragOriginY = 0;
+
+    const clampOffsets = () => {
+        const scale = baseScale * zoomFactor;
+        const displayW = cropImage.naturalWidth * scale;
+        const displayH = cropImage.naturalHeight * scale;
+        const maxX = Math.max(0, (displayW - viewportSize) / 2);
+        const maxY = Math.max(0, (displayH - viewportSize) / 2);
+        offsetX = Math.min(maxX, Math.max(-maxX, offsetX));
+        offsetY = Math.min(maxY, Math.max(-maxY, offsetY));
+    };
+
+    const renderCrop = () => {
+        const scale = baseScale * zoomFactor;
+        cropImage.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(${scale})`;
+    };
+
+    const resetCropState = () => {
+        zoomFactor = 1;
+        zoomInput.value = '1';
+        offsetX = 0;
+        offsetY = 0;
+        if (cropImage.naturalWidth > 0 && cropImage.naturalHeight > 0) {
+            baseScale = Math.max(viewportSize / cropImage.naturalWidth, viewportSize / cropImage.naturalHeight);
+        }
+        clampOffsets();
+        renderCrop();
+    };
+
+    const closeCropModal = (clearInput = false) => {
+        overlay.hidden = true;
+        overlay.classList.remove('is-open');
+        overlay.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('is-profile-crop-open');
+        if (objectUrl) {
+            URL.revokeObjectURL(objectUrl);
+            objectUrl = '';
+        }
+        pendingFile = null;
+        cropImage.removeAttribute('src');
+        dragging = false;
+        if (clearInput) {
+            input.value = '';
+        }
+    };
+
+    const openCropModal = file => {
+        pendingFile = file;
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        objectUrl = URL.createObjectURL(file);
+        cropImage.onload = () => {
+            resetCropState();
+        };
+        cropImage.src = objectUrl;
+        overlay.hidden = false;
+        overlay.classList.add('is-open');
+        overlay.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('is-profile-crop-open');
+    };
+
+    const getCropMetrics = () => {
+        const scale = baseScale * zoomFactor;
+        const displayW = cropImage.naturalWidth * scale;
+        const displayH = cropImage.naturalHeight * scale;
+        const imageLeft = (viewportSize - displayW) / 2 + offsetX;
+        const imageTop = (viewportSize - displayH) / 2 + offsetY;
+        const sourceX = Math.max(0, (0 - imageLeft) / scale);
+        const sourceY = Math.max(0, (0 - imageTop) / scale);
+        const sourceSize = viewportSize / scale;
+        const maxX = Math.max(0, cropImage.naturalWidth - sourceSize);
+        const maxY = Math.max(0, cropImage.naturalHeight - sourceSize);
+        return {
+            sourceX: Math.min(maxX, sourceX),
+            sourceY: Math.min(maxY, sourceY),
+            sourceSize: Math.min(sourceSize, cropImage.naturalWidth, cropImage.naturalHeight),
+        };
+    };
+
+    const applyCrop = () => {
+        if (!pendingFile || cropImage.naturalWidth <= 0) return;
+        const { sourceX, sourceY, sourceSize } = getCropMetrics();
+        const canvas = document.createElement('canvas');
+        canvas.width = outputSize;
+        canvas.height = outputSize;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        ctx.drawImage(
+            cropImage,
+            sourceX,
+            sourceY,
+            sourceSize,
+            sourceSize,
+            0,
+            0,
+            outputSize,
+            outputSize,
+        );
+
+        canvas.toBlob(blob => {
+            if (!blob) {
+                pushAppToast('Unable to crop profile photo.', 'error');
+                return;
+            }
+            const ext = pendingFile.type === 'image/png' ? 'png' : 'jpg';
+            const croppedFile = new File([blob], `profile-photo.${ext}`, {
+                type: pendingFile.type === 'image/png' ? 'image/png' : 'image/jpeg',
+                lastModified: Date.now(),
+            });
+            assignInputFile(croppedFile);
+            showPhoto(URL.createObjectURL(croppedFile));
+            closeCropModal(false);
+        }, pendingFile.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.92);
+    };
+
+    input.addEventListener('change', () => {
         const file = input.files?.[0];
         if (!file || !file.type.startsWith('image/')) {
             if (file) {
@@ -142,8 +325,65 @@ function initStudentProfilePhotoPreview() {
             showFallback();
             return;
         }
+        openCropModal(file);
+    });
 
-        showPhoto(URL.createObjectURL(file));
+    zoomInput.addEventListener('input', () => {
+        zoomFactor = Number.parseFloat(zoomInput.value) || 1;
+        clampOffsets();
+        renderCrop();
+    });
+
+    const startDrag = (clientX, clientY) => {
+        dragging = true;
+        dragStartX = clientX;
+        dragStartY = clientY;
+        dragOriginX = offsetX;
+        dragOriginY = offsetY;
+        stage.classList.add('is-dragging');
+    };
+
+    const moveDrag = (clientX, clientY) => {
+        if (!dragging) return;
+        offsetX = dragOriginX + (clientX - dragStartX);
+        offsetY = dragOriginY + (clientY - dragStartY);
+        clampOffsets();
+        renderCrop();
+    };
+
+    const endDrag = () => {
+        dragging = false;
+        stage.classList.remove('is-dragging');
+    };
+
+    stage.addEventListener('mousedown', event => {
+        event.preventDefault();
+        startDrag(event.clientX, event.clientY);
+    });
+    window.addEventListener('mousemove', event => moveDrag(event.clientX, event.clientY));
+    window.addEventListener('mouseup', endDrag);
+
+    stage.addEventListener('touchstart', event => {
+        if (!event.touches[0]) return;
+        startDrag(event.touches[0].clientX, event.touches[0].clientY);
+    }, { passive: true });
+    stage.addEventListener('touchmove', event => {
+        if (!event.touches[0]) return;
+        moveDrag(event.touches[0].clientX, event.touches[0].clientY);
+    }, { passive: true });
+    stage.addEventListener('touchend', endDrag);
+
+    applyBtn.addEventListener('click', applyCrop);
+    cancelBtns.forEach(btn => {
+        btn.addEventListener('click', () => closeCropModal(true));
+    });
+    overlay.addEventListener('click', event => {
+        if (event.target === overlay) closeCropModal(true);
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && overlay.classList.contains('is-open')) {
+            closeCropModal(true);
+        }
     });
 }
 
@@ -1612,7 +1852,21 @@ function initTextMarquees() {
     });
 }
 
+function initStudentNavReveal() {
+    if (!document.body.classList.contains('student-nav-reveal')) return;
+
+    window.setTimeout(() => {
+        document.body.classList.remove('student-nav-reveal');
+        document.querySelector('.sidebar')?.classList.remove('sidebar--nav-reveal');
+        refreshTextMarquees();
+    }, 1300);
+}
+
 function initSidebar() {
+    if (document.body.classList.contains('student-onboarding')) {
+        document.body.classList.remove('sidebar-collapsed');
+        document.documentElement.classList.remove('is-sidebar-collapsed-init');
+    }
     syncSidebarCollapseForViewport();
     document.querySelector('.sidebar-toggle')?.addEventListener('click', () => {
         if (!isDesktopSidebarMode()) return;
@@ -1644,6 +1898,41 @@ function initSidebar() {
             btn.setAttribute('aria-expanded', group.classList.contains('open') ? 'true' : 'false');
         });
     });
+}
+
+function initStudentDashboardJourney() {
+    if (!document.body.classList.contains('role-student')) return;
+
+    const journey = document.querySelector('.student-dash-v3 .sd3-journey');
+    if (!journey) return;
+
+    const current = journey.querySelector('.sd3-journey-step.is-current');
+    if (!current) return;
+
+    const centerCurrent = () => {
+        if (window.matchMedia('(max-width: 720px)').matches) {
+            current.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+        }
+    };
+
+    requestAnimationFrame(() => requestAnimationFrame(centerCurrent));
+    window.addEventListener('resize', () => {
+        window.clearTimeout(journey._centerTimer);
+        journey._centerTimer = window.setTimeout(centerCurrent, 120);
+    }, { passive: true });
+}
+
+function initStudentDocsStepperScroll() {
+    if (!document.body.classList.contains('role-student')) return;
+    const stepper = document.querySelector('.docs-stepper');
+    if (!stepper) return;
+    const current = stepper.querySelector('.docs-step.is-active, .docs-step.is-current, .docs-step[aria-current="page"]');
+    if (!current) return;
+    if (window.matchMedia('(max-width: 760px)').matches) {
+        requestAnimationFrame(() => {
+            current.scrollIntoView({ inline: 'start', block: 'nearest', behavior: 'smooth' });
+        });
+    }
 }
 
 function initStudentMobileNav() {
@@ -2773,7 +3062,26 @@ function initDtrTimeLocks() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
                 body,
-            }).catch(() => null);
+                credentials: 'same-origin',
+                keepalive: true,
+            }).then(async response => {
+                if (response.ok) {
+                    // Try to read JSON body if available to check server 'ok' flag
+                    try {
+                        const json = await response.json();
+                        if (json && (json.ok === true || json.ok === 'true')) return true;
+                    } catch (e) {
+                        // ignore parse error and fallthrough to returning true
+                    }
+                    return true;
+                }
+                const text = await response.text().catch(() => '');
+                console.error('DTR draft save failed', response.status, text);
+                return false;
+            }).catch(err => {
+                console.error('Error saving DTR draft', err);
+                return false;
+            });
         };
 
         const clearGroup = (item, resetTasks = false) => {
@@ -2939,14 +3247,14 @@ function initDtrTimeLocks() {
                 openDtrTimePicker({ input: item.input, trigger: item.trigger, saveButton: item.button, sync });
             };
 
-            const toggleLock = () => {
+            const toggleLock = async () => {
                 sync();
                 if (item.button.getAttribute('aria-disabled') === 'true') return;
                 if (item.locked) {
                     unlockFrom(index);
                     clearFrom(index);
                     sync();
-                    saveDraft();
+                    await saveDraft();
                     item.trigger.focus();
                     return;
                 }
@@ -2958,7 +3266,13 @@ function initDtrTimeLocks() {
                 item.group.classList.remove('needs-time');
                 item.locked = true;
                 sync();
-                saveDraft();
+                const saved = await saveDraft();
+                if (!saved) {
+                    item.locked = false;
+                    sync();
+                    console.error('Failed to save DTR draft.');
+                    return;
+                }
                 const config = getConfig();
                 const required = config.requiredIndices;
                 const reqPos = required.indexOf(index);
@@ -3904,25 +4218,67 @@ function initWizards() {
     });
 }
 
+function formatWizardDateRange(start, end) {
+    const formatDate = (value) => {
+        if (!value || value === '-') return null;
+        const parsed = new Date(`${value}T00:00:00`);
+        if (Number.isNaN(parsed.getTime())) return value;
+        return parsed.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
+    };
+    const startLabel = formatDate(start);
+    const endLabel = formatDate(end);
+    if (!startLabel && !endLabel) return '—';
+    if (!startLabel) return escapeHtml(endLabel);
+    if (!endLabel) return escapeHtml(startLabel);
+    return `<span class="confirm-schedule-range"><span>${escapeHtml(startLabel)}</span><span class="confirm-schedule-sep" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>${escapeHtml(endLabel)}</span></span>`;
+}
+
 function updateWizardSummary(form) {
     const box = form.querySelector('.confirm-box');
     if (!box) return;
-    const student = form.querySelector('[name="student_id"]')?.selectedOptions[0]?.textContent || '-';
-    const company = form.querySelector('[name="company_id"]')?.selectedOptions[0]?.textContent || '-';
-    const term = form.querySelector('[name="academic_term"]')?.selectedOptions[0]?.textContent || '-';
-    const start = form.querySelector('[name="term_start_date"]')?.value || '-';
-    const end = form.querySelector('[name="term_end_date"]')?.value || '-';
-    const hours = form.querySelector('[name="required_hours"]')?.value || '-';
+    const student = form.querySelector('[name="student_id"]')?.selectedOptions[0]?.textContent || '—';
+    const company = form.querySelector('[name="company_id"]')?.selectedOptions[0]?.textContent || '—';
+    const term = form.querySelector('[name="academic_term"]')?.selectedOptions[0]?.textContent || '—';
+    const start = form.querySelector('[name="term_start_date"]')?.value || '';
+    const end = form.querySelector('[name="term_end_date"]')?.value || '';
+    const hours = form.querySelector('[name="required_hours"]')?.value || '—';
+    const schedule = formatWizardDateRange(start, end);
     box.innerHTML = `
-        <h3><span class="confirm-icon"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>Review & confirm</h3>
-        <div class="confirm-grid">
-            <div class="confirm-row"><span class="confirm-label">Student</span><span class="confirm-value">${escapeHtml(student)}</span></div>
-            <div class="confirm-row"><span class="confirm-label">Host</span><span class="confirm-value">${escapeHtml(company)}</span></div>
-            <div class="confirm-row"><span class="confirm-label">Term</span><span class="confirm-value">${escapeHtml(term)}</span></div>
-            <div class="confirm-row"><span class="confirm-label">Schedule</span><span class="confirm-value">${escapeHtml(start)} ? ${escapeHtml(end)}</span></div>
-            <div class="confirm-row"><span class="confirm-label">Hours</span><span class="confirm-value">${escapeHtml(hours)} hrs</span></div>
+        <div class="enr-confirm-head">
+            <span class="enr-confirm-head-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <div>
+                <h3>Review & confirm</h3>
+                <p>Double-check the placement details before enrolling the student.</p>
+            </div>
         </div>
-        <div class="confirm-note"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg><span>This will enroll the student and email both the student and host training establishment.</span></div>`;
+        <div class="enr-confirm-grid">
+            <div class="enr-confirm-item">
+                <span class="enr-confirm-item-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>
+                <div><span class="enr-confirm-item-label">Student</span><span class="enr-confirm-item-value">${escapeHtml(student)}</span></div>
+            </div>
+            <div class="enr-confirm-item">
+                <span class="enr-confirm-item-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 10h6M9 14h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+                <div><span class="enr-confirm-item-label">Host</span><span class="enr-confirm-item-value">${escapeHtml(company)}</span></div>
+            </div>
+            <div class="enr-confirm-item">
+                <span class="enr-confirm-item-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>
+                <div><span class="enr-confirm-item-label">Term</span><span class="enr-confirm-item-value">${escapeHtml(term)}</span></div>
+            </div>
+            <div class="enr-confirm-item">
+                <span class="enr-confirm-item-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+                <div><span class="enr-confirm-item-label">Schedule</span><span class="enr-confirm-item-value enr-confirm-item-value--schedule">${schedule}</span></div>
+            </div>
+            <div class="enr-confirm-item enr-confirm-item--wide">
+                <span class="enr-confirm-item-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+                <div><span class="enr-confirm-item-label">Required Hours</span><span class="enr-confirm-item-value">${escapeHtml(hours)} hrs</span></div>
+            </div>
+        </div>
+        <div class="enr-confirm-alert">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>This will enroll the student and email both the student and host training establishment.</span>
+        </div>`;
 }
 
 function initEnrollmentAutomation() {
@@ -4639,7 +4995,9 @@ function renderDashboardCharts() {
         if (document.getElementById('monthlyChart')) {
             drawBars('monthlyChart', window.dashboardCharts.monthlyTrends || [], '', false, true);
         }
-        drawStatusPie('statusChart', window.dashboardCharts.statusDistribution || []);
+        if (document.getElementById('statusChart')) {
+            drawStatusPie('statusChart', window.dashboardCharts.statusDistribution || []);
+        }
         drawCourseRateChart('courseChart', window.dashboardCharts.completionRates || []);
     }
 
@@ -5392,8 +5750,46 @@ function drawLine(id, data) {
         ctx.restore();
     });}
 
-function closeRequirementReviewModals() {
-    document.querySelectorAll('.requirement-review-modal.open').forEach(modal => modal.classList.remove('open'));
+function closeRequirementReviewModals(instant = false) {
+    document.querySelectorAll('.requirement-review-modal').forEach(modal => {
+        if (!modal.classList.contains('open') && !modal.classList.contains('is-closing')) return;
+        if (instant) {
+            if (modal._closeTimer) {
+                clearTimeout(modal._closeTimer);
+                modal._closeTimer = null;
+            }
+            modal.classList.remove('open', 'is-closing');
+            return;
+        }
+        closeRequirementReviewModal(modal);
+    });
+}
+
+function openRequirementReviewModal(modal) {
+    if (!modal) return;
+    if (modal._closeTimer) {
+        clearTimeout(modal._closeTimer);
+        modal._closeTimer = null;
+    }
+    modal.classList.remove('is-closing');
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => modal.classList.add('open'));
+    });
+}
+
+function closeRequirementReviewModal(modal) {
+    if (!modal) return;
+    if (!modal.classList.contains('open') && !modal.classList.contains('is-closing')) return;
+    if (modal.classList.contains('is-closing')) return;
+
+    const ANIM_MS = 280;
+    if (modal._closeTimer) clearTimeout(modal._closeTimer);
+    modal.classList.add('is-closing');
+    modal.classList.remove('open');
+    modal._closeTimer = window.setTimeout(() => {
+        modal.classList.remove('is-closing');
+        modal._closeTimer = null;
+    }, ANIM_MS);
 }
 
 function closeRegistrationRequestsReview() {
@@ -5470,6 +5866,21 @@ function initRegistrationRequestsReview() {
             cancelText: 'Cancel',
         });
         if (confirmed) declineForm?.requestSubmit();
+    });
+
+    root.querySelectorAll('[data-reg-incomplete-delete]').forEach(form => {
+        form.addEventListener('submit', async e => {
+            e.preventDefault();
+            const confirmed = await showConfirmModal(
+                'Delete this stuck registration? The student will be able to register again with the same email or USN.',
+                {
+                    title: 'Delete stuck registration',
+                    confirmText: 'Yes, delete',
+                    cancelText: 'Cancel',
+                }
+            );
+            if (confirmed) form.submit();
+        });
     });
 
     const fieldMap = {
@@ -5783,14 +6194,14 @@ function initRequirementReviewModals() {
             const modal = document.getElementById(button.dataset.reviewModal || '');
             if (!modal) return;
             closeStudentModal();
-            closeRequirementReviewModals();
-            modal.classList.add('open');
+            closeRequirementReviewModals(true);
+            openRequirementReviewModal(modal);
         });
     });
 
     document.querySelectorAll('.requirement-review-modal').forEach(modal => {
-        modal.querySelector('.requirement-review-modal-close')?.addEventListener('click', () => modal.classList.remove('open'));
-        modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+        modal.querySelector('.requirement-review-modal-close')?.addEventListener('click', () => closeRequirementReviewModal(modal));
+        modal.addEventListener('click', e => { if (e.target === modal) closeRequirementReviewModal(modal); });
     });
 
     document.querySelectorAll('.js-review-form').forEach(form => {
@@ -7522,6 +7933,16 @@ function parseAppRoute(href) {
     }
 }
 
+function parseAppStage(href) {
+    if (!href) return '';
+    try {
+        const url = new URL(href, window.location.href);
+        return url.searchParams.get('stage') || '';
+    } catch {
+        return '';
+    }
+}
+
 function isAppAjaxNavLink(link) {
     if (!link || link.target === '_blank' || link.hasAttribute('download')) return false;
     const href = link.getAttribute('href');
@@ -7581,7 +8002,7 @@ function routeMatchesNavLink(route, linkRoute, homeRoute) {
     return linkRoute === route;
 }
 
-function updateAppSidebarActive(route) {
+function updateAppSidebarActive(route, currentHref = window.location.href) {
     const sidebar = document.querySelector('.sidebar');
     const role = getAppRole();
     const homeRoute = SIDEBAR_HOME_ROUTES[role];
@@ -7601,13 +8022,21 @@ function updateAppSidebarActive(route) {
         docGroup?.classList.toggle('nav-group--active', isDocRoute);
     }
 
+    const currentStage = parseAppStage(currentHref) || (route === 'student_documents' ? '1' : '');
     sidebar.querySelectorAll('.nav-link[href]').forEach(link => {
-        const linkRoute = parseAppRoute(link.getAttribute('href'));
+        const href = link.getAttribute('href');
+        const linkRoute = parseAppRoute(href);
         if (!linkRoute) return;
 
-        if (routeMatchesNavLink(route, linkRoute, homeRoute)) {
-            link.classList.add('active');
+        if (!routeMatchesNavLink(route, linkRoute, homeRoute)) return;
+
+        // Stage links share r=student_documents — only the matching stage stays active.
+        const linkStage = parseAppStage(href);
+        if (linkRoute === 'student_documents' && linkStage && linkStage !== currentStage) {
+            return;
         }
+
+        link.classList.add('active');
     });
 }
 
@@ -7737,7 +8166,7 @@ function initAppAjaxNav() {
 
             runInjectedScripts(content);
             updateAppTopbar(pageTitle);
-            updateAppSidebarActive(pageRoute);
+            updateAppSidebarActive(pageRoute, href);
             reinitAppPageContent();
 
             if (pushState) {

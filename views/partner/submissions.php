@@ -8,34 +8,6 @@
         </section>
     <?php else: ?>
 
-    <section class="ps-v2-hero">
-        <div class="ps-v2-hero-glow ps-v2-hero-glow--one" aria-hidden="true"></div>
-        <div class="ps-v2-hero-glow ps-v2-hero-glow--two" aria-hidden="true"></div>
-        <div class="ps-v2-hero-mesh" aria-hidden="true"></div>
-        <div class="ps-v2-hero-copy">
-            <span class="ps-v2-hero-kicker">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                Student Submissions
-            </span>
-            <h2><?= e($company['name']) ?></h2>
-            <p>Review daily time records and weekly reports. Approved items flow to the OJT Coordinator automatically.</p>
-        </div>
-        <aside class="ps-v2-hero-stats" aria-label="Submission overview">
-            <div class="ps-v2-hero-stat">
-                <strong><?= count($studentSummaries) ?></strong>
-                <span>Students</span>
-            </div>
-            <div class="ps-v2-hero-stat">
-                <strong><?= array_sum(array_column($studentSummaries, 'pending_dtr')) + array_sum(array_column($studentSummaries, 'pending_weekly')) ?></strong>
-                <span>Pending</span>
-            </div>
-            <div class="ps-v2-hero-stat">
-                <strong><?= array_sum(array_column($studentSummaries, 'total_dtr')) + array_sum(array_column($studentSummaries, 'total_weekly')) ?></strong>
-                <span>Total records</span>
-            </div>
-        </aside>
-    </section>
-
     <div class="ps-v2-layout">
         <aside class="ps-v2-sidebar">
             <div class="ps-v2-sidebar-head">

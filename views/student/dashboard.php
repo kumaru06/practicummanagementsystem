@@ -11,7 +11,7 @@ $ringOffset = $progressRingCircumference * (1 - ($percent / 100));
 $predeployment = $enrollment['predeployment_status'] ?? 'not_submitted';
 $uploadedRequirements = count(array_filter($requirements ?? [], static fn ($req) => !empty($req['file_path'])));
 $approvedRequirements = count(array_filter($requirements ?? [], static fn ($req) => ($req['status'] ?? '') === 'approved'));
-$totalRequirements = max(5, count($requirements ?? []));
+$totalRequirements = max(6, count($requirements ?? []));
 $officialStart = $enrollment['official_start_date'] ?? $enrollment['start_date'] ?? null;
 $projectedEnd = $enrollment['projected_end_date'] ?? $enrollment['end_date'] ?? null;
 $todayDtr = null;
@@ -34,13 +34,9 @@ $ojtCompletion = $ojtCompletion ?? student_ojt_completion_status([
 ]);
 $actionAlerts = $actionAlerts ?? [];
 $canAccessFinalRequirements = (bool)($canAccessFinalRequirements ?? false);
-$finalDocsDone = true;
-foreach (array_keys(FinalRequirement::SECTIONS) as $sectionKey) {
-    if ((string)(($finalRequirement ?? [])[$sectionKey . '_status'] ?? 'pending') !== 'submitted') {
-        $finalDocsDone = false;
-        break;
-    }
-}
+$studentId = (int)($student['id'] ?? 0);
+$stage3DocProgress = student_stage3_upload_progress($studentId);
+$finalDocsDone = $stage3DocProgress['done'];
 $selfEvalDone = true;
 foreach (array_keys(FinalRequirement::EVALUATION_SECTIONS) as $evalKey) {
     if (StudentEvaluation::statusFor($studentEvaluation ?? [], $evalKey) !== 'submitted') {
@@ -59,15 +55,15 @@ $orientationFormatted = $orientationDateTime && strtotime((string)$orientationDa
     : null;
 $certificateFile = $hteEvaluation['certificate_file'] ?? null;
 $nextAction = match (true) {
-    !$enrollment => ['title' => 'Awaiting Enrollment', 'message' => 'Your coordinator has not enrolled you in OJT yet.', 'route' => route_url('student.documents'), 'label' => 'View documents', 'icon' => 'enrollment'],
-    $rejectedRequirementCount > 0 || $predeployment === 'needs_revision' => ['title' => 'Fix Rejected Documents', 'message' => 'One or more pre-deployment documents were rejected. Upload corrected files to continue.', 'route' => route_url('student.documents'), 'label' => 'Fix documents', 'icon' => 'requirements'],
+    !$enrollment => ['title' => 'Awaiting Enrollment', 'message' => 'Your coordinator has not enrolled you in OJT yet.', 'route' => route_url('student.documents', ['stage' => 1]), 'label' => 'View documents', 'icon' => 'enrollment'],
+    $rejectedRequirementCount > 0 || $predeployment === 'needs_revision' => ['title' => 'Fix Rejected Documents', 'message' => 'One or more pre-deployment documents were rejected. Upload corrected files to continue.', 'route' => route_url('student.documents', ['stage' => 1]), 'label' => 'Fix documents', 'icon' => 'requirements'],
     $rejectedDtrCount > 0 => ['title' => 'Correct Rejected DTR', 'message' => 'Your Host Training Establishment rejected ' . $rejectedDtrCount . ' daily time record(s). Update and resubmit them.', 'route' => route_url('student.records'), 'label' => 'Fix DTR', 'icon' => 'records'],
     $rejectedWeeklyCount > 0 => ['title' => 'Correct Rejected Weekly Report', 'message' => 'Your Host Training Establishment rejected ' . $rejectedWeeklyCount . ' weekly report(s). Update and resubmit them.', 'route' => route_url('student.records'), 'label' => 'Fix weekly report', 'icon' => 'records'],
-    in_array($predeployment, ['not_submitted', 'needs_revision'], true) => ['title' => 'Prepare Requirements', 'message' => 'Upload all required pre-deployment documents and submit them for review.', 'route' => route_url('student.documents'), 'label' => 'Go to Documents', 'icon' => 'requirements'],
-    $predeployment === 'submitted' => ['title' => 'Under Review', 'message' => 'Your coordinator is reviewing your submitted requirements.', 'route' => route_url('student.documents'), 'label' => 'Check Status', 'icon' => 'review'],
-    in_array($predeployment, ['approved', 'forwarded', 'accepted', 'orientation_scheduled'], true) => ['title' => 'Deployment Processing', 'message' => 'Wait for company acceptance and orientation completion before submitting reports.', 'route' => route_url('student.documents'), 'label' => 'View Deployment', 'icon' => 'deployment'],
+    in_array($predeployment, ['not_submitted', 'needs_revision'], true) => ['title' => 'Prepare Requirements', 'message' => 'Upload all required pre-deployment documents and submit them for review.', 'route' => route_url('student.documents', ['stage' => 1]), 'label' => 'Go to Documents', 'icon' => 'requirements'],
+    $predeployment === 'submitted' => ['title' => 'Under Review', 'message' => 'Your coordinator is reviewing your submitted requirements.', 'route' => route_url('student.documents', ['stage' => 1]), 'label' => 'Check Status', 'icon' => 'review'],
+    in_array($predeployment, ['approved', 'forwarded', 'accepted', 'orientation_scheduled'], true) => ['title' => 'Deployment Processing', 'message' => 'Wait for company acceptance and orientation completion before submitting reports.', 'route' => route_url('student.documents', ['stage' => 2]), 'label' => 'View Deployment', 'icon' => 'deployment'],
     $ojtCleared => ['title' => 'OJT Cleared', 'message' => 'Congratulations. Your OJT requirements and evaluations are complete.', 'route' => route_url('student.evaluation'), 'label' => 'View evaluation', 'icon' => 'review'],
-    $canAccessFinalRequirements && !$finalRequirementsDone => ['title' => 'Complete Final Requirements', 'message' => 'Your practicum hours are complete or your end date has arrived. Submit your final documents and self-evaluations.', 'route' => route_url('student.documents.final'), 'label' => 'Open final requirements', 'icon' => 'requirements'],
+    $canAccessFinalRequirements && !$finalRequirementsDone => ['title' => 'Complete 3rd to Comply', 'message' => 'Your practicum hours are complete or your end date has arrived. Finish your remaining documents and self-evaluations.', 'route' => route_url('student.documents', ['stage' => 3]), 'label' => 'Open 3rd to Comply', 'icon' => 'requirements'],
     ($canSubmitReports ?? false) => ['title' => 'Submit OJT Records', 'message' => 'Your OJT records are unlocked. Submit DTR and weekly reports on time.', 'route' => route_url('student.records'), 'label' => 'Submit Record', 'icon' => 'records'],
     default => ['title' => 'Reports Locked', 'message' => $reportLockMessage ?? 'Reports are not available yet.', 'route' => route_url('student.records'), 'label' => 'View Records', 'icon' => 'locked'],
 };
@@ -230,7 +226,7 @@ $companyName = (string)($enrollment['company_name'] ?? 'Not enrolled');
                             <div class="sd3-snapshot-item"><span>Approved docs</span><strong><?= $approvedRequirements ?>/<?= $totalRequirements ?></strong></div>
                             <div class="sd3-snapshot-item"><span>Weekly reports</span><strong><?= count($weeklyReports ?? []) ?></strong></div>
                         </div>
-                        <a class="btn btn-small" href="<?= e(route_url('student.documents')) ?>">Manage documents</a>
+                        <a class="btn btn-small" href="<?= e(route_url('student.documents', ['stage' => 1])) ?>">Manage documents</a>
                     </div>
                 </div>
             </div>
@@ -312,7 +308,7 @@ $companyName = (string)($enrollment['company_name'] ?? 'Not enrolled');
             <div class="sd3-panel-body">
                 <div class="sd3-shortcut-list">
                     <a href="<?= e(route_url('student.records')) ?>"><span>Submit OJT Records</span><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 6l6 6-6 6-1.4-1.4 4.6-4.6-4.6-4.6L10 6z"/></svg></a>
-                    <a href="<?= e(route_url('student.documents.final')) ?>"><span>Final Requirements</span><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 6l6 6-6 6-1.4-1.4 4.6-4.6-4.6-4.6L10 6z"/></svg></a>
+                    <a href="<?= e(route_url('student.documents', ['stage' => 3])) ?>"><span>3rd to Comply</span><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 6l6 6-6 6-1.4-1.4 4.6-4.6-4.6-4.6L10 6z"/></svg></a>
                     <a href="<?= e(route_url('student.evaluation')) ?>"><span>My Evaluation</span><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 6l6 6-6 6-1.4-1.4 4.6-4.6-4.6-4.6L10 6z"/></svg></a>
                     <a href="<?= e(route_url('student.timeline')) ?>"><span>Activity Timeline</span><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 6l6 6-6 6-1.4-1.4 4.6-4.6-4.6-4.6L10 6z"/></svg></a>
                     <a href="<?= e(route_url('student.settings')) ?>"><span>Settings</span><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 6l6 6-6 6-1.4-1.4 4.6-4.6-4.6-4.6L10 6z"/></svg></a>

@@ -66,7 +66,12 @@ class AuthController extends BaseController
 
             $user = (new User($this->db))->findForLogin($identifier, $portalRole);
 
-            if ($user && (int)$user['is_active'] === 1 && password_verify($password, $user['password_hash'])) {
+            if ($user && password_verify($password, $user['password_hash'])) {
+                if ((int)$user['is_active'] !== 1) {
+                    $this->recordLoginAttempt($loginIp, false);
+                    flash('error', 'Your account is not active yet. Please wait for your OJT coordinator to enroll you.');
+                    redirect($portalRole ? 'auth.php?portal=' . urlencode($portalRole) : 'auth.php');
+                }
 
                 $this->recordLoginAttempt($loginIp, true);
 
@@ -84,6 +89,14 @@ class AuthController extends BaseController
 
                 (new User($this->db))->recordLogin((int)$user['id']);
 
+                $passwordChanged = (int)($user['password_changed'] ?? 1);
+                if (($user['role'] ?? '') === 'student'
+                    && $passwordChanged === 0
+                    && (new StudentRegistrationRequest($this->db))->isSelfRegisteredUser((int)$user['id'])) {
+                    $this->db->prepare('UPDATE users SET password_changed = 1 WHERE id = ?')->execute([(int)$user['id']]);
+                    $passwordChanged = 1;
+                }
+
                 $_SESSION['user'] = [
 
                     'id' => (int)$user['id'],
@@ -94,7 +107,7 @@ class AuthController extends BaseController
 
                     'role' => $user['role'],
 
-                    'password_changed' => (int)($user['password_changed'] ?? 1),
+                    'password_changed' => $passwordChanged,
 
                 ];
 
@@ -108,7 +121,7 @@ class AuthController extends BaseController
 
             $this->recordLoginAttempt($loginIp, false);
 
-            flash('error', 'Invalid credentials or inactive account.');
+            flash('error', 'Invalid email/USN or password.');
 
             redirect($portalRole ? 'auth.php?portal=' . urlencode($portalRole) : 'auth.php');
 
@@ -480,6 +493,10 @@ class AuthController extends BaseController
 
 
         if (in_array($request['status'] ?? '', ['pending_approval', 'pending'], true)) {
+            $userId = (int)($request['user_id'] ?? 0);
+            if ($userId > 0) {
+                (new User($this->db))->setActive($userId, 1);
+            }
 
             flash('success', 'Your email is already verified. You can sign in while waiting for administrator approval.');
 
@@ -699,6 +716,7 @@ class AuthController extends BaseController
                 $flashError = null;
 
                 if ($this->wantsForgotPasswordAjax()) {
+                    unset($_SESSION['flash']['error']);
                     $this->renderForgotPasswordPartial($role, $submitted, $flashSuccess, $flashError);
                     return;
                 }

@@ -1,14 +1,13 @@
 <?php
-    $finalRequirement = $finalRequirement ?? [];
-    $finalSections = $finalSections ?? [];
     $studentEvaluation = $studentEvaluation ?? [];
     $evaluationSections = $evaluationSections ?? FinalRequirement::EVALUATION_SECTIONS;
+    $stage3Requirements = $stage3Requirements ?? [];
+    $stage3DocProgress = $stage3DocProgress ?? ['total' => 0, 'uploaded' => 0, 'approved' => 0, 'done' => false];
 
-    $summary = (new FinalRequirement(db()))->overallSummary($finalRequirement);
-    $docSubmitted = (int)$summary['submitted'];
-    $docTotal = (int)$summary['total'];
+    $docSubmitted = (int)$stage3DocProgress['approved'];
+    $docTotal = (int)$stage3DocProgress['total'];
     $docPct = $docTotal > 0 ? (int)round(($docSubmitted / $docTotal) * 100) : 0;
-    $allDocsSubmitted = $docSubmitted === $docTotal && $docTotal > 0;
+    $allDocsSubmitted = !empty($stage3DocProgress['done']);
 
     $evalSubmitted = 0;
     foreach (array_keys($evaluationSections) as $evalKey) {
@@ -31,18 +30,22 @@
     $chevronIcon = '<svg class="cfp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
 
     $docRowIcons = [
-        'job_description' => [
+        'job_description_doc' => [
             'class' => 'cfp-item-icon cfp-item-icon--job',
             'svg' => '<svg ' . $svgAttrs . '><path d="M10 7V5a2 2 0 0 1 4 0v2"/><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 12h18"/><path d="M12 12v4"/></svg>',
         ],
-        'company_profile' => [
+        'company_profile_doc' => [
             'class' => 'cfp-item-icon cfp-item-icon--company',
             'svg' => '<svg ' . $svgAttrs . '><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12h12"/><path d="M10 8h.01M14 8h.01M10 16h.01M14 16h.01"/></svg>',
         ],
-        'personal_observation' => [
+        'personal_observation_doc' => [
             'class' => 'cfp-item-icon cfp-item-icon--observation',
             'svg' => '<svg ' . $svgAttrs . '><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/><path d="m15 5 3 3"/></svg>',
         ],
+    ];
+    $defaultDocIcon = [
+        'class' => 'cfp-item-icon cfp-item-icon--company',
+        'svg' => '<svg ' . $svgAttrs . '><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5Z"/></svg>',
     ];
     $evalRowIcons = [
         'coordinator' => [
@@ -128,8 +131,8 @@
                 <div class="cfp-panel-title">
                     <span class="cfp-panel-icon cfp-panel-icon--docs"><?= $sectionDocsIcon ?></span>
                     <div>
-                        <h2>Final Requirements</h2>
-                        <p>Post-OJT documents submitted by the student.</p>
+                        <h2>3rd to Comply Documents</h2>
+                        <p>File uploads submitted by the student during and after OJT.</p>
                     </div>
                 </div>
                 <div class="cfp-panel-progress" role="progressbar" aria-valuenow="<?= $docPct ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Documents progress">
@@ -139,34 +142,37 @@
             </header>
 
             <ul class="cfp-checklist">
-                <?php foreach ($finalSections as $key => $section): ?>
+                <?php foreach ($stage3Requirements as $key => $requirement): ?>
                     <?php
-                        $status = (string)($finalRequirement[$key . '_status'] ?? 'pending');
-                        $status = $status !== '' ? $status : 'pending';
-                        $isSubmitted = $status === 'submitted';
-                        $rowIconMeta = $docRowIcons[$key] ?? $docRowIcons['company_profile'];
+                        $status = (string)($requirement['status'] ?? 'pending');
+                        $hasFile = !empty($requirement['file_path']);
+                        $isApproved = $hasFile && $status === 'approved';
+                        $rowIconMeta = $docRowIcons[$key] ?? $defaultDocIcon;
                         $itemUrl = 'index.php?r=coordinator_student_final&amp;student_id=' . $studentId . '&amp;doc=' . e($key);
                     ?>
-                    <li class="cfp-item <?= $isSubmitted ? 'is-done' : 'is-pending' ?>">
-                        <?php if ($isSubmitted): ?>
+                    <li class="cfp-item <?= $isApproved ? 'is-done' : ($hasFile ? 'is-progress' : 'is-pending') ?>">
+                        <?php if ($hasFile): ?>
                             <a class="cfp-item-link" href="<?= $itemUrl ?>">
                         <?php else: ?>
                             <div class="cfp-item-link">
                         <?php endif; ?>
                             <span class="<?= e($rowIconMeta['class']) ?>"><?= $rowIconMeta['svg'] ?></span>
                             <div class="cfp-item-body">
-                                <strong><?= e($section['name']) ?></strong>
-                                <span><?= e($section['description']) ?></span>
+                                <strong><?= e($requirement['requirement_name'] ?? $key) ?></strong>
+                                <span><?= e($requirement['notes'] ?? '') ?></span>
                             </div>
                             <span class="cfp-item-action">
-                                <?php if ($isSubmitted): ?>
-                                    <span class="cfp-chip cfp-chip--done">Submitted</span>
+                                <?php if ($isApproved): ?>
+                                    <span class="cfp-chip cfp-chip--done">Approved</span>
+                                    <span class="cfp-item-cta">View<?= $chevronIcon ?></span>
+                                <?php elseif ($hasFile): ?>
+                                    <span class="cfp-chip cfp-chip--pending"><?= e(str_replace('_', ' ', $status)) ?></span>
                                     <span class="cfp-item-cta">View<?= $chevronIcon ?></span>
                                 <?php else: ?>
-                                    <span class="cfp-chip cfp-chip--pending">Awaiting</span>
+                                    <span class="cfp-chip cfp-chip--pending">Not uploaded</span>
                                 <?php endif; ?>
                             </span>
-                        <?php if ($isSubmitted): ?>
+                        <?php if ($hasFile): ?>
                             </a>
                         <?php else: ?>
                             </div>

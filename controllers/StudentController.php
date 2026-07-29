@@ -239,122 +239,140 @@ class StudentController extends BaseController
 
     public function documents(): void
     {
-        $this->renderAppPage('student/documents', $this->studentPageData('Pre-Deployment Requirements'));
+        $data = $this->studentPageData('Documents');
+        $student = $data['student'] ?? null;
+        $enrollment = $data['enrollment'] ?? null;
+        $activeStage = (int)($_GET['stage'] ?? 1);
+        if (!in_array($activeStage, [1, 2, 3], true)) {
+            $activeStage = 1;
+        }
+        if ($student) {
+            $studentModel = new Student($this->db);
+            $sid = (int)$student['id'];
+            if (!$studentModel->canAccessStage($sid, $activeStage)) {
+                $fallbackStage = $studentModel->highestAccessibleDocumentStage($sid);
+                flash('info', 'That comply stage is locked. Showing your current available stage.');
+                redirect(route_url('student.documents', ['stage' => $fallbackStage]));
+            }
+        }
+        $data['activeStage'] = $activeStage;
+        $data['activeWorkflowStep'] = $activeStage;
+        $data['stages'] = $this->buildDocumentStages($student, $enrollment);
+
+        $eval = (string)($_GET['eval'] ?? '');
+        $data['activePanel'] = '';
+        $data['activeKind'] = '';
+        $data['studentEvaluation'] = $student ? (new StudentEvaluation($this->db))->getByStudent((int)$student['id']) : [];
+        $data['evaluationSections'] = FinalRequirement::EVALUATION_SECTIONS;
+
+        if ($activeStage === 3 && $eval !== '') {
+            if (!$data['canAccessFinalRequirements']) {
+                flash('error', $data['finalRequirementsLockMessage']);
+                redirect(route_url('student.documents', ['stage' => 3]));
+            }
+            if (array_key_exists($eval, FinalRequirement::EVALUATION_SECTIONS)) {
+                $data['activePanel'] = $eval;
+                $data['activeKind'] = 'eval';
+                $data['title'] = FinalRequirement::EVALUATION_SECTIONS[$eval]['name'];
+            }
+        }
+
+        $this->renderAppPage('student/documents', $data);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildDocumentStages(?array $student, ?array $enrollment): array
+    {
+        if (!$student) {
+            return [];
+        }
+        $studentModel = new Student($this->db);
+        $sid = (int)$student['id'];
+        $endorsementFile = $enrollment['endorsement_file'] ?? null;
+        $stages = [];
+        foreach ([1, 2, 3] as $stage) {
+            $rows = $studentModel->stageRequirements($sid, $stage);
+            foreach ($rows as $key => $row) {
+                // Stage 2 endorsement letter is provided by the coordinator on forward.
+                if ($key === 'endorsement_letter' && empty($row['file_path']) && !empty($endorsementFile)) {
+                    $row['file_path'] = $endorsementFile;
+                    $row['status'] = 'approved';
+                }
+                $row['can_upload'] = $studentModel->canUploadRequirement($sid, $key);
+                $row['upload_message'] = $studentModel->requirementUploadMessage($sid, $key);
+                $rows[$key] = $row;
+            }
+            $stages[$stage] = [
+                'number' => $stage,
+                'label' => Student::STAGE_LABELS[$stage] ?? ('Stage ' . $stage),
+                'accessible' => $studentModel->canAccessStage($sid, $stage),
+                'status' => $studentModel->stageAggregateStatus($sid, $stage),
+                'requirements' => $rows,
+                'lock_message' => $this->stageLockMessage($stage, $enrollment),
+            ];
+        }
+
+        return $stages;
+    }
+
+    private function stageLockMessage(int $stage, ?array $enrollment): string
+    {
+        if (!$enrollment) {
+            return 'Your coordinator must enroll you in OJT first.';
+        }
+        if ($stage === 2) {
+            return 'Unlocks once all of your 1st to Comply documents are approved.';
+        }
+        if ($stage === 3) {
+            return 'Unlocks once your OJT deployment is active (after orientation).';
+        }
+        return 'Locked.';
     }
 
     public function documentsFinal(): void
     {
         require_role('student');
-        $data = $this->studentPageData('Final Requirements');
-        $student = $data['student'] ?? null;
-        $finalModel = new FinalRequirement($this->db);
-        $evalModel = new StudentEvaluation($this->db);
-        $data['finalRequirement'] = $student ? $finalModel->getByStudent((int)$student['id']) : [];
-        $data['studentEvaluation'] = $student ? $evalModel->getByStudent((int)$student['id']) : [];
-        $data['finalSections'] = FinalRequirement::SECTIONS;
-        $data['evaluationSections'] = FinalRequirement::EVALUATION_SECTIONS;
-
-        $doc = (string)($_GET['doc'] ?? '');
+        $params = ['stage' => 3];
         $eval = (string)($_GET['eval'] ?? '');
-        $data['activePanel'] = '';
-        $data['activeKind'] = '';
-
-        if (!$data['canAccessFinalRequirements']) {
-            if ($doc !== '' || $eval !== '') {
-                flash('error', $data['finalRequirementsLockMessage']);
-                redirect('index.php?r=student_documents_final');
-            }
-        } elseif (array_key_exists($doc, FinalRequirement::SECTIONS)) {
-            $data['activePanel'] = $doc;
-            $data['activeKind'] = 'doc';
-            $data['title'] = FinalRequirement::SECTIONS[$doc]['name'];
-        } elseif (array_key_exists($eval, FinalRequirement::EVALUATION_SECTIONS)) {
-            $data['activePanel'] = $eval;
-            $data['activeKind'] = 'eval';
-            $data['title'] = FinalRequirement::EVALUATION_SECTIONS[$eval]['name'];
+        $doc = (string)($_GET['doc'] ?? '');
+        $target = route_url('student.documents', $params);
+        if ($eval !== '') {
+            $params['eval'] = $eval;
+            redirect(route_url('student.documents', $params));
         }
-
-        $this->renderAppPage('student/documents_final', $data);
+        if ($doc !== '' && array_key_exists($doc, FinalRequirement::EVALUATION_SECTIONS)) {
+            $params['eval'] = $doc;
+            redirect(route_url('student.documents', $params));
+        }
+        $legacyAliases = student_stage3_legacy_doc_aliases();
+        if ($doc !== '') {
+            $requirementKey = $legacyAliases[$doc] ?? $doc;
+            redirect($target . '#requirement-' . rawurlencode($requirementKey));
+        }
+        redirect($target);
     }
 
     public function saveFinalJobDescription(): void
     {
         require_role('student');
-        $p = $this->post();
-        $student = (new Student($this->db))->findByUser((int)current_user()['id']);
-        if (!$student) {
-            flash('error', 'Student record not found.');
-            redirect('index.php?r=student_documents_final');
-        }
-        $enrollment = (new Enrollment($this->db))->detailsByStudent((int)$student['id']);
-        $approvedHours = (new Report($this->db))->totalHours((int)$student['id'], true);
-        try {
-            assert_student_final_requirements($enrollment, $approvedHours);
-            (new FinalRequirement($this->db))->saveJobDescription(
-                (int)$student['id'],
-                (string)($p['position_held'] ?? ''),
-                (string)($p['job_description'] ?? '')
-            );
-            flash('success', 'Job description saved.');
-        } catch (Throwable $e) {
-            flash('error', $e->getMessage());
-            redirect('index.php?r=student_documents_final&doc=job_description');
-        }
-        redirect('index.php?r=student_documents_final');
+        flash('info', 'Job Description is submitted as a file upload in 3rd to Comply.');
+        redirect(route_url('student.documents', ['stage' => 3]) . '#requirement-job_description_doc');
     }
 
     public function saveFinalCompanyProfile(): void
     {
         require_role('student');
-        $p = $this->post();
-        $student = (new Student($this->db))->findByUser((int)current_user()['id']);
-        if (!$student) {
-            flash('error', 'Student record not found.');
-            redirect('index.php?r=student_documents_final');
-        }
-        $enrollment = (new Enrollment($this->db))->detailsByStudent((int)$student['id']);
-        $approvedHours = (new Report($this->db))->totalHours((int)$student['id'], true);
-        try {
-            assert_student_final_requirements($enrollment, $approvedHours);
-            (new FinalRequirement($this->db))->saveCompanyProfile(
-                (int)$student['id'],
-                (string)($p['company_history'] ?? ''),
-                (string)($p['company_description'] ?? ''),
-                (string)($p['company_mission'] ?? ''),
-                (string)($p['company_vision'] ?? '')
-            );
-            flash('success', 'Company profile saved.');
-        } catch (Throwable $e) {
-            flash('error', $e->getMessage());
-            redirect('index.php?r=student_documents_final&doc=company_profile');
-        }
-        redirect('index.php?r=student_documents_final');
+        flash('info', 'Company Profile is submitted as a file upload in 3rd to Comply.');
+        redirect(route_url('student.documents', ['stage' => 3]) . '#requirement-company_profile_doc');
     }
 
     public function saveFinalPersonalObservation(): void
     {
         require_role('student');
-        $p = $this->post();
-        $student = (new Student($this->db))->findByUser((int)current_user()['id']);
-        if (!$student) {
-            flash('error', 'Student record not found.');
-            redirect('index.php?r=student_documents_final');
-        }
-        $enrollment = (new Enrollment($this->db))->detailsByStudent((int)$student['id']);
-        $approvedHours = (new Report($this->db))->totalHours((int)$student['id'], true);
-        try {
-            assert_student_final_requirements($enrollment, $approvedHours);
-            $fields = [];
-            foreach (array_keys(FinalRequirement::PERSONAL_OBSERVATION_FIELDS) as $column) {
-                $fields[$column] = (string)($p[$column] ?? '');
-            }
-            (new FinalRequirement($this->db))->savePersonalObservation((int)$student['id'], $fields);
-            flash('success', 'Personal observations saved.');
-        } catch (Throwable $e) {
-            flash('error', $e->getMessage());
-            redirect('index.php?r=student_documents_final&doc=personal_observation');
-        }
-        redirect('index.php?r=student_documents_final');
+        flash('info', 'Personal Observation is submitted as a file upload in 3rd to Comply.');
+        redirect(route_url('student.documents', ['stage' => 3]) . '#requirement-personal_observation_doc');
     }
 
     public function saveStudentEvaluationPartner(): void
@@ -364,7 +382,7 @@ class StudentController extends BaseController
         $student = (new Student($this->db))->findByUser((int)current_user()['id']);
         if (!$student) {
             flash('error', 'Student record not found.');
-            redirect('index.php?r=student_documents_final');
+            redirect(route_url('student.documents', ['stage' => 3]));
         }
         try {
             $enrollment = (new Enrollment($this->db))->detailsByStudent((int)$student['id']);
@@ -400,9 +418,9 @@ class StudentController extends BaseController
             flash('success', 'Host Training Establishment evaluation saved.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
-            redirect('index.php?r=student_documents_final&eval=industry_partner');
+            redirect(route_url('student.documents', ['stage' => 3, 'eval' => 'industry_partner']));
         }
-        redirect('index.php?r=student_documents_final');
+        redirect(route_url('student.documents', ['stage' => 3]));
     }
 
     public function saveStudentEvaluationCoordinator(): void
@@ -412,7 +430,7 @@ class StudentController extends BaseController
         $student = (new Student($this->db))->findByUser((int)current_user()['id']);
         if (!$student) {
             flash('error', 'Student record not found.');
-            redirect('index.php?r=student_documents_final');
+            redirect(route_url('student.documents', ['stage' => 3]));
         }
         try {
             $enrollment = (new Enrollment($this->db))->detailsByStudent((int)$student['id']);
@@ -448,9 +466,9 @@ class StudentController extends BaseController
             flash('success', 'OJT Coordinator evaluation saved.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
-            redirect('index.php?r=student_documents_final&eval=coordinator');
+            redirect(route_url('student.documents', ['stage' => 3, 'eval' => 'coordinator']));
         }
-        redirect('index.php?r=student_documents_final');
+        redirect(route_url('student.documents', ['stage' => 3]));
     }
 
     public function documentsOther(): void
@@ -495,10 +513,13 @@ class StudentController extends BaseController
             redirect('index.php');
         }
         try {
-            foreach (['address', 'contact_number', 'emergency_contact_name', 'emergency_contact_number', 'year_level', 'section'] as $field) {
+            foreach (['address', 'contact_number', 'emergency_contact_name', 'emergency_contact_number', 'year_level', 'gender'] as $field) {
                 if (trim((string)($p[$field] ?? '')) === '') {
                     throw new RuntimeException('Please complete all required profile fields.');
                 }
+            }
+            if (!in_array(trim((string)($p['gender'] ?? '')), ['Male', 'Female', 'Other'], true)) {
+                throw new RuntimeException('Please select a valid gender.');
             }
             if (empty($student['photo_file']) && empty($_FILES['photo_file']['name'])) {
                 throw new RuntimeException('Profile photo is required.');
@@ -509,6 +530,9 @@ class StudentController extends BaseController
                 $photo = upload_profile_photo($_FILES['photo_file'], false);
             }
             (new Student($this->db))->updateProfile((int)$student['id'], $p, $photo);
+            if (!$wasCompleted) {
+                $_SESSION['student_nav_reveal'] = 1;
+            }
             flash('success', $wasCompleted ? 'Profile updated successfully.' : 'Profile completed. Your dashboard is now unlocked.');
             redirect('index.php?r=' . ($wasCompleted ? 'student_profile' : 'student'));
         } catch (Throwable $e) {
@@ -537,11 +561,12 @@ class StudentController extends BaseController
             }
             $path = upload_document($_FILES['requirement_file'] ?? [], 'requirements/' . (int)$student['id']);
             $studentModel->saveRequirement((int)$student['id'], $requirementKey, $path);
+            $this->notifyCoordinatorLateStage1Upload($student, $requirementKey, $studentModel);
             flash('success', 'Requirement uploaded.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
-        redirect('index.php?r=student_documents');
+        $this->redirectToStudentDocuments($requirementKey);
     }
 
     public function uploadRequirementsBulk(): void
@@ -582,16 +607,20 @@ class StudentController extends BaseController
             }
 
             $uploadedCount = 0;
+            $notifiedLateUpload = false;
             foreach ($selectedFiles as $requirementKey => $singleFile) {
                 $path = upload_document($singleFile, 'requirements/' . (int)$student['id']);
                 $studentModel->saveRequirement((int)$student['id'], (string)$requirementKey, $path);
+                if (!$notifiedLateUpload && $studentModel->requirementStage((string)$requirementKey) === 1) {
+                    $notifiedLateUpload = $this->notifyCoordinatorLateStage1Upload($student, (string)$requirementKey, $studentModel);
+                }
                 $uploadedCount++;
             }
             flash('success', $uploadedCount . ' requirement file' . ($uploadedCount === 1 ? '' : 's') . ' uploaded.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
-        redirect('index.php?r=student_documents');
+        $this->redirectToStudentDocuments(null, 1);
     }
 
     public function submitRequirements(): void
@@ -600,35 +629,35 @@ class StudentController extends BaseController
         $studentModel = new Student($this->db);
         $student = $studentModel->findByUser(current_user()['id']);
         if (!$student || !$studentModel->hasCompleteRequirements((int)$student['id'])) {
-            flash('error', 'Upload all five requirements before submitting for review.');
-            redirect('index.php?r=student_documents');
+            flash('error', 'Upload all 1st to Comply requirements before submitting for review.');
+            $this->redirectToStudentDocuments(null, 1);
         }
         $enrollment = (new Enrollment($this->db))->detailsByStudent((int)$student['id']);
         if (!$enrollment) {
             flash('error', 'You must be enrolled in OJT before submitting pre-deployment requirements.');
-            redirect('index.php?r=student_documents');
+            $this->redirectToStudentDocuments(null, 1);
         }
         $predeploymentStatus = $enrollment['predeployment_status'] ?? 'not_submitted';
         if ($studentModel->hasApprovedRequirements((int)$student['id'])) {
             flash('success', 'All documents have already been approved. No need to submit again.');
-            redirect('index.php?r=student_documents');
+            $this->redirectToStudentDocuments(null, 1);
         }
         if ($predeploymentStatus === 'submitted') {
             flash('error', 'Your documents are already under coordinator review.');
-            redirect('index.php?r=student_documents');
+            $this->redirectToStudentDocuments(null, 1);
         }
         if ($predeploymentStatus === 'needs_revision') {
             flash('error', 'Replace the rejected document first. Only rejected documents are unlocked.');
-            redirect('index.php?r=student_documents');
+            $this->redirectToStudentDocuments(null, 1);
         }
         if (in_array($predeploymentStatus, ['approved', 'forwarded', 'accepted', 'orientation_scheduled', 'orientation_completed'], true)) {
             flash('success', 'Your documents are already approved or in deployment processing.');
-            redirect('index.php?r=student_documents');
+            $this->redirectToStudentDocuments(null, 1);
         }
         (new Enrollment($this->db))->setPredeploymentStatus((int)$student['id'], 'submitted');
         (new Notification($this->db))->create((int)$student['coordinator_id'], 'Pre-deployment review requested', $student['name'] . ' submitted all pre-deployment requirements for review.', route_url('coordinator.students'));
         flash('success', 'Pre-deployment requirements submitted for coordinator review.');
-        redirect('index.php?r=student_documents');
+        $this->redirectToStudentDocuments(null, 1);
     }
 
     public function addDtr(): void
@@ -736,14 +765,17 @@ class StudentController extends BaseController
         }
         $enrollment = (new Enrollment($this->db))->detailsByStudent((int)$student['id']);
         try {
+            // Validate whether the student is allowed to submit reports for the given date.
+            // For draft saves we allow the check to fail so students can save drafts
+            // (e.g., before official OJT start date) without being blocked. Final
+            // submission still enforces validation in `addDtr()`.
             assert_student_report_submission(
                 $enrollment,
                 trim((string)($p['work_date'] ?? '')) ?: null
             );
         } catch (RuntimeException $e) {
-            http_response_code(403);
-            echo json_encode(['ok' => false, 'message' => $e->getMessage()]);
-            return;
+            // Intentionally ignore the validation error for draft saves to allow
+            // users to preserve their time entries across refreshes.
         }
         (new Report($this->db))->saveDtrDraft(
             (int)$student['id'],
@@ -924,6 +956,10 @@ class StudentController extends BaseController
         $student = $studentModel->findByUser(current_user()['id']);
         $enrollmentModel = new Enrollment($this->db);
         $enrollment = $student ? $enrollmentModel->detailsByStudent((int)$student['id']) : null;
+        if ($student) {
+            $studentModel->syncPredeploymentStatusIfComplete((int)$student['id']);
+            $enrollment = $enrollmentModel->detailsByStudent((int)$student['id']);
+        }
         $requirements = $student ? $studentModel->requirements((int)$student['id']) : [];
         if ($student && $enrollment) {
             $enrollment['predeployment_status'] = $studentModel->effectivePredeploymentStatus((int)$student['id'], $enrollment['predeployment_status'] ?? null, $requirements);
@@ -979,5 +1015,42 @@ class StudentController extends BaseController
             'upcomingDeadlines' => student_upcoming_deadlines(array_merge($pageContext, ['enrollment' => $enrollment])),
             'recentNotifications' => (new Notification($this->db))->recentForUser((int)current_user()['id'], 5),
         ];
+    }
+
+    /**
+     * Notify coordinator when a student uploads stage-1 docs after deployment has already advanced.
+     *
+     * @return bool Whether a notification was sent
+     */
+    private function notifyCoordinatorLateStage1Upload(array $student, string $requirementKey, Student $studentModel): bool
+    {
+        if ($studentModel->requirementStage($requirementKey) !== 1) {
+            return false;
+        }
+        $enrollment = (new Enrollment($this->db))->detailsByStudent((int)$student['id']);
+        if (!$enrollment || !$studentModel->isPredeploymentPipelineAdvanced($enrollment['predeployment_status'] ?? null)) {
+            return false;
+        }
+        $requirementName = Student::REQUIREMENTS[$requirementKey]['name'] ?? 'a pre-deployment document';
+        (new Notification($this->db))->create(
+            (int)$student['coordinator_id'],
+            'Pre-deployment document uploaded',
+            ($student['name'] ?? 'A student') . ' uploaded ' . $requirementName . ' for review.',
+            route_url('coordinator.students')
+        );
+
+        return true;
+    }
+
+    private function redirectToStudentDocuments(?string $requirementKey = null, int $defaultStage = 1): void
+    {
+        $stage = $defaultStage;
+        if ($requirementKey !== null && $requirementKey !== '') {
+            $resolvedStage = (new Student($this->db))->requirementStage($requirementKey);
+            if ($resolvedStage > 0) {
+                $stage = $resolvedStage;
+            }
+        }
+        redirect(route_url('student.documents', ['stage' => $stage]));
     }
 }

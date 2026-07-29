@@ -185,14 +185,18 @@ function route_url(string $route, array $params = []): string
         'coordinator.evaluations' => 'index.php?r=coordinator_evaluations',
         'coordinator.student_final' => 'index.php?r=coordinator_student_final',
         'student.dashboard' => 'index.php?r=student',
-        'student.portal' => 'index.php?r=student_documents',
+        'student.portal' => 'index.php?r=student_documents&stage=1',
         'student.records' => 'index.php?r=student_records',
         'student.reports.upload' => 'index.php?r=student_records',
         'student.timeline' => 'index.php?r=student_timeline',
         'student.documents' => 'index.php?r=student_documents',
+        'student.documents.other' => 'index.php?r=student_documents_other',
         'student.settings' => 'index.php?r=student_settings',
         'student.evaluation' => 'index.php?r=student_evaluation',
         'student.documents.final' => 'index.php?r=student_documents_final',
+        'student_documents' => 'index.php?r=student_documents',
+        'student_documents_final' => 'index.php?r=student_documents_final',
+        'student_documents_other' => 'index.php?r=student_documents_other',
         'student.profile' => 'index.php?r=student_profile',
         'student.password.edit' => 'index.php?r=student_password',
         'student.chat' => 'index.php?r=chat',
@@ -281,6 +285,43 @@ function student_profile_photo_url(?array $student): string
 function partner_profile_photo_url(?array $company): string
 {
     return profile_photo_url($company);
+}
+
+function requirement_card_icon(string $requirementKey): string
+{
+    $svg = 'class="req-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+    $svgFilled = 'class="req-icon-svg req-icon-svg--filled" viewBox="0 0 24 24" aria-hidden="true"';
+    $icons = [
+        'cor' => '<svg ' . $svgFilled . '><rect x="2" y="4.5" width="20" height="11.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="4" y="7" width="10.5" height="1.25" rx="0.62" fill="currentColor"/><rect x="4" y="9.1" width="7.5" height="1.25" rx="0.62" fill="currentColor"/><rect x="4" y="11.2" width="5.5" height="1.25" rx="0.62" fill="currentColor"/><path d="M4.2 13.5c.8-.5 1.3-.5 2.1 0 .8.5 1.3.5 2.1 0" fill="none" stroke="currentColor" stroke-width=".9" stroke-linecap="round"/><path fill="currentColor" fill-rule="evenodd" d="M17.5 9.8a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm0 1.4a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2z"/><path fill="currentColor" d="M16 15.5 15 18.2 16.5 16.8 18 18.2 17 15.5z"/></svg>',
+        'cv' => '<svg ' . $svgFilled . '><rect x="6.5" y="2" width="11" height="20" rx="0.6" fill="none" stroke="currentColor" stroke-width="1.35"/><path fill="currentColor" d="M12 3.8C9.8 3.8 8.5 5.2 8.5 6.8v1h7V6.8C15.5 5.2 14.2 3.8 12 3.8z"/><path fill="currentColor" d="M8.8 10.2c-.3.7-.5 1.5-.5 2.3h1.8c.1-.9.2-1.6.4-2.3H8.8z"/><path fill="currentColor" d="M15.2 10.2c.3.7.5 1.5.5 2.3H14c-.1-.9-.2-1.6-.4-2.3h1.6z"/><path fill="none" stroke="currentColor" stroke-width="1.1" d="M9.8 7.5c0 1.2.9 2.2 2.2 2.2s2.2-1 2.2-2.2"/><path fill="none" stroke="currentColor" stroke-width=".85" d="M10.2 11.5c.7.4 1.9.4 2.6 0"/><rect x="8" y="14.3" width="3.8" height="1.15" rx=".58" fill="currentColor"/><rect x="12.2" y="14.3" width="3.8" height="1.15" rx=".58" fill="currentColor"/><rect x="8" y="16.3" width="8" height="1.15" rx=".58" fill="currentColor"/><rect x="8" y="18.3" width="8" height="1.15" rx=".58" fill="currentColor"/></svg>',
+        'philhealth' => '<svg ' . $svg . '><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M12 5v6"/><path d="M9 8h6"/></svg>',
+        'vaccine_card' => '<svg ' . $svg . '><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 3"/></svg>',
+        'guardian_consent' => '<svg class="req-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="7.8" cy="6.5" r="3.6"/><path d="M4.5 17.5a4.8 4.8 0 0 1 6.6 0"/><circle cx="15.2" cy="9.5" r="2.4"/><path d="M13 17.5a3.5 3.5 0 0 1 4.4 0"/></svg>',
+        'guardian_id' => '<svg ' . $svgFilled . '><rect x="2" y="5.5" width="20" height="13" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="4" y="7.5" width="11" height="1.4" rx=".7" fill="currentColor"/><rect x="16.5" y="7.5" width="3.5" height="1.4" rx=".7" fill="currentColor"/><ellipse cx="8.5" cy="10.8" rx="1.9" ry="2.1" fill="currentColor"/><path fill="currentColor" d="M6.5 9.2c0-.9.7-1.6 1.6-1.6.3 0 .6.1.9.3.2-.5.7-.9 1.3-.9.8 0 1.5.6 1.5 1.4"/><path fill="currentColor" d="M5.5 17.5c0-2.8 1.1-4.5 3-4.5s3 1.7 3 4.5"/><rect x="11.5" y="11" width="9" height="1.2" rx=".6" fill="currentColor"/><rect x="11.5" y="13.2" width="5.5" height="1.2" rx=".6" fill="currentColor"/><rect x="17.5" y="13.2" width="3" height="1.2" rx=".6" fill="currentColor"/><rect x="11.5" y="15.4" width="9" height="1.2" rx=".6" fill="currentColor"/></svg>',
+        'endorsement_letter' => '<svg ' . $svg . '><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="m16 17 2 2 4-4"/></svg>',
+        'recommendation_letter' => '<svg ' . $svg . '><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="m16 17 2 2 4-4"/></svg>',
+        'moa_mou' => '<svg ' . $svg . '><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 14 2 2 4-4"/></svg>',
+        'dtr_document' => '<svg ' . $svg . '><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/></svg>',
+        'supervisor_id' => '<svg ' . $svg . '><rect width="20" height="14" x="2" y="5" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M8 14v1"/><path d="M14 10h4"/><path d="M14 14h2"/></svg>',
+        'confidentiality_agreement' => '<svg ' . $svg . '><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>',
+        'acceptance_form' => '<svg ' . $svg . '><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 14 2 2 4-4"/></svg>',
+        'company_profile_doc' => '<svg ' . $svg . '><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/></svg>',
+        'job_description_doc' => '<svg ' . $svg . '><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 13h.01"/></svg>',
+        'weekly_accomplishment' => '<svg ' . $svg . '><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h4"/><path d="M8 18h.01"/><path d="M12 18h4"/></svg>',
+        'summary_accomplishment' => '<svg ' . $svg . '><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>',
+        'personal_observation_doc' => '<svg ' . $svg . '><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="m16 17 2 2 4-4"/></svg>',
+        'evaluation_form' => '<svg ' . $svg . '><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>',
+        'coc' => '<svg ' . $svg . '><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>',
+        'industry_partner_evaluation' => '<svg ' . $svg . '><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/></svg>',
+        'coordinator_evaluation' => '<svg ' . $svg . '><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    ];
+
+    return $icons[$requirementKey] ?? '<svg ' . $svg . '><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>';
+}
+
+function requirement_card_icon_class(string $requirementKey): string
+{
+    return 'requirement-doc-icon';
 }
 
 function profile_photo_url(?array $record): string
@@ -553,6 +594,80 @@ function enrollment_hours_complete(?array $enrollment, float $approvedHours): bo
     return $approvedHours >= $required;
 }
 
+function student_stage3_legacy_doc_aliases(): array
+{
+    return [
+        'job_description' => 'job_description_doc',
+        'company_profile' => 'company_profile_doc',
+        'personal_observation' => 'personal_observation_doc',
+    ];
+}
+
+/**
+ * @return array<string, array<string, mixed>>
+ */
+function student_stage3_upload_rows(int $studentId): array
+{
+    if ($studentId <= 0) {
+        return [];
+    }
+    $rows = (new Student(db()))->stageRequirements($studentId, 3);
+
+    return array_filter($rows, static fn ($row) => ($row['kind'] ?? 'upload') !== 'evaluation');
+}
+
+/**
+ * @return array{total:int,uploaded:int,approved:int,done:bool}
+ */
+function student_stage3_upload_progress(int $studentId): array
+{
+    $rows = student_stage3_upload_rows($studentId);
+    $total = count($rows);
+    $approved = 0;
+    $uploaded = 0;
+    foreach ($rows as $row) {
+        if (!empty($row['file_path'])) {
+            $uploaded++;
+        }
+        if (!empty($row['file_path']) && ($row['status'] ?? '') === 'approved') {
+            $approved++;
+        }
+    }
+
+    return [
+        'total' => $total,
+        'uploaded' => $uploaded,
+        'approved' => $approved,
+        'done' => $total > 0 && $approved === $total,
+    ];
+}
+
+function student_stage3_upload_documents_done(int $studentId): bool
+{
+    return student_stage3_upload_progress($studentId)['done'];
+}
+
+/**
+ * @return array<int, bool>
+ */
+function student_document_stage_access(int $studentId): array
+{
+    if ($studentId <= 0) {
+        return [1 => false, 2 => false, 3 => false];
+    }
+
+    return (new Student(db()))->documentStageAccess($studentId);
+}
+
+function student_highest_accessible_document_stage(int $studentId): int
+{
+    if ($studentId <= 0) {
+        return 1;
+    }
+
+    return (new Student(db()))->highestAccessibleDocumentStage($studentId);
+}
+
 function enrollment_allows_final_requirements(?array $enrollment, float $approvedHours): bool
 {
     if (!$enrollment) {
@@ -614,7 +729,7 @@ function student_action_alerts(array $context): array
             'type' => 'danger',
             'title' => 'Pre-deployment document rejected',
             'message' => count($rejectedRequirements) . ' requirement file(s) need correction before coordinator review can continue.',
-            'route' => route_url('student.documents'),
+            'route' => route_url('student.documents', ['stage' => 1]),
             'label' => 'Fix documents',
             'count' => count($rejectedRequirements),
         ];
@@ -622,8 +737,8 @@ function student_action_alerts(array $context): array
         $alerts[] = [
             'type' => 'warning',
             'title' => 'Document revision required',
-            'message' => 'Replace the rejected pre-deployment file and wait for coordinator review.',
-            'route' => route_url('student.documents'),
+            'message' => 'Replace the rejected pre-deployment file. It will return to coordinator review automatically after upload.',
+            'route' => route_url('student.documents', ['stage' => 1]),
             'label' => 'Review documents',
             'count' => 1,
         ];
@@ -687,10 +802,10 @@ function student_action_alerts(array $context): array
         if ($pendingFinalItems > 0) {
             $alerts[] = [
                 'type' => 'warning',
-                'title' => 'Complete final OJT requirements',
-                'message' => 'Your practicum hours are complete or your end date has arrived. Finish your final documents and self-evaluations.',
-                'route' => route_url('student.documents.final'),
-                'label' => 'Open final requirements',
+                'title' => 'Complete 3rd to Comply items',
+                'message' => 'Your practicum hours are complete or your end date has arrived. Finish your remaining documents and self-evaluations in 3rd to Comply.',
+                'route' => route_url('student.documents', ['stage' => 3]),
+                'label' => 'Open 3rd to Comply',
                 'count' => $pendingFinalItems,
             ];
         }
@@ -711,14 +826,9 @@ function student_ojt_completion_status(array $context): array
     $studentEvaluation = $context['studentEvaluation'] ?? [];
     $hteEvaluation = $context['hteEvaluation'] ?? null;
 
+    $studentId = (int)($enrollment['student_id'] ?? 0);
     $hoursDone = enrollment_hours_complete($enrollment, $approvedHours);
-    $finalDocsDone = true;
-    foreach (array_keys(FinalRequirement::SECTIONS) as $section) {
-        if ((string)($finalRequirement[$section . '_status'] ?? 'pending') !== 'submitted') {
-            $finalDocsDone = false;
-            break;
-        }
-    }
+    $finalDocsDone = student_stage3_upload_documents_done($studentId);
     $selfEvalDone = true;
     foreach (array_keys(FinalRequirement::EVALUATION_SECTIONS) as $section) {
         if (StudentEvaluation::statusFor($studentEvaluation, $section) !== 'submitted') {
@@ -733,7 +843,7 @@ function student_ojt_completion_status(array $context): array
 
     $checklist = [
         ['key' => 'hours', 'label' => 'Required OJT hours approved', 'done' => $hoursDone],
-        ['key' => 'final_docs', 'label' => 'Final documents submitted', 'done' => $finalDocsDone],
+        ['key' => 'final_docs', 'label' => '3rd to Comply documents approved', 'done' => $finalDocsDone],
         ['key' => 'self_eval', 'label' => 'Self-evaluations completed', 'done' => $selfEvalDone],
         ['key' => 'hte_evaluation', 'label' => 'HTE final evaluation received', 'done' => $hteEvalDone],
     ];

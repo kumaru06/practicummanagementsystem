@@ -11,8 +11,12 @@ $roleLabels = [
     'coordinator' => 'OJT Coordinator',
     'partner' => 'Host Training Establishment',
 ];
-$flashSuccess = $flashSuccess ?? flash('success');
-$flashError = $flashError ?? flash('error');
+if (!isset($flashSuccess)) {
+    $flashSuccess = flash('success');
+}
+if (!isset($flashError)) {
+    $flashError = flash('error');
+}
 $portalPartialUrl = route_url('login', ['portal' => $selectedRole]);
 $forgotFormAction = route_url('forgot.password');
 $leadMessages = [

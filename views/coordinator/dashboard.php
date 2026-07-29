@@ -5,21 +5,6 @@
     <div class="card metric"><svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2Zm0 12c-5.33 0-8 2.67-8 4v2h16v-2c0-1.33-2.67-4-8-4Z"/></svg><div><strong><?= (int)$stats['pending'] ?></strong><span>Pending</span></div></div>
 </div>
 
-<div class="grid chart-grid">
-    <section class="card chart-card">
-        <div class="chart-header">
-            <h2 class="chart-title">Monthly Enrollment Trends</h2>
-        </div>
-        <canvas id="monthlyChart"></canvas>
-    </section>
-    <section class="card chart-card chart-card--status">
-        <div class="chart-header">
-            <h2 class="chart-title">OJT Status Distribution</h2>
-        </div>
-        <canvas id="statusChart"></canvas>
-    </section>
-</div>
-
 <section class="card chart-card">
     <div class="chart-header">
         <h2 class="chart-title">Completion Rate by Course</h2>

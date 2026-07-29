@@ -191,6 +191,21 @@ class StudentRegistrationRequest
         return $stmt->fetch() ?: null;
     }
 
+    public function isSelfRegisteredUser(int $userId): bool
+    {
+        $this->ensureTable();
+        if ($userId <= 0) {
+            return false;
+        }
+        $stmt = $this->db->prepare(
+            'SELECT id FROM student_registration_requests
+             WHERE user_id = ? AND email_verified_at IS NOT NULL
+             LIMIT 1'
+        );
+        $stmt->execute([$userId]);
+        return (bool)$stmt->fetchColumn();
+    }
+
     public function findByVerificationToken(string $token): ?array
     {
         $this->ensureTable();
@@ -274,9 +289,64 @@ class StudentRegistrationRequest
              FROM student_registration_requests r
              LEFT JOIN programs p ON p.id = r.program_id
              WHERE r.status IN ('pending_approval', 'pending')
+               AND (
+                    r.user_id IS NULL
+                    OR EXISTS (SELECT 1 FROM users u WHERE u.id = r.user_id)
+               )
              ORDER BY COALESCE(r.email_verified_at, r.created_at) DESC"
         );
         return $stmt->fetchAll();
+    }
+
+    public function allIncomplete(): array
+    {
+        $this->ensureTable();
+        $this->purgeExpiredUnverified();
+        $stmt = $this->db->query(
+            "SELECT r.*, p.code AS program_code, p.name AS program_name
+             FROM student_registration_requests r
+             LEFT JOIN programs p ON p.id = r.program_id
+             WHERE (
+                    r.status = 'pending_verification'
+                    AND r.verification_expires_at IS NOT NULL
+                    AND r.verification_expires_at < NOW()
+                )
+                OR (
+                    r.status IN ('pending_approval', 'pending')
+                    AND (
+                        r.user_id IS NULL
+                        OR NOT EXISTS (SELECT 1 FROM users u WHERE u.id = r.user_id)
+                    )
+                )
+             ORDER BY r.created_at DESC"
+        );
+        return $stmt->fetchAll();
+    }
+
+    public function canDeleteIncomplete(array $request): bool
+    {
+        $status = (string)($request['status'] ?? '');
+        if ($status === 'pending_verification') {
+            return !empty($request['verification_expires_at'])
+                && strtotime((string)$request['verification_expires_at']) < time();
+        }
+        if (!in_array($status, ['pending_approval', 'pending'], true)) {
+            return false;
+        }
+        $userId = (int)($request['user_id'] ?? 0);
+        return $userId <= 0 || !(new User($this->db))->find($userId);
+    }
+
+    public function incompleteStatusLabel(array $request): string
+    {
+        $status = (string)($request['status'] ?? '');
+        if ($status === 'pending_verification') {
+            return 'Verification expired';
+        }
+        if (in_array($status, ['pending_approval', 'pending'], true)) {
+            return 'Orphaned request';
+        }
+        return 'Incomplete';
     }
 
     public function pendingCount(): int
@@ -284,7 +354,12 @@ class StudentRegistrationRequest
         $this->ensureTable();
         $this->purgeExpiredUnverified();
         return (int)$this->db->query(
-            "SELECT COUNT(*) FROM student_registration_requests WHERE status IN ('pending_approval', 'pending')"
+            "SELECT COUNT(*) FROM student_registration_requests r
+             WHERE r.status IN ('pending_approval', 'pending')
+               AND (
+                    r.user_id IS NULL
+                    OR EXISTS (SELECT 1 FROM users u WHERE u.id = r.user_id)
+               )"
         )->fetchColumn();
     }
 

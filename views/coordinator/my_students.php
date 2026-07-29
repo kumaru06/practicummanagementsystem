@@ -10,7 +10,10 @@ $coordOjtStatus = static function (array $student): array {
     return ['key' => 'not_started', 'label' => 'Not Yet Started', 'hint' => 'No start date yet', 'class' => 'not-started'];
 };
 
-$coordPredeploymentDisplay = static function (string $status): array {
+$coordPredeploymentDisplay = static function (string $status, bool $hasPendingStage1Reviews = false): array {
+    if ($hasPendingStage1Reviews) {
+        return ['label' => 'Review Needed', 'class' => 'submitted', 'reviewable' => true];
+    }
     $completedStates = ['forwarded', 'accepted', 'orientation_scheduled', 'orientation_completed'];
     if (in_array($status, $completedStates, true)) {
         return ['label' => 'Completed', 'class' => 'completed', 'reviewable' => false];
@@ -155,8 +158,15 @@ ksort($termOptions);
                             $partnerEvalStatus = StudentEvaluation::statusFor($evalRow, 'industry_partner');
                             $coordEvalStatus = StudentEvaluation::statusFor($evalRow, 'coordinator');
                             $evalDone = ($partnerEvalStatus === 'submitted' ? 1 : 0) + ($coordEvalStatus === 'submitted' ? 1 : 0);
+                            $hasPendingStage1 = false;
+                            foreach ($studentRequirements as $pendingReq) {
+                                if (!empty($pendingReq['file_path']) && ($pendingReq['status'] ?? '') === 'uploaded') {
+                                    $hasPendingStage1 = true;
+                                    break;
+                                }
+                            }
                             $ojtStatus = $coordOjtStatus($s);
-                            $predeployment = $coordPredeploymentDisplay((string)($s['predeployment_status'] ?? 'not_submitted'));
+                            $predeployment = $coordPredeploymentDisplay((string)($s['predeployment_status'] ?? 'not_submitted'), $hasPendingStage1);
                             $ojtEndDate = $s['projected_end_date'] ?? $s['end_date'] ?? null;
                             $termLabel = trim((string)($s['academic_term'] ?? ''));
                         ?>
@@ -315,8 +325,18 @@ ksort($termOptions);
 </div>
 
 <?php foreach ($students as $s): ?>
-    <?php $studentRequirements = $requirementsByStudent[(int)$s['id']] ?? []; ?>
-    <?php if (in_array($s['predeployment_status'] ?? '', ['submitted', 'approved'], true)): ?>
+    <?php
+        $studentRequirements = $requirementsByStudent[(int)$s['id']] ?? [];
+        $hasPendingStage1 = false;
+        foreach ($studentRequirements as $pendingReq) {
+            if (!empty($pendingReq['file_path']) && ($pendingReq['status'] ?? '') === 'uploaded') {
+                $hasPendingStage1 = true;
+                break;
+            }
+        }
+        $predeployment = $coordPredeploymentDisplay((string)($s['predeployment_status'] ?? 'not_submitted'), $hasPendingStage1);
+    ?>
+    <?php if ($predeployment['reviewable']): ?>
         <div class="modal requirement-review-modal" id="reviewModal-<?= (int)$s['id'] ?>" data-student-id="<?= (int)$s['id'] ?>">
             <div class="modal-card requirement-review-modal-card">
                 <button class="modal-close requirement-review-modal-close" type="button" aria-label="Close review panel">&times;</button>
@@ -343,7 +363,7 @@ ksort($termOptions);
                                     <span class="badge <?= e($req['status'] ?? 'pending') ?>" data-req-status-badge><?= e($req['status'] ?? 'pending') ?></span>
                                 </div>
                                 <div class="requirement-review-file-row"><?= !empty($req['file_path']) ? '<a class="btn btn-small requirement-review-file" target="_blank" href="' . e($req['file_path']) . '">View File</a>' : '<span class="requirement-review-empty">No file uploaded</span>' ?></div>
-                                <?php if (!empty($req['file_path']) && ($s['predeployment_status'] ?? '') === 'submitted'): ?>
+                                <?php if (!empty($req['file_path']) && ($req['status'] ?? '') === 'uploaded'): ?>
                                     <div class="requirement-review-actions" data-review-actions>
                                         <form method="post" class="inline js-review-form" data-review-status="approved">
                                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">

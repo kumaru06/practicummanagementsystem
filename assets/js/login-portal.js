@@ -460,6 +460,7 @@ function initPortalLogin() {
         if (!targetRole) return;
 
         try {
+            clearAlert();
             await loadForgotContent(targetRole);
 
             document.title = 'Forgot Password - AMA Practicum System';
@@ -703,6 +704,10 @@ function initForgotPasswordShell(root = document) {
                         window.markLoginImagesUndraggable(forgotHost);
                     }
                     forgotHost.dataset.loaded = '1';
+                    document.querySelectorAll('.js-portal-alert').forEach(alertEl => {
+                        alertEl.textContent = '';
+                        alertEl.classList.add('is-hidden');
+                    });
                     initForgotPasswordShell(forgotHost);
                     return;
                 }

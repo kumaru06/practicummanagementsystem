@@ -1,12 +1,12 @@
-<div class="grid two">
-    <section class="card">
+<div class="grid two student-settings-page">
+    <section class="card student-settings-card">
         <div class="section-head"><div><h2>Account Settings</h2><p class="muted">Manage your password and profile information.</p></div></div>
         <div class="action-list account-settings-actions">
             <a class="btn btn-primary" href="<?= e(route_url('student.profile')) ?>">Edit Profile</a>
             <a class="btn" href="<?= e(route_url('student.password.edit')) ?>">Change Password</a>
         </div>
     </section>
-    <section class="card">
+    <section class="card student-settings-card">
         <h2>Profile Status</h2>
         <p><strong>Name:</strong> <?= e($student['name'] ?? '') ?></p>
         <p><strong>Student ID:</strong> <?= e($student['student_no'] ?? '') ?></p>

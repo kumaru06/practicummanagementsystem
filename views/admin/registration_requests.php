@@ -1,5 +1,6 @@
 <?php
 $pendingCount = count($requests ?? []);
+$incompleteCount = count($incompleteRequests ?? []);
 ?>
 <div class="reg-req-v2">
     <nav class="reg-req-breadcrumb" aria-label="Breadcrumb">
@@ -28,7 +29,7 @@ $pendingCount = count($requests ?? []);
                     <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg>
                 </div>
                 <p class="reg-req-empty-title">No pending registrations</p>
-                <p class="reg-req-empty-sub">New student account requests will appear here for approval.</p>
+                <p class="reg-req-empty-sub">New student account requests will appear here after the student verifies their email.</p>
             </div>
         <?php else: ?>
             <div class="reg-req-toolbar">
@@ -107,6 +108,80 @@ $pendingCount = count($requests ?? []);
                                             Review Request
                                         </button>
                                     </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    </section>
+
+    <section class="card reg-req-incomplete-card">
+        <div class="reg-req-card-head">
+            <div class="reg-req-card-copy">
+                <span class="reg-req-eyebrow">Cleanup</span>
+                <h2>Stuck Registrations</h2>
+                <p class="reg-req-card-desc">Only expired verifications and orphaned requests appear here. New sign-ups waiting for email verification are handled on the student side first.</p>
+            </div>
+            <?php if ($incompleteCount > 0): ?>
+                <div class="reg-req-pending-badge reg-req-pending-badge--muted" aria-live="polite">
+                    <strong><?= $incompleteCount ?></strong>
+                    <span>Stuck</span>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <?php if ($incompleteCount === 0): ?>
+            <div class="reg-req-empty reg-req-empty--compact">
+                <p class="reg-req-empty-title">No stuck registrations</p>
+                <p class="reg-req-empty-sub">Expired verifications and orphaned records that block email or USN reuse will appear here.</p>
+            </div>
+        <?php else: ?>
+            <div class="table-wrap reg-req-table-wrap">
+                <table class="data-table reg-req-table reg-req-incomplete-table no-row-details" data-no-tools data-no-enhance>
+                    <thead>
+                        <tr>
+                            <th class="reg-req-col-num">#</th>
+                            <th data-sort>Name</th>
+                            <th data-sort>USN</th>
+                            <th data-sort>Email</th>
+                            <th data-sort>Status</th>
+                            <th data-sort class="reg-req-col-submitted">Submitted</th>
+                            <th class="reg-req-col-action">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($incompleteRequests as $index => $request): ?>
+                            <?php
+                            $submittedAt = date('M d, Y g:i A', strtotime((string)$request['created_at']));
+                            $fullName = trim(($request['last_name'] ?? '') . ', ' . ($request['first_name'] ?? ''));
+                            $reqStatus = (string)($request['status'] ?? '');
+                            if ($reqStatus === 'pending_verification') {
+                                $statusLabel = 'Verification expired';
+                                $statusClass = 'is-unverified';
+                            } else {
+                                $statusLabel = 'Orphaned request';
+                                $statusClass = 'is-orphaned';
+                            }
+                            ?>
+                            <tr class="reg-req-row reg-req-row--incomplete">
+                                <td class="reg-req-col-num"><?= $index + 1 ?></td>
+                                <td class="reg-req-name"><?= e($fullName) ?></td>
+                                <td class="reg-req-usn"><?= e($request['student_no']) ?></td>
+                                <td class="reg-req-email"><?= e($request['email']) ?></td>
+                                <td><span class="reg-req-status-badge <?= e($statusClass) ?>"><?= e($statusLabel) ?></span></td>
+                                <td class="reg-req-submitted"><?= e($submittedAt) ?></td>
+                                <td class="reg-req-col-action">
+                                    <form method="post" class="reg-req-delete-form" data-reg-incomplete-delete>
+                                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                        <input type="hidden" name="action" value="admin_delete_registration_request">
+                                        <input type="hidden" name="request_id" value="<?= (int)$request['id'] ?>">
+                                        <button class="reg-req-delete-btn" type="submit">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12l-1 14H7L6 7Zm3-3h6l1 2H8l1-2Z"/></svg>
+                                            Delete
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

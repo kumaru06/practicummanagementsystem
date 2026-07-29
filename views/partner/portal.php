@@ -42,35 +42,6 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
 }
 ?>
 <div class="partner-portal-v2<?= $selected ? ' has-selection' : '' ?>">
-    <section class="pp-hero">
-        <div class="pp-hero-glow pp-hero-glow--one" aria-hidden="true"></div>
-        <div class="pp-hero-mesh" aria-hidden="true"></div>
-        <div class="pp-hero-copy">
-            <span class="pp-hero-kicker">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg>
-                Host Training Establishment Portal
-            </span>
-            <h2><?= e($company['name'] ?? 'Host Training Establishment') ?></h2>
-            <p>Review forwarded documents, schedule orientation, and manage OJT evaluations.</p>
-        </div>
-        <div class="pp-hero-actions">
-            <?php if (!empty($company['moa_mou_file'])): ?>
-                <a class="pp-hero-btn" target="_blank" href="<?= e(asset($company['moa_mou_file'])) ?>">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
-                    View MOA/MOU
-                </a>
-            <?php else: ?>
-                <span class="pp-hero-muted">No MOA/MOU uploaded</span>
-            <?php endif; ?>
-            <?php if (count($actionStudents) > 0): ?>
-                <span class="pp-hero-alert">
-                    <span class="pp-hero-alert-dot" aria-hidden="true"></span>
-                    <?= count($actionStudents) ?> student<?= count($actionStudents) === 1 ? '' : 's' ?> need<?= count($actionStudents) === 1 ? 's' : '' ?> action
-                </span>
-            <?php endif; ?>
-        </div>
-    </section>
-
     <div class="pp-layout">
         <aside class="pp-roster" aria-label="Student roster">
             <div class="pp-roster-head">
@@ -78,6 +49,9 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                     <h2>Deployed Students</h2>
                     <p><?= count($students ?? []) ?> assigned to your organization</p>
                 </div>
+                <?php if (!empty($company['moa_mou_file'])): ?>
+                    <a class="pp-roster-moa" target="_blank" href="<?= e(asset($company['moa_mou_file'])) ?>">MOA/MOU</a>
+                <?php endif; ?>
             </div>
 
             <div class="pp-roster-filters" role="tablist" aria-label="Filter students">
@@ -151,27 +125,33 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                         <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m12.5 15-5-5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         All Students
                     </a>
-                    <div class="pp-student-identity">
+                    <div class="pp-student-top">
                         <span class="pp-student-avatar" aria-hidden="true"><?= e($selInitial) ?></span>
-                        <div>
-                            <h2><?= e($selected['student_name']) ?></h2>
-                            <p><?= e($selected['course'] . ' ' . $selected['year_level']) ?>  ·  <?= e($selected['student_no']) ?>  ·  <?= e($selected['student_email']) ?></p>
+                        <div class="pp-student-meta">
+                            <div class="pp-student-title-row">
+                                <h2><?= e($selected['student_name']) ?></h2>
+                                <span class="pp-chip <?= e($selMeta['chip']) ?> pp-chip--lg"><?= e($selMeta['label']) ?></span>
+                            </div>
+                            <p><?= e($selected['course'] . ' ' . $selected['year_level']) ?> · <?= e($selected['student_no']) ?> · <?= e($selected['student_email']) ?></p>
                         </div>
-                        <span class="pp-chip <?= e($selMeta['chip']) ?> pp-chip--lg"><?= e($selMeta['label']) ?></span>
                     </div>
                     <?php if ($selMeta['action']): ?>
                         <div class="pp-action-banner">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
                             <span><strong>Action required:</strong> <?= e($selMeta['hint']) ?></span>
                         </div>
                     <?php endif; ?>
                     <nav class="pp-pipeline" aria-label="Student progress">
                         <?php foreach ($pipelineLabels as $i => $label): ?>
-                            <?php
-                            $state = $i < $currentPipeline ? 'is-done' : ($i === $currentPipeline ? 'is-current' : '');
-                            ?>
+                            <?php $state = $i < $currentPipeline ? 'is-done' : ($i === $currentPipeline ? 'is-current' : ''); ?>
                             <div class="pp-pipeline-step <?= e($state) ?>">
-                                <span class="pp-pipeline-dot"><?= $i < $currentPipeline ? 'âœ“' : ($i + 1) ?></span>
+                                <span class="pp-pipeline-dot">
+                                    <?php if ($i < $currentPipeline): ?>
+                                        <svg class="pp-pipeline-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                                    <?php else: ?>
+                                        <?= $i + 1 ?>
+                                    <?php endif; ?>
+                                </span>
                                 <span class="pp-pipeline-label"><?= e($label) ?></span>
                             </div>
                             <?php if ($i < count($pipelineLabels) - 1): ?>
@@ -181,11 +161,11 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                     </nav>
                 </header>
 
-                <div class="pp-workspace-grid">
+                <div class="pp-workspace-sections">
                     <section class="pp-panel pp-panel--docs">
                         <div class="pp-panel-head">
                             <div class="pp-panel-icon pp-panel-icon--docs" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z"/><path d="M14 2v6h6"/></svg>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
                             </div>
                             <div>
                                 <h3>Forwarded Documents</h3>
@@ -195,7 +175,7 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
 
                         <div class="pp-endorsement-card">
                             <span class="pp-endorsement-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></svg>
                             </span>
                             <div>
                                 <strong>Endorsement Letter</strong>
@@ -211,11 +191,12 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                             </div>
                             <?php foreach ($requirements as $req): ?>
                                 <div class="pp-docs-row">
-                                    <span class="pp-docs-name">
-                                        <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
-                                        <?= e($req['requirement_name']) ?>
+                                    <span class="pp-docs-icon"><?= requirement_card_icon((string)$req['requirement_key']) ?></span>
+                                    <span class="pp-docs-label"><?= e($req['requirement_name']) ?></span>
+                                    <span class="pp-docs-approved" aria-label="Approved">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
                                     </span>
-                                    <?= !empty($req['file_path']) ? '<a class="pp-doc-btn pp-doc-btn--ghost" target="_blank" href="' . e($req['file_path']) . '">View</a>' : '<span class="pp-muted"> - </span>' ?>
+                                    <?= !empty($req['file_path']) ? '<a class="pp-doc-btn pp-doc-btn--ghost" target="_blank" href="' . e($req['file_path']) . '">View</a>' : '<span class="pp-muted">—</span>' ?>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -230,11 +211,11 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                         <?php endif; ?>
                     </section>
 
-                    <div class="pp-workspace-stack">
+                    <div class="pp-workspace-duo">
                         <section class="pp-panel pp-panel--orient orientation-card">
                             <div class="pp-panel-head">
                                 <div class="pp-panel-icon pp-panel-icon--orient" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
                                 </div>
                                 <div>
                                     <h3>Orientation &amp; OJT Start</h3>
@@ -262,7 +243,7 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                             <?php elseif ($selected['predeployment_status'] === 'orientation_scheduled'): ?>
                                 <div class="pp-orient-locked">
                                     <div class="pp-orient-badge">
-                                        <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
                                         Orientation Scheduled
                                     </div>
                                     <div class="pp-orient-field">
@@ -284,7 +265,7 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                             <?php elseif ($selected['predeployment_status'] === 'orientation_completed'): ?>
                                 <div class="ojt-completed-block">
                                     <div class="ojt-completed-header">
-                                        <div class="ojt-completed-icon"><svg viewBox="0 0 20 20" width="20" height="20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg></div>
+                                        <div class="ojt-completed-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
                                         <div>
                                             <strong>OJT is Active</strong>
                                             <small>Orientation completed - hours are now being tracked</small>
@@ -335,7 +316,7 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                             <section class="pp-panel pp-panel--start orientation-card ojt-start-card">
                                 <div class="pp-panel-head">
                                     <div class="pp-panel-icon pp-panel-icon--start" aria-hidden="true">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
                                     </div>
                                     <div>
                                         <h3>Complete Orientation &amp; Begin OJT</h3>
@@ -368,9 +349,8 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                             </section>
                         <?php endif; ?>
                     </div>
-                </div>
 
-                <div class="pp-workspace-bottom">
+                    <div class="pp-workspace-bottom">
                     <section class="pp-panel pp-panel--records">
                         <div class="pp-panel-head">
                             <h3><?= e($selected['student_name']) ?> - Time Records</h3>
@@ -421,6 +401,7 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                             </div>
                         <?php endif; ?>
                     </section>
+                </div>
                 </div>
 
             <?php else: ?>

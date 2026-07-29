@@ -19,7 +19,13 @@ body.role-student .user-chip-link {
 body.role-student .top-actions {
     flex: 0 1 auto !important;
     min-width: 0 !important;
-    max-width: min(520px, 56%) !important;
+    max-width: min(520px, 72%) !important;
+}
+@media (max-width: 720px) {
+    body.role-student .top-actions {
+        max-width: none !important;
+        flex: 0 0 auto !important;
+    }
 }
 body.role-student .app-user-identity--chip .app-user-identity__meta {
     max-width: 220px !important;
@@ -240,6 +246,27 @@ body.role-student .app-user-identity--chip .app-user-identity__meta small {
 @media (max-width: 980px) {
     .student-timeline-page .st-stats {
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+@media (max-width: 720px) {
+    .student-timeline-page {
+        gap: 12px !important;
+    }
+    .student-timeline-page .st-stats {
+        gap: 10px !important;
+        margin-bottom: 10px !important;
+    }
+    .student-timeline-page .st-stat-card {
+        padding: 12px 14px !important;
+    }
+    .student-timeline-page .st-box-head,
+    .student-timeline-page .st-filter-row {
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+    }
+    .student-timeline-page .st-filter,
+    .student-timeline-page .st-filter-btn {
+        min-height: 40px;
     }
 }
 @media (max-width: 560px) {

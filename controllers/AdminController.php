@@ -650,7 +650,8 @@ class AdminController extends BaseController
                 'student',
                 (int)current_user()['id'],
                 0,
-                $middleName !== '' ? $middleName : null
+                $middleName !== '' ? $middleName : null,
+                0
             );
             (new Student($this->db))->create(
                 $userId,
@@ -1251,8 +1252,30 @@ class AdminController extends BaseController
         $this->renderAppPage('admin/registration_requests', [
             'title' => 'Student Account Requests',
             'requests' => $model->allPendingApproval(),
+            'incompleteRequests' => $model->allIncomplete(),
             'coordinators' => (new User($this->db))->byRole('coordinator'),
         ]);
+    }
+
+    public function deleteRegistrationRequest(): void
+    {
+        require_role('admin');
+        $p = $this->post();
+        $requestId = (int)($p['request_id'] ?? 0);
+        $model = new StudentRegistrationRequest($this->db);
+        $request = $model->find($requestId);
+
+        try {
+            if (!$request || !$model->canDeleteIncomplete($request)) {
+                throw new RuntimeException('This registration cannot be deleted from here.');
+            }
+            $model->deleteRequest($requestId);
+            flash('success', 'Stuck registration removed. The student may register again using the same email or USN.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+
+        redirect('index.php?r=admin_registration_requests');
     }
 
     public function reviewRegistrationRequest(): void
@@ -1329,6 +1352,8 @@ class AdminController extends BaseController
                 );
             }
 
+            (new User($this->db))->setActive($userId, 1);
+
             (new Student($this->db))->create(
                 $userId,
                 $request['student_no'],
@@ -1340,7 +1365,7 @@ class AdminController extends BaseController
             );
             $model->markApproved($requestId, $coordinatorId, (int)current_user()['id']);
             $this->db->commit();
-            flash('success', 'Registration approved. The student now has full dashboard access.');
+            flash('success', 'Registration approved. The student can log in after their coordinator enrolls them in OJT.');
         } catch (Throwable $e) {
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();

@@ -103,6 +103,13 @@ if (($_GET['action'] ?? '') === 'read_notification') {
 }
 
 $freshUser = (new User(db()))->find((int)current_user()['id']);
+if ($freshUser
+    && ($freshUser['role'] ?? '') === 'student'
+    && (int)($freshUser['password_changed'] ?? 1) === 0
+    && (new StudentRegistrationRequest(db()))->isSelfRegisteredUser((int)$freshUser['id'])) {
+    db()->prepare('UPDATE users SET password_changed = 1 WHERE id = ?')->execute([(int)$freshUser['id']]);
+    $freshUser['password_changed'] = 1;
+}
 $_SESSION['user']['password_changed'] = (int)($freshUser['password_changed'] ?? 1);
 $_SESSION['user_id'] = (int)current_user()['id'];
 $_SESSION['role'] = (string)current_user()['role'];
@@ -157,6 +164,7 @@ if ($method === 'POST') {
         'admin/users/toggle' => 'admin_toggle_user',
         'admin/users/deactivate' => 'admin_deactivate_student',
         'admin/registration-requests/review' => 'admin_review_registration_request',
+        'admin/registration-requests/delete' => 'admin_delete_registration_request',
         'admin/password-reset-requests/review' => 'admin_review_password_reset_request',
         'admin/programs' => 'admin_save_program',
         'admin/programs/terms' => 'admin_save_term',
@@ -219,6 +227,7 @@ if ($method === 'POST') {
         'admin_toggle_user' => (new AdminController())->toggleUser(),
         'admin_deactivate_student' => (new AdminController())->deactivateStudent(),
         'admin_review_registration_request' => (new AdminController())->reviewRegistrationRequest(),
+        'admin_delete_registration_request' => (new AdminController())->deleteRegistrationRequest(),
         'admin_review_password_reset_request' => (new AdminController())->reviewPasswordResetRequest(),
         'coordinator_create_student' => (new CoordinatorController())->createStudent(),
         'coordinator_enroll_student' => (new CoordinatorController())->enrollStudent(),

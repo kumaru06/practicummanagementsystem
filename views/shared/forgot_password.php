@@ -11,8 +11,12 @@ $identifierLabels = [
     'partner' => 'HTE ID',
 ];
 $identifierLabel = $selectedRole ? ($identifierLabels[$selectedRole] ?? 'Account ID') : 'Account ID';
-$flashSuccess = $flashSuccess ?? flash('success');
-$flashError = $flashError ?? flash('error');
+if (!isset($flashSuccess)) {
+    $flashSuccess = flash('success');
+}
+if (!isset($flashError)) {
+    $flashError = flash('error');
+}
 ?>
 <!doctype html>
 <html lang="en">

@@ -115,6 +115,37 @@ class Enrollment
         return $grouped;
     }
 
+    public function studentProgressByCourseByCoordinator(int $coordinatorUserId): array
+    {
+        $stmt = $this->db->prepare('
+            SELECT s.course, s.student_no, u.name,
+                COALESCE((SELECT SUM(d.hours) FROM daily_time_records d WHERE d.student_id = e.student_id), 0) AS logged_hours,
+                e.required_hours,
+                LEAST(ROUND(
+                    COALESCE((SELECT SUM(d.hours) FROM daily_time_records d WHERE d.student_id = e.student_id), 0)
+                    / NULLIF(e.required_hours, 0) * 100, 1
+                ), 100) AS pct
+            FROM ojt_enrollments e
+            JOIN students s ON s.id = e.student_id
+            JOIN users u ON u.id = s.user_id
+            WHERE s.coordinator_id = ?
+            ORDER BY s.course, pct DESC
+        ');
+        $stmt->execute([$coordinatorUserId]);
+        $rows = $stmt->fetchAll();
+        $grouped = [];
+        foreach ($rows as $row) {
+            $grouped[$row['course']][] = [
+                'name'       => $row['name'],
+                'student_no' => $row['student_no'],
+                'logged'     => (float)$row['logged_hours'],
+                'required'   => (int)$row['required_hours'],
+                'pct'        => (float)$row['pct'],
+            ];
+        }
+        return $grouped;
+    }
+
     public function monthlyEnrollmentTrends(): array
     {
         return $this->db->query('SELECT DATE_FORMAT(created_at, "%Y-%m") label, COUNT(*) value FROM ojt_enrollments GROUP BY DATE_FORMAT(created_at, "%Y-%m") ORDER BY label')->fetchAll();

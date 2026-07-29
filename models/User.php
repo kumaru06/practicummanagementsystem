@@ -110,13 +110,17 @@ class User
 
         if ($portalRole === 'student') {
             $stmt = $this->db->prepare(
-                'SELECT u.*, s.student_no
+                'SELECT u.*, COALESCE(s.student_no, r.student_no) AS student_no
                  FROM users u
                  LEFT JOIN students s ON s.user_id = u.id
-                 WHERE u.role = "student" AND (u.email = ? OR s.student_no = ?)
+                 LEFT JOIN student_registration_requests r
+                    ON r.user_id = u.id
+                   AND r.status IN ("pending_approval", "pending", "approved")
+                 WHERE u.role = "student"
+                   AND (u.email = ? OR s.student_no = ? OR r.student_no = ?)
                  LIMIT 1'
             );
-            $stmt->execute([strtolower($identifier), $identifier]);
+            $stmt->execute([strtolower($identifier), $identifier, $identifier]);
             return hydrate_user_record($stmt->fetch() ?: null);
         }
 
@@ -153,7 +157,8 @@ class User
         string $role,
         ?int $createdBy = null,
         int $passwordChanged = 1,
-        ?string $middleName = null
+        ?string $middleName = null,
+        int $isActive = 1
     ): int {
         $this->ensureNamePartsSupport();
         [$firstName, $middleName, $lastName, $fullName] = $this->normalizeNameParts($firstName, $lastName, $middleName);
@@ -165,7 +170,7 @@ class User
         }
         $stmt = $this->db->prepare(
             'INSERT INTO users (first_name, middle_name, last_name, name, email, password_hash, role, created_by, is_active, password_changed)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)'
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $firstName,
@@ -176,6 +181,7 @@ class User
             password_hash($password, PASSWORD_DEFAULT),
             $role,
             $createdBy,
+            $isActive ? 1 : 0,
             $passwordChanged,
         ]);
         return (int)$this->db->lastInsertId();

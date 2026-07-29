@@ -1,19 +1,6 @@
 <?php
 $stats = $stats ?? ['total' => 0, 'pending' => 0, 'active' => 0, 'orientation' => 0, 'completed' => 0];
 $recentStudents = array_slice($students ?? [], 0, 5);
-$hour = (int)date('G');
-$greeting = match (true) {
-    $hour < 12 => 'Good morning',
-    $hour < 17 => 'Good afternoon',
-    default => 'Good evening',
-};
-$totalStudents = (int)($stats['total'] ?? 0);
-$completionRate = $totalStudents > 0
-    ? min(100, round(((int)($stats['completed'] ?? 0) / $totalStudents) * 100))
-    : 0;
-$ringRadius = 42;
-$ringCircumference = 2 * M_PI * $ringRadius;
-$ringOffset = $ringCircumference * (1 - ($completionRate / 100));
 
 $statusBadgeClass = static function (?string $status): string {
     $status = strtolower(trim((string)$status));
@@ -32,73 +19,6 @@ $workflowSteps = [
 ];
 ?>
 <div class="partner-dash-v2">
-    <section class="pd-hero">
-        <div class="pd-hero-glow pd-hero-glow--one" aria-hidden="true"></div>
-        <div class="pd-hero-glow pd-hero-glow--two" aria-hidden="true"></div>
-        <div class="pd-hero-mesh" aria-hidden="true"></div>
-
-        <div class="pd-hero-copy">
-            <span class="pd-hero-kicker">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg>
-                Host Training Establishment Workspace
-            </span>
-            <p class="pd-hero-date"><?= e(date('l, F j, Y')) ?></p>
-            <h2>
-                <span class="pd-hero-greeting"><?= e($greeting) ?>,</span>
-                <span class="pd-hero-name"><?= e($company['name'] ?? 'Host Training Establishment') ?></span>
-            </h2>
-            <p class="pd-hero-sub">A professional overview of assigned OJT students, orientation progress, and evaluation work.</p>
-            <div class="pd-hero-actions">
-                <a class="btn btn-primary pd-hero-cta" href="<?= e(route_url('partner.portal')) ?>">
-                    <span>Open Host Training Establishment Portal</span>
-                    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m7.5 5 5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </a>
-                <a class="btn btn-small pd-hero-ghost" href="<?= e(route_url('partner.submissions')) ?>">Review Submissions</a>
-            </div>
-        </div>
-
-        <aside class="pd-hero-panel" aria-label="Organization summary">
-            <div class="pd-hero-panel-head">
-                <div class="pd-hero-panel-brand">
-                    <span class="pd-hero-panel-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    </span>
-                    <div>
-                        <span class="pd-panel-label">Assigned Students</span>
-                        <strong><?= $totalStudents ?> <?= $totalStudents === 1 ? 'Student' : 'Students' ?></strong>
-                    </div>
-                </div>
-                <div class="pd-hero-ring" aria-hidden="true">
-                    <svg viewBox="0 0 100 100">
-                        <circle class="pd-ring-bg" cx="50" cy="50" r="<?= $ringRadius ?>"/>
-                        <circle class="pd-ring-value" cx="50" cy="50" r="<?= $ringRadius ?>" style="stroke-dasharray: <?= $ringCircumference ?>; stroke-dashoffset: <?= $ringOffset ?>"/>
-                    </svg>
-                    <div class="pd-hero-ring-label">
-                        <span class="pd-hero-ring-value"><?= (int)$completionRate ?></span><span class="pd-hero-ring-unit">%</span>
-                    </div>
-                </div>
-            </div>
-            <div class="pd-hero-panel-stats">
-                <div class="pd-panel-stat">
-                    <span>Active OJT</span>
-                    <strong><?= (int)$stats['active'] ?></strong>
-                </div>
-                <div class="pd-panel-stat">
-                    <span>Orientation</span>
-                    <strong><?= (int)$stats['orientation'] ?></strong>
-                </div>
-                <div class="pd-panel-stat">
-                    <span>Completed</span>
-                    <strong><?= (int)$stats['completed'] ?></strong>
-                </div>
-            </div>
-            <div class="pd-progress-track" role="progressbar" aria-valuenow="<?= (int)$completionRate ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Completion rate">
-                <span style="width: <?= (int)$completionRate ?>%"></span>
-            </div>
-            <p class="pd-progress-caption">Completion rate across all assigned students</p>
-        </aside>
-    </section>
-
     <section class="pd-kpi-grid" aria-label="Key metrics">
         <article class="pd-stat-card pd-stat-card--total">
             <div class="pd-stat-icon" aria-hidden="true">
@@ -112,7 +32,7 @@ $workflowSteps = [
         </article>
         <article class="pd-stat-card pd-stat-card--pending">
             <div class="pd-stat-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/></svg>
             </div>
             <div class="pd-stat-body">
                 <span class="pd-stat-label">Pending</span>

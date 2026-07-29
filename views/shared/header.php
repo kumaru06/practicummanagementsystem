@@ -16,7 +16,16 @@ $profileRoute = match ($user['role'] ?? '') {
     default => '',
 };
 $studentProfileRoute = ($user['role'] ?? '') === 'student' ? $profileRoute : '';
-$sidebarCollapsed = isset($_COOKIE['sidebarCollapsed']) && $_COOKIE['sidebarCollapsed'] === '1';
+$studentNavLocked = false;
+$studentNavReveal = false;
+if (($user['role'] ?? '') === 'student') {
+    $studentNavLocked = (int)($user['password_changed'] ?? 1) === 0 || empty($studentProfileCompleted);
+    if (!$studentNavLocked && !empty($_SESSION['student_nav_reveal'])) {
+        $studentNavReveal = true;
+        unset($_SESSION['student_nav_reveal']);
+    }
+}
+$sidebarCollapsed = !$studentNavLocked && isset($_COOKIE['sidebarCollapsed']) && $_COOKIE['sidebarCollapsed'] === '1';
 ?>
 <!doctype html>
 <html lang="en"<?= $sidebarCollapsed ? ' class="is-sidebar-collapsed-init"' : '' ?>>
@@ -41,10 +50,10 @@ $sidebarCollapsed = isset($_COOKIE['sidebarCollapsed']) && $_COOKIE['sidebarColl
     </script>
     <link rel="stylesheet" href="<?= e(asset_url('assets/css/style.css')) ?>&t=<?= time() ?>">
 </head>
-<body class="app-page role-<?= e($user['role'] ?? 'guest') ?><?= $sidebarCollapsed ? ' sidebar-collapsed' : '' ?>" data-app-base="<?= e(app_base_path()) ?>" data-sidebar-collapsed="<?= $sidebarCollapsed ? '1' : '0' ?>">
+<body class="app-page role-<?= e($user['role'] ?? 'guest') ?><?= $sidebarCollapsed ? ' sidebar-collapsed' : '' ?><?= $studentNavLocked ? ' student-onboarding' : '' ?><?= $studentNavReveal ? ' student-nav-reveal' : '' ?>" data-app-base="<?= e(app_base_path()) ?>" data-sidebar-collapsed="<?= $sidebarCollapsed ? '1' : '0' ?>" data-student-nav-reveal="<?= $studentNavReveal ? '1' : '0' ?>">
 <script>try{if((localStorage.getItem('sidebarCollapsed')==='1'||document.body.dataset.sidebarCollapsed==='1')&&window.matchMedia('(min-width: 721px)').matches){document.body.classList.add('sidebar-collapsed');localStorage.setItem('sidebarCollapsed','1');}}catch(e){}</script>
 <div class="app-shell">
-    <aside class="sidebar">
+    <aside class="sidebar<?= $studentNavLocked ? ' sidebar--onboarding' : '' ?><?= $studentNavReveal ? ' sidebar--nav-reveal' : '' ?>">
         <button class="sidebar-toggle" type="button" aria-label="Collapse sidebar"><svg viewBox="0 0 24 24"><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4L10.8 12l4.6-4.6ZM20 4h-2v16h2V4Z"/></svg></button>
         <div class="brand">
             <span class="brand-mark">
@@ -91,8 +100,18 @@ $sidebarCollapsed = isset($_COOKIE['sidebarCollapsed']) && $_COOKIE['sidebarColl
                 <a class="nav-link <?= $currentRoute === 'student_reports' ? 'active' : '' ?>" href="index.php?r=student_reports"><svg viewBox="0 0 24 24"><path d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm8 1.5V8h3.5L13 4.5ZM8 13h2v5H8v-5Zm3.5-3h2v8h-2v-8ZM15 15h2v3h-2v-3Z"/></svg><span class="nav-link-label nav-link-label--full">Reports</span><span class="nav-link-label nav-link-label--short" aria-hidden="true">Reports</span></a>
                 <a class="nav-link <?= $currentRoute === 'student_timeline' ? 'active' : '' ?>" href="index.php?r=student_timeline"><svg viewBox="0 0 24 24"><path d="M7 3a2 2 0 0 1 2 2v1h6V5a2 2 0 1 1 4 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm0 5v11h10V8H7Zm2 2h6v2H9v-2Zm0 4h4v2H9v-2Z"/></svg><span class="nav-link-label nav-link-label--full">Activity Timeline</span><span class="nav-link-label nav-link-label--short" aria-hidden="true">Timeline</span></a>
 <?php
-                $docRoutes = ['student_documents', 'student_documents_final', 'student_documents_other'];
+                $docRoutes = ['student_documents', 'student_documents_other'];
                 $docGroupOpen = in_array($currentRoute, $docRoutes, true);
+                $docStage = $currentRoute === 'student_documents' ? (string)($_GET['stage'] ?? '1') : '';
+                $headerStudent = $student ?? $studentRecord ?? null;
+                $docStageAccess = $headerStudent
+                    ? student_document_stage_access((int)$headerStudent['id'])
+                    : [1 => true, 2 => false, 3 => false];
+                $docStageLinks = [
+                    1 => ['label' => '1st to Comply', 'href' => 'index.php?r=student_documents&amp;stage=1', 'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm-3 15-3-3 1.4-1.4L11 14.2l4.6-4.6L17 11l-6 6Z"/></svg>'],
+                    2 => ['label' => '2nd to Comply', 'href' => 'index.php?r=student_documents&amp;stage=2', 'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm-9 4h7v2h-7V8Zm0 4h7v2h-7v-2ZM6 8h3v3H6V8Zm0 5h3v3H6v-3Z"/></svg>'],
+                    3 => ['label' => '3rd to Comply', 'href' => 'index.php?r=student_documents&amp;stage=3', 'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm-2 14-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8Z"/></svg>'],
+                ];
                 ?>
                 <div class="nav-group nav-group--student-docs <?= $docGroupOpen ? 'nav-group--active open' : '' ?>">
                     <button class="nav-group-toggle" type="button" aria-expanded="false" aria-haspopup="true">
@@ -102,8 +121,17 @@ $sidebarCollapsed = isset($_COOKIE['sidebarCollapsed']) && $_COOKIE['sidebarColl
                         <svg class="chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
                     </button>
                     <div class="nav-group-items" role="menu">
-                        <a class="nav-link nav-sub student-docs-sheet-item <?= $currentRoute === 'student_documents' ? 'active' : '' ?>" href="index.php?r=student_documents" role="menuitem"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z"/></svg><span>Pre-Deployment</span></a>
-                        <a class="nav-link nav-sub student-docs-sheet-item <?= $currentRoute === 'student_documents_final' ? 'active' : '' ?>" href="index.php?r=student_documents_final" role="menuitem"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5ZM8 13h8v2H8v-2Zm0 4h8v2H8v-2Z"/></svg><span>Final Requirement</span></a>
+                        <?php foreach ($docStageLinks as $stageNo => $docLink): ?>
+                            <?php
+                                $stageOpen = !empty($docStageAccess[$stageNo]);
+                                $stageActive = $currentRoute === 'student_documents' && $docStage === (string)$stageNo;
+                            ?>
+                            <?php if ($stageOpen): ?>
+                                <a class="nav-link nav-sub student-docs-sheet-item<?= $stageActive ? ' active' : '' ?>" href="<?= e($docLink['href']) ?>" role="menuitem"><?= $docLink['icon'] ?><span><?= e($docLink['label']) ?></span></a>
+                            <?php else: ?>
+                                <span class="nav-link nav-sub student-docs-sheet-item is-locked" role="menuitem" aria-disabled="true" title="Stage locked"><?= $docLink['icon'] ?><span><?= e($docLink['label']) ?></span></span>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
                         <a class="nav-link nav-sub student-docs-sheet-item <?= $currentRoute === 'student_documents_other' ? 'active' : '' ?>" href="index.php?r=student_documents_other" role="menuitem"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 4h7l2 2h7v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg><span>Other Documents</span></a>
                     </div>
                 </div>

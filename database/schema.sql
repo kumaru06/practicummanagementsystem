@@ -96,6 +96,7 @@ CREATE TABLE students (
   program_id INT NULL,
   course VARCHAR(120) NOT NULL,
   year_level VARCHAR(60) NOT NULL,
+  gender VARCHAR(20) NULL,
   section VARCHAR(80) NULL,
   birthdate DATE NULL,
   cor_file VARCHAR(255) NOT NULL,

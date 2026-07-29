@@ -141,7 +141,7 @@ $totalStudents = count($students);
         <div class="enr-wizard-modal-head">
             <div class="enr-wizard-modal-head-main">
                 <div class="enr-wizard-modal-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    <svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </div>
                 <div>
                     <h2 id="enrWizardTitle">Enroll Student in OJT</h2>
@@ -160,17 +160,17 @@ $totalStudents = count($students);
 
                 <div class="wizard-steps enrollment-wizard-steps" aria-label="Enrollment progress">
                     <div class="enrollment-wizard-step" data-wizard-step-indicator>
-                        <span class="enrollment-wizard-dot"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg></span>
+                        <span class="enrollment-wizard-dot"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>
                         <em>Student</em>
                     </div>
                     <div class="enrollment-wizard-connector" aria-hidden="true"></div>
                     <div class="enrollment-wizard-step" data-wizard-step-indicator>
-                        <span class="enrollment-wizard-dot"><svg viewBox="0 0 24 24"><path d="M3 21h18v-2H3v2ZM3 8v8h18V8H3Zm0-6v4h18V2H3Z"/></svg></span>
+                        <span class="enrollment-wizard-dot"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 10h6M9 14h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
                         <em>Company & Dates</em>
                     </div>
                     <div class="enrollment-wizard-connector" aria-hidden="true"></div>
                     <div class="enrollment-wizard-step" data-wizard-step-indicator>
-                        <span class="enrollment-wizard-dot"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span>
+                        <span class="enrollment-wizard-dot"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
                         <em>Confirm</em>
                     </div>
                 </div>
@@ -265,7 +265,7 @@ $totalStudents = count($students);
                             Back
                         </button>
                         <button class="btn btn-primary enrollment-submit-btn" type="submit">
-                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 2 11 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                             <span class="btn-text">Enroll & Send Emails</span>
                             <span class="spinner"></span>
                         </button>
