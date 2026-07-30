@@ -1935,6 +1935,23 @@ function initStudentDocsStepperScroll() {
     }
 }
 
+function isStudentMobileNav() {
+    return document.body.classList.contains('role-student')
+        && window.matchMedia('(max-width: 720px)').matches;
+}
+
+function syncStudentDocsGroupExpanded() {
+    const docGroup = document.querySelector('.nav-group--student-docs');
+    if (!docGroup) return;
+
+    if (isStudentMobileNav()) {
+        docGroup.classList.remove('open');
+        return;
+    }
+
+    docGroup.classList.toggle('open', docGroup.classList.contains('nav-group--active'));
+}
+
 function initStudentMobileNav() {
     if (!document.body.classList.contains('role-student')) return;
 
@@ -1985,33 +2002,65 @@ function initStudentMobileNav() {
         if (!mq.matches) return;
 
         const root = document.getElementById('student-bottom-nav-root');
-        const vv = window.visualViewport;
-        const left = vv?.offsetLeft || 0;
-        const width = vv?.width || window.innerWidth;
-
         if (!root) return;
 
         root.style.transform = 'none';
-        root.style.left = `${left}px`;
-        root.style.width = `${width}px`;
-        root.style.maxWidth = `${width}px`;
+        root.style.left = '0';
+        root.style.width = '100%';
+        root.style.maxWidth = '100%';
+    };
+
+    const clearDocsSheetPosition = (items) => {
+        if (!items) return;
+        items.style.removeProperty('left');
+        items.style.removeProperty('right');
+        items.style.removeProperty('width');
+        items.style.removeProperty('--docs-sheet-tail-left');
+        delete items.dataset.docsSheetPositioned;
+    };
+
+    const positionDocsSheet = () => {
+        if (!mq.matches || !docsGroup?.classList.contains('open')) return;
+
+        const items = document.querySelector('.nav-group-items[data-docs-sheet="1"]');
+        if (!items || !toggle) return;
+
+        const toggleRect = toggle.getBoundingClientRect();
+        const viewportWidth = window.visualViewport?.width || window.innerWidth;
+        const margin = 12;
+        const sheetWidth = Math.min(280, viewportWidth - margin * 2);
+        const toggleCenterX = toggleRect.left + (toggleRect.width / 2);
+
+        let left = toggleCenterX - (sheetWidth / 2);
+        left = Math.max(margin, Math.min(left, viewportWidth - sheetWidth - margin));
+
+        items.style.right = 'auto';
+        items.style.width = `${sheetWidth}px`;
+        items.style.left = `${left}px`;
+        items.style.setProperty('--docs-sheet-tail-left', `${toggleCenterX - left}px`);
+        items.dataset.docsSheetPositioned = '1';
+    };
+
+    const syncDocsSheetLayout = () => {
+        syncNavRootPosition();
+        positionDocsSheet();
     };
 
     const attachNavStripListener = () => {
         const navEl = document.querySelector('.student-bottom-nav-root .nav');
         if (!navEl || navEl.dataset.scrollBound === '1') return;
         navEl.dataset.scrollBound = '1';
-        navEl.addEventListener('scroll', syncNavRootPosition, { passive: true });
+        navEl.addEventListener('scroll', syncDocsSheetLayout, { passive: true });
     };
 
     syncBottomNavMount();
     mq.addEventListener('change', syncBottomNavMount);
-    window.addEventListener('scroll', syncNavRootPosition, { passive: true, capture: true });
-    document.addEventListener('scroll', syncNavRootPosition, { passive: true, capture: true });
-    window.addEventListener('resize', syncNavRootPosition, { passive: true });
-    window.visualViewport?.addEventListener('scroll', syncNavRootPosition);
-    window.visualViewport?.addEventListener('resize', syncNavRootPosition);
-    requestAnimationFrame(syncNavRootPosition);
+    window.addEventListener('scroll', syncDocsSheetLayout, { passive: true, capture: true });
+    document.addEventListener('scroll', syncDocsSheetLayout, { passive: true, capture: true });
+    window.addEventListener('resize', syncDocsSheetLayout, { passive: true });
+    window.visualViewport?.addEventListener('scroll', syncDocsSheetLayout);
+    window.visualViewport?.addEventListener('resize', syncDocsSheetLayout);
+    requestAnimationFrame(syncDocsSheetLayout);
 
     if (!docsGroup) return;
 
@@ -2041,6 +2090,7 @@ function initStudentMobileNav() {
     const unportalDocsItems = () => {
         const items = document.querySelector('.nav-group-items[data-docs-sheet="1"]');
         if (!items) return;
+        clearDocsSheetPosition(items);
         items.classList.remove('nav-group-items--sheet-open');
         delete items.dataset.docsSheet;
         if (docsItemsAnchor?.parent) {
@@ -2050,17 +2100,24 @@ function initStudentMobileNav() {
         }
     };
 
-    const closeDocsSheet = () => {
+    const closeDocsSheet = (restoreNav = true) => {
         unportalDocsItems();
         docsGroup.classList.remove('open');
         toggle?.setAttribute('aria-expanded', 'false');
         backdrop.classList.remove('is-visible');
+        if (restoreNav) {
+            updateAppSidebarActive(parseAppRoute(window.location.href), window.location.href);
+        }
     };
 
     const openDocsSheet = () => {
+        document.querySelectorAll('.student-bottom-nav-root .nav-link.active').forEach(link => {
+            link.classList.remove('active');
+        });
+        portalDocsItems();
         docsGroup.classList.add('open');
         toggle?.setAttribute('aria-expanded', 'true');
-        portalDocsItems();
+        positionDocsSheet();
         backdrop.classList.add('is-visible');
     };
 
@@ -2076,7 +2133,11 @@ function initStudentMobileNav() {
     };
 
     syncMobileDocsState();
-    mq.addEventListener('change', syncMobileDocsState);
+    syncStudentDocsGroupExpanded();
+    mq.addEventListener('change', () => {
+        syncMobileDocsState();
+        syncStudentDocsGroupExpanded();
+    });
 
     window.addEventListener('student-nav-docs-toggle', event => {
         if (!mq.matches) return;
@@ -2089,13 +2150,15 @@ function initStudentMobileNav() {
     backdrop.addEventListener('click', closeDocsSheet);
     docsGroup.querySelectorAll('.nav-group-items .nav-link').forEach(link => {
         link.addEventListener('click', () => {
-            if (mq.matches) closeDocsSheet();
+            if (mq.matches) closeDocsSheet(false);
         });
     });
 
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape' && docsGroup.classList.contains('open') && mq.matches) closeDocsSheet();
     });
+
+    window.__closeStudentDocsSheet = closeDocsSheet;
 }
 
 function initToasts() {
@@ -8008,7 +8071,7 @@ function updateAppSidebarActive(route, currentHref = window.location.href) {
     const homeRoute = SIDEBAR_HOME_ROUTES[role];
     if (!sidebar || !homeRoute) return;
 
-    sidebar.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+    document.querySelectorAll('.sidebar .nav-link, .student-docs-sheet-item').forEach(link => link.classList.remove('active'));
 
     if (role === 'admin') {
         const userGroup = sidebar.querySelector('.nav-group:not(.nav-group--student-docs)');
@@ -8018,13 +8081,17 @@ function updateAppSidebarActive(route, currentHref = window.location.href) {
     if (role === 'student') {
         const docGroup = sidebar.querySelector('.nav-group--student-docs');
         const isDocRoute = STUDENT_DOC_ROUTES.has(route);
-        docGroup?.classList.toggle('open', isDocRoute);
         docGroup?.classList.toggle('nav-group--active', isDocRoute);
+        if (isStudentMobileNav()) {
+            window.__closeStudentDocsSheet?.(false);
+        } else {
+            docGroup?.classList.toggle('open', isDocRoute);
+        }
     }
 
     const currentStage = parseAppStage(currentHref) || (route === 'student_documents' ? '1' : '');
-    sidebar.querySelectorAll('.nav-link[href]').forEach(link => {
-        const href = link.getAttribute('href');
+    document.querySelectorAll('.sidebar .nav-link[href], .nav-group-items .nav-link[href]').forEach(link => {
+        const href = link.href || link.getAttribute('href') || '';
         const linkRoute = parseAppRoute(href);
         if (!linkRoute) return;
 

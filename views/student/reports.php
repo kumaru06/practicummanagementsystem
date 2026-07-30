@@ -98,7 +98,7 @@ $formatReportDate = static function (string $date): string {
 
     <div class="sr-table-shell">
         <div class="table-wrap sr-table-wrap">
-            <table class="data-table reports-dtr-table sr-table" data-export="pdf" data-export-url="index.php?r=student_report_pdf&amp;type=dtr">
+            <table class="data-table reports-dtr-table sr-table" data-export="pdf" data-export-url="index.php?r=student_report_pdf&amp;type=dtr" data-hide-column-toggle>
                 <thead>
                     <tr>
                         <th>Date</th>
@@ -184,7 +184,7 @@ $formatReportDate = static function (string $date): string {
 
     <div class="sr-table-shell">
         <div class="table-wrap sr-table-wrap">
-            <table class="data-table reports-weekly-table sr-table" data-export="pdf" data-export-url="index.php?r=student_report_pdf&amp;type=weekly">
+            <table class="data-table reports-weekly-table sr-table" data-export="pdf" data-export-url="index.php?r=student_report_pdf&amp;type=weekly" data-hide-column-toggle>
                 <thead>
                     <tr>
                         <th>Week</th>

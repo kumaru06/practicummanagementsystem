@@ -108,12 +108,12 @@ $sidebarCollapsed = !$studentNavLocked && isset($_COOKIE['sidebarCollapsed']) &&
                     ? student_document_stage_access((int)$headerStudent['id'])
                     : [1 => true, 2 => false, 3 => false];
                 $docStageLinks = [
-                    1 => ['label' => '1st to Comply', 'href' => 'index.php?r=student_documents&amp;stage=1', 'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm-3 15-3-3 1.4-1.4L11 14.2l4.6-4.6L17 11l-6 6Z"/></svg>'],
-                    2 => ['label' => '2nd to Comply', 'href' => 'index.php?r=student_documents&amp;stage=2', 'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm-9 4h7v2h-7V8Zm0 4h7v2h-7v-2ZM6 8h3v3H6V8Zm0 5h3v3H6v-3Z"/></svg>'],
-                    3 => ['label' => '3rd to Comply', 'href' => 'index.php?r=student_documents&amp;stage=3', 'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm-2 14-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8Z"/></svg>'],
+                    1 => ['label' => '1st to Comply', 'href' => 'index.php?r=student_documents&stage=1', 'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm-3 15-3-3 1.4-1.4L11 14.2l4.6-4.6L17 11l-6 6Z"/></svg>'],
+                    2 => ['label' => '2nd to Comply', 'href' => 'index.php?r=student_documents&stage=2', 'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm-9 4h7v2h-7V8Zm0 4h7v2h-7v-2ZM6 8h3v3H6V8Zm0 5h3v3H6v-3Z"/></svg>'],
+                    3 => ['label' => '3rd to Comply', 'href' => 'index.php?r=student_documents&stage=3', 'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm-2 14-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8Z"/></svg>'],
                 ];
                 ?>
-                <div class="nav-group nav-group--student-docs <?= $docGroupOpen ? 'nav-group--active open' : '' ?>">
+                <div class="nav-group nav-group--student-docs <?= $docGroupOpen ? 'nav-group--active' : '' ?>">
                     <button class="nav-group-toggle" type="button" aria-expanded="false" aria-haspopup="true">
                         <svg viewBox="0 0 24 24"><path d="M7 2h7l5 5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm7 1.5V8h4.5L14 3.5ZM9 12h6v2H9v-2Zm0 4h6v2H9v-2Z"/></svg>
                         <span class="nav-link-label nav-link-label--full">Documents</span>
