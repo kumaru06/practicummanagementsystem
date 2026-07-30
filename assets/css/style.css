@@ -1000,6 +1000,12 @@ small,
     transition: width 0.25s ease, padding 0.25s ease;
     z-index: 30;
     overflow: hidden;
+    border-radius: 0 !important;
+}
+
+.student-bottom-nav-root,
+.student-bottom-nav-root .sidebar {
+    border-radius: 0 !important;
 }
 
 .sidebar::-webkit-scrollbar {
@@ -14635,7 +14641,7 @@ body.is-confirm-open .app-confirm-overlay {
         padding: 8px 8px 10px;
         border: 0;
         border-top: 1px solid rgba(255, 255, 255, 0.16);
-        border-radius: 0;
+        border-radius: 0 !important;
         background: linear-gradient(180deg, #1c326e 0%, #5c1a22 34%, rgba(111, 17, 17, 0.98) 58%, rgba(184, 150, 42, 0.92) 100%);
         box-shadow: 0 -8px 24px rgba(20, 24, 48, 0.2);
         backdrop-filter: blur(18px);
