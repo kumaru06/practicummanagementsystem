@@ -1,7 +1,23 @@
 <?php
 class Student
 {
+    private static ?bool $genderColumnReady = null;
+
     public function __construct(private PDO $db) {}
+
+    public function ensureGenderColumn(): void
+    {
+        if (self::$genderColumnReady === true) {
+            return;
+        }
+
+        $stmt = $this->db->query("SHOW COLUMNS FROM students LIKE 'gender'");
+        if (!$stmt->fetch()) {
+            $this->db->exec('ALTER TABLE students ADD COLUMN gender VARCHAR(20) NULL AFTER year_level');
+        }
+
+        self::$genderColumnReady = true;
+    }
 
     /**
      * Staged document compliance definitions ("to Comply" ladder).
@@ -147,7 +163,9 @@ class Student
 
     public function findByUser(int $userId): ?array
     {
-        $stmt = $this->db->prepare('SELECT s.*, u.name, u.email, c.name coordinator_name, c.email coordinator_email FROM students s JOIN users u ON u.id = s.user_id LEFT JOIN users c ON c.id = s.coordinator_id WHERE s.user_id = ?');
+        $this->ensureGenderColumn();
+
+        $stmt = $this->db->prepare('SELECT s.*, u.first_name, u.middle_name, u.last_name, u.name, u.email, c.name coordinator_name, c.email coordinator_email FROM students s JOIN users u ON u.id = s.user_id LEFT JOIN users c ON c.id = s.coordinator_id WHERE s.user_id = ?');
         $stmt->execute([$userId]);
         return $stmt->fetch() ?: null;
     }
@@ -161,6 +179,8 @@ class Student
 
     public function updateProfile(int $studentId, array $data, ?string $photoFile): void
     {
+        $this->ensureGenderColumn();
+
         $stmt = $this->db->prepare('UPDATE students SET address = ?, contact_number = ?, emergency_contact_name = ?, emergency_contact_number = ?, guardian_name = ?, guardian_contact = ?, year_level = ?, gender = ?, photo_file = COALESCE(?, photo_file), profile_completed = 1 WHERE id = ?');
         $stmt->execute([
             trim($data['address'] ?? ''),

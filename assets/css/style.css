@@ -44,12 +44,25 @@
 /* This intentionally uses !important to override existing component rules */
 *:not(svg):not(path) { border-radius: 5px !important; }
 
+/* Loading spinners must stay circular (global 5px cap squares them otherwise). */
+.spinner,
+[class*="-spinner"],
+.app-confirm-dots span {
+    border-radius: 50% !important;
+}
+
 .is-hidden {
     display: none !important;
 }
 
 html {
     scroll-behavior: smooth;
+}
+
+@media (max-width: 720px) {
+    html:has(body.role-student) {
+        scroll-behavior: auto;
+    }
 }
 
 body {
@@ -7349,6 +7362,32 @@ body.is-coordinator-edit-open {
     box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08);
 }
 
+.field-validation-focus {
+    outline: 2px solid rgba(220, 38, 38, 0.55);
+    outline-offset: 3px;
+    border-radius: 5px;
+    animation: fieldValidationPulse 0.55s ease;
+}
+
+@keyframes fieldValidationPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.18); }
+    50% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0.08); }
+}
+
+body.role-student .spf-form input,
+body.role-student .spf-form select,
+body.role-student .spf-form textarea,
+body.role-student .spf-photo-upload {
+    scroll-margin-top: calc(84px + env(safe-area-inset-top));
+    scroll-margin-bottom: calc(var(--spf-dock-bottom, 220px) + 150px);
+}
+
+body.role-student .spf-form .spf-section,
+body.role-student .spf-form .spf-photo-stack {
+    scroll-margin-top: calc(84px + env(safe-area-inset-top));
+    scroll-margin-bottom: calc(220px + env(safe-area-inset-bottom));
+}
+
 .field-check-message {
     display: block;
     margin-top: 6px;
@@ -14428,6 +14467,35 @@ body.is-confirm-open .app-confirm-overlay {
         width: 100%;
         max-width: 100%;
         overscroll-behavior-x: none;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    /* iOS Safari auto-zooms focused inputs below 16px — causes stuck zoom after blur. */
+    body.role-student input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]):not([type="range"]),
+    body.role-student textarea,
+    body.role-student select {
+        font-size: 16px !important;
+    }
+
+    body.role-student::-webkit-scrollbar,
+    body.role-student .main::-webkit-scrollbar,
+    body.role-student .content::-webkit-scrollbar {
+        display: none;
+        width: 0;
+        height: 0;
+    }
+
+    body.role-student .main,
+    body.role-student .content {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    body.role-student .sidebar-toggle {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
     }
 
     .role-student .app-shell {
@@ -16991,10 +17059,17 @@ body.role-student .spf-v2 .spf-form textarea {
     border-radius: 5px !important;
     background: #fff !important;
     color: #172033 !important;
-    font-size: 0.92rem !important;
+    font-size: 16px !important;
     font-weight: 700 !important;
     box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03) !important;
     transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+@media (min-width: 721px) {
+    body.role-student .spf-v2 .spf-form input,
+    body.role-student .spf-v2 .spf-form textarea {
+        font-size: 0.92rem !important;
+    }
 }
 
 body.role-student .spf-v2 .spf-form input::placeholder,
@@ -17079,10 +17154,6 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
         font-size: 1.55rem;
     }
 
-    body.role-student .spf-v2 .student-profile-card {
-        border-radius: 5px !important;
-    }
-
     body.role-student .spf-v2 .spf-aside,
     body.role-student .spf-v2 .spf-main {
         padding: 22px 18px;
@@ -17101,6 +17172,385 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
     body.role-student .spf-v2 .spf-actions .btn-primary {
         width: 100%;
         min-width: 0;
+    }
+}
+
+/* spf-v2 — mobile restyle (AMA editorial polish) */
+@media (max-width: 720px) {
+    body.role-student:has(.spf-v2) {
+        --spf-nav-height: 82px;
+        --spf-dock-gap: 16px;
+        --spf-mobile-nav-offset: calc(var(--spf-nav-height) + env(safe-area-inset-bottom));
+        --spf-dock-bottom: calc(var(--spf-mobile-nav-offset) + var(--spf-dock-gap));
+    }
+
+    body.role-student .content:has(.spf-v2) {
+        padding: 0 0 calc(var(--spf-dock-bottom, calc(var(--spf-mobile-nav-offset) + 16px)) + 24px);
+        background:
+            radial-gradient(ellipse 85% 45% at 0% 0%, rgba(139, 26, 26, 0.09), transparent 58%),
+            radial-gradient(ellipse 60% 35% at 100% 2%, rgba(201, 162, 39, 0.1), transparent 52%),
+            linear-gradient(180deg, #faf7f7 0%, #f3ecec 48%, #f7f4f4 100%);
+    }
+
+    body.role-student .spf-v2 {
+        --spf-m-maroon: #8b1a1a;
+        --spf-m-gold: #c9a227;
+        --spf-m-ink: #1a1212;
+        --spf-m-muted: #6b5e5e;
+        --spf-m-line: rgba(234, 223, 223, 0.95);
+        --spf-m-card-shadow: 0 14px 36px rgba(73, 19, 19, 0.1), 0 4px 14px rgba(15, 23, 42, 0.05);
+        gap: 0;
+        animation: spfMobileFadeIn 0.45s ease both;
+    }
+
+    @keyframes spfMobileFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    body.role-student .spf-v2 .spf-page-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px 12px;
+        margin: 0;
+        padding: 12px 16px 14px;
+        background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 251, 251, 0.94) 100%);
+        border-bottom: 1px solid var(--spf-m-line);
+        box-shadow: 0 4px 18px rgba(73, 19, 19, 0.06);
+        position: relative;
+    }
+
+    body.role-student .spf-v2 .spf-page-head::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--spf-m-maroon) 0%, var(--spf-m-gold) 52%, var(--spf-m-maroon) 100%);
+    }
+
+    body.role-student .spf-v2 .spf-page-head-copy {
+        display: none;
+    }
+
+    body.role-student .spf-v2 .spf-back-link {
+        padding: 6px 10px 6px 6px;
+        border-radius: 5px;
+        background: rgba(139, 26, 26, 0.06);
+    }
+
+    body.role-student .spf-v2 .spf-onboard-chip {
+        padding: 7px 12px;
+        box-shadow: 0 6px 16px rgba(139, 26, 26, 0.12);
+    }
+
+    body.role-student .spf-v2 .spf-status-badge {
+        margin-left: auto;
+        padding: 7px 12px !important;
+        font-size: 0.68rem !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        border-radius: 5px !important;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    }
+
+    body.role-student .spf-v2 .spf-status-badge.pending {
+        animation: spfBadgePulse 2.4s ease-in-out infinite;
+    }
+
+    @keyframes spfBadgePulse {
+        0%, 100% { box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15); }
+        50% { box-shadow: 0 4px 18px rgba(245, 158, 11, 0.32); }
+    }
+
+    body.role-student .spf-v2 .spf-progress-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        margin: 14px 14px 0;
+        padding: 16px;
+        border-radius: 5px;
+        border: 1px solid rgba(201, 162, 39, 0.35);
+        background:
+            linear-gradient(135deg, rgba(255, 251, 235, 0.98) 0%, #fff 100%);
+        box-shadow: 0 10px 28px rgba(201, 162, 39, 0.14);
+    }
+
+    body.role-student .spf-v2 .spf-progress-track {
+        flex: none;
+        width: 100%;
+        height: 10px;
+    }
+
+    body.role-student .spf-v2 .spf-progress-fill {
+        width: 68%;
+        background: linear-gradient(90deg, var(--spf-m-gold), #d97706, var(--spf-m-maroon));
+        background-size: 200% 100%;
+        animation: spfProgressShimmer 2.8s ease-in-out infinite;
+    }
+
+    @keyframes spfProgressShimmer {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+
+    body.role-student .spf-v2 .student-profile-card {
+        margin: 14px 14px 0 !important;
+        border: 1px solid var(--spf-m-line) !important;
+        border-radius: 5px !important;
+        box-shadow: var(--spf-m-card-shadow) !important;
+        background: #fff !important;
+        overflow: visible !important;
+    }
+
+    body.role-student .spf-v2 .spf-aside {
+        position: relative;
+        padding: 18px 16px 16px;
+        gap: 16px;
+        border: 0;
+        background:
+            radial-gradient(circle at 100% 0%, rgba(201, 162, 39, 0.12), transparent 38%),
+            radial-gradient(circle at 0% 0%, rgba(139, 26, 26, 0.1), transparent 42%),
+            linear-gradient(180deg, #fff8f8 0%, #fff 55%, #faf7f7 100%);
+    }
+
+    body.role-student .spf-v2 .spf-aside::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 16px;
+        right: 16px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(201, 162, 39, 0.45), transparent);
+        pointer-events: none;
+    }
+
+    body.role-student .spf-v2 .spf-photo-stack {
+        grid-template-columns: 96px minmax(0, 1fr);
+        align-items: center;
+        gap: 12px;
+    }
+
+    body.role-student .spf-v2 .spf-photo-ring {
+        margin: 0;
+        padding: 3px;
+        box-shadow: 0 12px 28px rgba(139, 26, 26, 0.24);
+    }
+
+    body.role-student .spf-v2 .spf-photo-frame {
+        width: 88px !important;
+        height: 88px !important;
+    }
+
+    body.role-student .spf-v2 .profile-photo-frame .profile-photo-fallback {
+        font-size: 2rem !important;
+    }
+
+    body.role-student .spf-v2 .spf-photo-upload {
+        padding: 12px 14px;
+        min-height: 88px;
+        border-color: rgba(139, 26, 26, 0.22);
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 6px 16px rgba(139, 26, 26, 0.06);
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+
+    body.role-student .spf-v2 .spf-photo-upload:active {
+        transform: scale(0.98);
+    }
+
+    body.role-student .spf-v2 .spf-photo-upload-icon {
+        width: 38px;
+        height: 38px;
+        box-shadow: 0 8px 18px rgba(139, 26, 26, 0.22);
+    }
+
+    body.role-student .spf-v2 .spf-photo-upload-copy strong {
+        font-size: 0.84rem;
+        color: var(--spf-m-ink);
+    }
+
+    body.role-student .spf-v2 .spf-photo-upload-copy small {
+        font-size: 0.72rem;
+    }
+
+    body.role-student .spf-v2 .spf-identity {
+        text-align: left;
+        padding: 14px 14px 12px;
+        border-radius: 5px;
+        border: 1px solid var(--spf-m-line);
+        background: rgba(255, 255, 255, 0.88);
+        box-shadow: 0 8px 20px rgba(73, 19, 19, 0.05);
+    }
+
+    body.role-student .spf-v2 .spf-identity h2 {
+        font-size: 1.12rem;
+        line-height: 1.22;
+        color: var(--spf-m-ink);
+        letter-spacing: -0.02em;
+    }
+
+    body.role-student .spf-v2 .profile-identity-email {
+        font-size: 0.8rem;
+        margin-bottom: 10px;
+        color: var(--spf-m-muted);
+    }
+
+    body.role-student .spf-v2 .spf-course-tag {
+        display: flex;
+        width: 100%;
+        justify-content: flex-start;
+        font-size: 0.74rem;
+        background: linear-gradient(135deg, rgba(139, 26, 26, 0.1), rgba(201, 162, 39, 0.08));
+        border-color: rgba(139, 26, 26, 0.14);
+    }
+
+    body.role-student .spf-v2 .spf-meta-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    body.role-student .spf-v2 .spf-meta-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        padding: 12px;
+        border-color: var(--spf-m-line);
+        background: #fff;
+        box-shadow: 0 6px 16px rgba(73, 19, 19, 0.05);
+    }
+
+    body.role-student .spf-v2 .spf-meta-item dt {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.66rem;
+        color: var(--spf-m-muted);
+    }
+
+    body.role-student .spf-v2 .spf-meta-item dt svg {
+        width: 14px;
+        height: 14px;
+        padding: 4px;
+        border-radius: 5px;
+        background: rgba(139, 26, 26, 0.08);
+        color: var(--spf-m-maroon);
+        opacity: 1;
+        box-sizing: content-box;
+    }
+
+    body.role-student .spf-v2 .spf-meta-item dd {
+        text-align: left;
+        font-size: 0.86rem;
+        font-weight: 800;
+        color: var(--spf-m-ink);
+        word-break: break-word;
+    }
+
+    body.role-student .spf-v2 .spf-aside-note {
+        margin: 0;
+        padding: 12px 14px;
+        font-size: 0.78rem;
+        border: 1px solid rgba(139, 26, 26, 0.1);
+        background: linear-gradient(135deg, rgba(139, 26, 26, 0.06), rgba(201, 162, 39, 0.05));
+    }
+
+    body.role-student .spf-v2 .spf-main {
+        padding: 14px 14px calc(var(--spf-dock-bottom, 100px) + 12px);
+        gap: 14px;
+        background: linear-gradient(180deg, #faf7f7 0%, transparent 120px);
+    }
+
+    body.role-student .spf-v2 .spf-section {
+        padding: 16px;
+        border-radius: 5px;
+        border: 1px solid var(--spf-m-line);
+        background: #fff;
+        box-shadow: 0 10px 26px rgba(73, 19, 19, 0.07);
+    }
+
+    body.role-student .spf-v2 .spf-section:hover {
+        box-shadow: 0 14px 32px rgba(73, 19, 19, 0.1);
+    }
+
+    body.role-student .spf-v2 .spf-section-head {
+        margin-bottom: 14px;
+        gap: 12px;
+    }
+
+    body.role-student .spf-v2 .spf-section-icon {
+        width: 44px;
+        height: 44px;
+        box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
+    }
+
+    body.role-student .spf-v2 .profile-section-title strong {
+        font-size: 0.98rem;
+        color: var(--spf-m-ink);
+    }
+
+    body.role-student .spf-v2 .profile-section-title small {
+        font-size: 0.78rem;
+        color: var(--spf-m-muted);
+    }
+
+    body.role-student .spf-v2 .spf-verified-group {
+        padding: 12px;
+        margin-bottom: 12px;
+        border-color: rgba(148, 163, 184, 0.35);
+        background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+    }
+
+    body.role-student .spf-v2 .spf-form input,
+    body.role-student .spf-v2 .spf-form textarea {
+        border-color: rgba(234, 223, 223, 0.95);
+        background: #fff;
+        transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    body.role-student .spf-v2 .spf-form input:focus,
+    body.role-student .spf-v2 .spf-form textarea:focus {
+        border-color: rgba(139, 26, 26, 0.45);
+        box-shadow: 0 0 0 3px rgba(139, 26, 26, 0.1);
+    }
+
+    body.role-student .spf-v2 .spf-main .spf-actions {
+        position: static;
+        z-index: 1;
+        display: flex !important;
+        flex-direction: column-reverse;
+        align-items: stretch;
+        gap: 10px;
+        margin: 16px 0 0;
+        padding: 16px 0 0;
+        border: 0 !important;
+        border-top: 1px solid rgba(219, 228, 240, 0.95) !important;
+        border-radius: 0 !important;
+        background: #fff !important;
+        box-shadow: none !important;
+    }
+
+    body.role-student .spf-v2 .spf-main .spf-actions .btn,
+    body.role-student .spf-v2 .spf-main .spf-actions .btn-primary,
+    body.role-student .spf-v2 .spf-main .spf-actions .spf-cancel-btn {
+        width: 100%;
+        min-width: 0;
+        min-height: 48px;
+        justify-content: center;
+        touch-action: manipulation;
+    }
+
+    body.role-student .spf-v2 .spf-main .spf-actions .spf-cancel-btn {
+        border: 1px solid rgba(219, 228, 240, 0.95);
+        background: #fff;
+        color: #475467;
+        font-weight: 800;
+        text-decoration: none;
     }
 }
 
@@ -17303,7 +17753,60 @@ body.role-student .spf-v2 .spf-section-num {
 }
 
 .spf-field-grid--verified {
+    grid-template-columns: 1fr !important;
     margin-bottom: 0 !important;
+}
+
+.spf-name-block {
+    display: grid;
+    gap: 12px;
+}
+
+.spf-name-block-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.spf-name-block-head .spf-field-label {
+    margin: 0;
+    color: #344054;
+    font-size: 0.84rem;
+}
+
+body.role-student .spf-v2 .spf-field-grid--name {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+}
+
+body.role-student .spf-v2 .spf-field-grid--name .spf-field-label {
+    font-size: 0.76rem;
+}
+
+body.role-student .spf-v2 .spf-field-grid--name .spf-field--readonly input[disabled] {
+    min-height: 48px !important;
+}
+
+@media (max-width: 960px) {
+    body.role-student .spf-v2 .spf-field-grid--name {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    body.role-student .spf-v2 .spf-field-grid--name .spf-field:last-child {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 720px) {
+    body.role-student .spf-v2 .spf-field-grid--name {
+        grid-template-columns: 1fr !important;
+    }
+
+    body.role-student .spf-v2 .spf-field-grid--name .spf-field:last-child {
+        grid-column: auto;
+    }
 }
 
 .spf-field--full-row {
@@ -17333,14 +17836,16 @@ body.role-student .spf-v2 .spf-form select {
     border-radius: 5px !important;
 }
 
-body.role-student .spf-v2 .spf-actions {
-    border-radius: 5px;
-    position: sticky;
-    bottom: 12px;
-    z-index: 2;
-    backdrop-filter: blur(10px);
-    background: linear-gradient(180deg, rgba(250, 251, 255, 0.94), rgba(255, 255, 255, 0.98)) !important;
-    box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.06);
+@media (min-width: 721px) {
+    body.role-student .spf-v2 .spf-actions {
+        border-radius: 5px;
+        position: sticky;
+        bottom: 12px;
+        z-index: 2;
+        backdrop-filter: blur(10px);
+        background: linear-gradient(180deg, rgba(250, 251, 255, 0.94), rgba(255, 255, 255, 0.98)) !important;
+        box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.06);
+    }
 }
 
 .spf-save-btn {
@@ -17366,10 +17871,12 @@ body.role-student .spf-v2 .spf-actions .btn-primary {
 .spf-crop-overlay {
     position: fixed;
     inset: 0;
-    z-index: 1200;
+    z-index: 1300;
     display: grid;
     place-items: center;
     padding: 20px;
+    padding-top: max(20px, env(safe-area-inset-top));
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
     background: rgba(15, 23, 42, 0.45);
     opacity: 0;
     visibility: hidden;
@@ -17393,9 +17900,19 @@ body.is-profile-crop-open {
     overflow: hidden;
 }
 
+body.is-profile-crop-open .student-bottom-nav-root {
+    visibility: hidden;
+    pointer-events: none;
+}
+
 .spf-crop-modal {
     width: min(100%, 560px);
+    max-height: calc(100dvh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    max-height: calc(100svh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
     border: 1px solid rgba(219, 228, 240, 0.95);
+    border-radius: 5px;
     background: #fff;
     box-shadow: 0 30px 70px rgba(15, 23, 42, 0.18);
     overflow: hidden;
@@ -17461,6 +17978,10 @@ body.is-profile-crop-open {
     display: grid;
     gap: 16px;
     padding: 20px 22px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .spf-crop-stage {
@@ -17528,9 +18049,10 @@ body.is-profile-crop-open {
 
 .spf-crop-actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: stretch;
     gap: 10px;
-    padding: 16px 22px 20px;
+    flex-shrink: 0;
+    padding: 16px 22px max(20px, calc(16px + env(safe-area-inset-bottom)));
     border-top: 1px solid rgba(219, 228, 240, 0.9);
     background: #fafbff;
 }
@@ -17562,21 +18084,65 @@ body.is-profile-crop-open {
 }
 
 @media (max-width: 720px) {
-    body.role-student .spf-v2 .spf-aside {
-        border-right: 0;
-        border-bottom: 1px solid rgba(219, 228, 240, 0.9);
+    .spf-crop-overlay {
+        padding: 0;
+        place-items: stretch;
     }
 
-    body.role-student .spf-v2 .spf-actions {
-        position: static;
+    .spf-crop-overlay.is-open[hidden] {
+        display: flex !important;
+        flex-direction: column;
+    }
+
+    .spf-crop-modal {
+        width: 100%;
+        max-width: none;
+        flex: 1 1 auto;
+        max-height: 100dvh;
+        max-height: 100svh;
+        min-height: 0;
+        border: 0;
+        border-radius: 0 !important;
+        box-shadow: none;
+    }
+
+    .spf-crop-head {
+        flex-shrink: 0;
+        padding: 16px 16px 14px;
+        padding-top: max(16px, env(safe-area-inset-top));
+    }
+
+    .spf-crop-body {
+        padding: 16px;
+        justify-items: center;
+    }
+
+    .spf-crop-stage {
+        width: min(100%, 300px);
+        height: min(100vw - 32px, 300px);
+        max-height: 52dvh;
+        max-height: 52svh;
+    }
+
+    .spf-crop-controls {
+        width: min(100%, 300px);
     }
 
     .spf-crop-actions {
         flex-direction: column-reverse;
+        gap: 8px;
+        padding: 14px 16px max(16px, calc(14px + env(safe-area-inset-bottom)));
     }
 
     .spf-crop-actions .btn {
         width: 100%;
+        min-height: 48px;
+        justify-content: center;
+        touch-action: manipulation;
+    }
+
+    .spf-crop-apply {
+        order: -1;
     }
 }
 

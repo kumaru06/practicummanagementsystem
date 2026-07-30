@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initCapitalizeWordInputs();
     initConfirmActions();
     initStudentMobileTapProxy();
+    initStudentMobileInputZoomFix();
     initStudentProfilePhotoPreview();
     initPartnerPasswordChange();
     initStudentPasswordChange();
@@ -785,9 +786,13 @@ function initStudentMobileTapProxy() {
 
     let proxying = false;
     let suppressUntil = 0;
+    let touchGesture = null;
+    let blockClickUntil = 0;
     const isMobileStudentLayout = () => window.matchMedia('(max-width: 720px)').matches;
     const clickableSelector = 'button,a,input:not([type="hidden"]),textarea,select,[data-time-lock-toggle],[data-time-picker-trigger],.filter-date-trigger';
     const skipSelector = '.notif-panel,.topbar,.sidebar,.student-bottom-nav-root,.global-cal-panel,.global-datetime-panel,.dtr-time-panel,.student-nav-sheet-backdrop,.nav-group-items,[data-docs-sheet="1"],.student-docs-sheet-item,.chat-app,.app-confirm-overlay,#modal';
+    const TAP_MOVE_THRESHOLD_PX = 12;
+    const TAP_MAX_DURATION_MS = 450;
 
     const findContentControl = (x, y) => {
         const content = document.querySelector('.role-student .content');
@@ -806,6 +811,46 @@ function initStudentMobileTapProxy() {
         return null;
     };
 
+    const isScrollLikeGesture = () => {
+        if (!touchGesture) return false;
+        if (touchGesture.moved) return true;
+        if (Math.abs(window.scrollY - touchGesture.scrollY) > 2) return true;
+        if (Date.now() - touchGesture.time > TAP_MAX_DURATION_MS) return true;
+        return false;
+    };
+
+    const resetTouchGesture = () => {
+        touchGesture = null;
+    };
+
+    document.addEventListener('touchstart', event => {
+        if (!isMobileStudentLayout()) return;
+        const point = event.touches?.[0];
+        if (!point) return;
+
+        touchGesture = {
+            x: point.clientX,
+            y: point.clientY,
+            scrollY: window.scrollY,
+            time: Date.now(),
+            moved: false,
+        };
+    }, { capture: true, passive: true });
+
+    document.addEventListener('touchmove', event => {
+        if (!touchGesture) return;
+        const point = event.touches?.[0];
+        if (!point) return;
+
+        const deltaX = Math.abs(point.clientX - touchGesture.x);
+        const deltaY = Math.abs(point.clientY - touchGesture.y);
+        if (deltaX > TAP_MOVE_THRESHOLD_PX || deltaY > TAP_MOVE_THRESHOLD_PX) {
+            touchGesture.moved = true;
+        }
+    }, { capture: true, passive: true });
+
+    document.addEventListener('touchcancel', resetTouchGesture, { capture: true, passive: true });
+
     const forwardTap = event => {
         if (proxying || !isMobileStudentLayout()) return;
         if (document.querySelector('.app-confirm-overlay.is-open, #modal.open')) return;
@@ -815,6 +860,20 @@ function initStudentMobileTapProxy() {
             event.stopImmediatePropagation();
             return;
         }
+        if (Date.now() < blockClickUntil) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            resetTouchGesture();
+            return;
+        }
+
+        const isTouchEnd = event.type === 'touchend';
+        if (isTouchEnd && isScrollLikeGesture()) {
+            blockClickUntil = Date.now() + 350;
+            resetTouchGesture();
+            return;
+        }
+
         const point = event.changedTouches?.[0] || event.touches?.[0] || event;
         if (typeof point.clientX !== 'number' || typeof point.clientY !== 'number') return;
 
@@ -824,7 +883,10 @@ function initStudentMobileTapProxy() {
         if (sidebar && point.clientY >= sidebar.top - 4) return;
 
         const control = findContentControl(point.clientX, point.clientY);
-        if (!control) return;
+        if (!control) {
+            if (isTouchEnd) resetTouchGesture();
+            return;
+        }
 
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -839,11 +901,43 @@ function initStudentMobileTapProxy() {
             }
         } finally {
             setTimeout(() => { proxying = false; }, 0);
+            if (isTouchEnd) resetTouchGesture();
         }
     };
 
     document.addEventListener('touchend', forwardTap, { capture: true, passive: false });
     document.addEventListener('click', forwardTap, { capture: true });
+}
+
+function initStudentMobileInputZoomFix() {
+    if (!document.body.classList.contains('role-student')) return;
+
+    const mq = window.matchMedia('(max-width: 720px)');
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (!viewport) return;
+
+    const baseViewport = viewport.getAttribute('content')
+        || 'width=device-width, initial-scale=1, viewport-fit=cover';
+    let resetTimer = null;
+
+    const resetIosZoom = () => {
+        if (!mq.matches) return;
+        // Nudge Safari back to 1x after keyboard dismiss (when inputs used sub-16px fonts).
+        viewport.setAttribute('content', `${baseViewport}, maximum-scale=1`);
+        requestAnimationFrame(() => viewport.setAttribute('content', baseViewport));
+    };
+
+    document.addEventListener('focusout', event => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
+        clearTimeout(resetTimer);
+        resetTimer = window.setTimeout(resetIosZoom, 120);
+    }, true);
+
+    mq.addEventListener('change', () => {
+        if (!mq.matches) resetIosZoom();
+    });
 }
 
 function initMoaLibrary() {
@@ -1900,23 +1994,55 @@ function initSidebar() {
     });
 }
 
+function scrollHorizontalContainerToChild(container, child, options = {}) {
+    if (!container || !child) return;
+
+    const { align = 'center', behavior = 'auto' } = options;
+    const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+    if (maxScroll <= 0) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const childRect = child.getBoundingClientRect();
+    const relativeLeft = childRect.left - containerRect.left + container.scrollLeft;
+    let target = align === 'start'
+        ? relativeLeft
+        : relativeLeft - ((container.clientWidth - childRect.width) / 2);
+    target = Math.max(0, Math.min(maxScroll, target));
+
+    if (typeof container.scrollTo === 'function') {
+        container.scrollTo({ left: target, behavior });
+    } else {
+        container.scrollLeft = target;
+    }
+}
+
 function initStudentDashboardJourney() {
     if (!document.body.classList.contains('role-student')) return;
 
     const journey = document.querySelector('.student-dash-v3 .sd3-journey');
-    if (!journey) return;
+    if (!journey || journey.dataset.journeyInit === '1') return;
+    journey.dataset.journeyInit = '1';
 
     const current = journey.querySelector('.sd3-journey-step.is-current');
     if (!current) return;
 
     const centerCurrent = () => {
-        if (window.matchMedia('(max-width: 720px)').matches) {
-            current.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
-        }
+        if (!window.matchMedia('(max-width: 720px)').matches) return;
+        scrollHorizontalContainerToChild(journey, current, {
+            align: 'center',
+            behavior: journey.dataset.journeyScrolled === '1' ? 'auto' : 'smooth',
+        });
+        journey.dataset.journeyScrolled = '1';
     };
 
     requestAnimationFrame(() => requestAnimationFrame(centerCurrent));
+
+    let lastWidth = window.innerWidth;
     window.addEventListener('resize', () => {
+        const nextWidth = window.innerWidth;
+        // Ignore Safari toolbar height changes — only re-center on real width/orientation changes.
+        if (Math.abs(nextWidth - lastWidth) < 8) return;
+        lastWidth = nextWidth;
         window.clearTimeout(journey._centerTimer);
         journey._centerTimer = window.setTimeout(centerCurrent, 120);
     }, { passive: true });
@@ -1930,7 +2056,7 @@ function initStudentDocsStepperScroll() {
     if (!current) return;
     if (window.matchMedia('(max-width: 760px)').matches) {
         requestAnimationFrame(() => {
-            current.scrollIntoView({ inline: 'start', block: 'nearest', behavior: 'smooth' });
+            scrollHorizontalContainerToChild(stepper, current, { align: 'start', behavior: 'smooth' });
         });
     }
 }
@@ -2004,10 +2130,11 @@ function initStudentMobileNav() {
         const root = document.getElementById('student-bottom-nav-root');
         if (!root) return;
 
-        root.style.transform = 'none';
         root.style.left = '0';
         root.style.width = '100%';
         root.style.maxWidth = '100%';
+        root.style.bottom = '0';
+        root.style.transform = 'none';
     };
 
     const clearDocsSheetPosition = (items) => {
@@ -2042,8 +2169,21 @@ function initStudentMobileNav() {
     };
 
     const syncDocsSheetLayout = () => {
-        syncNavRootPosition();
         positionDocsSheet();
+    };
+
+    let docsSheetScrollBound = false;
+    const bindDocsSheetScrollSync = () => {
+        if (docsSheetScrollBound) return;
+        docsSheetScrollBound = true;
+        window.addEventListener('scroll', syncDocsSheetLayout, { passive: true, capture: true });
+        window.visualViewport?.addEventListener('scroll', syncDocsSheetLayout);
+    };
+    const unbindDocsSheetScrollSync = () => {
+        if (!docsSheetScrollBound) return;
+        docsSheetScrollBound = false;
+        window.removeEventListener('scroll', syncDocsSheetLayout, { capture: true });
+        window.visualViewport?.removeEventListener('scroll', syncDocsSheetLayout);
     };
 
     const attachNavStripListener = () => {
@@ -2055,12 +2195,12 @@ function initStudentMobileNav() {
 
     syncBottomNavMount();
     mq.addEventListener('change', syncBottomNavMount);
-    window.addEventListener('scroll', syncDocsSheetLayout, { passive: true, capture: true });
-    document.addEventListener('scroll', syncDocsSheetLayout, { passive: true, capture: true });
-    window.addEventListener('resize', syncDocsSheetLayout, { passive: true });
-    window.visualViewport?.addEventListener('scroll', syncDocsSheetLayout);
-    window.visualViewport?.addEventListener('resize', syncDocsSheetLayout);
-    requestAnimationFrame(syncDocsSheetLayout);
+    const onViewportResize = () => {
+        positionDocsSheet();
+    };
+    window.addEventListener('resize', onViewportResize, { passive: true });
+    window.visualViewport?.addEventListener('resize', onViewportResize);
+    requestAnimationFrame(syncNavRootPosition);
 
     if (!docsGroup) return;
 
@@ -2101,6 +2241,7 @@ function initStudentMobileNav() {
     };
 
     const closeDocsSheet = (restoreNav = true) => {
+        unbindDocsSheetScrollSync();
         unportalDocsItems();
         docsGroup.classList.remove('open');
         toggle?.setAttribute('aria-expanded', 'false');
@@ -2118,6 +2259,7 @@ function initStudentMobileNav() {
         docsGroup.classList.add('open');
         toggle?.setAttribute('aria-expanded', 'true');
         positionDocsSheet();
+        bindDocsSheetScrollSync();
         backdrop.classList.add('is-visible');
     };
 
@@ -3373,6 +3515,62 @@ function initDtrTimeLocks() {
     });
 }
 
+function sortControlsByDocumentOrder(controls) {
+    return [...controls].sort((a, b) => {
+        if (a === b) return 0;
+        const position = a.compareDocumentPosition(b);
+        if (position & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+        if (position & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+        return 0;
+    });
+}
+
+function getValidationScrollTarget(control) {
+    if (!control) return null;
+
+    if (control.type === 'file') {
+        return control.closest('.spf-photo-upload, .profile-photo-input, .spf-photo-stack, label') || control;
+    }
+
+    return control.closest('.spf-section, .spf-field, .spf-verified-group, label') || control;
+}
+
+function scrollToFirstInvalidControl(form, controls) {
+    const ordered = sortControlsByDocumentOrder(controls);
+
+    for (const control of ordered) {
+        if (control.disabled || !control.willValidate) continue;
+        if (control.checkValidity()) continue;
+
+        const scrollTarget = getValidationScrollTarget(control);
+        scrollTarget?.classList.add('field-validation-focus');
+        scrollTarget?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        window.setTimeout(() => {
+            try {
+                if (control.type === 'file') {
+                    control.closest('.spf-photo-upload, .profile-photo-input')?.focus({ preventScroll: true });
+                } else {
+                    control.focus({ preventScroll: true });
+                }
+            } catch (_) {}
+            control.reportValidity();
+        }, 280);
+
+        window.setTimeout(() => {
+            scrollTarget?.classList.remove('field-validation-focus');
+        }, 2600);
+
+        return control;
+    }
+
+    if (!form.checkValidity()) {
+        form.reportValidity();
+    }
+
+    return null;
+}
+
 function initForms() {
     const getAssociatedControls = form => {
         const selector = form.id
@@ -3381,7 +3579,7 @@ function initForms() {
         const localControls = [...form.querySelectorAll('input,select,textarea')];
         const externalControls = selector ? [...document.querySelectorAll(selector)] : [];
 
-        return [...new Set([...localControls, ...externalControls])];
+        return sortControlsByDocumentOrder([...new Set([...localControls, ...externalControls])]);
     };
 
     const getAssociatedSubmitButtons = form => {
@@ -3434,7 +3632,30 @@ function initForms() {
             if (!hasValidCheckboxGroup || !form.checkValidity() || missingDates.length) {
                 e.preventDefault();
                 markTouched();
-                if (!missingDates.length) form.reportValidity();
+
+                if (missingDates.length) {
+                    missingDates[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    missingDates[0].classList.add('field-validation-focus');
+                    window.setTimeout(() => missingDates[0].classList.remove('field-validation-focus'), 2600);
+                    return;
+                }
+
+                if (!hasValidCheckboxGroup) {
+                    const groupName = form.dataset.requireCheckboxGroup;
+                    const selector = form.id
+                        ? `input[type="checkbox"][name="${groupName}"][form="${form.id}"]`
+                        : `input[type="checkbox"][name="${groupName}"]`;
+                    const firstCheckbox = document.querySelector(selector);
+                    const scrollTarget = firstCheckbox?.closest('label, .spf-field, fieldset') || firstCheckbox;
+                    scrollTarget?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    scrollTarget?.classList.add('field-validation-focus');
+                    firstCheckbox?.focus({ preventScroll: true });
+                    window.setTimeout(() => scrollTarget?.classList.remove('field-validation-focus'), 2600);
+                    form.reportValidity();
+                    return;
+                }
+
+                scrollToFirstInvalidControl(form, controls);
                 return;
             }
 

@@ -31,7 +31,7 @@ $sidebarCollapsed = !$studentNavLocked && isset($_COOKIE['sidebarCollapsed']) &&
 <html lang="en"<?= $sidebarCollapsed ? ' class="is-sidebar-collapsed-init"' : '' ?>>
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title><?= e($title ?? 'AMA Practicum System') ?></title>
     <link rel="icon" type="image/jpeg" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">
     <link rel="apple-touch-icon" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">

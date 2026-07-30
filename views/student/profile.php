@@ -12,6 +12,28 @@ $currentGender = trim((string)($student['gender'] ?? ''));
 
 $genderOptions = ['Male', 'Female', 'Other'];
 
+$studentDisplayName = full_name($student) ?: trim((string)($student['name'] ?? 'Student'));
+
+$studentFirstName = trim((string)($student['first_name'] ?? ''));
+
+$studentMiddleName = trim((string)($student['middle_name'] ?? ''));
+
+$studentLastName = trim((string)($student['last_name'] ?? ''));
+
+if ($studentFirstName === '' && $studentLastName === '') {
+
+    $nameParts = split_person_name((string)($student['name'] ?? ''));
+
+    $studentFirstName = $nameParts['first_name'];
+
+    $studentMiddleName = $nameParts['middle_name'];
+
+    $studentLastName = $nameParts['last_name'];
+
+}
+
+$verifiedTagSvg = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Z" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M5.5 8 7 9.5 10.5 6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
 ?>
 
 <div class="student-profile-page spf-v2">
@@ -101,7 +123,7 @@ $genderOptions = ['Male', 'Female', 'Other'];
 
                             <div class="profile-photo-frame profile-photo-frame-lg spf-photo-frame">
 
-                                <img class="<?= $profilePhotoUrl === '' ? 'is-hidden' : '' ?>"<?= $profilePhotoUrl !== '' ? ' src="' . e($profilePhotoUrl) . '"' : '' ?> alt="<?= e($student['name'] ?? 'Student') ?> profile photo" data-profile-photo-preview>
+                                <img class="<?= $profilePhotoUrl === '' ? 'is-hidden' : '' ?>"<?= $profilePhotoUrl !== '' ? ' src="' . e($profilePhotoUrl) . '"' : '' ?> alt="<?= e($studentDisplayName) ?> profile photo" data-profile-photo-preview>
 
                                 <span class="profile-photo-fallback <?= $profilePhotoUrl !== '' ? 'is-hidden' : '' ?>" data-profile-photo-fallback><?= e($studentInitial) ?></span>
 
@@ -135,7 +157,7 @@ $genderOptions = ['Male', 'Female', 'Other'];
 
                     <div class="profile-identity spf-identity">
 
-                        <h2><?= e($student['name'] ?? 'Student') ?></h2>
+                        <h2><?= e($studentDisplayName) ?></h2>
 
                         <?php if ($studentEmail !== ''): ?><p class="profile-identity-email"><?= e($studentEmail) ?></p><?php endif; ?>
 
@@ -219,19 +241,51 @@ $genderOptions = ['Male', 'Female', 'Other'];
 
                         <div class="spf-verified-group">
 
-                            <div class="grid two student-profile-grid spf-field-grid spf-field-grid--verified">
+                            <div class="student-profile-grid spf-field-grid spf-field-grid--verified">
 
-                                <label class="spf-field spf-field--readonly">
+                                <div class="spf-name-block spf-field--full-row">
 
-                                    <span class="spf-field-label">Full Name <span class="spf-field-tag"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Z" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M5.5 8 7 9.5 10.5 6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Verified</span></span>
+                                    <div class="spf-name-block-head">
 
-                                    <input required value="<?= e($student['name'] ?? '') ?>" disabled>
+                                        <span class="spf-field-label">Legal Name</span>
 
-                                </label>
+                                        <span class="spf-field-tag"><?= $verifiedTagSvg ?> Verified</span>
 
-                                <label class="spf-field spf-field--readonly">
+                                    </div>
 
-                                    <span class="spf-field-label">Student ID Number <span class="spf-field-tag"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Z" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M5.5 8 7 9.5 10.5 6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Verified</span></span>
+                                    <div class="spf-field-grid spf-field-grid--name">
+
+                                        <label class="spf-field spf-field--readonly">
+
+                                            <span class="spf-field-label">First Name</span>
+
+                                            <input required value="<?= e($studentFirstName) ?>" disabled autocomplete="given-name">
+
+                                        </label>
+
+                                        <label class="spf-field spf-field--readonly">
+
+                                            <span class="spf-field-label">Middle Name</span>
+
+                                            <input value="<?= e($studentMiddleName !== '' ? $studentMiddleName : '—') ?>" disabled autocomplete="additional-name">
+
+                                        </label>
+
+                                        <label class="spf-field spf-field--readonly">
+
+                                            <span class="spf-field-label">Last Name</span>
+
+                                            <input required value="<?= e($studentLastName) ?>" disabled autocomplete="family-name">
+
+                                        </label>
+
+                                    </div>
+
+                                </div>
+
+                                <label class="spf-field spf-field--readonly spf-field--full-row">
+
+                                    <span class="spf-field-label">Student ID Number <span class="spf-field-tag"><?= $verifiedTagSvg ?> Verified</span></span>
 
                                     <input required value="<?= e($student['student_no'] ?? '') ?>" disabled>
 
@@ -239,7 +293,7 @@ $genderOptions = ['Male', 'Female', 'Other'];
 
                                 <label class="spf-field spf-field--readonly spf-field--full-row">
 
-                                    <span class="spf-field-label">Course <span class="spf-field-tag"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Z" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M5.5 8 7 9.5 10.5 6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Verified</span></span>
+                                    <span class="spf-field-label">Course <span class="spf-field-tag"><?= $verifiedTagSvg ?> Verified</span></span>
 
                                     <input required value="<?= e($student['course'] ?? '') ?>" disabled>
 
