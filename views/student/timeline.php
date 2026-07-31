@@ -338,9 +338,9 @@ body.role-student .app-user-identity--chip .app-user-identity__meta small {
             <div class="timeline st-timeline<?= $isEmpty ? ' is-empty' : '' ?>" data-st-timeline>
                 <?php if ($isEmpty): ?>
                     <div class="st-timeline-empty">
-                        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-                        <p>Walang na-submit na practicum activity pa.</p>
-                        <a class="btn btn-small" href="<?= e(route_url('student.records')) ?>">Mag-submit ng record</a>
+                        <svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm12 8H5v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Zm3 6h4v2H8v-2Zm6 0h2v2h-2v-2Zm-6 4h8v2H8v-2Z"/></svg>
+                        <p>No practicum activity submitted yet.</p>
+                        <a class="btn btn-small" href="<?= e(route_url('student.records')) ?>">Submit a record</a>
                     </div>
                 <?php else: ?>
                     <?php $currentMonth = ''; ?>

@@ -1506,39 +1506,3 @@ function build_student_timeline_entries(array $dtrs, array $weeklyReports): arra
 
     return $entries;
 }
-
-/**
- * Sample timeline entries for UI preview (Activity Timeline page).
- *
- * @return array{dtrs: array<int, array<string, mixed>>, weeklyReports: array<int, array<string, mixed>>}
- */
-function timeline_preview_data(): array
-{
-    $dtrs = [
-        ['work_date' => '2026-07-25', 'morning_time_in' => '08:00', 'morning_time_out' => '12:00', 'afternoon_time_in' => '13:00', 'afternoon_time_out' => '17:00', 'day_type' => 'full', 'hours' => 8, 'tasks_done' => 'Assisted in troubleshooting network connectivity issues and documented ticket resolutions.'],
-        ['work_date' => '2026-07-24', 'morning_time_in' => '08:00', 'morning_time_out' => '12:00', 'afternoon_time_in' => '13:00', 'afternoon_time_out' => '17:00', 'day_type' => 'full', 'hours' => 8, 'tasks_done' => 'Configured workstation setups for new interns and updated asset inventory spreadsheet.'],
-        ['work_date' => '2026-07-23', 'morning_time_in' => '08:00', 'morning_time_out' => '12:00', 'afternoon_time_in' => '13:00', 'afternoon_time_out' => '17:00', 'day_type' => 'full', 'hours' => 8, 'tasks_done' => 'Shadowed senior staff during client support calls and prepared end-of-day activity summary.'],
-        ['work_date' => '2026-07-22', 'morning_time_in' => '08:00', 'morning_time_out' => '12:00', 'afternoon_time_in' => '13:00', 'afternoon_time_out' => '17:00', 'day_type' => 'full', 'hours' => 8, 'tasks_done' => 'Performed routine PC maintenance, disk cleanup, and antivirus scans across the IT lab.'],
-        ['work_date' => '2026-07-21', 'morning_time_in' => '08:00', 'morning_time_out' => '12:00', 'afternoon_time_in' => '13:00', 'afternoon_time_out' => '17:00', 'day_type' => 'full', 'hours' => 8, 'tasks_done' => 'Helped prepare presentation materials for the weekly team meeting and updated shared drive folders.'],
-        ['work_date' => '2026-07-18', 'morning_time_in' => '08:00', 'morning_time_out' => '12:00', 'afternoon_time_in' => '13:00', 'afternoon_time_out' => '17:00', 'day_type' => 'full', 'hours' => 8, 'tasks_done' => 'Tested backup restoration procedure and logged results in the operations checklist.'],
-        ['work_date' => '2026-07-17', 'morning_time_in' => '08:00', 'morning_time_out' => '12:00', 'afternoon_time_in' => '13:00', 'afternoon_time_out' => '17:00', 'day_type' => 'full', 'hours' => 8, 'tasks_done' => 'Drafted user guides for common helpdesk requests and reviewed formatting with supervisor.'],
-        ['work_date' => '2026-07-16', 'morning_time_in' => '08:00', 'morning_time_out' => '12:00', 'afternoon_time_in' => '13:00', 'afternoon_time_out' => '17:00', 'day_type' => 'full', 'hours' => 8, 'tasks_done' => 'Participated in code review session and updated project task board with completed items.'],
-        ['work_date' => '2026-07-15', 'morning_time_in' => '08:00', 'morning_time_out' => '12:00', 'afternoon_time_in' => '13:00', 'afternoon_time_out' => '17:00', 'day_type' => 'full', 'hours' => 8, 'tasks_done' => 'Installed and configured software packages on department laptops per deployment list.'],
-        ['work_date' => '2026-07-14', 'morning_time_in' => '08:00', 'morning_time_out' => '12:00', 'afternoon_time_in' => '13:00', 'afternoon_time_out' => '17:00', 'day_type' => 'full', 'hours' => 8, 'tasks_done' => 'Attended OJT orientation briefing and completed workplace safety acknowledgment forms.'],
-        ['work_date' => '2026-07-11', 'morning_time_in' => '08:00', 'morning_time_out' => '12:00', 'afternoon_time_in' => '13:00', 'afternoon_time_out' => '17:00', 'day_type' => 'full', 'hours' => 8, 'tasks_done' => 'Mapped office network layout and labeled patch panels for easier maintenance access.'],
-        ['work_date' => '2026-07-10', 'morning_time_in' => '08:00', 'morning_time_out' => '12:00', 'afternoon_time_in' => '13:00', 'afternoon_time_out' => '17:00', 'day_type' => 'full', 'hours' => 8, 'tasks_done' => 'Supported data encoding tasks and verified entries against source documents.'],
-        ['work_date' => '2026-07-09', 'morning_time_in' => '08:00', 'morning_time_out' => '12:00', 'afternoon_time_in' => '13:00', 'afternoon_time_out' => '17:00', 'day_type' => 'full', 'hours' => 8, 'tasks_done' => 'Observed server room procedures and recorded environmental monitoring readings.'],
-        ['work_date' => '2026-07-08', 'morning_time_in' => '08:00', 'morning_time_out' => '12:00', 'afternoon_time_in' => '13:00', 'afternoon_time_out' => '17:00', 'day_type' => 'full', 'hours' => 8, 'tasks_done' => 'Created wireframes for the intern onboarding portal mockup assigned by the team lead.'],
-        ['work_date' => '2026-07-07', 'morning_time_in' => '08:00', 'morning_time_out' => '12:00', 'afternoon_time_in' => '13:00', 'afternoon_time_out' => '17:00', 'day_type' => 'full', 'hours' => 8, 'tasks_done' => 'First day on-site: department tour, account provisioning, and initial task briefing with HTE supervisor.'],
-    ];
-
-    $weeklyReports = [
-        ['week_no' => 5, 'created_at' => '2026-07-26 16:30:00', 'file_path' => null, 'report_text' => 'Submitted summary of network troubleshooting tasks, backup testing, and helpdesk shadowing for Week 5.'],
-        ['week_no' => 4, 'created_at' => '2026-07-19 17:00:00', 'file_path' => null, 'report_text' => 'Documented software deployment progress, user guide drafts, and code review participation for Week 4.'],
-        ['week_no' => 3, 'created_at' => '2026-07-12 16:45:00', 'file_path' => null, 'report_text' => 'Reported on PC maintenance routines, presentation prep, and shared drive organization completed during Week 3.'],
-        ['week_no' => 2, 'created_at' => '2026-07-05 17:15:00', 'file_path' => null, 'report_text' => 'Outlined data encoding support, server room observation, and onboarding portal wireframe work for Week 2.'],
-        ['week_no' => 1, 'created_at' => '2026-06-28 16:00:00', 'file_path' => null, 'report_text' => 'Initial weekly report covering OJT orientation, first-week assignments, and learning objectives for the practicum period.'],
-    ];
-
-    return ['dtrs' => $dtrs, 'weeklyReports' => $weeklyReports];
-}
