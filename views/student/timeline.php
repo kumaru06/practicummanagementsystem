@@ -10,37 +10,35 @@ $isEmpty = $totalEntries === 0;
 ?>
 
 <style>
-/* Timeline page layout overrides */
-body.role-student .topbar-toolbar,
-body.role-student .user-chip,
-body.role-student .user-chip-link {
-    border-radius: 5px !important;
-}
-body.role-student .top-actions {
-    flex: 0 1 auto !important;
-    min-width: 0 !important;
-    max-width: min(520px, 72%) !important;
-}
-@media (max-width: 720px) {
+/* Timeline page layout overrides (desktop chip only) */
+@media (min-width: 721px) {
+    body.role-student .topbar-toolbar,
+    body.role-student .user-chip,
+    body.role-student .user-chip-link {
+        border-radius: 0 !important;
+    }
     body.role-student .top-actions {
-        max-width: none !important;
-        flex: 0 0 auto !important;
+        flex: 0 1 auto !important;
+        min-width: 0 !important;
+        max-width: min(520px, 72%) !important;
+    }
+    body.role-student .app-user-identity--chip .app-user-identity__meta {
+        max-width: 220px !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+    }
+    body.role-student .app-user-identity--chip .app-user-identity__meta strong,
+    body.role-student .app-user-identity--chip .app-user-identity__meta small {
+        display: block !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        word-break: normal !important;
     }
 }
-body.role-student .app-user-identity--chip .app-user-identity__meta {
-    max-width: 220px !important;
-    min-width: 0 !important;
-    overflow: hidden !important;
-}
-body.role-student .app-user-identity--chip .app-user-identity__meta strong,
-body.role-student .app-user-identity--chip .app-user-identity__meta small {
-    display: block !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-    word-break: normal !important;
-}
+</style>
 
+<style>
 .student-timeline-page,
 .student-timeline-page * {
     box-sizing: border-box;

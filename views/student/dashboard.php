@@ -97,9 +97,13 @@ $companyName = (string)($enrollment['company_name'] ?? 'Not enrolled');
 
 <div class="student-dashboard-page student-dash-v2 student-dash-v3">
     <section class="sd3-intro" aria-label="Welcome">
+        <div class="sd3-intro-backdrop" aria-hidden="true"></div>
         <div class="sd3-intro-copy">
-            <p class="sd3-intro-kicker"><?= e(date('l, M j, Y')) ?></p>
-            <h2 class="sd3-intro-title">Welcome back, <?= e($firstName) ?></h2>
+            <div class="sd3-intro-meta">
+                <p class="sd3-intro-kicker"><?= e(date('l, M j, Y')) ?></p>
+                <span class="sd3-intro-badge"><?= e($nextAction['title']) ?></span>
+            </div>
+            <h2 class="sd3-intro-title">Welcome back, <em><?= e($firstName) ?></em></h2>
             <p class="sd3-intro-sub"><?= e($nextAction['message']) ?></p>
         </div>
         <a class="btn btn-primary sd3-intro-cta" href="<?= e($nextAction['route']) ?>">
