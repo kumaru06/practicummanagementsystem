@@ -181,6 +181,13 @@ class Company
         ]);
     }
 
+    public function updateMoaMouFile(int $companyId, string $moaMouFile): void
+    {
+        $this->ensureMoaMouSupport();
+        $stmt = $this->db->prepare('UPDATE partner_companies SET moa_mou_file = ? WHERE id = ?');
+        $stmt->execute([trim($moaMouFile), $companyId]);
+    }
+
     public function count(): int
     {
         return (int)$this->db->query('SELECT COUNT(*) FROM partner_companies')->fetchColumn();
@@ -223,5 +230,75 @@ class Company
         $stmt = $this->db->prepare('SELECT COUNT(*) FROM company_programs WHERE company_id = ? AND program_id = ?');
         $stmt->execute([$companyId, $programId]);
         return (int)$stmt->fetchColumn() > 0;
+    }
+
+    /**
+     * Coordinators may view a company MOA/MOU when they have a student enrolled there
+     * or when the company accepts a program assigned to one of their students (enrollment browsing).
+     */
+    public function coordinatorCanAccessMoa(int $coordinatorUserId, int $companyId): bool
+    {
+        if ($companyId <= 0 || $coordinatorUserId <= 0) {
+            return false;
+        }
+        $stmt = $this->db->prepare(
+            'SELECT 1
+             FROM partner_companies pc
+             WHERE pc.id = ?
+               AND pc.moa_mou_file IS NOT NULL
+               AND pc.moa_mou_file != ""
+               AND (
+                 EXISTS (
+                   SELECT 1 FROM ojt_enrollments e
+                   JOIN students s ON s.id = e.student_id
+                   WHERE s.coordinator_id = ? AND e.company_id = pc.id
+                 )
+                 OR EXISTS (
+                   SELECT 1 FROM students s
+                   JOIN company_programs cp ON cp.program_id = s.program_id
+                   WHERE s.coordinator_id = ? AND cp.company_id = pc.id AND s.program_id IS NOT NULL
+                 )
+               )
+             LIMIT 1'
+        );
+        $stmt->execute([$companyId, $coordinatorUserId, $coordinatorUserId]);
+
+        return (bool)$stmt->fetchColumn();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function withMoaForCoordinator(int $coordinatorUserId): array
+    {
+        $this->ensurePhotoSupport();
+        $this->ensurePartnerIdSupport();
+        $stmt = $this->db->prepare(
+            'SELECT pc.*, u.id user_id_key, u.email, u.is_active,
+                    GROUP_CONCAT(DISTINCT p.code ORDER BY p.code SEPARATOR ", ") accepted_programs,
+                    GROUP_CONCAT(DISTINCT cp.program_id ORDER BY cp.program_id SEPARATOR ",") accepted_program_ids
+             FROM partner_companies pc
+             JOIN users u ON u.id = pc.user_id
+             LEFT JOIN company_programs cp ON cp.company_id = pc.id
+             LEFT JOIN programs p ON p.id = cp.program_id
+             WHERE pc.moa_mou_file IS NOT NULL AND pc.moa_mou_file != ""
+               AND (
+                 EXISTS (
+                   SELECT 1 FROM ojt_enrollments e
+                   JOIN students s ON s.id = e.student_id
+                   WHERE s.coordinator_id = ? AND e.company_id = pc.id
+                 )
+                 OR EXISTS (
+                   SELECT 1 FROM students s
+                   JOIN company_programs cp2 ON cp2.program_id = s.program_id
+                   WHERE s.coordinator_id = ? AND cp2.company_id = pc.id AND s.program_id IS NOT NULL
+                 )
+               )
+             GROUP BY pc.id, u.id
+             ORDER BY pc.name'
+        );
+        $stmt->execute([$coordinatorUserId, $coordinatorUserId]);
+
+        return $stmt->fetchAll();
     }
 }

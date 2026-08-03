@@ -1,8 +1,20 @@
 <?php
 $selectedId = (int)($selected['id'] ?? 0);
-$renderedHours = array_reduce($dtrs ?? [], static fn ($total, $dtr) => $total + (float)($dtr['hours'] ?? 0), 0.0);
+$renderedHours = array_reduce($dtrs ?? [], static function ($total, $dtr) {
+    if (($dtr['verification_status'] ?? '') !== 'approved') {
+        return $total;
+    }
+    return $total + (float)($dtr['hours'] ?? 0);
+}, 0.0);
 $requiredHours = (float)($selected['required_hours'] ?? 0);
-$evaluationUnlocked = $selected && $requiredHours > 0 && $renderedHours >= $requiredHours;
+$evaluationUnlocked = $selected
+    && $requiredHours > 0
+    && $renderedHours >= $requiredHours
+    && in_array((string)($selected['status'] ?? ''), ['active', 'completed'], true)
+    && (
+        ($selected['predeployment_status'] ?? '') === 'orientation_completed'
+        || ($selected['status'] ?? '') === 'completed'
+    );
 
 $statusMeta = static function (?string $status): array {
     $status = strtolower(trim((string)$status));
@@ -37,7 +49,11 @@ $pipelineStep = static function (?string $status): int {
 
 $pipelineLabels = ['Documents', 'Accept', 'Orient', 'OJT', 'Done'];
 $currentPipeline = $selected ? $pipelineStep($selected['predeployment_status'] ?? '') : -1;
-if ($selected && ($selected['status'] ?? '') === 'completed') {
+$ojtDone = $selected && (
+    ($selected['status'] ?? '') === 'completed'
+    || !empty($evaluation)
+);
+if ($ojtDone) {
     $currentPipeline = 4;
 }
 ?>
@@ -70,7 +86,7 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                 <?php if (empty($students)): ?>
                     <div class="pp-roster-empty">
                         <p>No students assigned yet</p>
-                        <small>Students appear here once deployed by the OJT Coordinator.</small>
+                        <small>Students appear here once the coordinator forwards approved documents.</small>
                     </div>
                 <?php endif; ?>
                 <?php foreach ($students as $s): ?>
@@ -184,19 +200,37 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                             <a class="pp-doc-btn" target="_blank" href="<?= e(route_url('partner.view_endorsement', ['enrollment' => (int)$selected['id']])) ?>">View Letter</a>
                         </div>
 
+                        <?php
+                        $approvedRequirementCount = 0;
+                        foreach ($requirements as $reqCheck) {
+                            if (($reqCheck['status'] ?? '') === 'approved') {
+                                $approvedRequirementCount++;
+                            }
+                        }
+                        $allRequirementsApproved = !empty($requirements) && $approvedRequirementCount === count($requirements);
+                        ?>
                         <div class="pp-docs-block">
                             <div class="pp-docs-block-head">
                                 <span><?= count($requirements) ?> Pre-Deployment Requirements</span>
-                                <span class="pp-chip pp-chip--approved">All Approved</span>
+                                <span class="pp-chip <?= $allRequirementsApproved ? 'pp-chip--approved' : 'pp-chip--default' ?>">
+                                    <?= $allRequirementsApproved ? 'All Approved' : ($approvedRequirementCount . ' / ' . count($requirements) . ' Approved') ?>
+                                </span>
                             </div>
                             <?php foreach ($requirements as $req): ?>
+                                <?php $reqStatus = (string)($req['status'] ?? 'pending'); ?>
                                 <div class="pp-docs-row">
                                     <span class="pp-docs-icon"><?= requirement_card_icon((string)$req['requirement_key']) ?></span>
                                     <span class="pp-docs-label"><?= e($req['requirement_name']) ?></span>
-                                    <span class="pp-docs-approved" aria-label="Approved">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-                                    </span>
-                                    <?= !empty($req['file_path']) ? '<a class="pp-doc-btn pp-doc-btn--ghost" target="_blank" href="' . e($req['file_path']) . '">View</a>' : '<span class="pp-muted">—</span>' ?>
+                                    <?php if ($reqStatus === 'approved'): ?>
+                                        <span class="pp-docs-approved" aria-label="Approved">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="pp-chip pp-chip--default"><?= e(ucfirst(str_replace('_', ' ', $reqStatus))) ?></span>
+                                    <?php endif; ?>
+                                    <?= !empty($req['file_path']) && $reqStatus === 'approved'
+                                        ? '<a class="pp-doc-btn pp-doc-btn--ghost" target="_blank" href="' . e(asset($req['file_path'])) . '">View</a>'
+                                        : '<span class="pp-muted">—</span>' ?>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -261,6 +295,33 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                                         <span class="field-title">Notes</span>
                                         <div class="pp-orient-value"><?= e($selected['orientation_notes'] ?? ' - ') ?></div>
                                     </div>
+                                    <details class="pp-orient-reschedule">
+                                        <summary class="btn btn-small">Reschedule Orientation</summary>
+                                        <form method="post" class="form js-validate ip-form-panel orientation-action-card" style="margin-top: 0.85rem;">
+                                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                            <input type="hidden" name="action" value="partner_schedule_orientation">
+                                            <input type="hidden" name="enrollment_id" value="<?= (int)$selected['id'] ?>">
+                                            <?php
+                                            $scheduledValue = !empty($selected['orientation_datetime'])
+                                                ? (new DateTime($selected['orientation_datetime']))->format('Y-m-d\TH:i')
+                                                : '';
+                                            $scheduledLabel = !empty($selected['orientation_datetime'])
+                                                ? (new DateTime($selected['orientation_datetime']))->format('M j, Y g:i A')
+                                                : 'Select date & time';
+                                            ?>
+                                            <label class="no-floating-label required-label orientation-field"><span class="field-title">New Orientation Date/Time <span class="req">*</span></span>
+                                                <span class="filter-date-picker form-date-picker form-datetime-picker<?= $scheduledValue !== '' ? '' : ' is-placeholder' ?>" data-datetime-picker="1" data-date-required="1">
+                                                    <input type="hidden" name="orientation_datetime" value="<?= e($scheduledValue) ?>">
+                                                    <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select orientation date and time">
+                                                        <span class="filter-date-value"><?= e($scheduledLabel) ?></span>
+                                                        <span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span>
+                                                    </button>
+                                                </span>
+                                            </label>
+                                            <label class="no-floating-label required-label orientation-field"><span class="field-title">Notes <span class="req">*</span></span><textarea required name="orientation_notes" maxlength="500" placeholder="Add meeting link, venue, attire, documents to bring, and contact person."><?= e($selected['orientation_notes'] ?? '') ?></textarea></label>
+                                            <button class="btn btn-primary" type="submit">Save Reschedule</button>
+                                        </form>
+                                    </details>
                                 </div>
                             <?php elseif ($selected['predeployment_status'] === 'orientation_completed'): ?>
                                 <div class="ojt-completed-block">
@@ -357,13 +418,30 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                         </div>
                         <div class="table-wrap">
                             <table class="data-table compact-table" data-no-enhance="1">
-                                <thead><tr><th>Date</th><th>Schedule</th><th>Hours</th><th>Tasks</th></tr></thead>
+                                <thead><tr><th>Date</th><th>Schedule</th><th>Hours</th><th>Status</th><th>Tasks</th></tr></thead>
                                 <tbody>
                                     <?php if (empty($dtrs)): ?>
-                                        <tr><td colspan="4" class="pp-muted">No time records yet.</td></tr>
+                                        <tr><td colspan="5" class="pp-muted">No time records yet.</td></tr>
                                     <?php endif; ?>
                                     <?php foreach ($dtrs as $d): ?>
-                                        <tr><td><?= e($d['work_date']) ?></td><td><?= e(format_dtr_schedule($d)) ?></td><td><?= e($d['hours']) ?></td><td><?= e($d['tasks_done']) ?></td></tr>
+                                        <?php
+                                        $dtrStatus = strtolower(trim((string)($d['verification_status'] ?? 'pending')));
+                                        if (!in_array($dtrStatus, ['pending', 'approved', 'rejected'], true)) {
+                                            $dtrStatus = 'pending';
+                                        }
+                                        $dtrChip = match ($dtrStatus) {
+                                            'approved' => 'pp-chip--approved',
+                                            'rejected' => 'pp-chip--default',
+                                            default => 'pp-chip--forwarded',
+                                        };
+                                        ?>
+                                        <tr>
+                                            <td><?= e($d['work_date']) ?></td>
+                                            <td><?= e(format_dtr_schedule($d)) ?></td>
+                                            <td><?= e($d['hours']) ?></td>
+                                            <td><span class="pp-chip <?= e($dtrChip) ?>"><?= e(ucfirst($dtrStatus)) ?></span></td>
+                                            <td><?= e($d['tasks_done']) ?></td>
+                                        </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
@@ -388,7 +466,7 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                                 </div>
                                 <a class="btn btn-primary" href="<?= e(route_url('partner.evaluate', ['enrollment' => (int)$selected['id']])) ?>">Edit Evaluation</a>
                             <?php else: ?>
-                                <p class="muted">The student has completed required hours. Start the final evaluation.</p>
+                                <p class="muted">The student has completed the required approved hours. Start the final evaluation.</p>
                                 <a class="btn btn-primary" href="<?= e(route_url('partner.evaluate', ['enrollment' => (int)$selected['id']])) ?>">Start Evaluation</a>
                             <?php endif; ?>
                         <?php else: ?>
@@ -396,7 +474,7 @@ if ($selected && ($selected['status'] ?? '') === 'completed') {
                                 <div class="pp-eval-progress">
                                     <span style="width: <?= $requiredHours > 0 ? min(100, round(($renderedHours / $requiredHours) * 100)) : 0 ?>%"></span>
                                 </div>
-                                <p class="muted"><?= e(number_format($renderedHours, 2)) ?> / <?= e(number_format($requiredHours, 2)) ?> hours rendered</p>
+                                <p class="muted"><?= e(number_format($renderedHours, 2)) ?> / <?= e(number_format($requiredHours, 2)) ?> approved hours</p>
                                 <button class="btn btn-primary" type="button" disabled>Evaluation Locked</button>
                             </div>
                         <?php endif; ?>

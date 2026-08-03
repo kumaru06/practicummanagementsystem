@@ -51,15 +51,30 @@
     border-radius: 50% !important;
 }
 
-/* Topbar chip: sharp corners (override global 5px radius). */
+/* Topbar chip chrome: sharp corners (override global 5px radius). */
 .topbar .topbar-toolbar,
 .topbar .user-chip,
-.topbar .user-chip-link,
-.topbar .notif-trigger,
+.topbar .user-chip-link {
+    border-radius: 0 !important;
+}
+
+/* Profile photos + notification bell stay circular. */
+.app-user-identity__avatar,
+.app-user-identity__avatar--photo,
+.app-user-identity__avatar--photo img,
+.app-user-identity__avatar--photo .profile-inline-avatar-fallback,
+.coord-student-avatar,
+.coord-student-avatar--photo,
+.coord-student-avatar--photo img,
+.user-avatar,
+.user-avatar-photo,
+.user-avatar-photo img,
 .topbar .app-user-identity--chip .app-user-identity__avatar,
 .topbar .app-user-identity--chip .app-user-identity__avatar--photo,
-.topbar .app-user-identity--chip .app-user-identity__avatar--photo img {
-    border-radius: 0 !important;
+.topbar .app-user-identity--chip .app-user-identity__avatar--photo img,
+.topbar .notif-trigger,
+.notif-trigger {
+    border-radius: 50% !important;
 }
 
 .is-hidden {
@@ -5393,9 +5408,9 @@ body.student-nav-reveal.role-student .sidebar .nav > *:nth-child(9) { animation-
 .topbar .notif-trigger {
     width: 40px;
     height: 40px;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
+    border: 1.5px solid rgba(219, 228, 240, 0.95);
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
     flex-shrink: 0;
     overflow: visible;
 }
@@ -5404,8 +5419,8 @@ body.student-nav-reveal.role-student .sidebar .nav > *:nth-child(9) { animation-
 .topbar .notification-menu.is-open .notif-trigger {
     background: rgba(139, 26, 26, 0.08);
     color: var(--navy-900);
-    border-color: transparent;
-    box-shadow: none;
+    border-color: rgba(139, 26, 26, 0.22);
+    box-shadow: 0 4px 12px rgba(139, 26, 26, 0.12);
 }
 
 .topbar .notification-menu {
@@ -10140,7 +10155,7 @@ body.is-confirm-open .app-confirm-overlay {
     padding: 0;
     background: #fff;
     border: 2px solid rgba(139, 26, 26, 0.12);
-    box-shadow: 0 8px 16px rgba(139, 26, 26, 0.12);
+    box-shadow: none;
 }
 
 .app-user-identity__avatar--photo {
@@ -10250,12 +10265,21 @@ body.is-confirm-open .app-confirm-overlay {
     width: 38px;
     height: 38px;
     border-radius: 50%;
-    box-shadow: 0 6px 14px rgba(139, 26, 26, 0.16);
+    box-shadow: none;
 }
 
 .app-user-identity--chip .app-user-identity__avatar--photo {
     border-radius: 50%;
     border: 2px solid #fff;
+    box-shadow: none;
+}
+
+.topbar .app-user-identity--chip .app-user-identity__avatar,
+.topbar .app-user-identity--chip .app-user-identity__avatar--photo,
+.topbar .user-chip .app-user-identity__avatar,
+.topbar .user-chip .app-user-identity__avatar--photo {
+    box-shadow: none !important;
+    background: transparent;
 }
 
 .app-user-identity--chip .app-user-identity__meta {
@@ -14478,10 +14502,11 @@ body.is-confirm-open .app-confirm-overlay {
 
     .role-student .topbar-toolbar {
         padding: 0;
-        gap: 6px;
+        gap: 8px;
         border: 0;
         background: transparent;
         box-shadow: none;
+        align-items: center;
     }
 
     .role-student .topbar-toolbar-divider,
@@ -14497,6 +14522,15 @@ body.is-confirm-open .app-confirm-overlay {
         border: 0 !important;
         background: transparent !important;
         box-shadow: none !important;
+    }
+
+    .role-student .notif-trigger {
+        width: 40px;
+        height: 40px;
+        border-radius: 50% !important;
+        border: 1.5px solid rgba(219, 228, 240, 0.95);
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
     }
 }
 
@@ -14716,8 +14750,10 @@ body.is-confirm-open .app-confirm-overlay {
     .role-student .notif-trigger {
         width: 40px;
         height: 40px;
-        border-radius: 50%;
-        background: rgba(139, 26, 26, 0.06);
+        border-radius: 50% !important;
+        border: 1.5px solid rgba(219, 228, 240, 0.95);
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
     }
 
     .role-student .notif-panel {
@@ -14842,7 +14878,6 @@ body.is-confirm-open .app-confirm-overlay {
         width: 100%;
         max-width: 100%;
         padding: 0;
-        padding-bottom: env(safe-area-inset-bottom);
         pointer-events: none;
     }
 
@@ -14861,17 +14896,21 @@ body.is-confirm-open .app-confirm-overlay {
         transform: none;
         z-index: 1;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 66px;
+        grid-template-columns: minmax(0, 1fr) 58px;
         align-items: center;
-        gap: 6px;
+        gap: 4px;
         max-height: none;
-        padding: 8px 8px 10px;
+        padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
         border: 0;
-        border-top: 1px solid rgba(255, 255, 255, 0.16);
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
         border-radius: 0 !important;
-        background: linear-gradient(180deg, #1c326e 0%, #5c1a22 34%, rgba(111, 17, 17, 0.98) 58%, rgba(184, 150, 42, 0.92) 100%);
-        box-shadow: 0 -8px 24px rgba(20, 24, 48, 0.2);
+        background:
+            linear-gradient(180deg, rgba(26, 39, 88, 0.98) 0%, rgba(22, 34, 78, 0.99) 100%);
+        box-shadow:
+            0 -10px 28px rgba(12, 18, 40, 0.28),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
         backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
         overflow: visible;
         pointer-events: auto;
     }
@@ -14931,14 +14970,15 @@ body.is-confirm-open .app-confirm-overlay {
         scroll-snap-align: center;
         flex-direction: column;
         justify-content: center;
-        gap: 4px;
-        min-height: 62px;
-        padding: 8px 7px;
+        gap: 5px;
+        min-height: 58px;
+        padding: 7px 6px;
         border-radius: 5px;
-        color: rgba(255, 255, 255, 0.82);
+        color: rgba(255, 255, 255, 0.72);
         text-align: center;
         pointer-events: auto;
         touch-action: manipulation;
+        transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
     }
 
     .role-student .sidebar-user,
@@ -14952,34 +14992,45 @@ body.is-confirm-open .app-confirm-overlay {
     .role-student .sidebar-logout,
     .role-student.sidebar-collapsed .sidebar-logout {
         width: 100%;
-        padding: 8px 7px;
+        padding: 7px 6px;
         border-radius: 5px;
-        color: rgba(255, 255, 255, 0.82);
-        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 210, 210, 0.88);
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .role-student .sidebar-logout:hover {
         color: #fff;
-        background: rgba(255, 255, 255, 0.16);
+        background: rgba(220, 38, 38, 0.22);
+        border-color: rgba(248, 113, 113, 0.28);
     }
 
     .role-student .sidebar-logout span,
     .role-student.sidebar-collapsed .sidebar-logout span {
         display: block;
-        font-size: 0.68rem;
+        font-size: 0.66rem;
         line-height: 1.1;
+        font-weight: 650;
     }
 
     .role-student .nav-link.active {
-        background: rgba(255, 255, 255, 0.18);
-        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 10px 24px rgba(0,0,0,0.12);
+        color: #fff;
+        background: rgba(255, 255, 255, 0.14);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.16),
+            0 0 0 1px rgba(232, 197, 71, 0.28);
+    }
+
+    .role-student .nav-link.active svg {
+        color: #e8c547;
+        opacity: 1;
     }
 
     .role-student .nav-link svg,
     .role-student .sidebar-logout svg {
-        width: 21px;
-        height: 21px;
-        opacity: 0.95;
+        width: 20px;
+        height: 20px;
+        opacity: 0.9;
     }
 
     .role-student .nav-link span,
@@ -15013,12 +15064,12 @@ body.is-confirm-open .app-confirm-overlay {
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        gap: 4px;
+        gap: 5px;
         width: 100%;
-        min-height: 62px;
-        padding: 8px 7px;
+        min-height: 58px;
+        padding: 7px 6px;
         border-radius: 5px;
-        color: rgba(255, 255, 255, 0.82);
+        color: rgba(255, 255, 255, 0.72);
         font-size: inherit;
         font-weight: inherit;
         letter-spacing: 0;
@@ -15236,9 +15287,9 @@ body.is-confirm-open .app-confirm-overlay {
         align-items: center;
         grid-auto-flow: unset;
         grid-auto-columns: unset;
-        gap: 4px;
+        gap: 2px;
         min-width: 0;
-        min-height: 62px;
+        min-height: 58px;
         overflow-x: auto;
         overflow-y: hidden;
         overscroll-behavior-x: contain;
@@ -15246,6 +15297,7 @@ body.is-confirm-open .app-confirm-overlay {
         scroll-snap-type: x proximity;
         scrollbar-width: none;
         touch-action: pan-x;
+        padding: 0 2px;
     }
 
     .student-bottom-nav-root .sidebar .nav::-webkit-scrollbar {
@@ -15256,7 +15308,7 @@ body.is-confirm-open .app-confirm-overlay {
     .student-bottom-nav-root .sidebar .nav-group,
     .student-bottom-nav-root .sidebar .sidebar-user {
         flex: 0 0 auto;
-        min-width: 62px;
+        min-width: 58px;
         scroll-snap-align: center;
         touch-action: pan-x;
     }
@@ -15268,11 +15320,11 @@ body.is-confirm-open .app-confirm-overlay {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 4px;
-        height: 62px;
-        min-height: 62px;
-        max-height: 62px;
-        padding: 8px 7px;
+        gap: 5px;
+        height: 58px;
+        min-height: 58px;
+        max-height: 58px;
+        padding: 7px 6px;
         box-sizing: border-box;
         line-height: 1;
         margin: 0;
@@ -15286,9 +15338,9 @@ body.is-confirm-open .app-confirm-overlay {
         flex-direction: column;
         align-items: stretch;
         justify-content: center;
-        height: 62px;
-        min-height: 62px;
-        max-height: 62px;
+        height: 58px;
+        min-height: 58px;
+        max-height: 58px;
         padding: 0;
         background: transparent;
     }
@@ -15308,12 +15360,12 @@ body.is-confirm-open .app-confirm-overlay {
     .student-bottom-nav-root .sidebar .nav-link svg,
     .student-bottom-nav-root .sidebar .nav-group-toggle svg:first-of-type,
     .student-bottom-nav-root .sidebar .sidebar-logout svg {
-        flex: 0 0 21px;
-        width: 21px;
-        height: 21px;
+        flex: 0 0 20px;
+        width: 20px;
+        height: 20px;
         margin: 0;
         display: block;
-        opacity: 0.95;
+        opacity: 0.9;
     }
 
     .student-bottom-nav-root .sidebar .nav-link .nav-link-label--short,
@@ -15327,7 +15379,9 @@ body.is-confirm-open .app-confirm-overlay {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        font-size: 0.68rem;
+        font-size: 0.66rem;
+        font-weight: 650;
+        letter-spacing: 0.01em;
         line-height: 1.1;
         text-align: center;
         margin: 0;
@@ -15344,9 +15398,9 @@ body.is-confirm-open .app-confirm-overlay {
         display: flex;
         align-items: center;
         justify-content: center;
-        height: 62px;
-        min-height: 62px;
-        max-height: 62px;
+        height: 58px;
+        min-height: 58px;
+        max-height: 58px;
         padding: 0;
         margin: 0;
         border-top: 0;
@@ -15354,8 +15408,33 @@ body.is-confirm-open .app-confirm-overlay {
 
     .student-bottom-nav-root .sidebar .sidebar-logout {
         width: 100%;
-        color: rgba(255, 255, 255, 0.82);
-        background: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 210, 210, 0.88);
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .student-bottom-nav-root .sidebar .sidebar-logout:active,
+    .student-bottom-nav-root .sidebar .sidebar-logout:hover {
+        color: #fff;
+        background: rgba(220, 38, 38, 0.22);
+        border-color: rgba(248, 113, 113, 0.28);
+    }
+
+    .student-bottom-nav-root .sidebar .nav-link.active,
+    .student-bottom-nav-root .sidebar .nav-group-toggle.active,
+    .student-bottom-nav-root .sidebar .nav-group.open > .nav-group-toggle {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.14);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.16),
+            0 0 0 1px rgba(232, 197, 71, 0.28);
+    }
+
+    .student-bottom-nav-root .sidebar .nav-link.active svg,
+    .student-bottom-nav-root .sidebar .nav-group.open > .nav-group-toggle svg:first-of-type {
+        color: #e8c547;
+        fill: currentColor;
+        opacity: 1;
     }
 
     .role-student .student-dashboard-page {
@@ -19570,6 +19649,30 @@ body.is-profile-crop-open .student-bottom-nav-root {
     overflow: hidden;
     padding: 18px;
     min-width: 0;
+}
+
+.ps-v2-bulk-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    margin-bottom: 0.9rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 12px;
+    background: rgba(248, 250, 252, 0.9);
+}
+
+.ps-v2-bulk-bar > .muted {
+    margin: 0;
+    flex: 1 1 220px;
+}
+
+.ps-v2-bulk-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
 }
 
 .ps-v2-panel-body > .ps-v2-empty {
@@ -26764,6 +26867,20 @@ body.role-partner .content:has(.ip-profile-v2) {
     gap: 14px;
 }
 
+.partner-portal-v2 .pp-orient-reschedule {
+    margin-top: 0.25rem;
+}
+
+.partner-portal-v2 .pp-orient-reschedule > summary {
+    list-style: none;
+    cursor: pointer;
+    width: fit-content;
+}
+
+.partner-portal-v2 .pp-orient-reschedule > summary::-webkit-details-marker {
+    display: none;
+}
+
 .partner-portal-v2 .pp-orient-badge {
     display: inline-flex;
     align-items: center;
@@ -28453,6 +28570,11 @@ button.ms-predeploy-badge--completed:hover {
     color: #64748b;
 }
 
+.ms-predeploy-badge--needs_revision {
+    background: #fff1f2;
+    color: #9f1239;
+}
+
 .ms-predeploy-badge--submitted {
     background: #dbeafe;
     color: #1d4ed8;
@@ -29034,6 +29156,25 @@ button.ms-predeploy-badge--completed:hover {
     font-weight: 800;
     color: #64748b;
     text-align: right;
+}
+
+.cfp-callout {
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    border: 1px solid #dbeafe;
+    background: #eff6ff;
+    color: #1e3a8a;
+    font-size: 0.92rem;
+}
+
+.cfp-callout strong {
+    display: block;
+    margin-bottom: 0.15rem;
+}
+
+.cfp-callout--info {
+    border-color: #bfdbfe;
+    background: #eff6ff;
 }
 
 .cfp-privacy {

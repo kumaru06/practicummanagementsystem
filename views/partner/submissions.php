@@ -1,13 +1,6 @@
 <?php require __DIR__ . '/_submissions_helpers.php'; ?>
 
 <div class="ps-v2" data-ps-submissions>
-    <?php if (!$company): ?>
-        <section class="ps-v2-empty-card">
-            <h2>No Host Training Establishment profile found.</h2>
-            <p class="muted">Please contact the administrator to set up your account.</p>
-        </section>
-    <?php else: ?>
-
     <div class="ps-v2-layout">
         <aside class="ps-v2-sidebar">
             <div class="ps-v2-sidebar-head">
@@ -73,5 +66,4 @@
             <?php require __DIR__ . '/submissions_detail.php'; ?>
         </main>
     </div>
-    <?php endif; ?>
 </div>

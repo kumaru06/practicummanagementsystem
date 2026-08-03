@@ -5,7 +5,10 @@ class Enrollment
 
     public function create(int $studentId, int $companyId, ?string $startDate, ?string $endDate, int $requiredHours, string $academicTerm = '', string $termStartDate = '', string $termEndDate = ''): int
     {
-        $stmt = $this->db->prepare('INSERT INTO ojt_enrollments (student_id, company_id, academic_term, term_start_date, term_end_date, start_date, end_date, required_hours, status, predeployment_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, "pending", "not_submitted") ON DUPLICATE KEY UPDATE company_id = VALUES(company_id), academic_term = VALUES(academic_term), term_start_date = VALUES(term_start_date), term_end_date = VALUES(term_end_date), start_date = VALUES(start_date), end_date = VALUES(end_date), required_hours = VALUES(required_hours)');
+        if ($this->byStudent($studentId)) {
+            throw new RuntimeException('This student is already enrolled.');
+        }
+        $stmt = $this->db->prepare('INSERT INTO ojt_enrollments (student_id, company_id, academic_term, term_start_date, term_end_date, start_date, end_date, required_hours, status, predeployment_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, "pending", "not_submitted")');
         $stmt->execute([$studentId, $companyId, $academicTerm, $termStartDate ?: null, $termEndDate ?: null, $startDate ?: null, $endDate ?: null, $requiredHours]);
         return (int)$this->db->lastInsertId();
     }
@@ -45,6 +48,10 @@ class Enrollment
         return (int)$stmt->fetchColumn();
     }
 
+    /**
+     * Marks active enrollments completed once approved hours meet the requirement.
+     * Partner portal "Done" also considers a submitted final evaluation.
+     */
     public function syncCompletion(int $studentId): void
     {
         $stmt = $this->db->prepare('SELECT e.id, e.required_hours, COALESCE(SUM(CASE WHEN d.verification_status = "approved" THEN d.hours ELSE 0 END), 0) rendered_hours FROM ojt_enrollments e LEFT JOIN daily_time_records d ON d.student_id = e.student_id WHERE e.student_id = ? AND e.status = "active" GROUP BY e.id, e.required_hours');
@@ -73,7 +80,7 @@ class Enrollment
                     AVG(
                         LEAST(
                             COALESCE(
-                                (SELECT SUM(d.hours) FROM daily_time_records d WHERE d.student_id = e.student_id),
+                                (SELECT SUM(d.hours) FROM daily_time_records d WHERE d.student_id = e.student_id AND d.verification_status = "approved"),
                                 0
                             ) / NULLIF(e.required_hours, 0) * 100,
                             100
@@ -91,10 +98,10 @@ class Enrollment
     {
         $rows = $this->db->query('
             SELECT s.course, s.student_no, u.name,
-                COALESCE((SELECT SUM(d.hours) FROM daily_time_records d WHERE d.student_id = e.student_id), 0) AS logged_hours,
+                COALESCE((SELECT SUM(d.hours) FROM daily_time_records d WHERE d.student_id = e.student_id AND d.verification_status = "approved"), 0) AS logged_hours,
                 e.required_hours,
                 LEAST(ROUND(
-                    COALESCE((SELECT SUM(d.hours) FROM daily_time_records d WHERE d.student_id = e.student_id), 0)
+                    COALESCE((SELECT SUM(d.hours) FROM daily_time_records d WHERE d.student_id = e.student_id AND d.verification_status = "approved"), 0)
                     / NULLIF(e.required_hours, 0) * 100, 1
                 ), 100) AS pct
             FROM ojt_enrollments e
@@ -119,10 +126,10 @@ class Enrollment
     {
         $stmt = $this->db->prepare('
             SELECT s.course, s.student_no, u.name,
-                COALESCE((SELECT SUM(d.hours) FROM daily_time_records d WHERE d.student_id = e.student_id), 0) AS logged_hours,
+                COALESCE((SELECT SUM(d.hours) FROM daily_time_records d WHERE d.student_id = e.student_id AND d.verification_status = "approved"), 0) AS logged_hours,
                 e.required_hours,
                 LEAST(ROUND(
-                    COALESCE((SELECT SUM(d.hours) FROM daily_time_records d WHERE d.student_id = e.student_id), 0)
+                    COALESCE((SELECT SUM(d.hours) FROM daily_time_records d WHERE d.student_id = e.student_id AND d.verification_status = "approved"), 0)
                     / NULLIF(e.required_hours, 0) * 100, 1
                 ), 100) AS pct
             FROM ojt_enrollments e
@@ -181,7 +188,7 @@ class Enrollment
                     AVG(
                         LEAST(
                             COALESCE(
-                                (SELECT SUM(d.hours) FROM daily_time_records d WHERE d.student_id = e.student_id),
+                                (SELECT SUM(d.hours) FROM daily_time_records d WHERE d.student_id = e.student_id AND d.verification_status = "approved"),
                                 0
                             ) / NULLIF(e.required_hours, 0) * 100,
                             100
@@ -236,7 +243,12 @@ class Enrollment
             $row['predeployment_status'] = $studentModel->effectivePredeploymentStatus((int)$row['student_id'], $row['predeployment_status'] ?? null);
         }
         unset($row);
-        return $rows;
+
+        // Partners only see students after the coordinator forwards approved documents.
+        return array_values(array_filter($rows, static function (array $row) use ($studentModel): bool {
+            return $studentModel->isPredeploymentPipelineAdvanced($row['predeployment_status'] ?? null)
+                || ($row['status'] ?? '') === 'completed';
+        }));
     }
 
     public function find(int $id): ?array
@@ -351,10 +363,16 @@ class Enrollment
         $stmt->execute([$endorsementFile, $enrollmentId]);
     }
 
-    public function acceptDeployment(int $enrollmentId): void
+    public function acceptDeployment(int $enrollmentId): bool
     {
-        $stmt = $this->db->prepare('UPDATE ojt_enrollments SET predeployment_status = "accepted", accepted_at = NOW() WHERE id = ?');
+        $stmt = $this->db->prepare(
+            'UPDATE ojt_enrollments
+             SET predeployment_status = "accepted", accepted_at = NOW()
+             WHERE id = ? AND predeployment_status = "forwarded"'
+        );
         $stmt->execute([$enrollmentId]);
+
+        return $stmt->rowCount() > 0;
     }
 
     public function scheduleOrientation(int $enrollmentId, string $dateTime, string $notes): void
@@ -364,14 +382,21 @@ class Enrollment
         $stmt->execute([$dateTime, $notes, $enrollmentId]);
     }
 
-    public function completeOrientation(int $enrollmentId, string $officialStart, string $projectedEnd): void
+    public function completeOrientation(int $enrollmentId, string $officialStart, string $projectedEnd): bool
     {
         $enrollment = $this->find($enrollmentId);
         if (!$enrollment) {
             throw new RuntimeException('Enrollment not found.');
         }
         assert_official_start_date($enrollment, $officialStart, $projectedEnd);
-        $stmt = $this->db->prepare('UPDATE ojt_enrollments SET predeployment_status = "orientation_completed", status = "active", official_start_date = ?, projected_end_date = ?, start_date = ?, end_date = ? WHERE id = ?');
+        $stmt = $this->db->prepare(
+            'UPDATE ojt_enrollments
+             SET predeployment_status = "orientation_completed", status = "active",
+                 official_start_date = ?, projected_end_date = ?, start_date = ?, end_date = ?
+             WHERE id = ? AND predeployment_status = "orientation_scheduled"'
+        );
         $stmt->execute([$officialStart, $projectedEnd, $officialStart, $projectedEnd, $enrollmentId]);
+
+        return $stmt->rowCount() > 0;
     }
 }

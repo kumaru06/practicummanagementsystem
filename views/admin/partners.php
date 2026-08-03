@@ -359,6 +359,22 @@ $totalPrograms = count($programs);
                                             <button
                                                 type="button"
                                                 class="admin-user-action-item"
+                                                data-asu-edit-partner
+                                                data-company-id="<?= (int)$u['id'] ?>"
+                                                data-company="<?= e($u['name'] ?? '') ?>"
+                                                data-contact-person="<?= e($u['contact_person'] ?? '') ?>"
+                                                data-email="<?= e($u['email'] ?? $u['contact_email'] ?? '') ?>"
+                                                data-address="<?= e($u['address'] ?? '') ?>"
+                                                data-contact-number="<?= e($u['contact_number'] ?? '') ?>"
+                                                data-has-moa="<?= !empty($u['moa_mou_file']) ? '1' : '0' ?>"
+                                            >
+                                                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                                                Edit Details
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                class="admin-user-action-item"
                                                 data-asu-edit-programs
                                                 data-company-id="<?= (int)$u['id'] ?>"
                                                 data-company="<?= e($u['name'] ?? 'Host Training Establishment') ?>"
@@ -436,6 +452,59 @@ $totalPrograms = count($programs);
             <div class="asu-partner-edit-programs-footer">
                 <button type="button" class="btn btn-small" data-asu-edit-programs-close>Cancel</button>
                 <button type="submit" class="btn btn-small btn-primary">Save Programs</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="asu-partner-programs-overlay" id="asuPartnerEditDetailsOverlay" aria-hidden="true">
+    <div class="asu-partner-programs-modal asu-partner-edit-programs-modal" role="dialog" aria-modal="true" aria-labelledby="asuPartnerEditDetailsTitle">
+        <div class="asu-partner-programs-modal-head">
+            <div>
+                <span class="asu-eyebrow">Edit Details</span>
+                <h2 id="asuPartnerEditDetailsTitle">Host Training Establishment</h2>
+                <p class="asu-partner-programs-modal-sub">Update profile information and optionally replace the MOA/MOU file.</p>
+            </div>
+            <button type="button" class="asu-partner-programs-close" data-asu-edit-partner-close aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+        </div>
+        <form method="post" enctype="multipart/form-data" class="asu-partner-edit-programs-form form js-validate" id="asuPartnerEditDetailsForm">
+            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="action" value="admin_update_company">
+            <input type="hidden" name="company_id" value="" data-asu-edit-partner-id>
+            <div class="asu-partner-programs-modal-body asu-partner-edit-programs-body">
+                <div class="partner-form-fields">
+                    <label class="partner-field">
+                        <span class="partner-field-label">Company Name <em>*</em></span>
+                        <input required name="company_name" data-asu-edit-partner-name autocomplete="organization">
+                    </label>
+                    <label class="partner-field">
+                        <span class="partner-field-label">Contact Person <em>*</em></span>
+                        <input required name="contact_person" data-asu-edit-partner-contact autocomplete="name">
+                    </label>
+                    <label class="partner-field">
+                        <span class="partner-field-label">Email Address <em>*</em></span>
+                        <input required type="email" name="contact_email" data-asu-edit-partner-email autocomplete="email">
+                    </label>
+                    <label class="partner-field">
+                        <span class="partner-field-label">Contact Number <em>*</em></span>
+                        <input required name="contact_number" data-asu-edit-partner-phone inputmode="numeric" autocomplete="tel-national" maxlength="16" data-phone-format="ph" pattern="\+63\s9\d{2}\s\d{3}\s\d{4}" title="Use format +63 951 192 5735">
+                    </label>
+                    <label class="partner-field">
+                        <span class="partner-field-label">Address <em>*</em></span>
+                        <textarea required name="address" rows="3" data-asu-edit-partner-address></textarea>
+                    </label>
+                    <label class="partner-field">
+                        <span class="partner-field-label">MOA / MOU File</span>
+                        <input type="file" name="moa_mou_file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                        <small class="muted" data-asu-edit-partner-moa-hint>Optional. Upload a file only if you need to replace the current document.</small>
+                    </label>
+                </div>
+            </div>
+            <div class="asu-partner-edit-programs-footer">
+                <button type="button" class="btn btn-small" data-asu-edit-partner-close>Cancel</button>
+                <button type="submit" class="btn btn-small btn-primary">Save Details</button>
             </div>
         </form>
     </div>

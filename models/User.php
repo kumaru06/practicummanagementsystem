@@ -124,6 +124,25 @@ class User
             return hydrate_user_record($stmt->fetch() ?: null);
         }
 
+        if ($portalRole === 'partner') {
+            $byEmail = $this->findByEmail(strtolower($identifier));
+            if ($byEmail && ($byEmail['role'] ?? '') === 'partner') {
+                return $byEmail;
+            }
+
+            $company = (new Company($this->db))->findByPartnerId(strtoupper($identifier));
+            if (!$company && strtoupper($identifier) !== $identifier) {
+                $company = (new Company($this->db))->findByPartnerId($identifier);
+            }
+            if ($company && !empty($company['user_id'])) {
+                $partnerUser = $this->find((int)$company['user_id']);
+                if ($partnerUser && ($partnerUser['role'] ?? '') === 'partner') {
+                    return $partnerUser;
+                }
+            }
+            return null;
+        }
+
         return $this->findByEmail(strtolower($identifier));
     }
 

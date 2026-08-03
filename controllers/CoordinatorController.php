@@ -14,6 +14,7 @@ class CoordinatorController extends BaseController
                 'enrolled'  => $enroll->countByCoordinator($coordId, 'active'),
                 'completed' => $enroll->countByCoordinator($coordId, 'completed'),
                 'pending'   => $enroll->countByCoordinator($coordId, 'pending'),
+                'awaiting_start' => max(0, $students->countByCoordinator($coordId) - $enroll->countByCoordinator($coordId, 'active') - $enroll->countByCoordinator($coordId, 'completed')),
             ],
             'charts' => [
                 'completionRates' => $enroll->completionRatesByCourseByCoordinator($coordId),
@@ -26,10 +27,21 @@ class CoordinatorController extends BaseController
     {
         require_role('coordinator');
         $coordId = current_user()['id'];
+        $companyModel = new Company($this->db);
+        $companies = array_map(static function (array $company) use ($companyModel, $coordId): array {
+            $companyId = (int)($company['id'] ?? 0);
+            $company['moa_document_url'] = ($companyId > 0
+                && !empty($company['moa_mou_file'])
+                && $companyModel->coordinatorCanAccessMoa((int)$coordId, $companyId))
+                ? route_url('coordinator.partner_document', ['company_id' => $companyId])
+                : '';
+
+            return $company;
+        }, $companyModel->all());
         $this->renderAppPage('coordinator/manage', [
             'title' => 'Student Enrollment',
             'students'  => (new Student($this->db))->allByCoordinator($coordId),
-            'companies' => (new Company($this->db))->all(),
+            'companies' => $companies,
             'programs'  => (new Program($this->db))->all(true),
             'terms'     => (new Term($this->db))->all(),
         ]);
@@ -49,6 +61,8 @@ class CoordinatorController extends BaseController
         $requirementsByStudent = $studentModel->requirementsForStudents($studentIds);
         $finalRequirementsByStudent = $finalModel->getByStudents($studentIds);
         $studentEvaluationsByStudent = $studentEvalModel->getByStudents($studentIds);
+        $pendingFinalReviewByStudent = $studentModel->countPendingFinalReviewsByStudents($studentIds);
+        $companyModel = new Company($this->db);
 
         foreach ($students as &$student) {
             $studentId = (int)$student['id'];
@@ -56,7 +70,19 @@ class CoordinatorController extends BaseController
             $finalRequirementsByStudent[$studentId] ??= [];
             $studentEvaluationsByStudent[$studentId] ??= [];
             $studentModel->syncPredeploymentStatusIfComplete($studentId);
-            $student['predeployment_status'] = $studentModel->effectivePredeploymentStatus($studentId, $student['predeployment_status'] ?? null, $requirementsByStudent[$studentId]);
+            // Re-read raw status after sync so the effective overlay sees the persisted value.
+            $rawEnrollment = $enrollModel->byStudent($studentId);
+            $student['predeployment_status'] = $studentModel->effectivePredeploymentStatus(
+                $studentId,
+                $rawEnrollment['predeployment_status'] ?? ($student['predeployment_status'] ?? null),
+                $requirementsByStudent[$studentId]
+            );
+            $companyId = (int)($student['company_id'] ?? 0);
+            $student['moa_document_url'] = ($companyId > 0
+                && !empty($student['company_moa_mou_file'])
+                && $companyModel->coordinatorCanAccessMoa($coordId, $companyId))
+                ? route_url('coordinator.partner_document', ['company_id' => $companyId])
+                : '';
         }
         unset($student);
         $totalStudents = count($students);
@@ -68,6 +94,7 @@ class CoordinatorController extends BaseController
             'requirementsByStudent' => $requirementsByStudent,
             'finalRequirementsByStudent' => $finalRequirementsByStudent,
             'studentEvaluationsByStudent' => $studentEvaluationsByStudent,
+            'pendingFinalReviewByStudent' => $pendingFinalReviewByStudent,
             'evaluations' => (new Evaluation($this->db))->byCoordinator($coordId),
             'terms' => (new Term($this->db))->all(),
             'stats' => [
@@ -91,14 +118,25 @@ class CoordinatorController extends BaseController
         }
         $student = $studentModel->find($studentId);
         $evalModel = new StudentEvaluation($this->db);
+        $stage2Requirements = array_filter(
+            $studentModel->stageRequirements($studentId, 2),
+            static fn (array $row): bool => ($row['owner'] ?? 'student') === 'student'
+                && ($row['kind'] ?? 'upload') !== 'evaluation'
+        );
         $stage3Requirements = student_stage3_upload_rows($studentId);
+        $enrollment = (new Enrollment($this->db))->detailsByStudent($studentId);
+        $approvedHours = (new Report($this->db))->totalHours($studentId, true);
         $data = [
             'title' => 'Final Requirements - ' . ($student['name'] ?? 'Student'),
             'student' => $student,
             'studentEvaluation' => $evalModel->getByStudent($studentId),
+            'stage2Requirements' => $stage2Requirements,
             'stage3Requirements' => $stage3Requirements,
             'stage3DocProgress' => student_stage3_upload_progress($studentId),
             'evaluationSections' => FinalRequirement::EVALUATION_SECTIONS,
+            'stage3FilesUnlocked' => $studentModel->canAccessStage($studentId, 3),
+            'studentEvaluationsUnlocked' => enrollment_allows_final_requirements($enrollment, $approvedHours),
+            'studentEvaluationsLockMessage' => enrollment_final_requirements_lock_message($enrollment, $approvedHours),
         ];
 
         $doc = (string)($_GET['doc'] ?? '');
@@ -106,8 +144,9 @@ class CoordinatorController extends BaseController
         $legacyAliases = student_stage3_legacy_doc_aliases();
         $requirementKey = $legacyAliases[$doc] ?? $doc;
 
-        if ($requirementKey !== '' && isset($stage3Requirements[$requirementKey])) {
-            $requirement = $stage3Requirements[$requirementKey];
+        $allReviewableRequirements = $stage2Requirements + $stage3Requirements;
+        if ($requirementKey !== '' && isset($allReviewableRequirements[$requirementKey])) {
+            $requirement = $allReviewableRequirements[$requirementKey];
             if (empty($requirement['file_path'])) {
                 flash('error', 'This document has not been uploaded yet.');
                 redirect('index.php?r=coordinator_student_final&student_id=' . $studentId);
@@ -157,10 +196,7 @@ class CoordinatorController extends BaseController
     {
         require_role('coordinator');
 
-        $companies = array_values(array_filter(
-            (new Company($this->db))->all(),
-            static fn (array $company): bool => !empty($company['moa_mou_file'])
-        ));
+        $companies = (new Company($this->db))->withMoaForCoordinator((int)current_user()['id']);
 
         $this->renderAppPage('coordinator/moa_mou', [
             'title' => 'Host Training Establishment MOA/MOU',
@@ -178,6 +214,10 @@ class CoordinatorController extends BaseController
         if (!$company || empty($company['moa_mou_file'])) {
             http_response_code(404);
             exit('MOA/MOU file not found.');
+        }
+        if (!(new Company($this->db))->coordinatorCanAccessMoa((int)current_user()['id'], $companyId)) {
+            http_response_code(403);
+            exit('You do not have access to this MOA/MOU file.');
         }
 
         $relativePath = ltrim((string)$company['moa_mou_file'], '/\\');
@@ -210,67 +250,6 @@ class CoordinatorController extends BaseController
         ]);
     }
 
-    public function checkEmail(): void
-    {
-        require_role('coordinator');
-        header('Content-Type: application/json; charset=utf-8');
-        header('Cache-Control: no-store, no-cache, must-revalidate');
-
-        $email = strtolower(trim((string)($_GET['email'] ?? '')));
-        if ($email === '') {
-            http_response_code(400);
-            echo json_encode(['ok' => false, 'message' => 'Email is required.'], JSON_UNESCAPED_UNICODE);
-            exit;
-        }
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            http_response_code(400);
-            echo json_encode(['ok' => false, 'message' => 'Enter a valid email address.'], JSON_UNESCAPED_UNICODE);
-            exit;
-        }
-
-        $exists = (new User($this->db))->findByEmail($email) !== null;
-        echo json_encode([
-            'ok' => true,
-            'exists' => $exists,
-            'available' => !$exists,
-        ], JSON_UNESCAPED_UNICODE);
-        exit;
-    }
-
-    public function checkStudentNo(): void
-    {
-        require_role('coordinator');
-        header('Content-Type: application/json; charset=utf-8');
-        header('Cache-Control: no-store, no-cache, must-revalidate');
-
-        $studentNo = trim((string)($_GET['student_no'] ?? ''));
-        if ($studentNo === '') {
-            http_response_code(400);
-            echo json_encode(['ok' => false, 'message' => 'Student ID/USN is required.'], JSON_UNESCAPED_UNICODE);
-            exit;
-        }
-        if (!preg_match('/^\d+$/', $studentNo)) {
-            http_response_code(400);
-            echo json_encode(['ok' => false, 'message' => 'Student ID/USN must contain numbers only.'], JSON_UNESCAPED_UNICODE);
-            exit;
-        }
-
-        $exists = (new Student($this->db))->existsByStudentNo($studentNo);
-        echo json_encode([
-            'ok' => true,
-            'exists' => $exists,
-            'available' => !$exists,
-        ], JSON_UNESCAPED_UNICODE);
-        exit;
-    }
-
-    public function createStudent(): void
-    {
-        require_role('coordinator');
-        flash('error', 'Student accounts are now created by the admin. Use Enroll Student in OJT for students already assigned to you.');
-        redirect('index.php?r=coordinator_manage');
-    }
-
     public function enrollStudent(): void
     {
         require_role('coordinator');
@@ -286,6 +265,9 @@ class CoordinatorController extends BaseController
             if ((new Enrollment($this->db))->byStudent($studentId)) {
                 throw new RuntimeException('This student is already enrolled. Please try again.');
             }
+            if ((int)($student['is_active'] ?? 1) === 0) {
+                throw new RuntimeException('This student account is deactivated. Ask the admin to reactivate the account before enrollment.');
+            }
             $program = !empty($student['program_id']) ? (new Program($this->db))->find((int)$student['program_id']) : null;
             if (!$program) {
                 throw new RuntimeException('Student has no valid program/course assigned.');
@@ -293,6 +275,9 @@ class CoordinatorController extends BaseController
             $company = (new Company($this->db))->find($companyId);
             if (!$company) {
                 throw new RuntimeException('Selected Host Training Establishment was not found.');
+            }
+            if (!(new Company($this->db))->acceptsProgram($companyId, (int)$program['id'])) {
+                throw new RuntimeException('Selected Host Training Establishment does not accept this student\'s program/course.');
             }
             $requiredHours = (int)$program['required_hours'];
             $academicTerm = trim($p['academic_term'] ?? '');
@@ -326,7 +311,7 @@ class CoordinatorController extends BaseController
             }
 
             $email = new Email($this->db);
-            $email->send($student['email'], 'You are now enrolled in OJT - AMA Computer College', 'student_enrollment', 'student_enrollment', [
+            $emailSent = $email->send($student['email'], 'You are now enrolled in OJT - AMA Computer College', 'student_enrollment', 'student_enrollment', [
                 'student' => $student,
                 'company' => $company,
                 'academicTerm' => $academicTerm,
@@ -339,7 +324,9 @@ class CoordinatorController extends BaseController
                 'loginUrl' => absolute_route_url('student.login'),
             ]);
             (new Notification($this->db))->create((int)$student['user_id'], 'OJT enrollment created', 'You have been enrolled for OJT deployment at ' . ($company['name'] ?? 'your Host Training Establishment') . '.', route_url('student.documents', ['stage' => 1]));
-            $successMessage = 'Student enrolled and credentials email was processed. Host Training Establishment deployment email will be sent after approved documents are forwarded.';
+            $successMessage = $emailSent
+                ? 'Student enrolled and credentials email was processed. Host Training Establishment deployment email will be sent after approved documents are forwarded.'
+                : 'Student enrolled, but the credentials email failed to send. Check Email Logs. Host Training Establishment deployment email will be sent after approved documents are forwarded.';
             if ($isAjax) {
                 header('Content-Type: application/json');
                 echo json_encode([
@@ -349,7 +336,7 @@ class CoordinatorController extends BaseController
                 ]);
                 exit;
             }
-            flash('success', $successMessage);
+            flash($emailSent ? 'success' : 'error', $successMessage);
         } catch (Throwable $e) {
             if ($isAjax) {
                 header('Content-Type: application/json');
@@ -376,20 +363,25 @@ class CoordinatorController extends BaseController
             }
             $status = trim($p['status'] ?? '');
             $requirementKey = trim($p['requirement_key'] ?? '');
-            $studentModel->reviewRequirement($studentId, $requirementKey, $status, trim($p['notes'] ?? ''));
+            $notes = trim($p['notes'] ?? '');
+            if ($status === 'rejected' && $notes === '') {
+                throw new RuntimeException('Please provide a reason for rejection.');
+            }
+            $studentModel->reviewRequirement($studentId, $requirementKey, $status, $notes);
             $enrollmentModel = new Enrollment($this->db);
             $reviewedStage = $studentModel->requirementStage($requirementKey);
+            // Raw DB status for write decisions; detailsByStudent overlays effective status.
+            $rawEnrollment = $enrollmentModel->byStudent($studentId);
+            $newPredeploymentStatus = $studentModel->normalizePredeploymentStatus($rawEnrollment['predeployment_status'] ?? 'not_submitted');
             if ($reviewedStage !== 1) {
                 // Stage 2/3 reviews do NOT touch the pre-deployment pipeline status.
                 $stageLabel = Student::STAGE_LABELS[$reviewedStage] ?? 'Document';
-                $newPredeploymentStatus = $enrollmentModel->detailsByStudent($studentId)['predeployment_status'] ?? 'not_submitted';
                 $noticeMessage = $status === 'rejected'
                     ? 'A ' . $stageLabel . ' document was rejected. Please replace the rejected file.'
                     : 'A ' . $stageLabel . ' document was approved by your coordinator.';
                 (new Notification($this->db))->create((int)$student['user_id'], 'Document review update', $noticeMessage, route_url('student.documents', ['stage' => $reviewedStage]));
             } elseif ($reviewedStage === 1) {
-                $enrollment = $enrollmentModel->detailsByStudent($studentId);
-                $currentPredeployment = $studentModel->normalizePredeploymentStatus($enrollment['predeployment_status'] ?? 'not_submitted');
+                $currentPredeployment = $newPredeploymentStatus;
                 $isLatePipelineReview = $studentModel->isPredeploymentPipelineAdvanced($currentPredeployment);
                 $newPredeploymentStatus = $studentModel->predeploymentStatusAfterStage1Review($studentId, $status);
                 if ($isLatePipelineReview) {
@@ -422,6 +414,13 @@ class CoordinatorController extends BaseController
                 exit;
             }
             flash('success', 'Requirement review saved.');
+            if ($reviewedStage >= 2) {
+                $redirect = 'index.php?r=coordinator_student_final&student_id=' . $studentId;
+                if ($requirementKey !== '') {
+                    $redirect .= '&doc=' . rawurlencode($requirementKey);
+                }
+                redirect($redirect);
+            }
         } catch (Throwable $e) {
             if ($isAjax) {
                 header('Content-Type: application/json');
@@ -430,6 +429,11 @@ class CoordinatorController extends BaseController
                 exit;
             }
             flash('error', $e->getMessage());
+            $fallbackStudentId = (int)($p['student_id'] ?? 0);
+            $fallbackKey = trim((string)($p['requirement_key'] ?? ''));
+            if ($fallbackStudentId > 0 && $fallbackKey !== '' && (new Student($this->db))->requirementStage($fallbackKey) >= 2) {
+                redirect('index.php?r=coordinator_student_final&student_id=' . $fallbackStudentId . '&doc=' . rawurlencode($fallbackKey));
+            }
         }
         redirect('index.php?r=coordinator_students');
     }
@@ -448,12 +452,33 @@ class CoordinatorController extends BaseController
                 throw new RuntimeException('Student does not belong to your coordination.');
             }
             $studentModel = new Student($this->db);
+            $enrollmentModel = new Enrollment($this->db);
+            $studentModel->syncPredeploymentStatusIfComplete((int)$student['id']);
+            $rawEnrollment = $enrollmentModel->byStudent((int)$student['id']);
+            if (!$rawEnrollment) {
+                throw new RuntimeException('Enrollment not found.');
+            }
+            $predeployment = $studentModel->normalizePredeploymentStatus($rawEnrollment['predeployment_status'] ?? 'not_submitted');
+            if ($studentModel->isPredeploymentPipelineAdvanced($predeployment)) {
+                flash('success', 'Deployment documents were already forwarded for this student.');
+                redirect('index.php?r=coordinator_students');
+            }
             if (!$studentModel->hasApprovedRequirements((int)$student['id'])) {
                 throw new RuntimeException('Approve all 1st to Comply requirements before forwarding deployment documents.');
             }
+            if ($predeployment !== 'approved') {
+                // Persist approved state when all stage-1 files are already approved.
+                $enrollmentModel->setPredeploymentStatus((int)$student['id'], 'approved');
+                $predeployment = 'approved';
+            }
+            $enrollment = array_merge($enrollment, $rawEnrollment);
             $company = (new Company($this->db))->find((int)$enrollment['company_id']);
             if (!$company) {
                 throw new RuntimeException('Host Training Establishment not found.');
+            }
+            $companyEmail = trim((string)($company['contact_email'] ?? ''));
+            if ($companyEmail === '' || !filter_var($companyEmail, FILTER_VALIDATE_EMAIL)) {
+                throw new RuntimeException('Host Training Establishment email is missing or invalid. Update the partner profile before forwarding.');
             }
 
             /**
@@ -462,41 +487,68 @@ class CoordinatorController extends BaseController
             $endorsementLetter = new EndorsementLetter($this->db);
             $pdfBuffer = $endorsementLetter->generatePdfBuffer((int)$student['id'], (int)$enrollment['id']);
 
-            // Update enrollment status to 'forwarded' with a virtual endorsement reference
-            $stmt = $this->db->prepare('UPDATE ojt_enrollments SET predeployment_status = "forwarded", endorsement_file = ?, forwarded_at = NOW() WHERE id = ?');
-            $stmt->execute(['(generated-pdf)', (int)$enrollment['id']]);
-
-            if ($company) {
-                // Fetch requirement files for attachment
-                $attachments = array_map(static fn ($path) => ['path' => $path], $studentModel->requirementFilePaths((int)$student['id']));
-                
-                /**
-                 * Add the generated PDF as a string attachment
-                 * The Email class will use addStringAttachment for this
-                 */
-                $attachments[] = [
-                    'string' => $pdfBuffer,
-                    'name' => 'Endorsement_Letter.pdf',
-                    'type' => 'application/pdf'
-                ];
-
-                $emailData = [
-                    'student' => $student,
-                    'company' => $company,
-                    'academicTerm' => $enrollment['academic_term'] ?? '',
-                    'termStartDate' => $enrollment['term_start_date'] ?? '',
-                    'termEndDate' => $enrollment['term_end_date'] ?? '',
-                    'requiredHours' => (int)$enrollment['required_hours'],
-                    'coordinator' => current_user(),
-                ];
-
-                $email = new Email($this->db);
-                $email->send($company['contact_email'], 'Student Deployment Documents Forwarded', 'deployment_forwarded', 'company_deployment', $emailData, $attachments);
-                $email->send($student['email'], 'Your OJT Documents Have Been Forwarded', 'student_deployment_forwarded', 'student_deployment_forwarded', $emailData);
-
-                (new Notification($this->db))->create((int)$company['user_id'], 'Student deployment forwarded', $student['name'] . ' has been forwarded to your Host Training Establishment Portal for review.', route_url('partner.portal', ['enrollment' => (int)$enrollment['id']]));
-                (new Notification($this->db))->create((int)$student['user_id'], 'Documents forwarded to Host Training Establishment', 'Your approved pre-deployment documents and endorsement letter were sent to ' . ($company['name'] ?? 'your Host Training Establishment') . '. They will review and schedule your orientation.', route_url('student.documents', ['stage' => 2]));
+            $attachments = [];
+            foreach ($studentModel->requirements((int)$student['id']) as $req) {
+                if (($req['status'] ?? '') !== 'approved' || empty($req['file_path'])) {
+                    continue;
+                }
+                $attachments[] = ['path' => $req['file_path']];
             }
+            $attachments[] = [
+                'string' => $pdfBuffer,
+                'name' => 'Endorsement_Letter.pdf',
+                'type' => 'application/pdf',
+            ];
+
+            $emailData = [
+                'student' => $student,
+                'company' => $company,
+                'academicTerm' => $enrollment['academic_term'] ?? '',
+                'termStartDate' => $enrollment['term_start_date'] ?? '',
+                'termEndDate' => $enrollment['term_end_date'] ?? '',
+                'requiredHours' => (int)$enrollment['required_hours'],
+                'coordinator' => current_user(),
+            ];
+
+            // Email first; only mark forwarded after both sends succeed.
+            $email = new Email($this->db);
+            $companySent = $email->send($companyEmail, 'Student Deployment Documents Forwarded', 'deployment_forwarded', 'company_deployment', $emailData, $attachments);
+            $studentSent = $email->send($student['email'], 'Your OJT Documents Have Been Forwarded', 'student_deployment_forwarded', 'student_deployment_forwarded', $emailData);
+            if (!$companySent || !$studentSent) {
+                $failed = [];
+                if (!$companySent) {
+                    $failed[] = 'Host Training Establishment';
+                }
+                if (!$studentSent) {
+                    $failed[] = 'student';
+                }
+                throw new RuntimeException(
+                    'Documents were not forwarded because email failed for: '
+                    . implode(' and ', $failed)
+                    . '. Check Email Logs and try again.'
+                );
+            }
+
+            $stmt = $this->db->prepare(
+                'UPDATE ojt_enrollments
+                 SET predeployment_status = "forwarded", endorsement_file = ?, forwarded_at = NOW()
+                 WHERE id = ?
+                   AND predeployment_status NOT IN ("forwarded", "accepted", "orientation_scheduled", "orientation_completed")'
+            );
+            $stmt->execute(['(generated-pdf)', (int)$enrollment['id']]);
+            if ($stmt->rowCount() === 0) {
+                $rawAfter = $enrollmentModel->byStudent((int)$student['id']);
+                $afterStatus = $studentModel->normalizePredeploymentStatus($rawAfter['predeployment_status'] ?? 'not_submitted');
+                if ($rawAfter && $studentModel->isPredeploymentPipelineAdvanced($afterStatus)) {
+                    flash('success', 'Deployment documents were already forwarded for this student.');
+                    redirect('index.php?r=coordinator_students');
+                }
+                throw new RuntimeException('Deployment status changed before forwarding completed. Refresh and try again.');
+            }
+
+            (new Notification($this->db))->create((int)$company['user_id'], 'Student deployment forwarded', $student['name'] . ' has been forwarded to your Host Training Establishment Portal for review.', route_url('partner.portal', ['enrollment' => (int)$enrollment['id']]));
+            (new Notification($this->db))->create((int)$student['user_id'], 'Documents forwarded to Host Training Establishment', 'Your approved pre-deployment documents and endorsement letter were sent to ' . ($company['name'] ?? 'your Host Training Establishment') . '. They will review and schedule your orientation.', route_url('student.documents', ['stage' => 2]));
+
             flash('success', 'Documents approved and Endorsement Letter generated and forwarded to the Host Training Establishment.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());

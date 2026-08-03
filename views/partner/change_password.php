@@ -1,14 +1,35 @@
-<?php $csrfToken = $csrfToken ?? csrf_token(); ?>
-<div class="ip-settings ip-password" data-partner-password-flow>
+<?php
+$csrfToken = $csrfToken ?? csrf_token();
+$isFirstLogin = !empty($isFirstLogin);
+$verifyTitle = $isFirstLogin ? 'Verify your temporary password' : 'Verify your identity';
+$verifyDescription = $isFirstLogin
+    ? 'Enter the temporary password from your credentials email before setting a new one.'
+    : 'Enter your current password to continue updating your account password.';
+$currentPasswordLabel = $isFirstLogin ? 'Temporary Password' : 'Current Password';
+$currentPasswordPlaceholder = $isFirstLogin
+    ? 'Enter your temporary password'
+    : 'Enter your current password';
+$changeTitle = $isFirstLogin ? 'Set a new password' : 'Create a new password';
+$changeDescription = $isFirstLogin
+    ? 'For account security, Host Training Establishments must set a new password before accessing the portal.'
+    : 'Your new password will take effect immediately after saving.';
+$pageTitle = $isFirstLogin ? 'Change Temporary Password' : 'Change Password';
+$pageSubtitle = $isFirstLogin
+    ? 'Replace your temporary password to unlock the Host Training Establishment portal.'
+    : 'Use a strong password with at least 8 characters to keep your account secure.';
+?>
+<div class="ip-settings ip-password" data-partner-password-flow data-is-first-login="<?= $isFirstLogin ? '1' : '0' ?>" data-success-redirect="<?= e(route_url('partner.settings')) ?>">
     <header class="ip-settings-page-head">
-        <a class="spf-back-link" href="<?= e(route_url('partner.settings')) ?>">
-            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M12.5 15 7.5 10l5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>Back to Settings</span>
-        </a>
+        <?php if (!$isFirstLogin): ?>
+            <a class="spf-back-link" href="<?= e(route_url('partner.settings')) ?>">
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M12.5 15 7.5 10l5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span>Back to Settings</span>
+            </a>
+        <?php endif; ?>
         <div class="ip-settings-page-head__copy">
             <span class="spf-eyebrow">Security</span>
-            <h1>Change Password</h1>
-            <p>Use a strong password with at least 8 characters to keep your account secure.</p>
+            <h1><?= e($pageTitle) ?></h1>
+            <p><?= e($pageSubtitle) ?></p>
         </div>
     </header>
 
@@ -17,16 +38,16 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4 7v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V7l-8-4Z"/><path d="m9 12 2 2 4-4"/></svg>
         </div>
         <div class="ip-password-card__body">
-            <h2>Verify your identity</h2>
-            <p class="muted">Enter your current password to continue updating your account password.</p>
+            <h2><?= e($verifyTitle) ?></h2>
+            <p class="muted"><?= e($verifyDescription) ?></p>
 
             <form class="form ip-password-form" data-partner-verify-password novalidate>
                 <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>">
                 <input type="hidden" name="action" value="partner_verify_current_password">
 
                 <label class="no-floating-label ip-field">
-                    <span class="ip-field__label">Current Password</span>
-                    <input required type="password" name="current_password" autocomplete="current-password" placeholder="Enter your current password" data-partner-current-password>
+                    <span class="ip-field__label"><?= e($currentPasswordLabel) ?></span>
+                    <input required type="password" name="current_password" autocomplete="current-password" placeholder="<?= e($currentPasswordPlaceholder) ?>" data-partner-current-password>
                 </label>
 
                 <p class="ip-password-feedback" data-password-feedback hidden></p>
@@ -47,12 +68,13 @@
                 <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" stroke="currentColor" stroke-width="1.6"/><path d="m6.5 10 2 2 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 <span>Identity verified</span>
             </div>
-            <h2>Create a new password</h2>
-            <p class="muted">Your new password will take effect immediately after saving.</p>
+            <h2><?= e($changeTitle) ?></h2>
+            <p class="muted"><?= e($changeDescription) ?></p>
 
             <form class="form ip-password-form" data-partner-change-password novalidate>
                 <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>">
                 <input type="hidden" name="action" value="partner_change_password">
+                <input type="hidden" name="reauth_token" value="" data-partner-reauth-token>
 
                 <label class="no-floating-label ip-field">
                     <span class="ip-field__label">New Password</span>

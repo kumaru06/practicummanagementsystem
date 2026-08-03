@@ -77,8 +77,15 @@ function client_device_label(?string $userAgent = null): string
 
 function full_name_from_parts(string $firstName, string $lastName, ?string $middleName = null): string
 {
+    $firstName = trim($firstName);
+    $lastName = trim($lastName);
+    $middleName = trim((string)$middleName);
+    // Avoid "Acme Acme" when a single-token organization/person name was split into identical parts.
+    if ($middleName === '' && $firstName !== '' && strcasecmp($firstName, $lastName) === 0) {
+        return $firstName;
+    }
     $parts = array_filter(
-        [trim($firstName), trim((string)$middleName), trim($lastName)],
+        [$firstName, $middleName, $lastName],
         static fn (string $part): bool => $part !== ''
     );
     return implode(' ', $parts);
@@ -184,6 +191,8 @@ function route_url(string $route, array $params = []): string
         'coordinator.preview_endorsement' => 'index.php?r=coordinator_preview_endorsement',
         'coordinator.evaluations' => 'index.php?r=coordinator_evaluations',
         'coordinator.student_final' => 'index.php?r=coordinator_student_final',
+        'coordinator.moa_mou' => 'index.php?r=coordinator_moa_mou',
+        'coordinator.partner_document' => 'index.php?r=coordinator_partner_document',
         'student.dashboard' => 'index.php?r=student',
         'student.portal' => 'index.php?r=student_documents&stage=1',
         'student.records' => 'index.php?r=student_records',
@@ -191,6 +200,7 @@ function route_url(string $route, array $params = []): string
         'student.timeline' => 'index.php?r=student_timeline',
         'student.documents' => 'index.php?r=student_documents',
         'student.documents.other' => 'index.php?r=student_documents_other',
+        'student.view_endorsement' => 'index.php?r=student_view_endorsement',
         'student.settings' => 'index.php?r=student_settings',
         'student.evaluation' => 'index.php?r=student_evaluation',
         'student.documents.final' => 'index.php?r=student_documents_final',
@@ -252,7 +262,7 @@ function route_for_role(?string $role = null): string
         'admin' => 'index.php?r=admin',
         'coordinator' => 'index.php?r=coordinator',
         'student' => student_is_pending_approval() ? 'index.php?r=student_pending' : 'index.php?r=student',
-        'partner' => 'index.php?r=partner',
+        'partner' => route_url('partner.dashboard'),
         default => 'auth.php',
     };
 }

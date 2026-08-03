@@ -196,7 +196,7 @@ $programCoverage = count($uniquePrograms);
                             <?php endif; ?>
                         </div>
                     </div>
-                    <a class="cdoc-open-btn" href="index.php?r=coordinator_partner_document&amp;company_id=<?= (int)$company['id'] ?>" target="_blank" rel="noopener noreferrer">
+                    <a class="cdoc-open-btn" href="<?= e(route_url('coordinator.partner_document', ['company_id' => (int)$company['id']])) ?>" target="_blank" rel="noopener noreferrer">
                         Open Document
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7h-2V6.41l-9.3 9.3-1.4-1.42 9.29-9.29H14V3ZM5 5h6v2H5v12h12v-6h2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg>
                     </a>

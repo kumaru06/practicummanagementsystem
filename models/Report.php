@@ -249,6 +249,10 @@ class Report
              JOIN students s ON s.id = e.student_id
              JOIN users u ON u.id = s.user_id
              WHERE e.company_id = ?
+               AND (
+                 e.predeployment_status IN ("forwarded", "accepted", "orientation_scheduled", "orientation_completed")
+                 OR e.status = "completed"
+               )
              ORDER BY (pending_dtr + pending_weekly) DESC, u.name ASC'
         );
         $stmt->execute([$companyId]);
@@ -274,6 +278,13 @@ class Report
         if (!in_array($status, ['approved', 'rejected'], true)) {
             throw new RuntimeException('Invalid verification status.');
         }
+        $current = $this->findDtr($dtrId);
+        if (!$current) {
+            throw new RuntimeException('Daily time record not found.');
+        }
+        if (($current['verification_status'] ?? '') !== 'pending') {
+            throw new RuntimeException('Only pending daily time records can be reviewed.');
+        }
         $stmt = $this->db->prepare('UPDATE daily_time_records SET verification_status = ?, verified_by = ?, verified_at = NOW(), verification_notes = ? WHERE id = ?');
         $stmt->execute([$status, $verifierUserId, $notes, $dtrId]);
     }
@@ -282,6 +293,13 @@ class Report
     {
         if (!in_array($status, ['approved', 'rejected'], true)) {
             throw new RuntimeException('Invalid verification status.');
+        }
+        $current = $this->findWeekly($weeklyId);
+        if (!$current) {
+            throw new RuntimeException('Weekly report not found.');
+        }
+        if (($current['verification_status'] ?? '') !== 'pending') {
+            throw new RuntimeException('Only pending weekly reports can be reviewed.');
         }
         $stmt = $this->db->prepare('UPDATE weekly_reports SET verification_status = ?, verified_by = ?, verified_at = NOW(), verification_notes = ? WHERE id = ?');
         $stmt->execute([$status, $verifierUserId, $notes, $weeklyId]);

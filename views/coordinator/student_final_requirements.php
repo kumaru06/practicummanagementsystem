@@ -1,13 +1,30 @@
 <?php
     $studentEvaluation = $studentEvaluation ?? [];
     $evaluationSections = $evaluationSections ?? FinalRequirement::EVALUATION_SECTIONS;
+    $stage2Requirements = $stage2Requirements ?? [];
     $stage3Requirements = $stage3Requirements ?? [];
     $stage3DocProgress = $stage3DocProgress ?? ['total' => 0, 'uploaded' => 0, 'approved' => 0, 'done' => false];
+    $stage3FilesUnlocked = !empty($stage3FilesUnlocked);
+    $studentEvaluationsUnlocked = !empty($studentEvaluationsUnlocked);
+    $studentEvaluationsLockMessage = (string)($studentEvaluationsLockMessage ?? '');
+
+    $stage2PendingReview = 0;
+    foreach ($stage2Requirements as $stage2Req) {
+        if (!empty($stage2Req['file_path']) && ($stage2Req['status'] ?? '') === 'uploaded') {
+            $stage2PendingReview++;
+        }
+    }
 
     $docSubmitted = (int)$stage3DocProgress['approved'];
     $docTotal = (int)$stage3DocProgress['total'];
     $docPct = $docTotal > 0 ? (int)round(($docSubmitted / $docTotal) * 100) : 0;
     $allDocsSubmitted = !empty($stage3DocProgress['done']);
+    $stage3PendingReview = 0;
+    foreach ($stage3Requirements as $stage3Req) {
+        if (!empty($stage3Req['file_path']) && ($stage3Req['status'] ?? '') === 'uploaded') {
+            $stage3PendingReview++;
+        }
+    }
 
     $evalSubmitted = 0;
     foreach (array_keys($evaluationSections) as $evalKey) {
@@ -126,13 +143,73 @@
     </header>
 
     <div class="cfp-grid">
+        <?php if (!empty($stage2Requirements)): ?>
+            <section class="cfp-panel">
+                <header class="cfp-panel-head">
+                    <div class="cfp-panel-title">
+                        <span class="cfp-panel-icon cfp-panel-icon--docs"><?= $sectionDocsIcon ?></span>
+                        <div>
+                            <h2>2nd to Comply</h2>
+                            <p>Recommendation letter uploaded by the student after documents are forwarded.</p>
+                        </div>
+                    </div>
+                    <?php if ($stage2PendingReview > 0): ?>
+                        <span class="cfp-chip cfp-chip--pending"><?= (int)$stage2PendingReview ?> pending review</span>
+                    <?php endif; ?>
+                </header>
+
+                <ul class="cfp-checklist">
+                    <?php foreach ($stage2Requirements as $key => $requirement): ?>
+                        <?php
+                            $status = (string)($requirement['status'] ?? 'pending');
+                            $hasFile = !empty($requirement['file_path']);
+                            $isApproved = $hasFile && $status === 'approved';
+                            $rowIconMeta = $defaultDocIcon;
+                            $itemUrl = 'index.php?r=coordinator_student_final&amp;student_id=' . $studentId . '&amp;doc=' . e($key);
+                            $ctaLabel = ($hasFile && in_array($status, ['uploaded', 'approved'], true))
+                                ? ($status === 'uploaded' ? 'Review' : 'View / Revoke')
+                                : 'View';
+                        ?>
+                        <li class="cfp-item <?= $isApproved ? 'is-done' : ($hasFile ? 'is-progress' : 'is-pending') ?>">
+                            <?php if ($hasFile): ?>
+                                <a class="cfp-item-link" href="<?= $itemUrl ?>">
+                            <?php else: ?>
+                                <div class="cfp-item-link">
+                            <?php endif; ?>
+                                <span class="<?= e($rowIconMeta['class']) ?>"><?= $rowIconMeta['svg'] ?></span>
+                                <div class="cfp-item-body">
+                                    <strong><?= e($requirement['requirement_name'] ?? $key) ?></strong>
+                                    <span><?= e($requirement['notes'] ?? '') ?></span>
+                                </div>
+                                <span class="cfp-item-action">
+                                    <?php if ($isApproved): ?>
+                                        <span class="cfp-chip cfp-chip--done">Approved</span>
+                                        <span class="cfp-item-cta"><?= e($ctaLabel) ?><?= $chevronIcon ?></span>
+                                    <?php elseif ($hasFile): ?>
+                                        <span class="cfp-chip cfp-chip--pending"><?= e(str_replace('_', ' ', $status)) ?></span>
+                                        <span class="cfp-item-cta"><?= e($ctaLabel) ?><?= $chevronIcon ?></span>
+                                    <?php else: ?>
+                                        <span class="cfp-chip cfp-chip--pending">Not uploaded</span>
+                                    <?php endif; ?>
+                                </span>
+                            <?php if ($hasFile): ?>
+                                </a>
+                            <?php else: ?>
+                                </div>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </section>
+        <?php endif; ?>
+
         <section class="cfp-panel">
             <header class="cfp-panel-head">
                 <div class="cfp-panel-title">
                     <span class="cfp-panel-icon cfp-panel-icon--docs"><?= $sectionDocsIcon ?></span>
                     <div>
                         <h2>3rd to Comply Documents</h2>
-                        <p>File uploads submitted by the student during and after OJT.</p>
+                        <p>File uploads submitted by the student during and after OJT. Open a file to approve or reject it.</p>
                     </div>
                 </div>
                 <div class="cfp-panel-progress" role="progressbar" aria-valuenow="<?= $docPct ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Documents progress">
@@ -140,6 +217,15 @@
                     <span class="cfp-panel-progress-label"><?= $docSubmitted ?>/<?= $docTotal ?></span>
                 </div>
             </header>
+            <?php if ($stage3FilesUnlocked && !$studentEvaluationsUnlocked && $studentEvaluationsLockMessage !== ''): ?>
+                <div class="cfp-callout cfp-callout--info" style="margin: 0 1rem 0.75rem;">
+                    <strong>Documents vs. evaluations</strong>
+                    <p style="margin: 0.35rem 0 0;">3rd to Comply file uploads unlock once OJT is active. Student self-evaluations stay locked until required hours or the projected end date is reached. <?= e($studentEvaluationsLockMessage) ?></p>
+                </div>
+            <?php endif; ?>
+            <?php if ($stage3PendingReview > 0): ?>
+                <p class="muted" style="margin: 0 1rem 0.75rem;"><?= (int)$stage3PendingReview ?> document<?= $stage3PendingReview === 1 ? '' : 's' ?> waiting for review.</p>
+            <?php endif; ?>
 
             <ul class="cfp-checklist">
                 <?php foreach ($stage3Requirements as $key => $requirement): ?>
@@ -149,6 +235,9 @@
                         $isApproved = $hasFile && $status === 'approved';
                         $rowIconMeta = $docRowIcons[$key] ?? $defaultDocIcon;
                         $itemUrl = 'index.php?r=coordinator_student_final&amp;student_id=' . $studentId . '&amp;doc=' . e($key);
+                        $ctaLabel = ($hasFile && in_array($status, ['uploaded', 'approved'], true))
+                            ? ($status === 'uploaded' ? 'Review' : 'View / Revoke')
+                            : 'View';
                     ?>
                     <li class="cfp-item <?= $isApproved ? 'is-done' : ($hasFile ? 'is-progress' : 'is-pending') ?>">
                         <?php if ($hasFile): ?>
@@ -167,7 +256,7 @@
                                     <span class="cfp-item-cta">View<?= $chevronIcon ?></span>
                                 <?php elseif ($hasFile): ?>
                                     <span class="cfp-chip cfp-chip--pending"><?= e(str_replace('_', ' ', $status)) ?></span>
-                                    <span class="cfp-item-cta">View<?= $chevronIcon ?></span>
+                                    <span class="cfp-item-cta"><?= e($ctaLabel) ?><?= $chevronIcon ?></span>
                                 <?php else: ?>
                                     <span class="cfp-chip cfp-chip--pending">Not uploaded</span>
                                 <?php endif; ?>
@@ -199,7 +288,7 @@
 
             <div class="cfp-privacy">
                 <span class="cfp-privacy-icon"><?= $lockIcon ?></span>
-                <p>Visible to OJT coordinators only.</p>
+                <p>Visible to OJT coordinators only.<?php if (!$studentEvaluationsUnlocked && $studentEvaluationsLockMessage !== ''): ?> Student evaluations unlock separately: <?= e($studentEvaluationsLockMessage) ?><?php endif; ?></p>
             </div>
 
             <ul class="cfp-checklist">

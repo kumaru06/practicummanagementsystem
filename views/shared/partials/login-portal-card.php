@@ -91,10 +91,10 @@ $flashError = $flashError ?? null;
                     >
                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                         <label class="portal-field">
-                            <span class="portal-field-label"><?= $role === 'student' ? 'Email or USN' : 'Email' ?></span>
+                            <span class="portal-field-label"><?= $role === 'student' ? 'Email or USN' : ($role === 'partner' ? 'Email or HTE ID' : 'Email') ?></span>
                             <span class="portal-field-wrap">
                                 <span class="portal-field-icon" aria-hidden="true"><?= $userIcon ?></span>
-                                <input required type="<?= $role === 'student' ? 'text' : 'email' ?>" name="email" autocomplete="username" placeholder="<?= $role === 'student' ? 'Enter email or USN' : 'Enter your email' ?>">
+                                <input required type="<?= in_array($role, ['student', 'partner'], true) ? 'text' : 'email' ?>" name="email" autocomplete="username" placeholder="<?= $role === 'student' ? 'Enter email or USN' : ($role === 'partner' ? 'Enter email or HTE ID' : 'Enter your email') ?>">
                             </span>
                         </label>
                         <label class="portal-field">

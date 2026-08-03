@@ -62,6 +62,27 @@
         </div>
 
         <div class="ps-v2-panel-body">
+            <?php if ($statusCounts['pending'] > 0 && in_array($statusFilter, ['pending', 'all'], true)): ?>
+                <div class="ps-v2-bulk-bar">
+                    <p class="muted">Review all <?= (int)$statusCounts['pending'] ?> pending <?= $activeTab === 'weekly' ? 'weekly reports' : 'daily time records' ?> at once.</p>
+                    <div class="ps-v2-bulk-actions">
+                        <form method="post" class="inline" onsubmit="return confirm('Approve all pending <?= $activeTab === 'weekly' ? 'weekly reports' : 'daily time records' ?> for this student?');">
+                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                            <input type="hidden" name="action" value="<?= $activeTab === 'weekly' ? 'partner_bulk_review_weekly' : 'partner_bulk_review_dtr' ?>">
+                            <input type="hidden" name="student_id" value="<?= (int)$selectedStudent['student_id'] ?>">
+                            <input type="hidden" name="decision" value="approved">
+                            <button class="btn btn-small btn-approve" type="submit">Approve All Pending</button>
+                        </form>
+                        <form method="post" class="inline" onsubmit="return confirm('Reject all pending <?= $activeTab === 'weekly' ? 'weekly reports' : 'daily time records' ?> for this student?');">
+                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                            <input type="hidden" name="action" value="<?= $activeTab === 'weekly' ? 'partner_bulk_review_weekly' : 'partner_bulk_review_dtr' ?>">
+                            <input type="hidden" name="student_id" value="<?= (int)$selectedStudent['student_id'] ?>">
+                            <input type="hidden" name="decision" value="rejected">
+                            <button class="btn btn-small btn-reject" type="submit">Reject All Pending</button>
+                        </form>
+                    </div>
+                </div>
+            <?php endif; ?>
             <?php if (empty($activeRecords)): ?>
                 <p class="muted ps-v2-empty">No <?= $activeTab === 'weekly' ? 'weekly reports' : 'daily time records' ?> submitted yet.</p>
             <?php elseif (empty($filteredRecords)): ?>

@@ -92,7 +92,11 @@
                             $isEvaluation = $reqKind === 'evaluation';
                             $evalKey = (string)($req['evaluation_key'] ?? '');
                             $reqStatus = $req['status'] ?? 'pending';
-                            $hasFile = !$isEvaluation && !empty($req['file_path']);
+                            $viewUrl = trim((string)($req['view_url'] ?? ''));
+                            $hasFile = !$isEvaluation && (!empty($req['file_path']) || $viewUrl !== '');
+                            $fileHref = $viewUrl !== ''
+                                ? $viewUrl
+                                : (!empty($req['file_path']) ? asset((string)$req['file_path']) : '');
                             $evalComplete = $isEvaluation && $reqStatus === 'approved';
                             $iconStatus = ($hasFile || $evalComplete) ? ($evalComplete ? 'approved' : $reqStatus) : 'pending';
                             $owner = $req['owner'] ?? 'student';
@@ -145,7 +149,7 @@
                                     <?php endif; ?>
                                 <?php else: ?>
                                     <?php if ($hasFile): ?>
-                                        <a class="requirement-file-chip" target="_blank" href="<?= e(asset($req['file_path'])) ?>">
+                                        <a class="requirement-file-chip" target="_blank" href="<?= e($fileHref) ?>">
                                             <svg class="requirement-file-svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5Z"/></svg>
                                             View file
                                         </a>

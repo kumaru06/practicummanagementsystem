@@ -6,7 +6,7 @@
  * Access model (mirrors the controllers):
  *  - admin      : every uploaded file
  *  - student    : only files belonging to their own student record
- *  - coordinator: only files of students assigned to them (+ MOA/MOU library, own signature)
+ *  - coordinator: only files of students assigned to them (+ scoped MOA/MOU, own signature)
  *  - partner    : only files of students deployed to their company (+ own MOA/MOU)
  *  - profiles/  : any authenticated user (avatars are shown throughout the app)
  * Anything not explicitly matched is denied.
@@ -55,12 +55,14 @@ class FileAccess
             return $role === 'coordinator' && $signatureOwner === $uid;
         }
 
-        // Company MOA/MOU: coordinators may browse the library; the owning partner sees its own.
-        $companyOwner = self::scalar($db, 'SELECT user_id FROM partner_companies WHERE moa_mou_file = ? LIMIT 1', [$rel]);
-        if ($companyOwner !== null) {
+        // Company MOA/MOU: scoped to coordinator's students / enrollable partners; partner sees its own.
+        $companyId = self::scalar($db, 'SELECT id FROM partner_companies WHERE moa_mou_file = ? LIMIT 1', [$rel]);
+        if ($companyId !== null) {
             if ($role === 'coordinator') {
-                return true;
+                return (new Company($db))->coordinatorCanAccessMoa($uid, (int)$companyId);
             }
+            $companyOwner = self::scalar($db, 'SELECT user_id FROM partner_companies WHERE id = ? LIMIT 1', [(int)$companyId]);
+
             return $role === 'partner' && $companyOwner === $uid;
         }
 
@@ -80,7 +82,12 @@ class FileAccess
                 $db,
                 'SELECT 1 FROM ojt_enrollments e
                  JOIN partner_companies pc ON pc.id = e.company_id
-                 WHERE e.student_id = ? AND pc.user_id = ? LIMIT 1',
+                 WHERE e.student_id = ? AND pc.user_id = ?
+                   AND (
+                     e.status = "completed"
+                     OR e.predeployment_status IN ("forwarded", "accepted", "orientation_scheduled", "orientation_completed")
+                   )
+                 LIMIT 1',
                 [$studentId, $uid]
             ),
             default => false,

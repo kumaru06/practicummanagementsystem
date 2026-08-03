@@ -19,10 +19,13 @@ $coordPredeploymentDisplay = static function (string $status, bool $hasPendingSt
         return ['label' => 'Completed', 'class' => 'completed', 'reviewable' => false];
     }
     if ($status === 'approved') {
-        return ['label' => 'Completed', 'class' => 'completed', 'reviewable' => true];
+        return ['label' => 'Ready to Forward', 'class' => 'completed', 'reviewable' => true];
     }
     if ($status === 'submitted') {
         return ['label' => 'In Review', 'class' => 'submitted', 'reviewable' => true];
+    }
+    if ($status === 'needs_revision') {
+        return ['label' => 'Needs Revision', 'class' => 'needs_revision', 'reviewable' => false];
     }
     return ['label' => 'Not Submitted', 'class' => 'not_submitted', 'reviewable' => false];
 };
@@ -72,7 +75,7 @@ ksort($termOptions);
             </div>
             <div class="ms-stat-body">
                 <span>Not Yet Started</span>
-                <strong data-ms-stat="not_started"><?= (int)($stats['not_started'] ?? 0) ?></strong>
+                <strong data-ms-stat="not_started" title="Students without an official OJT start date (includes enrolled pre-deployment)."><?= (int)($stats['not_started'] ?? 0) ?></strong>
             </div>
         </article>
         <article class="ms-stat-card ms-stat-completed">
@@ -158,6 +161,7 @@ ksort($termOptions);
                             $partnerEvalStatus = StudentEvaluation::statusFor($evalRow, 'industry_partner');
                             $coordEvalStatus = StudentEvaluation::statusFor($evalRow, 'coordinator');
                             $evalDone = ($partnerEvalStatus === 'submitted' ? 1 : 0) + ($coordEvalStatus === 'submitted' ? 1 : 0);
+                            $pendingFinalReview = (int)(($pendingFinalReviewByStudent[(int)$s['id']] ?? 0));
                             $hasPendingStage1 = false;
                             foreach ($studentRequirements as $pendingReq) {
                                 if (!empty($pendingReq['file_path']) && ($pendingReq['status'] ?? '') === 'uploaded') {
@@ -205,7 +209,7 @@ ksort($termOptions);
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <a class="ms-eval-progress <?= $evalDone >= 2 ? 'is-complete' : 'is-pending' ?>" href="index.php?r=coordinator_student_final&amp;student_id=<?= (int)$s['id'] ?>"><?= (int)$evalDone ?>/2 done</a>
+                                <a class="ms-eval-progress <?= ($evalDone >= 2 && $pendingFinalReview === 0) ? 'is-complete' : 'is-pending' ?>" href="index.php?r=coordinator_student_final&amp;student_id=<?= (int)$s['id'] ?>"><?php if ($pendingFinalReview > 0): ?><?= (int)$pendingFinalReview ?> to review · <?php endif; ?><?= (int)$evalDone ?>/2 evals</a>
                             </td>
                             <td class="coord-actions-cell">
                                 <button class="btn btn-small btn-ghost student-view-btn"
@@ -228,7 +232,7 @@ ksort($termOptions);
                                     data-required="<?= number_format($required, 2) ?>"
                                     data-percent="<?= $percent ?>"
                                     data-cor="<?= e($s['cor_file'] ?? '') ?>"
-                                    data-moa-mou="<?= e(!empty($s['company_moa_mou_file']) && !empty($s['company_id']) ? 'index.php?r=coordinator_partner_document&company_id=' . (int)$s['company_id'] : '') ?>"
+                                    data-moa-mou="<?= e($s['moa_document_url'] ?? '') ?>"
                                     data-student-id="<?= (int)$s['id'] ?>"
                                     data-user-id="<?= (int)$s['user_id'] ?>"
                                     data-final-url="index.php?r=coordinator_student_final&amp;student_id=<?= (int)$s['id'] ?>"
@@ -354,17 +358,26 @@ ksort($termOptions);
                     </div>
                     <div class="requirement-review-modal-grid">
                         <?php foreach ($studentRequirements as $req): ?>
+                            <?php
+                                $reqStatus = (string)($req['status'] ?? 'pending');
+                                $pipelineAdvanced = in_array((string)($s['predeployment_status'] ?? ''), ['forwarded', 'accepted', 'orientation_scheduled', 'orientation_completed'], true);
+                                $canReviewReq = !empty($req['file_path']) && (
+                                    $reqStatus === 'uploaded'
+                                    || ($reqStatus === 'approved' && !$pipelineAdvanced)
+                                );
+                            ?>
                             <article class="requirement-review-item status-<?= e($req['status'] ?? 'pending') ?>" data-requirement-key="<?= e($req['requirement_key']) ?>">
                                 <div class="requirement-review-head">
                                     <div>
                                         <strong class="requirement-review-title"><?= e($req['requirement_name']) ?></strong>
-                                        <small class="muted"><?= !empty($req['file_path']) ? 'Uploaded file ready for review' : 'No file uploaded yet' ?></small>
+                                        <small class="muted"><?= !empty($req['file_path']) ? ($reqStatus === 'approved' ? 'Approved — you can still reject before forwarding' : 'Uploaded file ready for review') : 'No file uploaded yet' ?></small>
                                     </div>
                                     <span class="badge <?= e($req['status'] ?? 'pending') ?>" data-req-status-badge><?= e($req['status'] ?? 'pending') ?></span>
                                 </div>
-                                <div class="requirement-review-file-row"><?= !empty($req['file_path']) ? '<a class="btn btn-small requirement-review-file" target="_blank" href="' . e($req['file_path']) . '">View File</a>' : '<span class="requirement-review-empty">No file uploaded</span>' ?></div>
-                                <?php if (!empty($req['file_path']) && ($req['status'] ?? '') === 'uploaded'): ?>
+                                <div class="requirement-review-file-row"><?= !empty($req['file_path']) ? '<a class="btn btn-small requirement-review-file" target="_blank" href="' . e(asset($req['file_path'])) . '">View File</a>' : '<span class="requirement-review-empty">No file uploaded</span>' ?></div>
+                                <?php if ($canReviewReq): ?>
                                     <div class="requirement-review-actions" data-review-actions>
+                                        <?php if ($reqStatus === 'uploaded'): ?>
                                         <form method="post" class="inline js-review-form" data-review-status="approved">
                                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                             <input type="hidden" name="action" value="coordinator_review_requirement">
@@ -373,14 +386,15 @@ ksort($termOptions);
                                             <input type="hidden" name="status" value="approved">
                                             <button class="btn btn-small" type="submit">Approve</button>
                                         </form>
+                                        <?php endif; ?>
                                         <form method="post" class="inline requirement-review-reject-form js-review-form" data-review-status="rejected">
                                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                             <input type="hidden" name="action" value="coordinator_review_requirement">
                                             <input type="hidden" name="student_id" value="<?= (int)$s['id'] ?>">
                                             <input type="hidden" name="requirement_key" value="<?= e($req['requirement_key']) ?>">
                                             <input type="hidden" name="status" value="rejected">
-                                            <input class="requirement-review-note" name="notes" placeholder="Reason for rejection">
-                                            <button class="btn btn-small" type="submit">Reject</button>
+                                            <input class="requirement-review-note" name="notes" placeholder="Reason for rejection" required maxlength="500">
+                                            <button class="btn btn-small" type="submit"><?= $reqStatus === 'approved' ? 'Revoke approval' : 'Reject' ?></button>
                                         </form>
                                     </div>
                                 <?php elseif (!empty($req['review_notes'])): ?>

@@ -2,20 +2,24 @@
 $stats = $stats ?? ['total' => 0, 'pending' => 0, 'active' => 0, 'orientation' => 0, 'completed' => 0];
 $recentStudents = array_slice($students ?? [], 0, 5);
 
-$statusBadgeClass = static function (?string $status): string {
-    $status = strtolower(trim((string)$status));
-    return match ($status) {
-        'active' => 'pd-badge--active',
-        'completed' => 'pd-badge--done',
-        default => 'pd-badge--pending',
+$statusBadge = static function (?string $predeploymentStatus, ?string $enrollmentStatus): array {
+    if (strtolower(trim((string)$enrollmentStatus)) === 'completed') {
+        return ['label' => 'Completed', 'class' => 'pd-badge--done'];
+    }
+    return match (strtolower(trim((string)$predeploymentStatus))) {
+        'forwarded' => ['label' => 'Docs Forwarded', 'class' => 'pd-badge--pending'],
+        'accepted' => ['label' => 'Accepted', 'class' => 'pd-badge--pending'],
+        'orientation_scheduled' => ['label' => 'Orientation Set', 'class' => 'pd-badge--pending'],
+        'orientation_completed' => ['label' => 'OJT Active', 'class' => 'pd-badge--active'],
+        default => ['label' => 'Pending', 'class' => 'pd-badge--pending'],
     };
 };
 
 $workflowSteps = [
-  ['num' => 1, 'title' => 'Review documents', 'desc' => 'Verify endorsement and requirements for each student.'],
-  ['num' => 2, 'title' => 'Send orientation', 'desc' => 'Email instructions if the schedule is not finalized.'],
-  ['num' => 3, 'title' => 'Schedule orientation', 'desc' => 'Set date, time, and notes before saving.'],
-  ['num' => 4, 'title' => 'Complete evaluation', 'desc' => 'Set official dates and submit final evaluation.'],
+  ['num' => 1, 'title' => 'Review documents', 'desc' => 'Verify endorsement and requirements after the coordinator forwards them.'],
+  ['num' => 2, 'title' => 'Accept deployment', 'desc' => 'Accept forwarded documents to unlock orientation scheduling.'],
+  ['num' => 3, 'title' => 'Schedule orientation', 'desc' => 'Set date, time, and notes; the student is emailed automatically.'],
+  ['num' => 4, 'title' => 'Start OJT & evaluate', 'desc' => 'Complete orientation, track hours, then submit the final evaluation.'],
 ];
 ?>
 <div class="partner-dash-v2">
@@ -37,7 +41,7 @@ $workflowSteps = [
             <div class="pd-stat-body">
                 <span class="pd-stat-label">Pending</span>
                 <strong class="pd-stat-value"><?= (int)$stats['pending'] ?></strong>
-                <small>Awaiting next action</small>
+                <small>Awaiting acceptance</small>
             </div>
         </article>
         <article class="pd-stat-card pd-stat-card--orientation">
@@ -86,14 +90,17 @@ $workflowSteps = [
                     </div>
                 <?php endif; ?>
                 <?php foreach ($recentStudents as $student): ?>
-                    <?php $initial = strtoupper(substr($student['student_name'] ?? 'S', 0, 1)); ?>
+                    <?php
+                    $initial = strtoupper(substr($student['student_name'] ?? 'S', 0, 1));
+                    $badge = $statusBadge($student['predeployment_status'] ?? null, $student['status'] ?? null);
+                    ?>
                     <a class="pd-student-row" href="<?= e(route_url('partner.portal', ['enrollment' => (int)$student['id']])) ?>#student-workspace">
                         <span class="pd-student-avatar" aria-hidden="true"><?= e($initial) ?></span>
                         <span class="pd-student-info">
                             <strong><?= e($student['student_name']) ?></strong>
                             <small><?= e(trim(($student['course'] ?? '') . ' ' . ($student['year_level'] ?? ''))) ?></small>
                         </span>
-                        <span class="pd-badge <?= e($statusBadgeClass($student['status'] ?? 'pending')) ?>"><?= e(ucfirst($student['status'] ?? 'pending')) ?></span>
+                        <span class="pd-badge <?= e($badge['class']) ?>"><?= e($badge['label']) ?></span>
                         <svg class="pd-student-chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m7.5 5 5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </a>
                 <?php endforeach; ?>

@@ -1042,7 +1042,8 @@ class AdminController extends BaseController
                 $password,
                 'partner',
                 current_user()['id'],
-                0
+                0,
+                $partnerNameParts['middle_name'] !== '' ? $partnerNameParts['middle_name'] : null
             );
             $companyId = $companies->create($userId, $companyName, $address, $contactPerson, $contactEmail, $contactNumber, $programIds, $moaMouFile);
             $this->db->commit();
@@ -1134,6 +1135,86 @@ class AdminController extends BaseController
             $companies->syncPrograms($companyId, $programIds);
             flash('success', 'Accepted programs updated for ' . ($company['name'] ?? 'Host Training Establishment') . '.');
         } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+        redirect('index.php?r=admin_partners');
+    }
+
+    public function updateCompany(): void
+    {
+        require_role('admin');
+        $p = $this->post();
+        $moaMouFile = null;
+        try {
+            $companyId = (int)($p['company_id'] ?? 0);
+            $companies = new Company($this->db);
+            $companies->ensureMoaMouSupport();
+            $company = $companies->find($companyId);
+            if (!$company) {
+                throw new RuntimeException('Host Training Establishment not found.');
+            }
+
+            $companyName = trim((string)($p['company_name'] ?? ''));
+            $contactPerson = trim((string)($p['contact_person'] ?? ''));
+            $contactEmail = strtolower(trim((string)($p['contact_email'] ?? '')));
+            $address = trim((string)($p['address'] ?? ''));
+            $contactNumberRaw = trim((string)($p['contact_number'] ?? ''));
+
+            if ($companyName === '' || $contactPerson === '' || $contactEmail === '' || $address === '' || $contactNumberRaw === '') {
+                throw new RuntimeException('Please complete all required Host Training Establishment fields.');
+            }
+            if (!filter_var($contactEmail, FILTER_VALIDATE_EMAIL)) {
+                throw new RuntimeException('Enter a valid email address.');
+            }
+
+            $contactNumberDigits = preg_replace('/\D+/', '', $contactNumberRaw);
+            if (str_starts_with($contactNumberDigits, '63')) {
+                $contactNumberDigits = substr($contactNumberDigits, 2);
+            }
+            if (str_starts_with($contactNumberDigits, '0')) {
+                $contactNumberDigits = substr($contactNumberDigits, 1);
+            }
+            if (!preg_match('/^9\d{9}$/', $contactNumberDigits)) {
+                throw new RuntimeException('Contact number must be a valid Philippine mobile number.');
+            }
+            $contactNumber = '+63 ' . substr($contactNumberDigits, 0, 3) . ' ' . substr($contactNumberDigits, 3, 3) . ' ' . substr($contactNumberDigits, 6, 4);
+
+            $emailOwner = (new User($this->db))->findByEmail($contactEmail);
+            if ($emailOwner && (int)$emailOwner['id'] !== (int)$company['user_id']) {
+                throw new RuntimeException('That email address is already in use by another account.');
+            }
+
+            if (!empty($_FILES['moa_mou_file']['name'])) {
+                $moaMouFile = upload_document($_FILES['moa_mou_file'], 'company_moa_mou', true);
+            }
+
+            $this->db->beginTransaction();
+            (new User($this->db))->updateName((int)$company['user_id'], $companyName);
+            (new User($this->db))->updateEmail((int)$company['user_id'], $contactEmail);
+            $companies->updateProfile(
+                $companyId,
+                $companyName,
+                $address,
+                $contactPerson,
+                $contactEmail,
+                $contactNumber
+            );
+            if ($moaMouFile) {
+                $oldMoa = trim((string)($company['moa_mou_file'] ?? ''));
+                $companies->updateMoaMouFile($companyId, $moaMouFile);
+                if ($oldMoa !== '' && $oldMoa !== $moaMouFile && is_file(__DIR__ . '/../' . $oldMoa)) {
+                    @unlink(__DIR__ . '/../' . $oldMoa);
+                }
+            }
+            $this->db->commit();
+            flash('success', 'Host Training Establishment details updated.');
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            if ($moaMouFile && is_file(__DIR__ . '/../' . $moaMouFile)) {
+                @unlink(__DIR__ . '/../' . $moaMouFile);
+            }
             flash('error', $e->getMessage());
         }
         redirect('index.php?r=admin_partners');

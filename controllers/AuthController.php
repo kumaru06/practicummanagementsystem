@@ -69,7 +69,13 @@ class AuthController extends BaseController
             if ($user && password_verify($password, $user['password_hash'])) {
                 if ((int)$user['is_active'] !== 1) {
                     $this->recordLoginAttempt($loginIp, false);
-                    flash('error', 'Your account is not active yet. Please wait for your OJT coordinator to enroll you.');
+                    $inactiveMessage = match ($portalRole) {
+                        'partner' => 'Your Host Training Establishment account is inactive. Please contact the system administrator.',
+                        'coordinator' => 'Your coordinator account is inactive. Please contact the system administrator.',
+                        'admin' => 'Your administrator account is inactive. Please contact another system administrator.',
+                        default => 'Your account is not active yet. Please wait for your OJT coordinator to enroll you.',
+                    };
+                    flash('error', $inactiveMessage);
                     redirect($portalRole ? 'auth.php?portal=' . urlencode($portalRole) : 'auth.php');
                 }
 

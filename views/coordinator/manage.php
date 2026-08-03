@@ -194,7 +194,7 @@ $totalStudents = count($students);
                         <h3>Placement details</h3>
                         <p class="muted">Assign a host training establishment and confirm the academic term schedule.</p>
                     </div>
-                    <label><span>Host Training Establishment <span class="field-required">*</span></span><select required name="company_id"><option value="">— Select Host Training Establishment —</option><?php foreach ($companies as $c): ?><option value="<?= (int)$c['id'] ?>" data-program-ids="<?= e($c['accepted_program_ids'] ?? '') ?>" data-moa-mou="<?= e(!empty($c['moa_mou_file']) ? 'index.php?r=coordinator_partner_document&company_id=' . (int)$c['id'] : '') ?>"><?= e($c['name'] . (!empty($c['accepted_programs']) ? ' — ' . $c['accepted_programs'] : '')) ?></option><?php endforeach; ?></select></label>
+                    <label><span>Host Training Establishment <span class="field-required">*</span></span><select required name="company_id"><option value="">— Select Host Training Establishment —</option><?php foreach ($companies as $c): ?><option value="<?= (int)$c['id'] ?>" data-program-ids="<?= e($c['accepted_program_ids'] ?? '') ?>" data-moa-mou="<?= e($c['moa_document_url'] ?? '') ?>"><?= e($c['name'] . (!empty($c['accepted_programs']) ? ' — ' . $c['accepted_programs'] : '')) ?></option><?php endforeach; ?></select></label>
                     <div class="company-doc-preview enrollment-company-doc" data-company-doc-preview hidden>
                         <div class="enrollment-company-doc-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5Z"/></svg></div>
                         <div>

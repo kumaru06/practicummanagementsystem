@@ -14,8 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initCharacterCounters();
     initDtrTimeLocks();
     initForms();
-    initStudentNoAvailability();
-    initEmailAvailability();
     initStudentRegistrationAvailability();
     initStudentRegistrationPasswordIndicators();
     initRegisterCourseSelect();
@@ -2361,7 +2359,9 @@ function initPartnerPasswordChange() {
     const strengthIndicator = changeForm?.querySelector('[data-partner-password-strength]');
     const strengthLabel = changeForm?.querySelector('[data-partner-strength-label]');
     const matchIndicator = changeForm?.querySelector('[data-partner-password-match]');
-    let verifiedCurrentPassword = '';
+    const isFirstLogin = root.dataset.isFirstLogin === '1';
+    const passwordLabel = isFirstLogin ? 'temporary password' : 'current password';
+    let verifiedReauthToken = '';
 
     const resetPasswordIndicators = () => {
         strengthIndicator?.setAttribute('hidden', '');
@@ -2405,12 +2405,15 @@ function initPartnerPasswordChange() {
     };
 
     const showVerifyStep = () => {
-        verifiedCurrentPassword = '';
+        verifiedReauthToken = '';
+        const tokenInput = changeForm?.querySelector('[data-partner-reauth-token]');
+        if (tokenInput) tokenInput.value = '';
         changeStep?.classList.remove('is-visible');
         changeStep?.setAttribute('hidden', '');
         verifyStep?.removeAttribute('hidden');
         requestAnimationFrame(() => verifyStep?.classList.add('is-visible'));
         changeForm?.reset();
+        if (tokenInput) tokenInput.value = '';
         resetPasswordIndicators();
         setPartnerPasswordFeedback(changeForm, '');
         verifyForm?.querySelector('[data-partner-current-password]')?.focus();
@@ -2442,7 +2445,7 @@ function initPartnerPasswordChange() {
         const currentPassword = currentInput?.value || '';
         if (!currentPassword) {
             currentInput?.focus();
-            setPartnerPasswordFeedback(verifyForm, 'Enter your current password.');
+            setPartnerPasswordFeedback(verifyForm, `Enter your ${passwordLabel}.`);
             return;
         }
 
@@ -2458,9 +2461,14 @@ function initPartnerPasswordChange() {
             });
             const data = await parseJsonResponse(response, 'Unable to verify your password. Please try again.');
             if (!response.ok || !data.ok) {
-                throw new Error(data.message || 'Current password is incorrect.');
+                throw new Error(data.message || `${passwordLabel.charAt(0).toUpperCase()}${passwordLabel.slice(1)} is incorrect.`);
             }
-            verifiedCurrentPassword = currentPassword;
+            verifiedReauthToken = data.reauth_token || '';
+            if (!verifiedReauthToken) {
+                throw new Error('Unable to continue password change. Please try again.');
+            }
+            const tokenInput = changeForm?.querySelector('[data-partner-reauth-token]');
+            if (tokenInput) tokenInput.value = verifiedReauthToken;
             showChangeStep();
         } catch (error) {
             setPartnerPasswordFeedback(verifyForm, error.message || 'Unable to verify your password.');
@@ -2478,9 +2486,9 @@ function initPartnerPasswordChange() {
         const password = changeForm.querySelector('input[name="password"]')?.value || '';
         const confirmPassword = changeForm.querySelector('input[name="confirm_password"]')?.value || '';
 
-        if (!verifiedCurrentPassword) {
+        if (!verifiedReauthToken) {
             showVerifyStep();
-            setPartnerPasswordFeedback(verifyForm, 'Please verify your current password first.');
+            setPartnerPasswordFeedback(verifyForm, `Please verify your ${passwordLabel} first.`);
             return;
         }
         if (password.length < 8) {
@@ -2497,7 +2505,7 @@ function initPartnerPasswordChange() {
         setPartnerPasswordFeedback(changeForm, '');
 
         const formData = new FormData(changeForm);
-        formData.set('current_password', verifiedCurrentPassword);
+        formData.set('reauth_token', verifiedReauthToken);
 
         try {
             const response = await fetch('index.php', {
@@ -2510,12 +2518,13 @@ function initPartnerPasswordChange() {
                 throw new Error(data.message || 'Unable to change your password.');
             }
             pushAppToast(data.message || 'Password changed successfully.');
-            const redirectTo = data.redirect || 'index.php?r=partner_settings';
+            const redirectTo = data.redirect || root?.dataset.successRedirect || '';
             setTimeout(() => {
                 window.location.href = redirectTo;
             }, 700);
         } catch (error) {
-            if ((error.message || '').toLowerCase().includes('current password')) {
+            const message = (error.message || '').toLowerCase();
+            if (message.includes('current password') || message.includes('temporary password')) {
                 showVerifyStep();
                 setPartnerPasswordFeedback(verifyForm, error.message);
             } else {
@@ -2845,7 +2854,11 @@ function initPartnerSubmissions() {
         loading = true;
         detailHost.classList.add('is-loading');
         try {
-            const response = await fetch(url, {
+            const requestUrl = new URL(url, window.location.href);
+            if (!requestUrl.searchParams.get('partial')) {
+                requestUrl.searchParams.set('partial', 'detail');
+            }
+            const response = await fetch(requestUrl.toString(), {
                 credentials: 'same-origin',
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
                 cache: 'no-store',
@@ -2858,7 +2871,9 @@ function initPartnerSubmissions() {
                 setSelectedStudent(studentId);
             }
             if (pushState) {
-                history.pushState({ psSubmissions: true }, '', url);
+                const cleanUrl = new URL(url, window.location.href);
+                cleanUrl.searchParams.delete('partial');
+                history.pushState({ psSubmissions: true }, '', cleanUrl.toString());
             }
         } catch {
             window.location.assign(url);
@@ -2896,6 +2911,7 @@ function initPartnerSubmissionsPopstate() {
             try {
                 const listUrl = new URL(url, window.location.href);
                 listUrl.searchParams.delete('student_id');
+                listUrl.searchParams.set('partial', 'detail');
                 const response = await fetch(listUrl.toString(), {
                     credentials: 'same-origin',
                     headers: { 'X-Requested-With': 'XMLHttpRequest' },
@@ -2916,7 +2932,9 @@ function initPartnerSubmissionsPopstate() {
 
         detailHost.classList.add('is-loading');
         try {
-            const response = await fetch(url, {
+            const detailUrl = new URL(url, window.location.href);
+            detailUrl.searchParams.set('partial', 'detail');
+            const response = await fetch(detailUrl.toString(), {
                 credentials: 'same-origin',
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
                 cache: 'no-store',
@@ -3834,32 +3852,6 @@ function initLiveFieldAvailability({
     });
 }
 
-function initStudentNoAvailability() {
-    initLiveFieldAvailability({
-        input: document.querySelector('form:not(#studentRegisterForm):not(#asuCreateStudentForm) input[name="student_no"][data-student-no-check]'),
-        route: 'coordinator_check_student_no',
-        paramName: 'student_no',
-        messageSelector: '[data-student-no-message]',
-        sanitize: value => value.replace(/\D/g, ''),
-        canCheck: value => /^\d+$/.test(value),
-        takenMessage: 'This Student ID/USN is already registered.',
-        availableMessage: 'Student ID/USN is available.',
-    });
-}
-
-function initEmailAvailability() {
-    initLiveFieldAvailability({
-        input: document.querySelector('form:not(#studentRegisterForm):not(#asuCreateStudentForm) input[name="email"][data-email-check]'),
-        route: 'coordinator_check_email',
-        paramName: 'email',
-        messageSelector: '[data-email-message]',
-        sanitize: value => value.trim().toLowerCase(),
-        canCheck: value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
-        takenMessage: 'This email address is already registered.',
-        availableMessage: 'Email address is available.',
-    });
-}
-
 function initAdminCreateStudentAvailability() {
     const form = document.getElementById('asuCreateStudentForm');
     if (!form) return;
@@ -4561,7 +4553,7 @@ function updateWizardSummary(form) {
         </div>
         <div class="enr-confirm-alert">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>This will enroll the student and email both the student and host training establishment.</span>
+            <span>This will enroll the student and email their enrollment details.</span>
         </div>`;
 }
 
@@ -4589,6 +4581,28 @@ function initEnrollmentAutomation() {
             companySelect.value = '';
             companySelect._syncCustomSelect?.();
         };
+        const filterCompaniesForProgram = (programId) => {
+            const selectedProgramId = String(programId || '');
+            [...companySelect.options].forEach(option => {
+                if (!option.value) {
+                    option.hidden = false;
+                    option.disabled = false;
+                    return;
+                }
+                const acceptedIds = String(option.dataset.programIds || '')
+                    .split(',')
+                    .map(value => value.trim())
+                    .filter(Boolean);
+                const matches = selectedProgramId !== '' && acceptedIds.includes(selectedProgramId);
+                option.hidden = !matches;
+                option.disabled = !matches;
+            });
+            const current = companySelect.selectedOptions[0];
+            if (current && (current.hidden || current.disabled)) {
+                companySelect.value = '';
+            }
+            companySelect._syncCustomSelect?.();
+        };
         const sync = () => {
             const selected = studentSelect.selectedOptions[0];
             if (selected?.dataset.isEnrolled === '1') {
@@ -4603,7 +4617,7 @@ function initEnrollmentAutomation() {
                 return;
             }
             hoursInput.value = selected?.dataset.requiredHours || '';
-            resetCompanies();
+            filterCompaniesForProgram(selected?.dataset.programId || '');
             updateWizardSummary(form);
         };
         form._resetEnrollmentFields = (studentId = '') => {
@@ -4614,7 +4628,11 @@ function initEnrollmentAutomation() {
                 clearSelection();
             }
             studentSelect._syncCustomSelect?.();
-            resetCompanies();
+            if (studentId) {
+                filterCompaniesForProgram(studentSelect.selectedOptions[0]?.dataset.programId || '');
+            } else {
+                resetCompanies();
+            }
             if (termSelect) {
                 termSelect.value = '';
                 termSelect._syncCustomSelect?.();
@@ -7491,6 +7509,7 @@ function initAdminPartnersDirectory() {
     });
 
     initAdminPartnerProgramsModal();
+    initAdminPartnerEditDetailsModal();
 }
 
 function initAdminOjtPlacementDirectory() {
@@ -7665,6 +7684,68 @@ function initAdminPartnerProgramsModal() {
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape' && editOverlay.classList.contains('is-open')) {
             closeEditModal();
+        }
+    });
+}
+
+function initAdminPartnerEditDetailsModal() {
+    const overlay = document.getElementById('asuPartnerEditDetailsOverlay');
+    if (!overlay || overlay.dataset.ready === '1') return;
+    overlay.dataset.ready = '1';
+
+    const titleEl = document.getElementById('asuPartnerEditDetailsTitle');
+    const companyIdInput = overlay.querySelector('[data-asu-edit-partner-id]');
+    const nameInput = overlay.querySelector('[data-asu-edit-partner-name]');
+    const contactInput = overlay.querySelector('[data-asu-edit-partner-contact]');
+    const emailInput = overlay.querySelector('[data-asu-edit-partner-email]');
+    const phoneInput = overlay.querySelector('[data-asu-edit-partner-phone]');
+    const addressInput = overlay.querySelector('[data-asu-edit-partner-address]');
+    const moaHint = overlay.querySelector('[data-asu-edit-partner-moa-hint]');
+
+    const closeModal = () => {
+        overlay.classList.remove('is-open');
+        overlay.setAttribute('aria-hidden', 'true');
+    };
+
+    const openModal = (trigger) => {
+        if (typeof closeAdminActionMenus === 'function') {
+            closeAdminActionMenus();
+        }
+        if (titleEl) titleEl.textContent = trigger.dataset.company || 'Host Training Establishment';
+        if (companyIdInput) companyIdInput.value = trigger.dataset.companyId || '';
+        if (nameInput) nameInput.value = trigger.dataset.company || '';
+        if (contactInput) contactInput.value = trigger.dataset.contactPerson || '';
+        if (emailInput) emailInput.value = trigger.dataset.email || '';
+        if (phoneInput) phoneInput.value = trigger.dataset.contactNumber || '';
+        if (addressInput) addressInput.value = trigger.dataset.address || '';
+        if (moaHint) {
+            moaHint.textContent = trigger.dataset.hasMoa === '1'
+                ? 'Optional. Upload a file only if you need to replace the current MOA/MOU.'
+                : 'Optional. Upload the establishment MOA/MOU document.';
+        }
+        const fileInput = overlay.querySelector('input[type="file"][name="moa_mou_file"]');
+        if (fileInput) fileInput.value = '';
+        overlay.classList.add('is-open');
+        overlay.setAttribute('aria-hidden', 'false');
+        nameInput?.focus();
+    };
+
+    document.addEventListener('click', event => {
+        const trigger = event.target.closest('[data-asu-edit-partner]');
+        if (trigger) {
+            event.preventDefault();
+            event.stopPropagation();
+            openModal(trigger);
+            return;
+        }
+        if (event.target === overlay || event.target.closest('[data-asu-edit-partner-close]')) {
+            closeModal();
+        }
+    });
+
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && overlay.classList.contains('is-open')) {
+            closeModal();
         }
     });
 }

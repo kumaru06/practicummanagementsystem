@@ -14,10 +14,25 @@ class StudentController extends BaseController
     {
         require_role(['student', 'coordinator', 'partner', 'admin']);
         $isFirstLogin = (int)(current_user()['password_changed'] ?? 1) === 0;
+        $role = (string)(current_user()['role'] ?? 'student');
+        $accountLabel = match ($role) {
+            'coordinator' => 'coordinators',
+            'partner' => 'Host Training Establishments',
+            'admin' => 'administrators',
+            default => 'students',
+        };
+        $portalLabel = match ($role) {
+            'coordinator' => 'coordinator portal',
+            'partner' => 'Host Training Establishment portal',
+            'admin' => 'admin portal',
+            default => 'OJT portal',
+        };
         $this->renderAppPage('student/change_password', [
             'title' => $isFirstLogin ? 'Change Temporary Password' : 'Change Password',
             'csrfToken' => csrf_token(),
             'isFirstLogin' => $isFirstLogin,
+            'accountLabel' => $accountLabel,
+            'portalLabel' => $portalLabel,
         ]);
     }
 
@@ -81,14 +96,20 @@ class StudentController extends BaseController
             (new User($this->db))->updatePassword($userId, $password, 1);
             $_SESSION['user']['password_changed'] = 1;
 
+            $role = (string)(current_user()['role'] ?? 'student');
+            $postChangeRedirect = match (true) {
+                $wasTemporary => route_for_role($role),
+                $role === 'student' => route_url('student.settings'),
+                $role === 'partner' => route_url('partner.settings'),
+                default => route_for_role($role),
+            };
+
             echo json_encode([
                 'ok' => true,
                 'message' => $wasTemporary
                     ? 'Password changed successfully. You can now access your dashboard.'
                     : 'Password changed successfully.',
-                'redirect' => $wasTemporary
-                    ? route_for_role(current_user()['role'])
-                    : route_url('student.settings'),
+                'redirect' => $postChangeRedirect,
             ], JSON_UNESCAPED_UNICODE);
         } catch (Throwable $e) {
             if (http_response_code() === 200) {
@@ -277,6 +298,52 @@ class StudentController extends BaseController
         $this->renderAppPage('student/documents', $data);
     }
 
+    public function viewEndorsementLetter(): void
+    {
+        require_role('student');
+        $student = (new Student($this->db))->findByUser((int)current_user()['id']);
+        if (!$student) {
+            http_response_code(403);
+            exit('Forbidden');
+        }
+
+        $enrollmentId = (int)($_GET['enrollment'] ?? 0);
+        if ($enrollmentId <= 0) {
+            http_response_code(400);
+            exit('Invalid enrollment ID.');
+        }
+
+        $enrollment = (new Enrollment($this->db))->find($enrollmentId);
+        if (!$enrollment || (int)$enrollment['student_id'] !== (int)$student['id']) {
+            http_response_code(403);
+            exit('You do not have access to this endorsement letter.');
+        }
+
+        $studentModel = new Student($this->db);
+        $predeployment = $studentModel->normalizePredeploymentStatus($enrollment['predeployment_status'] ?? null);
+        $available = $studentModel->isPredeploymentPipelineAdvanced($predeployment)
+            || ($enrollment['status'] ?? '') === 'completed'
+            || trim((string)($enrollment['endorsement_file'] ?? '')) !== '';
+        if (!$available) {
+            http_response_code(403);
+            exit('Endorsement letter is not available yet.');
+        }
+
+        try {
+            $pdfContent = (new EndorsementLetter($this->db))->generatePdfBuffer((int)$student['id'], (int)$enrollment['id']);
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="Endorsement_Letter.pdf"');
+            header('Content-Length: ' . strlen($pdfContent));
+            header('Cache-Control: private, max-age=300');
+            echo $pdfContent;
+            exit;
+        } catch (Throwable $e) {
+            error_log('Student endorsement letter view failed: ' . $e->getMessage());
+            http_response_code(500);
+            exit('Unable to generate the endorsement letter right now. Please try again later.');
+        }
+    }
+
     /**
      * @return array<int, array<string, mixed>>
      */
@@ -294,7 +361,12 @@ class StudentController extends BaseController
             foreach ($rows as $key => $row) {
                 // Stage 2 endorsement letter is provided by the coordinator on forward.
                 if ($key === 'endorsement_letter' && empty($row['file_path']) && !empty($endorsementFile)) {
-                    $row['file_path'] = $endorsementFile;
+                    if ($endorsementFile === '(generated-pdf)' && !empty($enrollment['id'])) {
+                        $row['view_url'] = route_url('student.view_endorsement', ['enrollment' => (int)$enrollment['id']]);
+                        $row['file_path'] = null;
+                    } else {
+                        $row['file_path'] = $endorsementFile;
+                    }
                     $row['status'] = 'approved';
                 }
                 $row['can_upload'] = $studentModel->canUploadRequirement($sid, $key);
@@ -558,7 +630,7 @@ class StudentController extends BaseController
             }
             $path = upload_document($_FILES['requirement_file'] ?? [], 'requirements/' . (int)$student['id']);
             $studentModel->saveRequirement((int)$student['id'], $requirementKey, $path);
-            $this->notifyCoordinatorLateStage1Upload($student, $requirementKey, $studentModel);
+            $this->notifyCoordinatorRequirementUpload($student, $requirementKey, $studentModel);
             flash('success', 'Requirement uploaded.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
@@ -604,12 +676,13 @@ class StudentController extends BaseController
             }
 
             $uploadedCount = 0;
-            $notifiedLateUpload = false;
+            $notifiedStages = [];
             foreach ($selectedFiles as $requirementKey => $singleFile) {
                 $path = upload_document($singleFile, 'requirements/' . (int)$student['id']);
                 $studentModel->saveRequirement((int)$student['id'], (string)$requirementKey, $path);
-                if (!$notifiedLateUpload && $studentModel->requirementStage((string)$requirementKey) === 1) {
-                    $notifiedLateUpload = $this->notifyCoordinatorLateStage1Upload($student, (string)$requirementKey, $studentModel);
+                $stage = $studentModel->requirementStage((string)$requirementKey);
+                if (!isset($notifiedStages[$stage]) && $this->notifyCoordinatorRequirementUpload($student, (string)$requirementKey, $studentModel)) {
+                    $notifiedStages[$stage] = true;
                 }
                 $uploadedCount++;
             }
@@ -652,7 +725,7 @@ class StudentController extends BaseController
             $this->redirectToStudentDocuments(null, 1);
         }
         (new Enrollment($this->db))->setPredeploymentStatus((int)$student['id'], 'submitted');
-        (new Notification($this->db))->create((int)$student['coordinator_id'], 'Pre-deployment review requested', $student['name'] . ' submitted all pre-deployment requirements for review.', route_url('coordinator.students'));
+        (new Notification($this->db))->create((int)$student['coordinator_id'], 'Pre-deployment review requested', $student['name'] . ' submitted all pre-deployment requirements for review.', route_url('coordinator.students', ['focus_student' => (int)$student['id']]));
         flash('success', 'Pre-deployment requirements submitted for coordinator review.');
         $this->redirectToStudentDocuments(null, 1);
     }
@@ -1015,25 +1088,47 @@ class StudentController extends BaseController
     }
 
     /**
-     * Notify coordinator when a student uploads stage-1 docs after deployment has already advanced.
+     * Notify coordinator when a student uploads a document that needs review.
+     * Stage 1: only after deployment has already advanced (late replacement uploads).
+     * Stage 2/3: always — there is no separate "submit for review" step.
      *
      * @return bool Whether a notification was sent
      */
-    private function notifyCoordinatorLateStage1Upload(array $student, string $requirementKey, Student $studentModel): bool
+    private function notifyCoordinatorRequirementUpload(array $student, string $requirementKey, Student $studentModel): bool
     {
-        if ($studentModel->requirementStage($requirementKey) !== 1) {
+        $stage = $studentModel->requirementStage($requirementKey);
+        if ($stage < 1) {
             return false;
         }
-        $enrollment = (new Enrollment($this->db))->detailsByStudent((int)$student['id']);
-        if (!$enrollment || !$studentModel->isPredeploymentPipelineAdvanced($enrollment['predeployment_status'] ?? null)) {
+
+        $coordinatorId = (int)($student['coordinator_id'] ?? 0);
+        if ($coordinatorId <= 0) {
             return false;
         }
-        $requirementName = Student::REQUIREMENTS[$requirementKey]['name'] ?? 'a pre-deployment document';
+
+        $requirementName = Student::REQUIREMENTS[$requirementKey]['name'] ?? 'a document';
+        $studentName = (string)($student['name'] ?? 'A student');
+
+        if ($stage === 1) {
+            $enrollment = (new Enrollment($this->db))->byStudent((int)$student['id']);
+            if (!$enrollment || !$studentModel->isPredeploymentPipelineAdvanced($enrollment['predeployment_status'] ?? null)) {
+                return false;
+            }
+            (new Notification($this->db))->create(
+                $coordinatorId,
+                'Pre-deployment document uploaded',
+                $studentName . ' uploaded ' . $requirementName . ' for review.',
+                route_url('coordinator.students', ['focus_student' => (int)$student['id']])
+            );
+            return true;
+        }
+
+        $stageLabel = Student::STAGE_LABELS[$stage] ?? 'Document';
         (new Notification($this->db))->create(
-            (int)$student['coordinator_id'],
-            'Pre-deployment document uploaded',
-            ($student['name'] ?? 'A student') . ' uploaded ' . $requirementName . ' for review.',
-            route_url('coordinator.students')
+            $coordinatorId,
+            $stageLabel . ' document uploaded',
+            $studentName . ' uploaded ' . $requirementName . ' for review.',
+            route_url('coordinator.student_final', ['student_id' => (int)$student['id']])
         );
 
         return true;

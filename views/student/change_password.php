@@ -1,6 +1,8 @@
 <?php
 $csrfToken = $csrfToken ?? csrf_token();
 $isFirstLogin = !empty($isFirstLogin);
+$accountLabel = (string)($accountLabel ?? 'students');
+$portalLabel = (string)($portalLabel ?? 'OJT portal');
 $verifyTitle = $isFirstLogin ? 'Verify your temporary password' : 'Verify your identity';
 $verifyDescription = $isFirstLogin
     ? 'Enter the temporary password you used to sign in before setting a new one.'
@@ -10,7 +12,7 @@ $currentPasswordPlaceholder = $isFirstLogin
     : 'Enter your current password';
 $changeTitle = $isFirstLogin ? 'Change your temporary password' : 'Create a new password';
 $changeDescription = $isFirstLogin
-    ? 'For account security, students must set a new password before accessing the OJT portal.'
+    ? 'For account security, ' . $accountLabel . ' must set a new password before accessing the ' . $portalLabel . '.'
     : 'Your new password will take effect immediately after saving.';
 ?>
 <div class="password-gate-flow" data-student-password-flow data-is-first-login="<?= $isFirstLogin ? '1' : '0' ?>">

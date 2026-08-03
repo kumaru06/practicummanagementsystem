@@ -4,9 +4,9 @@ class PartnerController extends BaseController
     public function dashboard(): void
     {
         require_role('partner');
-        $company = (new Company($this->db))->findByUser(current_user()['id']);
+        $company = $this->requireCompanyProfile();
         $enroll = new Enrollment($this->db);
-        $students = $company ? $enroll->deployedByCompany((int)$company['id']) : [];
+        $students = $enroll->deployedByCompany((int)$company['id']);
 
         $stats = [
             'total' => count($students),
@@ -18,16 +18,16 @@ class PartnerController extends BaseController
         foreach ($students as $student) {
             $status = (string)($student['status'] ?? '');
             $predeployment = (string)($student['predeployment_status'] ?? '');
-            if ($status === 'active') {
-                $stats['active']++;
-            }
             if ($status === 'completed') {
                 $stats['completed']++;
+            } elseif ($status === 'active' || $predeployment === 'orientation_completed') {
+                $stats['active']++;
             }
             if (in_array($predeployment, ['accepted', 'orientation_scheduled'], true)) {
                 $stats['orientation']++;
             }
-            if (!in_array($status, ['active', 'completed'], true)) {
+            // Actionable "pending" = docs forwarded and waiting for partner acceptance.
+            if ($predeployment === 'forwarded') {
                 $stats['pending']++;
             }
         }
@@ -47,9 +47,10 @@ class PartnerController extends BaseController
     public function submissions(): void
     {
         require_role('partner');
-        $data = $this->submissionsViewData();
+        $company = $this->requireCompanyProfile();
+        $data = $this->submissionsViewData($company);
 
-        if ($this->isAjaxRequest() && ($_GET['partial'] ?? '') !== 'content') {
+        if ($this->wantsSubmissionsPartial()) {
             header('Content-Type: text/html; charset=utf-8');
             $this->renderPartial('partner/submissions_detail', $data);
             return;
@@ -60,22 +61,18 @@ class PartnerController extends BaseController
         ]));
     }
 
-    /** @return array<string, mixed> */
-    private function submissionsViewData(): array
+    private function wantsSubmissionsPartial(): bool
     {
-        $company = (new Company($this->db))->findByUser(current_user()['id']);
-        if (!$company) {
-            return [
-                'company' => null,
-                'studentSummaries' => [],
-                'selectedStudent' => null,
-                'studentDtrs' => [],
-                'studentWeeklies' => [],
-                'activeTab' => 'dtr',
-                'statusFilter' => 'pending',
-            ];
+        $partial = strtolower(trim((string)($_GET['partial'] ?? '')));
+        if ($partial === 'content') {
+            return false;
         }
+        return $this->isAjaxRequest() || in_array($partial, ['detail', '1', 'true'], true);
+    }
 
+    /** @return array<string, mixed> */
+    private function submissionsViewData(array $company): array
+    {
         $reportModel = new Report($this->db);
         $studentSummaries = $reportModel->submissionSummaryByCompany((int)$company['id']);
 
@@ -138,13 +135,17 @@ class PartnerController extends BaseController
             $report = new Report($this->db);
             $report->setDtrVerification($dtrId, $action, (int)current_user()['id'], $notes ?: null);
 
+            if ($action === 'approved') {
+                (new Enrollment($this->db))->syncCompletion($studentId);
+            }
+
             $this->notifyStudentAndCoordinator($studentId, 'dtr', $action, $notes);
 
             flash('success', 'Daily Time Record ' . $action . '.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
-        redirect('index.php?r=partner_submissions&student_id=' . $studentId . '&tab=dtr');
+        redirect($this->partnerSubmissionsUrl($studentId, 'dtr'));
     }
 
     public function reviewWeekly(): void
@@ -171,7 +172,7 @@ class PartnerController extends BaseController
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
-        redirect('index.php?r=partner_submissions&student_id=' . $studentId . '&tab=weekly');
+        redirect($this->partnerSubmissionsUrl($studentId, 'weekly'));
     }
 
     public function bulkReviewDtr(): void
@@ -186,6 +187,7 @@ class PartnerController extends BaseController
                 throw new RuntimeException('Invalid decision.');
             }
             $this->ensureStudentAccess($studentId);
+            $this->assertPartnerCanReviewReports($studentId);
 
             $report = new Report($this->db);
             $count = 0;
@@ -199,12 +201,15 @@ class PartnerController extends BaseController
             if ($count === 0) {
                 throw new RuntimeException('No pending daily time records to review.');
             }
+            if ($action === 'approved') {
+                (new Enrollment($this->db))->syncCompletion($studentId);
+            }
             $this->notifyStudentBulkReview($studentId, 'dtr', $action, $count);
             flash('success', $count . ' daily time record(s) ' . $action . '.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
-        redirect('index.php?r=partner_submissions&student_id=' . $studentId . '&tab=dtr');
+        redirect($this->partnerSubmissionsUrl($studentId, 'dtr'));
     }
 
     public function bulkReviewWeekly(): void
@@ -219,6 +224,7 @@ class PartnerController extends BaseController
                 throw new RuntimeException('Invalid decision.');
             }
             $this->ensureStudentAccess($studentId);
+            $this->assertPartnerCanReviewReports($studentId);
 
             $report = new Report($this->db);
             $count = 0;
@@ -237,7 +243,15 @@ class PartnerController extends BaseController
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }
-        redirect('index.php?r=partner_submissions&student_id=' . $studentId . '&tab=weekly');
+        redirect($this->partnerSubmissionsUrl($studentId, 'weekly'));
+    }
+
+    private function canSubmitFinalEvaluation(array $enrollment): bool
+    {
+        $status = (string)($enrollment['status'] ?? '');
+        $predeployment = (string)($enrollment['predeployment_status'] ?? '');
+        return in_array($status, ['active', 'completed'], true)
+            && ($predeployment === 'orientation_completed' || $status === 'completed');
     }
 
     private function ensureStudentAccess(int $studentId): void
@@ -246,12 +260,26 @@ class PartnerController extends BaseController
         if (!$company) {
             throw new RuntimeException('Host Training Establishment profile not found.');
         }
-        $stmt = $this->db->prepare(
-            'SELECT COUNT(*) FROM ojt_enrollments WHERE student_id = ? AND company_id = ?'
-        );
-        $stmt->execute([$studentId, (int)$company['id']]);
-        if ((int)$stmt->fetchColumn() === 0) {
+        $enrollment = (new Enrollment($this->db))->byStudent($studentId);
+        if (!$enrollment || (int)$enrollment['company_id'] !== (int)$company['id']) {
             throw new RuntimeException('You do not have access to this student.');
+        }
+        $studentModel = new Student($this->db);
+        $predeployment = $studentModel->effectivePredeploymentStatus(
+            $studentId,
+            $enrollment['predeployment_status'] ?? null
+        );
+        if (!$studentModel->isPredeploymentPipelineAdvanced($predeployment)
+            && ($enrollment['status'] ?? '') !== 'completed') {
+            throw new RuntimeException('This student is not available yet. Documents must be forwarded by the coordinator first.');
+        }
+    }
+
+    private function assertPartnerCanReviewReports(int $studentId): void
+    {
+        $enrollment = (new Enrollment($this->db))->detailsByStudent($studentId);
+        if (!$enrollment || !enrollment_allows_reports($enrollment)) {
+            throw new RuntimeException(enrollment_report_lock_message($enrollment));
         }
     }
 
@@ -272,7 +300,14 @@ class PartnerController extends BaseController
                 (int)$student['coordinator_id'],
                 $label . ' approved by Host Training Establishment',
                 $count . ' ' . strtolower($label) . ' for ' . $student['name'] . ' were approved by the Host Training Establishment.',
-                route_url('coordinator.students')
+                route_url('coordinator.students', ['focus_student' => $studentId])
+            );
+        } elseif ($action === 'rejected' && !empty($student['coordinator_id'])) {
+            $notifications->create(
+                (int)$student['coordinator_id'],
+                $label . ' rejected by Host Training Establishment',
+                $count . ' ' . strtolower($label) . ' for ' . $student['name'] . ' were rejected by the Host Training Establishment.',
+                route_url('coordinator.students', ['focus_student' => $studentId])
             );
         }
     }
@@ -280,6 +315,7 @@ class PartnerController extends BaseController
     private function ensureRecordOwnership(int $studentId, int $recordId, string $type): void
     {
         $this->ensureStudentAccess($studentId);
+        $this->assertPartnerCanReviewReports($studentId);
         $report = new Report($this->db);
         $record = $type === 'dtr' ? $report->findDtr($recordId) : $report->findWeekly($recordId);
         if (!$record || (int)$record['student_id'] !== $studentId) {
@@ -298,12 +334,17 @@ class PartnerController extends BaseController
 
         $notifications->create((int)$student['user_id'], $title, $message, route_url('student.records'));
 
-        if ($action === 'approved' && !empty($student['coordinator_id'])) {
+        if (!empty($student['coordinator_id'])) {
+            $coordTitle = $label . ' ' . $action . ' by Host Training Establishment';
+            $coordMessage = $student['name'] . '\'s ' . $label . ' has been ' . $action . ' by the Host Training Establishment.';
+            if ($action === 'rejected' && $notes !== '') {
+                $coordMessage .= ' Notes: ' . $notes;
+            }
             $notifications->create(
                 (int)$student['coordinator_id'],
-                $label . ' approved by Host Training Establishment',
-                $student['name'] . '\'s ' . $label . ' has been approved by the Host Training Establishment.',
-                route_url('coordinator.students')
+                $coordTitle,
+                $coordMessage,
+                route_url('coordinator.students', ['focus_student' => $studentId])
             );
         }
     }
@@ -311,12 +352,21 @@ class PartnerController extends BaseController
     public function portal(): void
     {
         require_role('partner');
-        $company = (new Company($this->db))->findByUser(current_user()['id']);
+        $company = $this->requireCompanyProfile();
         $enroll = new Enrollment($this->db);
-        $students = $company ? $enroll->deployedByCompany((int)$company['id']) : [];
+        $students = $enroll->deployedByCompany((int)$company['id']);
         $selected = isset($_GET['enrollment']) ? $enroll->find((int)$_GET['enrollment']) : null;
-        if ($selected && $company && (int)$selected['company_id'] !== (int)$company['id']) {
+        if ($selected && (int)$selected['company_id'] !== (int)$company['id']) {
             $selected = null; // deny cross-company access
+        }
+        if ($selected) {
+            $studentModel = new Student($this->db);
+            $visible = $studentModel->isPredeploymentPipelineAdvanced($selected['predeployment_status'] ?? null)
+                || ($selected['status'] ?? '') === 'completed';
+            if (!$visible) {
+                flash('error', 'This student is not available yet. Documents must be forwarded by the coordinator first.');
+                redirect(route_url('partner.portal'));
+            }
         }
         $dtrs = [];
         $evaluation = null;
@@ -347,61 +397,28 @@ class PartnerController extends BaseController
         }
         if (($enrollment['predeployment_status'] ?? '') !== 'forwarded') {
             flash('error', 'Deployment can only be accepted after the coordinator forwards approved documents.');
-            redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
+            redirect($this->partnerPortalUrl((int)$enrollment['id']));
         }
-        (new Enrollment($this->db))->acceptDeployment((int)$enrollment['id']);
+        $enrollmentModel = new Enrollment($this->db);
+        if (!$enrollmentModel->acceptDeployment((int)$enrollment['id'])) {
+            $refreshed = $enrollmentModel->find((int)$enrollment['id']);
+            if (in_array($refreshed['predeployment_status'] ?? '', ['accepted', 'orientation_scheduled', 'orientation_completed'], true)) {
+                flash('success', 'Deployment was already accepted.');
+            } else {
+                flash('error', 'Deployment could not be accepted. It may no longer be awaiting acceptance.');
+            }
+            redirect($this->partnerPortalUrl((int)$enrollment['id']));
+        }
         $studentDetails = (new Student($this->db))->find((int)$enrollment['student_id']);
         if ($studentDetails) {
             $notifications = new Notification($this->db);
             $notifications->create((int)$studentDetails['user_id'], 'Deployment accepted', $company['name'] . ' accepted your deployment documents.', route_url('student.dashboard'));
-            $notifications->create((int)$studentDetails['coordinator_id'], 'Deployment accepted', $company['name'] . ' accepted ' . $studentDetails['name'] . '\'s deployment.', route_url('coordinator.students', ['focus_student' => (int)$studentDetails['id']]));
+            if (!empty($studentDetails['coordinator_id'])) {
+                $notifications->create((int)$studentDetails['coordinator_id'], 'Deployment accepted', $company['name'] . ' accepted ' . $studentDetails['name'] . '\'s deployment.', route_url('coordinator.students', ['focus_student' => (int)$studentDetails['id']]));
+            }
         }
         flash('success', 'Deployment accepted. You can now schedule orientation.');
-        redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
-    }
-
-    public function sendOrientationEmail(): void
-    {
-        require_role('partner');
-        $p = $this->post();
-        $company = (new Company($this->db))->findByUser(current_user()['id']);
-        $enrollment = (new Enrollment($this->db))->find((int)$p['enrollment_id']);
-        if (!$company || !$enrollment || (int)$enrollment['company_id'] !== (int)$company['id']) {
-            http_response_code(403);
-            exit('Forbidden');
-        }
-        if (!in_array($enrollment['predeployment_status'] ?? '', ['accepted', 'orientation_scheduled'], true)) {
-            flash('error', 'Orientation instructions unlock after deployment acceptance.');
-            redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
-        }
-        $notes = trim($p['orientation_notes'] ?? '');
-        if ($notes === '') {
-            flash('error', 'Orientation instructions are required.');
-            redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
-        }
-        $email = new Email($this->db);
-        $studentDetails = (new Student($this->db))->find((int)$enrollment['student_id']);
-        $email->send($enrollment['student_email'], 'OJT Orientation Instructions', 'orientation_email', 'orientation_notice', [
-            'student' => $enrollment,
-            'company' => $company,
-            'orientationDateTime' => '',
-            'notes' => $notes,
-        ]);
-        if (!empty($studentDetails['coordinator_email'])) {
-            $email->send($studentDetails['coordinator_email'], 'OJT Orientation Instructions', 'orientation_email', 'orientation_notice', [
-                'student' => $studentDetails,
-                'company' => $company,
-                'orientationDateTime' => '',
-                'notes' => $notes,
-            ]);
-        }
-        if ($studentDetails) {
-            $notifications = new Notification($this->db);
-            $notifications->create((int)$studentDetails['user_id'], 'Orientation instructions sent', $company['name'] . ' sent OJT orientation instructions.', route_url('student.timeline'));
-            $notifications->create((int)$studentDetails['coordinator_id'], 'Orientation instructions sent', $company['name'] . ' sent orientation instructions for ' . $studentDetails['name'] . '.', route_url('coordinator.students', ['focus_student' => (int)$studentDetails['id']]));
-        }
-        flash('success', 'Orientation email sent to the student and coordinator.');
-        redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
+        redirect($this->partnerPortalUrl((int)$enrollment['id']));
     }
 
     public function scheduleOrientation(): void
@@ -416,21 +433,21 @@ class PartnerController extends BaseController
         }
         if (!in_array($enrollment['predeployment_status'] ?? '', ['accepted', 'orientation_scheduled'], true)) {
             flash('error', 'Orientation scheduling unlocks after deployment acceptance.');
-            redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
+            redirect($this->partnerPortalUrl((int)$enrollment['id']));
         }
         if (empty($p['orientation_datetime']) || strtotime((string)$p['orientation_datetime']) === false) {
             flash('error', 'Enter a valid orientation date and time.');
-            redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
+            redirect($this->partnerPortalUrl((int)$enrollment['id']));
         }
         $orientationError = validate_orientation_datetime((string)$p['orientation_datetime']);
         if ($orientationError !== null) {
             flash('error', $orientationError);
-            redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
+            redirect($this->partnerPortalUrl((int)$enrollment['id']));
         }
         $orientationNotes = trim($p['orientation_notes'] ?? '');
         if ($orientationNotes === '') {
             flash('error', 'Orientation notes are required.');
-            redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
+            redirect($this->partnerPortalUrl((int)$enrollment['id']));
         }
         (new Enrollment($this->db))->scheduleOrientation((int)$enrollment['id'], $p['orientation_datetime'], $orientationNotes);
         $email = new Email($this->db);
@@ -452,10 +469,12 @@ class PartnerController extends BaseController
         if ($studentDetails) {
             $notifications = new Notification($this->db);
             $notifications->create((int)$studentDetails['user_id'], 'Orientation scheduled', $company['name'] . ' scheduled your OJT orientation.', route_url('student.timeline'));
-            $notifications->create((int)$studentDetails['coordinator_id'], 'Orientation scheduled', $company['name'] . ' scheduled orientation for ' . $studentDetails['name'] . '.', route_url('coordinator.students', ['focus_student' => (int)$studentDetails['id']]));
+            if (!empty($studentDetails['coordinator_id'])) {
+                $notifications->create((int)$studentDetails['coordinator_id'], 'Orientation scheduled', $company['name'] . ' scheduled orientation for ' . $studentDetails['name'] . '.', route_url('coordinator.students', ['focus_student' => (int)$studentDetails['id']]));
+            }
         }
         flash('success', 'Orientation scheduled and student notified.');
-        redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
+        redirect($this->partnerPortalUrl((int)$enrollment['id']));
     }
 
     public function completeOrientation(): void
@@ -470,24 +489,33 @@ class PartnerController extends BaseController
         }
         if (($enrollment['predeployment_status'] ?? '') !== 'orientation_scheduled') {
             flash('error', 'Complete orientation only after an orientation schedule is saved.');
-            redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
+            redirect($this->partnerPortalUrl((int)$enrollment['id']));
         }
         if (empty($p['official_start_date']) || strtotime((string)$p['official_start_date']) === false) {
             flash('error', 'Enter a valid official OJT start date.');
-            redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
+            redirect($this->partnerPortalUrl((int)$enrollment['id']));
         }
         $projectedEndDate = trim($p['projected_end_date'] ?? '') ?: projected_ojt_end_date($p['official_start_date'], (int)$enrollment['required_hours']);
         $officialStartError = validate_official_start_date($enrollment, (string)$p['official_start_date']);
         if ($officialStartError !== null) {
             flash('error', $officialStartError);
-            redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
+            redirect($this->partnerPortalUrl((int)$enrollment['id']));
         }
         $projectedEndError = validate_projected_end_date((string)$p['official_start_date'], $projectedEndDate);
         if ($projectedEndError !== null) {
             flash('error', $projectedEndError);
-            redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
+            redirect($this->partnerPortalUrl((int)$enrollment['id']));
         }
-        (new Enrollment($this->db))->completeOrientation((int)$enrollment['id'], $p['official_start_date'], $projectedEndDate);
+        $enrollmentModel = new Enrollment($this->db);
+        if (!$enrollmentModel->completeOrientation((int)$enrollment['id'], $p['official_start_date'], $projectedEndDate)) {
+            $refreshed = $enrollmentModel->find((int)$enrollment['id']);
+            if (($refreshed['predeployment_status'] ?? '') === 'orientation_completed') {
+                flash('success', 'Orientation was already completed.');
+            } else {
+                flash('error', 'Orientation could not be completed. Confirm an orientation schedule is saved first.');
+            }
+            redirect($this->partnerPortalUrl((int)$enrollment['id']));
+        }
         $email = new Email($this->db);
         $studentDetails = (new Student($this->db))->find((int)$enrollment['student_id']);
         $email->send($enrollment['student_email'], 'Your OJT Has Officially Started', 'ojt_started', 'ojt_started', [
@@ -509,10 +537,12 @@ class PartnerController extends BaseController
         if ($studentDetails) {
             $notifications = new Notification($this->db);
             $notifications->create((int)$studentDetails['user_id'], 'OJT officially started', 'Your official OJT start date is ' . $p['official_start_date'] . '.', route_url('student.dashboard'));
-            $notifications->create((int)$studentDetails['coordinator_id'], 'Student OJT started', $studentDetails['name'] . ' officially started OJT at ' . $company['name'] . '.', route_url('coordinator.students', ['focus_student' => (int)$studentDetails['id']]));
+            if (!empty($studentDetails['coordinator_id'])) {
+                $notifications->create((int)$studentDetails['coordinator_id'], 'Student OJT started', $studentDetails['name'] . ' officially started OJT at ' . $company['name'] . '.', route_url('coordinator.students', ['focus_student' => (int)$studentDetails['id']]));
+            }
         }
         flash('success', 'Orientation completed and official OJT dates saved.');
-        redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
+        redirect($this->partnerPortalUrl((int)$enrollment['id']));
     }
 
     /**
@@ -521,19 +551,23 @@ class PartnerController extends BaseController
     public function evaluateForm(): void
     {
         require_role('partner');
-        $company = (new Company($this->db))->findByUser(current_user()['id']);
+        $company = $this->requireCompanyProfile();
         $enroll = new Enrollment($this->db);
         $selected = isset($_GET['enrollment']) ? $enroll->find((int)$_GET['enrollment']) : null;
-        if (!$selected || !$company || (int)$selected['company_id'] !== (int)$company['id']) {
+        if (!$selected || (int)$selected['company_id'] !== (int)$company['id']) {
             http_response_code(403);
             exit('Forbidden');
         }
 
-        $renderedHours = (new Report($this->db))->totalHours((int)$selected['student_id']);
+        $renderedHours = (new Report($this->db))->totalHours((int)$selected['student_id'], true);
         $requiredHours = (float)($selected['required_hours'] ?? 0);
         if ($requiredHours <= 0 || $renderedHours < $requiredHours) {
-            flash('error', 'Final evaluation unlocks after the student completes the required OJT hours.');
-            redirect('index.php?r=partner_portal&enrollment=' . (int)$selected['id']);
+            flash('error', 'Final evaluation unlocks after the student completes the required approved OJT hours.');
+            redirect($this->partnerPortalUrl((int)$selected['id']));
+        }
+        if (!$this->canSubmitFinalEvaluation($selected)) {
+            flash('error', 'Final evaluation unlocks after orientation is completed and OJT is active.');
+            redirect($this->partnerPortalUrl((int)$selected['id']));
         }
 
         $this->renderAppPage('partner/evaluate', [
@@ -555,11 +589,15 @@ class PartnerController extends BaseController
             http_response_code(403);
             exit('Forbidden');
         }
-        $renderedHours = (new Report($this->db))->totalHours((int)$enrollment['student_id']);
+        $renderedHours = (new Report($this->db))->totalHours((int)$enrollment['student_id'], true);
         $requiredHours = (float)($enrollment['required_hours'] ?? 0);
         if ($requiredHours <= 0 || $renderedHours < $requiredHours) {
-            flash('error', 'Final evaluation unlocks after the student completes the required OJT hours.');
-            redirect('index.php?r=partner_portal&enrollment=' . (int)$enrollment['id']);
+            flash('error', 'Final evaluation unlocks after the student completes the required approved OJT hours.');
+            redirect($this->partnerPortalUrl((int)$enrollment['id']));
+        }
+        if (!$this->canSubmitFinalEvaluation($enrollment)) {
+            flash('error', 'Final evaluation unlocks after orientation is completed and OJT is active.');
+            redirect($this->partnerPortalUrl((int)$enrollment['id']));
         }
 
         try {
@@ -575,19 +613,23 @@ class PartnerController extends BaseController
                 trim($p['comments'] ?? ''),
                 $certificateFile
             );
+            // Hours already met for unlock; keep enrollment completion in sync after evaluation.
+            $enroll->syncCompletion((int)$enrollment['student_id']);
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
-            redirect('index.php?r=partner_evaluate&enrollment=' . (int)$enrollment['id']);
+            redirect(route_url('partner.evaluate', ['enrollment' => (int)$enrollment['id']]));
         }
 
         $studentDetails = (new Student($this->db))->find((int)$enrollment['student_id']);
         if ($studentDetails) {
             $notifications = new Notification($this->db);
             $notifications->create((int)$studentDetails['user_id'], 'Final evaluation submitted', $company['name'] . ' submitted your final OJT evaluation.', route_url('student.evaluation'));
-            $notifications->create((int)$studentDetails['coordinator_id'], 'Final evaluation submitted', $company['name'] . ' submitted the final evaluation for ' . $studentDetails['name'] . '.', route_url('coordinator.evaluations'));
+            if (!empty($studentDetails['coordinator_id'])) {
+                $notifications->create((int)$studentDetails['coordinator_id'], 'Final evaluation submitted', $company['name'] . ' submitted the final evaluation for ' . $studentDetails['name'] . '.', route_url('coordinator.evaluations'));
+            }
         }
         flash('success', 'Final evaluation submitted.');
-        redirect('index.php?r=partner_portal&enrollment=' . (int)$p['enrollment_id']);
+        redirect($this->partnerPortalUrl((int)$p['enrollment_id']));
     }
 
     /**
@@ -599,7 +641,7 @@ class PartnerController extends BaseController
     public function viewEndorsementLetter(): void
     {
         require_role('partner');
-        $company = (new Company($this->db))->findByUser(current_user()['id']);
+        $company = $this->requireCompanyProfile();
         $enrollmentId = (int)($_GET['enrollment'] ?? 0);
         
         if (!$enrollmentId) {
@@ -615,9 +657,17 @@ class PartnerController extends BaseController
         }
 
         // Verify the Host Training Establishment has access to this enrollment
-        if (!$company || (int)$enrollment['company_id'] !== (int)$company['id']) {
+        if ((int)$enrollment['company_id'] !== (int)$company['id']) {
             http_response_code(403);
             exit('You do not have access to this enrollment.');
+        }
+
+        $studentModel = new Student($this->db);
+        $docsAvailable = $studentModel->isPredeploymentPipelineAdvanced($enrollment['predeployment_status'] ?? null)
+            || ($enrollment['status'] ?? '') === 'completed';
+        if (!$docsAvailable) {
+            http_response_code(403);
+            exit('Endorsement letter is available after the coordinator forwards approved documents.');
         }
 
         try {
@@ -643,7 +693,7 @@ class PartnerController extends BaseController
     public function settings(): void
     {
         require_role('partner');
-        $company = (new Company($this->db))->findByUser((int)current_user()['id']);
+        $company = $this->requireCompanyProfile();
         $this->renderAppPage('partner/settings', [
             'title' => 'Settings',
             'company' => $company,
@@ -653,11 +703,7 @@ class PartnerController extends BaseController
     public function profileForm(): void
     {
         require_role('partner');
-        $company = (new Company($this->db))->findByUser((int)current_user()['id']);
-        if (!$company) {
-            flash('error', 'Host Training Establishment profile not found.');
-            redirect('index.php?r=partner_settings');
-        }
+        $company = $this->requireCompanyProfile();
         $this->renderAppPage('partner/profile', [
             'title' => 'Edit Profile',
             'company' => $company,
@@ -671,7 +717,7 @@ class PartnerController extends BaseController
         $company = (new Company($this->db))->findByUser((int)current_user()['id']);
         if (!$company) {
             flash('error', 'Host Training Establishment profile not found.');
-            redirect('index.php?r=partner_settings');
+            redirect(route_url('partner.settings'));
         }
         try {
             $companyName = trim((string)($p['company_name'] ?? ''));
@@ -728,7 +774,7 @@ class PartnerController extends BaseController
             $_SESSION['user']['name'] = $companyName;
             $_SESSION['user']['email'] = $contactEmail;
             flash('success', 'Profile updated successfully.');
-            redirect('index.php?r=partner_profile');
+            redirect(route_url('partner.profile'));
         } catch (Throwable $e) {
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();
@@ -737,16 +783,18 @@ class PartnerController extends BaseController
                 ? 'That email address is already in use by another account.'
                 : $e->getMessage();
             flash('error', $msg);
-            redirect('index.php?r=partner_profile');
+            redirect(route_url('partner.profile'));
         }
     }
 
     public function changePasswordForm(): void
     {
         require_role('partner');
+        $isFirstLogin = (int)(current_user()['password_changed'] ?? 1) === 0;
         $this->renderAppPage('partner/change_password', [
-            'title' => 'Change Password',
+            'title' => $isFirstLogin ? 'Change Temporary Password' : 'Change Password',
             'csrfToken' => csrf_token(),
+            'isFirstLogin' => $isFirstLogin,
         ]);
     }
 
@@ -757,20 +805,30 @@ class PartnerController extends BaseController
         header('Content-Type: application/json; charset=utf-8');
 
         $currentPassword = (string)($_POST['current_password'] ?? '');
+        $isFirstLogin = (int)(current_user()['password_changed'] ?? 1) === 0;
+        $passwordLabel = $isFirstLogin ? 'temporary password' : 'current password';
         if ($currentPassword === '') {
             http_response_code(422);
-            echo json_encode(['ok' => false, 'message' => 'Enter your current password.'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['ok' => false, 'message' => 'Enter your ' . $passwordLabel . '.'], JSON_UNESCAPED_UNICODE);
             exit;
         }
 
-        $verified = (new User($this->db))->verifyPassword((int)current_user()['id'], $currentPassword);
+        $userId = (int)current_user()['id'];
+        $verified = (new User($this->db))->verifyPassword($userId, $currentPassword);
         if (!$verified) {
             http_response_code(401);
-            echo json_encode(['ok' => false, 'message' => 'Current password is incorrect.'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['ok' => false, 'message' => ucfirst($passwordLabel) . ' is incorrect.'], JSON_UNESCAPED_UNICODE);
             exit;
         }
 
-        echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+        $reauthToken = bin2hex(random_bytes(32));
+        $_SESSION['partner_password_reauth'] = [
+            'token_hash' => hash('sha256', $reauthToken),
+            'user_id' => $userId,
+            'expires_at' => time() + 600,
+        ];
+
+        echo json_encode(['ok' => true, 'reauth_token' => $reauthToken], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -781,17 +839,25 @@ class PartnerController extends BaseController
 
         try {
             $p = $this->post();
-            $currentPassword = (string)($p['current_password'] ?? '');
+            $reauthToken = (string)($p['reauth_token'] ?? '');
             $password = (string)($p['password'] ?? '');
             $confirm = (string)($p['confirm_password'] ?? '');
             $userId = (int)current_user()['id'];
+            $wasTemporary = (int)(current_user()['password_changed'] ?? 1) === 0;
+            $passwordLabel = $wasTemporary ? 'temporary password' : 'current password';
 
-            if ($currentPassword === '') {
-                throw new RuntimeException('Current password is required.');
-            }
-            if (!(new User($this->db))->verifyPassword($userId, $currentPassword)) {
+            $sessionReauth = $_SESSION['partner_password_reauth'] ?? null;
+            unset($_SESSION['partner_password_reauth']);
+            $reauthValid = is_array($sessionReauth)
+                && (int)($sessionReauth['user_id'] ?? 0) === $userId
+                && (int)($sessionReauth['expires_at'] ?? 0) >= time()
+                && is_string($sessionReauth['token_hash'] ?? null)
+                && $reauthToken !== ''
+                && hash_equals((string)$sessionReauth['token_hash'], hash('sha256', $reauthToken));
+
+            if (!$reauthValid) {
                 http_response_code(401);
-                throw new RuntimeException('Current password is incorrect.');
+                throw new RuntimeException('Please verify your ' . $passwordLabel . ' again before changing it.');
             }
             if (strlen($password) < 8) {
                 throw new RuntimeException('Password must be at least 8 characters.');
@@ -808,8 +874,12 @@ class PartnerController extends BaseController
 
             echo json_encode([
                 'ok' => true,
-                'message' => 'Password changed successfully.',
-                'redirect' => route_url('partner.settings'),
+                'message' => $wasTemporary
+                    ? 'Password changed successfully. You can now access your dashboard.'
+                    : 'Password changed successfully.',
+                'redirect' => $wasTemporary
+                    ? route_for_role('partner')
+                    : route_url('partner.settings'),
             ], JSON_UNESCAPED_UNICODE);
         } catch (Throwable $e) {
             if (http_response_code() === 200) {
@@ -818,5 +888,36 @@ class PartnerController extends BaseController
             echo json_encode(['ok' => false, 'message' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
         }
         exit;
+    }
+
+    private function requireCompanyProfile(): ?array
+    {
+        $company = (new Company($this->db))->findByUser((int)current_user()['id']);
+        if ($company) {
+            return $company;
+        }
+        if ($this->isAjaxRequest()) {
+            http_response_code(403);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'ok' => false,
+                'message' => 'Host Training Establishment profile not found. Please contact the system administrator.',
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $this->renderAppPage('partner/no_company', [
+            'title' => 'Profile Unavailable',
+        ]);
+        exit;
+    }
+
+    private function partnerPortalUrl(int $enrollmentId = 0): string
+    {
+        return route_url('partner.portal', $enrollmentId > 0 ? ['enrollment' => $enrollmentId] : []);
+    }
+
+    private function partnerSubmissionsUrl(int $studentId, string $tab): string
+    {
+        return route_url('partner.submissions', ['student_id' => $studentId, 'tab' => $tab]);
     }
 }
