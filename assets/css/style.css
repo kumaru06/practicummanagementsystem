@@ -69,6 +69,15 @@
 .user-avatar,
 .user-avatar-photo,
 .user-avatar-photo img,
+.asu-student-avatar,
+.asu-student-avatar--photo,
+.asu-student-avatar--photo img,
+.rdv-student-avatar,
+.rdv-student-avatar--photo,
+.rdv-student-avatar--photo img,
+.rdv-detail-avatar,
+.rdv-detail-avatar--photo,
+.rdv-detail-avatar--photo img,
 .topbar .app-user-identity--chip .app-user-identity__avatar,
 .topbar .app-user-identity--chip .app-user-identity__avatar--photo,
 .topbar .app-user-identity--chip .app-user-identity__avatar--photo img,
@@ -10278,8 +10287,17 @@ body.is-confirm-open .app-confirm-overlay {
 .topbar .app-user-identity--chip .app-user-identity__avatar--photo,
 .topbar .user-chip .app-user-identity__avatar,
 .topbar .user-chip .app-user-identity__avatar--photo {
+    width: 38px;
+    height: 38px;
+    aspect-ratio: 1 / 1;
+    flex-shrink: 0;
     box-shadow: none !important;
-    background: transparent;
+}
+
+/* Photo chips only — keep initial-letter avatars with the brand gradient. */
+.topbar .app-user-identity--chip .app-user-identity__avatar--photo,
+.topbar .user-chip .app-user-identity__avatar--photo {
+    background: #fff;
 }
 
 .app-user-identity--chip .app-user-identity__meta {
@@ -27312,6 +27330,801 @@ body.role-partner .content:has(.ip-profile-v2) {
 
 .reports-detail-empty {
     padding: 24px 0;
+}
+
+/* -- Admin Report Detail v2 ------------------------------------------ */
+.role-admin .content:has(.reports-detail-v2) {
+    background:
+        radial-gradient(ellipse 80% 50% at 8% -12%, rgba(139, 26, 26, 0.07), transparent 52%),
+        radial-gradient(ellipse 55% 40% at 96% 0%, rgba(201, 162, 39, 0.06), transparent 46%),
+        linear-gradient(180deg, #f8f9fc 0%, #f3f5f9 100%);
+}
+
+.reports-detail-v2 {
+    --rdv-red: #8B1A1A;
+    --rdv-red-soft: #fff1f2;
+    --rdv-green: #16a34a;
+    --rdv-green-soft: #ecfdf5;
+    --rdv-amber: #b45309;
+    --rdv-amber-soft: #fffbeb;
+    --rdv-slate: #64748b;
+    --rdv-radius: 5px;
+    display: grid;
+    gap: 16px;
+    animation: rdvIn 0.42s ease both;
+}
+
+@keyframes rdvIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.rdv-breadcrumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+    color: #94a3b8;
+    font-size: 0.86rem;
+    font-weight: 600;
+}
+
+.rdv-breadcrumb a {
+    color: #64748b;
+    text-decoration: none;
+    transition: color 0.16s ease;
+}
+
+.rdv-breadcrumb a:hover {
+    color: var(--rdv-red);
+}
+
+.rdv-breadcrumb-sep {
+    color: #cbd5e1;
+    font-weight: 700;
+}
+
+.rdv-breadcrumb [aria-current="page"] {
+    color: #1e293b;
+    font-weight: 800;
+}
+
+.rdv-card {
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid rgba(219, 228, 240, 0.95);
+    border-radius: var(--rdv-radius);
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
+    background: #fff;
+}
+
+.rdv-card:hover {
+    transform: none;
+}
+
+.rdv-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: clamp(20px, 2.5vw, 26px) clamp(20px, 2.5vw, 26px) 18px;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(139, 26, 26, 0.06) 0%, transparent 42%),
+        linear-gradient(180deg, rgba(248, 250, 252, 0.95) 0%, #fff 100%);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+    animation: rdvHeadIn 0.5s ease 0.05s both;
+}
+
+@keyframes rdvHeadIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.rdv-eyebrow {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--rdv-red);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.rdv-copy h2 {
+    margin: 0 0 6px;
+    color: #111827;
+    font-size: clamp(1.15rem, 1.8vw, 1.4rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+}
+
+.rdv-copy p {
+    margin: 0;
+    color: var(--rdv-slate);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    max-width: 62ch;
+}
+
+.rdv-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.rdv-count-badge {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--rdv-red-soft);
+    color: var(--rdv-red);
+    font-size: 0.82rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.rdv-count-badge strong {
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
+.rdv-back-btn {
+    font-weight: 700;
+    border-color: rgba(139, 26, 26, 0.22);
+    color: var(--rdv-red);
+    background: #fff;
+}
+
+.rdv-back-btn:hover {
+    border-color: rgba(139, 26, 26, 0.4);
+    background: var(--rdv-red-soft);
+}
+
+.rdv-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 16px clamp(20px, 2.5vw, 26px);
+    border-bottom: 1px solid var(--border);
+}
+
+.rdv-search-wrap {
+    position: relative;
+    flex: 0 1 320px;
+    width: 100%;
+    min-width: min(100%, 220px);
+    max-width: 320px;
+}
+
+.rdv-search-wrap svg {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    fill: #94a3b8;
+    pointer-events: none;
+}
+
+.rdv-table-search {
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    padding: 10px 14px 10px 42px;
+    margin: 0;
+    border-radius: var(--rdv-radius);
+    border: 1px solid #dbe4f0;
+    background: #f8fafc;
+    font: inherit;
+    font-size: 0.9rem;
+    color: #0f172a;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.rdv-table-search:focus {
+    outline: none;
+    border-color: rgba(139, 26, 26, 0.35);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(139, 26, 26, 0.1);
+    transform: none;
+}
+
+.reports-detail-v2 .table-tools {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin: 0;
+    padding: 12px clamp(20px, 2.5vw, 26px);
+    border-bottom: 1px solid #f1f5f9;
+    background: #fcfcfd;
+}
+
+.reports-detail-v2 .table-tools .export-csv {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-color: rgba(139, 26, 26, 0.25);
+    color: var(--rdv-red);
+    font-weight: 700;
+    background: #fff;
+}
+
+.reports-detail-v2 .table-tools .export-csv:hover {
+    background: var(--rdv-red-soft);
+    border-color: rgba(139, 26, 26, 0.4);
+}
+
+.rdv-table-wrap {
+    border: none;
+    border-radius: 0;
+    background: #fff;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(139, 26, 26, 0.35) transparent;
+}
+
+.rdv-table-wrap::-webkit-scrollbar {
+    height: 8px;
+}
+
+.rdv-table-wrap::-webkit-scrollbar-thumb {
+    background: rgba(139, 26, 26, 0.28);
+    border-radius: 999px;
+}
+
+.rdv-table {
+    width: max-content;
+    min-width: 100%;
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.rdv-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 13px 18px;
+    background: linear-gradient(180deg, #fff5f5 0%, #ffecec 100%);
+    color: var(--rdv-red);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(139, 26, 26, 0.12);
+    white-space: nowrap;
+    text-align: left;
+}
+
+/* Align STUDENT header with the name text (after avatar + gap). */
+.rdv-table thead th:first-child {
+    padding-left: calc(18px + 40px + 12px);
+}
+
+.rdv-table.data-table thead th:nth-child(4),
+.rdv-table.data-table thead th:nth-child(5),
+.rdv-table.data-table td:nth-child(4),
+.rdv-table.data-table td:nth-child(5) {
+    text-align: left;
+}
+
+.rdv-table tbody td {
+    padding: 14px 18px;
+    font-size: 0.9rem;
+    color: #334155;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+    white-space: nowrap;
+    transition: background 0.16s ease;
+}
+
+.rdv-table tbody tr {
+    transition: background 0.16s ease, transform 0.16s ease;
+}
+
+.rdv-table tbody tr:hover td {
+    background: rgba(139, 26, 26, 0.03);
+}
+
+.rdv-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.rdv-name-cell {
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.rdv-student-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.rdv-student-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.9rem;
+    font-weight: 800;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.rdv-student-avatar--photo {
+    padding: 0;
+    overflow: hidden;
+    background: #fff;
+}
+
+.rdv-student-avatar--photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.rdv-student-name {
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+/* Report Record Details panel */
+#modal:has(.rdv-detail) .modal-card {
+    width: min(720px, 100%);
+    max-height: min(90vh, 960px);
+    padding: 24px 22px 22px;
+}
+
+#modal-body:has(.rdv-detail) > h2 {
+    display: none;
+}
+
+/* Kill the global modal maroon accent bar on the student name. */
+#modal-body .rdv-detail h2::before,
+#modal .rdv-detail-head-copy h2::before,
+.modal-card .rdv-detail-head-copy h2::before {
+    content: none !important;
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: none !important;
+}
+
+.rdv-detail {
+    display: grid;
+    gap: 18px;
+    animation: rdvIn 0.35s ease both;
+}
+
+.rdv-detail-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid rgba(219, 228, 240, 0.95);
+    border-radius: 5px;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(139, 26, 26, 0.07) 0%, transparent 46%),
+        linear-gradient(180deg, #fff 0%, #fafbfd 100%);
+}
+
+.rdv-detail-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+    border: 2px solid #fff;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+}
+
+.rdv-detail-avatar--photo {
+    padding: 0;
+    overflow: hidden;
+    background: #fff;
+}
+
+.rdv-detail-avatar--photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.rdv-detail-head-copy {
+    min-width: 0;
+    flex: 1;
+}
+
+.rdv-detail-eyebrow {
+    margin: 0 0 4px;
+    color: var(--rdv-red, #8B1A1A);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.rdv-detail-head-copy h2 {
+    margin: 0 0 4px !important;
+    padding: 0 !important;
+    padding-right: 0 !important;
+    font-size: 1.2rem !important;
+    display: block !important;
+    align-items: unset !important;
+    gap: 0 !important;
+    color: #111827;
+}
+
+.rdv-detail-meta {
+    margin: 0 0 10px;
+    color: #64748b;
+    font-size: 0.86rem;
+    font-weight: 600;
+}
+
+.rdv-detail-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rdv-detail-section {
+    display: grid;
+    gap: 12px;
+}
+
+.rdv-detail-section h3 {
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+
+.rdv-detail-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.rdv-detail-attention {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: #fff7ed;
+    color: #c2410c;
+    font-size: 0.74rem;
+    font-weight: 800;
+}
+
+.rdv-detail-ok {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: #ecfdf5;
+    color: #15803d;
+    font-size: 0.74rem;
+    font-weight: 800;
+}
+
+.rdv-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.rdv-detail-field {
+    display: grid;
+    gap: 4px;
+    padding: 12px 14px;
+    border: 1px solid #f1f5f9;
+    border-radius: 5px;
+    background: #fafbfc;
+}
+
+.rdv-detail-field span {
+    color: #8B1A1A;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+
+.rdv-detail-field strong {
+    color: #1e293b;
+    font-size: 0.92rem;
+    font-weight: 700;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.rdv-detail-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.rdv-detail-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 28px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    line-height: 1;
+    background: #f8fafc;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+    box-sizing: border-box;
+}
+
+.rdv-detail-chip strong {
+    font-weight: 800;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+}
+
+.rdv-detail-chip--missing { background: #f8fafc; color: #475569; border-color: #e2e8f0; }
+.rdv-detail-chip--pending { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+.rdv-detail-chip--uploaded { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.rdv-detail-chip--approved { background: #ecfdf5; color: #15803d; border-color: #bbf7d0; }
+.rdv-detail-chip--rejected { background: #fff1f2; color: #be123c; border-color: #fecdd3; }
+
+.rdv-detail-stage {
+    display: grid;
+    gap: 8px;
+}
+
+.rdv-detail-stage h4 {
+    margin: 0;
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: #334155;
+}
+
+.rdv-detail-doc-list {
+    display: grid;
+    gap: 6px;
+}
+
+.rdv-detail-doc {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid #f1f5f9;
+    border-radius: 5px;
+    background: #fff;
+}
+
+.rdv-detail-doc.is-attention {
+    background: #fffdf8;
+    border-color: #fde68a;
+}
+
+.rdv-detail-doc-copy {
+    min-width: 0;
+}
+
+.rdv-detail-doc-copy strong {
+    display: block;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.35;
+}
+
+.rdv-detail-status {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    min-height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.rdv-detail-status.is-missing { background: #f1f5f9; color: #475569; }
+.rdv-detail-status.is-pending { background: #fffbeb; color: #b45309; }
+.rdv-detail-status.is-uploaded { background: #eff6ff; color: #1d4ed8; }
+.rdv-detail-status.is-approved { background: #ecfdf5; color: #15803d; }
+.rdv-detail-status.is-rejected { background: #fff1f2; color: #be123c; }
+.rdv-detail-status.is-completed { background: #f1f5f9; color: #475569; }
+.rdv-detail-status.is-neutral { background: #f8fafc; color: #64748b; }
+
+.rdv-detail-empty-docs {
+    margin: 0;
+    padding: 16px;
+    border: 1px dashed #e2e8f0;
+    border-radius: 5px;
+    color: #64748b;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+@media (max-width: 720px) {
+    .rdv-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .rdv-detail-doc {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+.rdv-status-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    padding: 0 11px;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.rdv-status-pill.is-active {
+    background: var(--rdv-green-soft);
+    color: var(--rdv-green);
+}
+
+.rdv-status-pill.is-pending {
+    background: var(--rdv-amber-soft);
+    color: var(--rdv-amber);
+}
+
+.rdv-status-pill.is-completed {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.rdv-status-pill.is-neutral {
+    background: #f8fafc;
+    color: #64748b;
+}
+
+.rdv-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 14px clamp(20px, 2.5vw, 26px) 18px;
+    border-top: 1px solid var(--border);
+    background: #fafbfc;
+}
+
+.rdv-footer .pagination {
+    margin: 0;
+}
+
+.rdv-empty {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    padding: 48px 24px;
+    text-align: center;
+}
+
+.rdv-empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    margin-bottom: 6px;
+    border-radius: var(--rdv-radius);
+    background: linear-gradient(145deg, rgba(139, 26, 26, 0.1), rgba(192, 57, 43, 0.06));
+    color: var(--rdv-red);
+}
+
+.rdv-empty-icon svg {
+    width: 26px;
+    height: 26px;
+}
+
+.rdv-empty h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.rdv-empty p {
+    margin: 0;
+    max-width: 36ch;
+    color: var(--rdv-slate);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+@media (max-width: 720px) {
+    .rdv-head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .rdv-head-actions {
+        justify-content: flex-start;
+    }
+
+    .rdv-search-wrap {
+        flex: 1 1 100%;
+        max-width: none;
+    }
+
+    .reports-detail-v2 .table-tools {
+        justify-content: stretch;
+    }
+
+    .reports-detail-v2 .table-tools .export-csv {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .rdv-table thead th,
+    .rdv-table tbody td {
+        padding: 12px 14px;
+    }
+
+    .rdv-table thead th:first-child {
+        padding-left: calc(14px + 40px + 12px);
+    }
 }
 
 @media (max-width: 1100px) {

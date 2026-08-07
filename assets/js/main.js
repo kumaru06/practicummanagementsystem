@@ -4953,6 +4953,15 @@ function attachRowDetails(table) {
         row.dataset.detailReady = '1';
         row.addEventListener('click', e => {
             if (e.target.closest('a,button,form,input,select,textarea,summary,details,.admin-user-action-menu,.admin-user-action-panel')) return;
+            if (row.dataset.rdvDetail) {
+                try {
+                    const detail = JSON.parse(row.dataset.rdvDetail);
+                    openSlidePanel(renderReportRecordDetail(detail));
+                    return;
+                } catch {
+                    // Fall through to default detail rendering.
+                }
+            }
             const headers = [...table.tHead.rows[0].cells].map(th => th.innerText.trim());
             let prependFields = [];
             let appendFields = [];
@@ -4975,6 +4984,112 @@ function attachRowDetails(table) {
             openSlidePanel('<h2>Record Details</h2>' + fieldHtml(prependFields) + cellsHtml + fieldHtml(appendFields));
         });
     });
+}
+
+function reportStatusPillClass(status) {
+    const key = String(status || '').toLowerCase().trim();
+    if (key === 'active' || key === 'approved') return 'is-approved';
+    if (key === 'pending' || key === 'uploaded') return key === 'uploaded' ? 'is-uploaded' : 'is-pending';
+    if (key === 'completed') return 'is-completed';
+    if (key === 'missing') return 'is-missing';
+    if (key === 'rejected') return 'is-rejected';
+    return 'is-neutral';
+}
+
+function formatReportStatusLabel(status) {
+    const key = String(status || '').trim();
+    if (!key) return '-';
+    return key.replace(/_/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
+}
+
+function renderReportRecordDetail(detail) {
+    const person = detail?.person || {};
+    const name = person.name || detail?.student_name || 'Student';
+    const photoUrl = person.photo_url || '';
+    const initial = person.initial || String(name).charAt(0).toUpperCase() || 'S';
+    const tone = Math.max(1, Math.min(6, Number(person.tone) || 1));
+    const summary = detail?.document_summary || {};
+    const stages = Array.isArray(detail?.documents) ? detail.documents : [];
+    const needsAttention = (Number(summary.missing) || 0) + (Number(summary.pending) || 0) + (Number(summary.rejected) || 0) + (Number(summary.uploaded) || 0);
+
+    const avatarHtml = photoUrl
+        ? `<span class="rdv-detail-avatar rdv-detail-avatar--photo aco-avatar-tone--${tone}"><img src="${escapeHtml(photoUrl)}" alt=""></span>`
+        : `<span class="rdv-detail-avatar aco-avatar-tone--${tone}">${escapeHtml(initial)}</span>`;
+
+    const summaryChips = [
+        ['missing', 'Missing'],
+        ['pending', 'Pending'],
+        ['uploaded', 'Uploaded'],
+        ['approved', 'Approved'],
+        ['rejected', 'Rejected'],
+    ].map(([key, label]) => {
+        const count = Number(summary[key]) || 0;
+        return `<span class="rdv-detail-chip rdv-detail-chip--${key}"><strong>${count}</strong> ${label}</span>`;
+    }).join('');
+
+    const overview = [
+        ['Course', detail?.course],
+        ['Company', detail?.company],
+        ['Coordinator', detail?.coordinator],
+        ['Start Date', detail?.start_date],
+        ['End Date', detail?.end_date],
+        ['Hours', detail?.hours],
+    ].map(([label, value]) => `
+        <div class="rdv-detail-field">
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(value || ' - ')}</strong>
+        </div>
+    `).join('');
+
+    const docsHtml = stages.map(stage => {
+        const items = Array.isArray(stage?.items) ? stage.items : [];
+        if (!items.length) return '';
+        const rows = items.map(item => `
+            <div class="rdv-detail-doc ${['missing', 'pending', 'rejected', 'uploaded'].includes(String(item.status || '').toLowerCase()) ? 'is-attention' : ''}">
+                <div class="rdv-detail-doc-copy">
+                    <strong>${escapeHtml(item.name || 'Requirement')}</strong>
+                </div>
+                <span class="rdv-detail-status ${reportStatusPillClass(item.status)}">${escapeHtml(formatReportStatusLabel(item.status))}</span>
+            </div>
+        `).join('');
+        return `
+            <section class="rdv-detail-stage">
+                <h4>${escapeHtml(stage.label || ('Stage ' + (stage.stage || '')))}</h4>
+                <div class="rdv-detail-doc-list">${rows}</div>
+            </section>
+        `;
+    }).join('');
+
+    return `
+        <div class="rdv-detail">
+            <header class="rdv-detail-head">
+                ${avatarHtml}
+                <div class="rdv-detail-head-copy">
+                    <p class="rdv-detail-eyebrow">Record Details</p>
+                    <h2>${escapeHtml(name)}</h2>
+                    <p class="rdv-detail-meta">${escapeHtml(detail?.student_no || ' - ')}</p>
+                    <div class="rdv-detail-badges">
+                        <span class="rdv-detail-status ${reportStatusPillClass(detail?.status)}">${escapeHtml(formatReportStatusLabel(detail?.status))}</span>
+                        <span class="rdv-detail-status is-neutral">${escapeHtml(detail?.predeployment || 'Not submitted')}</span>
+                    </div>
+                </div>
+            </header>
+
+            <section class="rdv-detail-section">
+                <h3>Overview</h3>
+                <div class="rdv-detail-grid">${overview}</div>
+            </section>
+
+            <section class="rdv-detail-section">
+                <div class="rdv-detail-section-head">
+                    <h3>Documents</h3>
+                    ${needsAttention > 0 ? `<span class="rdv-detail-attention">${needsAttention} need${needsAttention === 1 ? 's' : ''} attention</span>` : '<span class="rdv-detail-ok">All clear</span>'}
+                </div>
+                <div class="rdv-detail-chips">${summaryChips}</div>
+                ${docsHtml || '<p class="rdv-detail-empty-docs">No document checklist available for this student.</p>'}
+            </section>
+        </div>
+    `;
 }
 
 function initTimelineDetails() {

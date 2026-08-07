@@ -41,7 +41,10 @@ class AdminReport
     {
         $stmt = $this->db->prepare('
             SELECT
+                s.id AS student_id,
+                u.id AS user_id,
                 u.name AS student_name,
+                s.photo_file,
                 s.student_no,
                 COALESCE(p.code, s.course) AS course,
                 pc.name AS company_name,
@@ -49,6 +52,7 @@ class AdminReport
                 COALESCE(e.official_start_date, e.start_date) AS start_date,
                 COALESCE(e.projected_end_date, e.end_date) AS end_date,
                 e.required_hours,
+                e.predeployment_status,
                 COALESCE(SUM(CASE WHEN d.verification_status = "approved" THEN d.hours ELSE 0 END), 0) AS rendered_hours,
                 e.status
             FROM ojt_enrollments e
@@ -63,18 +67,51 @@ class AdminReport
             ORDER BY u.name
         ');
         $stmt->execute([$status]);
+        $fetched = $stmt->fetchAll();
+        $studentModel = new Student($this->db);
         $rows = [];
-        foreach ($stmt->fetchAll() as $row) {
+        foreach ($fetched as $row) {
+            $name = (string)($row['student_name'] ?? '');
+            $studentId = (int)($row['student_id'] ?? 0);
+            $deploymentStatus = ucfirst((string)($row['status'] ?? ''));
+            $hoursLabel = number_format((float)$row['rendered_hours'], 1) . ' / ' . (int)$row['required_hours'] . ' hrs';
+            $photoUrl = student_profile_photo_url([
+                'photo_file' => $row['photo_file'] ?? null,
+            ]);
+            $person = [
+                'name' => $name,
+                'photo_url' => $photoUrl,
+                'initial' => strtoupper(mb_substr($name !== '' ? $name : 'S', 0, 1)),
+                'tone' => (abs((int)($row['user_id'] ?? 0)) % 6) + 1,
+            ];
+            $documents = $this->studentDocumentDetail($studentModel, $studentId);
             $rows[] = [
-                $row['student_name'],
-                $row['student_no'],
-                $row['course'],
-                $row['company_name'],
-                $row['coordinator_name'] ?: ' - ',
-                $this->formatDate($row['start_date'] ?? null),
-                $this->formatDate($row['end_date'] ?? null),
-                number_format((float)$row['rendered_hours'], 1) . ' / ' . (int)$row['required_hours'] . ' hrs',
-                ucfirst((string)$row['status']),
+                'cells' => [
+                    $name,
+                    $row['student_no'],
+                    $row['course'],
+                    $row['company_name'],
+                    $row['coordinator_name'] ?: ' - ',
+                    $this->formatDate($row['start_date'] ?? null),
+                    $this->formatDate($row['end_date'] ?? null),
+                    $hoursLabel,
+                    $deploymentStatus,
+                ],
+                'person' => $person,
+                'detail' => [
+                    'student_no' => (string)($row['student_no'] ?? ''),
+                    'course' => (string)($row['course'] ?? ''),
+                    'company' => (string)($row['company_name'] ?? ''),
+                    'coordinator' => (string)($row['coordinator_name'] ?: ' - '),
+                    'start_date' => $this->formatDate($row['start_date'] ?? null),
+                    'end_date' => $this->formatDate($row['end_date'] ?? null),
+                    'hours' => $hoursLabel,
+                    'status' => $deploymentStatus,
+                    'predeployment' => $this->formatPredeploymentStatus($row['predeployment_status'] ?? null),
+                    'person' => $person,
+                    'documents' => $documents['stages'],
+                    'document_summary' => $documents['summary'],
+                ],
             ];
         }
 
@@ -84,6 +121,87 @@ class AdminReport
             'rows' => $rows,
             'ready' => true,
         ];
+    }
+
+    private function formatPredeploymentStatus(?string $status): string
+    {
+        $key = strtolower(trim((string)$status));
+        if ($key === '') {
+            return 'Not submitted';
+        }
+        return ucwords(str_replace('_', ' ', $key));
+    }
+
+    /**
+     * Build stage-grouped document checklist + summary counts for report detail panel.
+     *
+     * @return array{stages: list<array<string, mixed>>, summary: array<string, int>}
+     */
+    private function studentDocumentDetail(Student $studentModel, int $studentId): array
+    {
+        $summary = [
+            'missing' => 0,
+            'pending' => 0,
+            'uploaded' => 0,
+            'approved' => 0,
+            'rejected' => 0,
+        ];
+        $stages = [];
+        if ($studentId <= 0) {
+            return ['stages' => $stages, 'summary' => $summary];
+        }
+
+        foreach ([1, 2, 3] as $stage) {
+            $items = [];
+            foreach ($studentModel->stageRequirements($studentId, $stage) as $req) {
+                $displayStatus = $this->normalizeRequirementDisplayStatus($req);
+                if (isset($summary[$displayStatus])) {
+                    $summary[$displayStatus]++;
+                } else {
+                    $summary['pending']++;
+                }
+                $items[] = [
+                    'key' => (string)($req['requirement_key'] ?? ''),
+                    'name' => (string)($req['requirement_name'] ?? 'Requirement'),
+                    'status' => $displayStatus,
+                    'stage' => $stage,
+                ];
+            }
+            usort($items, static function (array $a, array $b): int {
+                $rank = ['missing' => 0, 'rejected' => 1, 'pending' => 2, 'uploaded' => 3, 'approved' => 4];
+                $ra = $rank[$a['status']] ?? 9;
+                $rb = $rank[$b['status']] ?? 9;
+                if ($ra !== $rb) {
+                    return $ra <=> $rb;
+                }
+                return strcmp($a['name'], $b['name']);
+            });
+            $stages[] = [
+                'stage' => $stage,
+                'label' => Student::STAGE_LABELS[$stage] ?? ('Stage ' . $stage),
+                'items' => $items,
+            ];
+        }
+
+        return ['stages' => $stages, 'summary' => $summary];
+    }
+
+    private function normalizeRequirementDisplayStatus(array $req): string
+    {
+        $status = strtolower(trim((string)($req['status'] ?? 'pending')));
+        $hasFile = !empty($req['file_path']);
+        $kind = (string)($req['kind'] ?? 'upload');
+
+        if ($kind === 'evaluation') {
+            return $status === 'approved' ? 'approved' : 'pending';
+        }
+        if (!$hasFile) {
+            return 'missing';
+        }
+        if (in_array($status, ['approved', 'rejected', 'uploaded', 'pending'], true)) {
+            return $status;
+        }
+        return 'pending';
     }
 
     private function studentAttendanceSummary(): array
