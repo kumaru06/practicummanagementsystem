@@ -20,7 +20,7 @@ class PartnerController extends BaseController
             $predeployment = (string)($student['predeployment_status'] ?? '');
             if ($status === 'completed') {
                 $stats['completed']++;
-            } elseif ($status === 'active' || $predeployment === 'orientation_completed') {
+            } elseif (partner_enrollment_is_active_ojt($student)) {
                 $stats['active']++;
             }
             if (in_array($predeployment, ['accepted', 'orientation_scheduled'], true)) {
@@ -32,11 +32,24 @@ class PartnerController extends BaseController
             }
         }
 
+        $studentSummaries = $this->enrichSubmissionSummaries(
+            (new Report($this->db))->submissionSummaryByCompany((int)$company['id']),
+            $company
+        );
+        $submissionStats = $this->submissionStatsFromSummaries($studentSummaries);
+        $pendingReviewStudents = array_values(array_filter(
+            $studentSummaries,
+            static fn(array $row): bool => !empty($row['reports_unlocked'])
+                && ((int)($row['pending_dtr'] ?? 0) + (int)($row['pending_weekly'] ?? 0)) > 0
+        ));
+
         $this->renderAppPage('partner/dashboard', [
             'title' => 'Host Training Establishment Dashboard',
             'company' => $company,
             'students' => $students,
             'stats' => $stats,
+            'submissionStats' => $submissionStats,
+            'pendingReviewStudents' => $pendingReviewStudents,
         ]);
     }
 
@@ -74,7 +87,10 @@ class PartnerController extends BaseController
     private function submissionsViewData(array $company): array
     {
         $reportModel = new Report($this->db);
-        $studentSummaries = $reportModel->submissionSummaryByCompany((int)$company['id']);
+        $studentSummaries = $this->enrichSubmissionSummaries(
+            $reportModel->submissionSummaryByCompany((int)$company['id']),
+            $company
+        );
 
         $selectedStudentId = isset($_GET['student_id']) ? (int)$_GET['student_id'] : 0;
         $selectedStudent = null;
@@ -130,6 +146,7 @@ class PartnerController extends BaseController
             if (!in_array($action, ['approved', 'rejected'], true)) {
                 throw new RuntimeException('Invalid decision.');
             }
+            $this->validateReviewNotes($action, $notes);
             $this->ensureRecordOwnership($studentId, $dtrId, 'dtr');
 
             $report = new Report($this->db);
@@ -161,6 +178,7 @@ class PartnerController extends BaseController
             if (!in_array($action, ['approved', 'rejected'], true)) {
                 throw new RuntimeException('Invalid decision.');
             }
+            $this->validateReviewNotes($action, $notes);
             $this->ensureRecordOwnership($studentId, $weeklyId, 'weekly');
 
             $report = new Report($this->db);
@@ -181,11 +199,13 @@ class PartnerController extends BaseController
         $p = $this->post();
         $action = $p['decision'] ?? '';
         $studentId = (int)($p['student_id'] ?? 0);
+        $notes = trim($p['notes'] ?? '');
 
         try {
             if (!in_array($action, ['approved', 'rejected'], true)) {
                 throw new RuntimeException('Invalid decision.');
             }
+            $this->validateReviewNotes($action, $notes);
             $this->ensureStudentAccess($studentId);
             $this->assertPartnerCanReviewReports($studentId);
 
@@ -195,7 +215,7 @@ class PartnerController extends BaseController
                 if (($d['verification_status'] ?? '') !== 'pending') {
                     continue;
                 }
-                $report->setDtrVerification((int)$d['id'], $action, (int)current_user()['id'], null);
+                $report->setDtrVerification((int)$d['id'], $action, (int)current_user()['id'], $notes ?: null);
                 $count++;
             }
             if ($count === 0) {
@@ -204,7 +224,7 @@ class PartnerController extends BaseController
             if ($action === 'approved') {
                 (new Enrollment($this->db))->syncCompletion($studentId);
             }
-            $this->notifyStudentBulkReview($studentId, 'dtr', $action, $count);
+            $this->notifyStudentBulkReview($studentId, 'dtr', $action, $count, $notes);
             flash('success', $count . ' daily time record(s) ' . $action . '.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
@@ -218,11 +238,13 @@ class PartnerController extends BaseController
         $p = $this->post();
         $action = $p['decision'] ?? '';
         $studentId = (int)($p['student_id'] ?? 0);
+        $notes = trim($p['notes'] ?? '');
 
         try {
             if (!in_array($action, ['approved', 'rejected'], true)) {
                 throw new RuntimeException('Invalid decision.');
             }
+            $this->validateReviewNotes($action, $notes);
             $this->ensureStudentAccess($studentId);
             $this->assertPartnerCanReviewReports($studentId);
 
@@ -232,13 +254,13 @@ class PartnerController extends BaseController
                 if (($w['verification_status'] ?? '') !== 'pending') {
                     continue;
                 }
-                $report->setWeeklyVerification((int)$w['id'], $action, (int)current_user()['id'], null);
+                $report->setWeeklyVerification((int)$w['id'], $action, (int)current_user()['id'], $notes ?: null);
                 $count++;
             }
             if ($count === 0) {
                 throw new RuntimeException('No pending weekly reports to review.');
             }
-            $this->notifyStudentBulkReview($studentId, 'weekly', $action, $count);
+            $this->notifyStudentBulkReview($studentId, 'weekly', $action, $count, $notes);
             flash('success', $count . ' weekly report(s) ' . $action . '.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
@@ -283,7 +305,7 @@ class PartnerController extends BaseController
         }
     }
 
-    private function notifyStudentBulkReview(int $studentId, string $type, string $action, int $count): void
+    private function notifyStudentBulkReview(int $studentId, string $type, string $action, int $count, string $notes = ''): void
     {
         $student = (new Student($this->db))->find($studentId);
         if (!$student) {
@@ -293,6 +315,9 @@ class PartnerController extends BaseController
         $label = $type === 'dtr' ? 'Daily Time Records' : 'Weekly Reports';
         $title = $count . ' ' . $label . ' ' . ($action === 'approved' ? 'approved' : 'rejected');
         $message = $count . ' ' . strtolower($label) . ' were ' . $action . ' by your Host Training Establishment.';
+        if ($action === 'rejected' && $notes !== '') {
+            $message .= ' Notes: ' . $notes;
+        }
         $notifications->create((int)$student['user_id'], $title, $message, route_url('student.records'));
 
         if ($action === 'approved' && !empty($student['coordinator_id'])) {
@@ -306,9 +331,17 @@ class PartnerController extends BaseController
             $notifications->create(
                 (int)$student['coordinator_id'],
                 $label . ' rejected by Host Training Establishment',
-                $count . ' ' . strtolower($label) . ' for ' . $student['name'] . ' were rejected by the Host Training Establishment.',
+                $count . ' ' . strtolower($label) . ' for ' . $student['name'] . ' were rejected by the Host Training Establishment.'
+                    . ($notes !== '' ? ' Notes: ' . $notes : ''),
                 route_url('coordinator.students', ['focus_student' => $studentId])
             );
+        }
+    }
+
+    private function validateReviewNotes(string $action, string $notes): void
+    {
+        if ($action === 'rejected' && trim($notes) === '') {
+            throw new RuntimeException('Rejection notes are required. Explain what the student needs to correct.');
         }
     }
 
@@ -369,10 +402,29 @@ class PartnerController extends BaseController
             }
         }
         $dtrs = [];
+        $weeklies = [];
         $evaluation = null;
+        $studentEvaluation = [];
+        $reportsUnlocked = false;
+        $pendingDtrCount = 0;
+        $pendingWeeklyCount = 0;
         if ($selected) {
-            $dtrs = (new Report($this->db))->dtrByStudent((int)$selected['student_id']);
+            $reportModel = new Report($this->db);
+            $dtrs = $reportModel->dtrByStudent((int)$selected['student_id']);
+            $weeklies = $reportModel->weeklyByStudent((int)$selected['student_id']);
             $evaluation = (new Evaluation($this->db))->byEnrollment((int)$selected['id']);
+            $studentEvaluation = (new StudentEvaluation($this->db))->getByStudent((int)$selected['student_id']);
+            $reportsUnlocked = enrollment_allows_reports($selected);
+            foreach ($dtrs as $dtr) {
+                if (($dtr['verification_status'] ?? '') === 'pending') {
+                    $pendingDtrCount++;
+                }
+            }
+            foreach ($weeklies as $weekly) {
+                if (($weekly['verification_status'] ?? '') === 'pending') {
+                    $pendingWeeklyCount++;
+                }
+            }
         }
         $this->renderAppPage('partner/portal', [
             'title' => 'Host Training Establishment Portal',
@@ -380,8 +432,174 @@ class PartnerController extends BaseController
             'students' => $students,
             'selected' => $selected,
             'dtrs' => $dtrs,
+            'weeklies' => $weeklies,
             'evaluation' => $evaluation,
+            'studentEvaluation' => $studentEvaluation,
+            'studentEvalSubmitted' => StudentEvaluation::statusFor($studentEvaluation, 'industry_partner') === 'submitted',
+            'reportsUnlocked' => $reportsUnlocked,
+            'pendingDtrCount' => $pendingDtrCount,
+            'pendingWeeklyCount' => $pendingWeeklyCount,
             'requirements' => $selected ? (new Student($this->db))->requirements((int)$selected['student_id']) : [],
+        ]);
+    }
+
+    public function studentEvaluation(): void
+    {
+        require_role('partner');
+        $company = $this->requireCompanyProfile();
+        $studentId = (int)($_GET['student_id'] ?? 0);
+        if ($studentId <= 0) {
+            flash('error', 'Select a student to view their evaluation.');
+            redirect(route_url('partner.portal'));
+        }
+
+        $student = null;
+        foreach ((new Enrollment($this->db))->deployedByCompany((int)$company['id']) as $row) {
+            if ((int)($row['student_id'] ?? 0) === $studentId) {
+                $student = $row;
+                break;
+            }
+        }
+        if (!$student) {
+            flash('error', 'Student not found or not assigned to your organization.');
+            redirect(route_url('partner.portal'));
+        }
+
+        $studentEvaluation = (new StudentEvaluation($this->db))->getByStudent($studentId);
+        if (StudentEvaluation::statusFor($studentEvaluation, 'industry_partner') !== 'submitted') {
+            flash('error', 'This student has not submitted an evaluation of your organization yet.');
+            redirect(route_url('partner.portal', ['enrollment' => (int)$student['id']]));
+        }
+
+        $this->renderAppPage('partner/student_evaluation', [
+            'title' => 'Student Evaluation - ' . ($student['student_name'] ?? 'Student'),
+            'company' => $company,
+            'student' => $student,
+            'studentEvaluation' => $studentEvaluation,
+        ]);
+    }
+
+    public function timeline(): void
+    {
+        require_role('partner');
+        $company = $this->requireCompanyProfile();
+        $students = (new Enrollment($this->db))->deployedByCompany((int)$company['id']);
+        $selectedEnrollmentId = (int)($_GET['enrollment'] ?? 0);
+        $selected = null;
+        $timelineEntries = [];
+        $timelineStats = [
+            'entryCount' => 0,
+            'milestoneCount' => 0,
+            'dtrCount' => 0,
+            'weeklyCount' => 0,
+            'approvedHours' => 0.0,
+        ];
+
+        if ($selectedEnrollmentId > 0) {
+            $selected = (new Enrollment($this->db))->find($selectedEnrollmentId);
+            if (!$selected || (int)$selected['company_id'] !== (int)$company['id']) {
+                flash('error', 'Student not found or not assigned to your organization.');
+                redirect(route_url('partner.timeline'));
+            }
+        } elseif (!empty($students)) {
+            $selected = (new Enrollment($this->db))->find((int)$students[0]['id']);
+        }
+
+        if ($selected) {
+            $reportModel = new Report($this->db);
+            $dtrs = $reportModel->dtrByStudent((int)$selected['student_id']);
+            $weeklies = $reportModel->weeklyByStudent((int)$selected['student_id']);
+            $evaluation = (new Evaluation($this->db))->byEnrollment((int)$selected['id']);
+            $timelineEntries = build_partner_timeline_entries($selected, $dtrs, $weeklies, $evaluation);
+            $timelineStats = [
+                'entryCount' => count($timelineEntries),
+                'milestoneCount' => count(array_filter($timelineEntries, static fn(array $e): bool => ($e['type'] ?? '') === 'milestone')),
+                'dtrCount' => count($dtrs),
+                'weeklyCount' => count($weeklies),
+                'approvedHours' => array_sum(array_map(
+                    static fn(array $d): float => (($d['verification_status'] ?? '') === 'approved') ? (float)($d['hours'] ?? 0) : 0.0,
+                    $dtrs
+                )),
+            ];
+        }
+
+        $this->renderAppPage('partner/timeline', [
+            'title' => 'Activity Timeline',
+            'company' => $company,
+            'students' => $students,
+            'selected' => $selected,
+            'timelineEntries' => $timelineEntries,
+            'timelineStats' => $timelineStats,
+        ]);
+    }
+
+    public function reports(): void
+    {
+        require_role('partner');
+        $company = $this->requireCompanyProfile();
+        $rows = (new Report($this->db))->companyStudentHoursSummary((int)$company['id']);
+
+        $this->renderAppPage('partner/reports', [
+            'title' => 'OJT Reports',
+            'company' => $company,
+            'rows' => $rows,
+        ]);
+    }
+
+    public function exportReports(): void
+    {
+        require_role('partner');
+        $company = $this->requireCompanyProfile();
+        $rows = (new Report($this->db))->companyStudentHoursSummary((int)$company['id']);
+
+        $filename = 'hte-ojt-report-' . date('Y-m-d') . '.csv';
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+        $out = fopen('php://output', 'w');
+        fputcsv($out, [
+            'Student Name',
+            'Student No',
+            'Program',
+            'Year Level',
+            'Deployment Status',
+            'Required Hours',
+            'Approved Hours',
+            'Pending DTR',
+            'Pending Weekly',
+            'Total DTR',
+            'Total Weekly',
+        ]);
+        foreach ($rows as $row) {
+            fputcsv($out, [
+                $row['student_name'] ?? '',
+                $row['student_no'] ?? '',
+                $row['course'] ?? '',
+                $row['year_level'] ?? '',
+                $row['enrollment_status'] ?? '',
+                $row['required_hours'] ?? '',
+                number_format((float)($row['approved_hours'] ?? 0), 2, '.', ''),
+                (int)($row['pending_dtr'] ?? 0),
+                (int)($row['pending_weekly'] ?? 0),
+                (int)($row['total_dtr'] ?? 0),
+                (int)($row['total_weekly'] ?? 0),
+            ]);
+        }
+        fclose($out);
+        exit;
+    }
+
+    public function evaluations(): void
+    {
+        require_role('partner');
+        $company = $this->requireCompanyProfile();
+        $companyId = (int)$company['id'];
+
+        $this->renderAppPage('partner/evaluations', [
+            'title' => 'Evaluations History',
+            'company' => $company,
+            'finalEvaluations' => (new Evaluation($this->db))->byCompany($companyId),
+            'studentFeedback' => (new StudentEvaluation($this->db))->submittedPartnerEvaluationsByCompany($companyId),
         ]);
     }
 
@@ -693,7 +911,10 @@ class PartnerController extends BaseController
     public function settings(): void
     {
         require_role('partner');
-        $company = $this->requireCompanyProfile();
+        $company = (new Company($this->db))->findByUserWithPrograms((int)current_user()['id']);
+        if (!$company) {
+            $this->requireCompanyProfile();
+        }
         $this->renderAppPage('partner/settings', [
             'title' => 'Settings',
             'company' => $company,
@@ -703,7 +924,10 @@ class PartnerController extends BaseController
     public function profileForm(): void
     {
         require_role('partner');
-        $company = $this->requireCompanyProfile();
+        $company = (new Company($this->db))->findByUserWithPrograms((int)current_user()['id']);
+        if (!$company) {
+            $this->requireCompanyProfile();
+        }
         $this->renderAppPage('partner/profile', [
             'title' => 'Edit Profile',
             'company' => $company,
@@ -888,6 +1112,52 @@ class PartnerController extends BaseController
             echo json_encode(['ok' => false, 'message' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
         }
         exit;
+    }
+
+    /** @param array<int, array<string, mixed>> $studentSummaries */
+    private function enrichSubmissionSummaries(array $studentSummaries, array $company): array
+    {
+        foreach ($studentSummaries as &$row) {
+            $enrollment = [
+                'company_id' => (int)($row['company_id'] ?? $company['id']),
+                'status' => $row['enrollment_status'] ?? '',
+                'predeployment_status' => $row['predeployment_status'] ?? '',
+                'official_start_date' => $row['official_start_date'] ?? null,
+                'start_date' => $row['start_date'] ?? null,
+            ];
+            $row['reports_unlocked'] = enrollment_allows_reports($enrollment);
+            $row['reports_lock_message'] = enrollment_report_lock_message($enrollment);
+        }
+        unset($row);
+
+        return $studentSummaries;
+    }
+
+    /** @param array<int, array<string, mixed>> $studentSummaries */
+    private function submissionStatsFromSummaries(array $studentSummaries): array
+    {
+        $pendingDtr = 0;
+        $pendingWeekly = 0;
+        $studentsWithPending = 0;
+        foreach ($studentSummaries as $row) {
+            if (empty($row['reports_unlocked'])) {
+                continue;
+            }
+            $dtr = (int)($row['pending_dtr'] ?? 0);
+            $weekly = (int)($row['pending_weekly'] ?? 0);
+            $pendingDtr += $dtr;
+            $pendingWeekly += $weekly;
+            if ($dtr + $weekly > 0) {
+                $studentsWithPending++;
+            }
+        }
+
+        return [
+            'pending_dtr' => $pendingDtr,
+            'pending_weekly' => $pendingWeekly,
+            'pending_total' => $pendingDtr + $pendingWeekly,
+            'students_with_pending' => $studentsWithPending,
+        ];
     }
 
     private function requireCompanyProfile(): ?array

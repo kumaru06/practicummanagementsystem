@@ -32,6 +32,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initViewToggles();
     initTimelineDetails();
     initStudentTimelineFilters();
+    initPartnerTimelinePicker();
+    initPartnerSubmissionReview();
+    initPartnerEvaluationForm();
     initEmailLogViews();
     initRequirementReviewModals();
     initRegistrationRequestsReview();
@@ -1005,7 +1008,7 @@ function initCoordinatorCardAlignment() {
 }
 
 function initAdminDirectoryActions() {
-    document.querySelectorAll('.admin-users-page, .admin-coordinators-page, [data-admin-programs-directory], [data-admin-partners-directory]').forEach(page => {
+    document.querySelectorAll('.admin-users-page, .admin-coordinators-page, [data-admin-programs-directory], [data-admin-partners-directory], .partner-reports-page').forEach(page => {
         bindAdminDirectoryActions(page);
     });
 }
@@ -5146,6 +5149,90 @@ function initStudentTimelineFilters() {
     });
 }
 
+function initPartnerTimelinePicker() {
+    const menu = document.querySelector('.pt-student-menu');
+    if (!menu || menu.dataset.bound === '1') return;
+    menu.dataset.bound = '1';
+
+    document.addEventListener('click', (event) => {
+        if (!menu.open) return;
+        if (menu.contains(event.target)) return;
+        menu.removeAttribute('open');
+    });
+}
+
+function initPartnerSubmissionReview() {
+    document.querySelectorAll('.ps-v2-review-form').forEach((form) => {
+        form.addEventListener('submit', (event) => {
+            const submitter = event.submitter;
+            if (!submitter || submitter.value !== 'rejected') {
+                return;
+            }
+            const notes = form.querySelector('[data-ps-review-notes]');
+            if (notes && notes.value.trim() === '') {
+                event.preventDefault();
+                notes.focus();
+                alert('Rejection notes are required. Explain what the student needs to correct.');
+            }
+        });
+    });
+}
+
+window.partnerBulkRejectConfirm = function (form) {
+    const notes = form.querySelector('[data-ps-bulk-notes]');
+    if (notes && notes.value.trim() === '') {
+        notes.focus();
+        alert('Rejection notes are required. Explain what the student needs to correct.');
+        return false;
+    }
+    return confirm('Reject all pending submissions for this student?');
+};
+
+function initPartnerEvaluationForm() {
+    const form = document.querySelector('[data-partner-eval-form]');
+    if (!form) return;
+
+    const totalValue = document.getElementById('evalTotalValue');
+    const computeTotal = () => {
+        if (!totalValue) return;
+        let total = 0;
+        let allRated = true;
+        form.querySelectorAll('.star-rating').forEach((widget) => {
+            const weight = parseFloat(widget.dataset.weight) || 0;
+            const checked = widget.querySelector('input:checked');
+            if (checked) {
+                total += (parseInt(checked.value, 10) / 5) * weight;
+            } else {
+                allRated = false;
+            }
+        });
+        totalValue.textContent = allRated ? total.toFixed(2) + '%' : '\u2014';
+    };
+
+    form.querySelectorAll('.star-rating input').forEach((input) => {
+        input.addEventListener('change', computeTotal);
+    });
+    computeTotal();
+
+    const comments = document.getElementById('evalComments');
+    const charCount = document.getElementById('evalCharCount');
+    if (comments && charCount) {
+        const updateCount = () => {
+            charCount.textContent = String(500 - comments.value.length);
+        };
+        comments.addEventListener('input', updateCount);
+        updateCount();
+    }
+
+    const certInput = document.getElementById('evalCertInput');
+    const certName = document.getElementById('evalCertName');
+    if (certInput && certName) {
+        certInput.addEventListener('change', () => {
+            certName.textContent = certInput.files.length ? 'Selected: ' + certInput.files[0].name : '';
+        });
+    }
+}
+
 function openSlidePanel(html) {
     const modal = document.getElementById('modal');
     const body  = document.getElementById('modal-body');
@@ -8554,6 +8641,9 @@ function reinitAppPageContent() {
     initViewToggles();
     initTimelineDetails();
     initStudentTimelineFilters();
+    initPartnerTimelinePicker();
+    initPartnerSubmissionReview();
+    initPartnerEvaluationForm();
     initEmailLogViews();
     initEmailLogsFeed();
     initRequirementReviewModals();

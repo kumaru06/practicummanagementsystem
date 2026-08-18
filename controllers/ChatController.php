@@ -189,13 +189,37 @@ class ChatController
         $this->requireAuth();
         $this->ensureMessagesTable();
 
-        return $this->chatPartnersCache = match ($this->role) {
+        return $this->chatPartnersCache = $this->dedupeChatPartners(match ($this->role) {
             'admin' => $this->partnersForAdmin(),
             'coordinator' => $this->partnersForCoordinator(),
             'student' => $this->partnersForStudent(),
             'partner' => $this->partnersForPartner(),
             default => [],
-        };
+        });
+    }
+
+    /** @param list<array<string, mixed>> $partners */
+    private function dedupeChatPartners(array $partners): array
+    {
+        $map = [];
+        foreach ($partners as $partner) {
+            $userId = (int)($partner['user_id'] ?? 0);
+            $role = (string)($partner['role'] ?? '');
+            if ($userId <= 0 || $role === '') {
+                continue;
+            }
+            $key = $userId . ':' . $role;
+            if (!isset($map[$key])) {
+                $map[$key] = $partner;
+                continue;
+            }
+            $map[$key]['unread_count'] = max(
+                (int)($map[$key]['unread_count'] ?? 0),
+                (int)($partner['unread_count'] ?? 0)
+            );
+        }
+
+        return array_values($map);
     }
 
     public function canChatWith(int $partnerId, string $partnerRole): bool

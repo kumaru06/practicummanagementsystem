@@ -1,5 +1,7 @@
 <?php
 $stats = $stats ?? ['total' => 0, 'pending' => 0, 'active' => 0, 'orientation' => 0, 'completed' => 0];
+$submissionStats = $submissionStats ?? ['pending_dtr' => 0, 'pending_weekly' => 0, 'pending_total' => 0, 'students_with_pending' => 0];
+$pendingReviewStudents = $pendingReviewStudents ?? [];
 $recentStudents = array_slice($students ?? [], 0, 5);
 
 $statusBadge = static function (?string $predeploymentStatus, ?string $enrollmentStatus): array {
@@ -64,7 +66,53 @@ $workflowSteps = [
                 <small>Currently rendering hours</small>
             </div>
         </article>
+        <article class="pd-stat-card pd-stat-card--reviews">
+            <div class="pd-stat-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
+            </div>
+            <div class="pd-stat-body">
+                <span class="pd-stat-label">Pending Reviews</span>
+                <strong class="pd-stat-value"><?= (int)$submissionStats['pending_total'] ?></strong>
+                <small><?= (int)$submissionStats['pending_dtr'] ?> DTR · <?= (int)$submissionStats['pending_weekly'] ?> weekly</small>
+            </div>
+        </article>
+        <article class="pd-stat-card pd-stat-card--completed">
+            <div class="pd-stat-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><circle cx="12" cy="12" r="10"/></svg>
+            </div>
+            <div class="pd-stat-body">
+                <span class="pd-stat-label">Completed</span>
+                <strong class="pd-stat-value"><?= (int)$stats['completed'] ?></strong>
+                <small>Finished OJT program</small>
+            </div>
+        </article>
     </section>
+
+    <?php if ((int)$submissionStats['pending_total'] > 0): ?>
+        <section class="pd-attention-banner" aria-label="Pending submission reviews">
+            <div class="pd-attention-copy">
+                <strong><?= (int)$submissionStats['pending_total'] ?> submission<?= (int)$submissionStats['pending_total'] === 1 ? '' : 's' ?> waiting for review</strong>
+                <p>Across <?= (int)$submissionStats['students_with_pending'] ?> student<?= (int)$submissionStats['students_with_pending'] === 1 ? '' : 's' ?> — review DTR entries and weekly reports.</p>
+            </div>
+            <a class="pd-attention-cta" href="<?= e(route_url('partner.submissions')) ?>">
+                Review now
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m7.5 5 5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            <?php if (!empty($pendingReviewStudents)): ?>
+                <ul class="pd-attention-list">
+                    <?php foreach (array_slice($pendingReviewStudents, 0, 4) as $row): ?>
+                        <?php $rowPending = (int)$row['pending_dtr'] + (int)$row['pending_weekly']; ?>
+                        <li>
+                            <a href="<?= e(route_url('partner.submissions', ['student_id' => (int)$row['student_id']])) ?>">
+                                <span><?= e($row['student_name']) ?></span>
+                                <em><?= $rowPending ?> pending</em>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        </section>
+    <?php endif; ?>
 
     <div class="pd-main-grid">
         <section class="pd-card pd-students-card">
@@ -137,7 +185,7 @@ $workflowSteps = [
     <section class="pd-quick-grid" aria-label="Quick actions">
         <a class="pd-quick-card" href="<?= e(route_url('partner.portal')) ?>">
             <span class="pd-quick-icon pd-quick-icon--portal" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 9h.01M14 9h.01M9 13h.01M14 13h.01"/></svg>
             </span>
             <span class="pd-quick-text">
                 <strong>Host Training Establishment Portal</strong>
@@ -147,7 +195,7 @@ $workflowSteps = [
         </a>
         <a class="pd-quick-card" href="<?= e(route_url('partner.submissions')) ?>">
             <span class="pd-quick-icon pd-quick-icon--submissions" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z"/><path d="m9 14 2 2 4-4"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
             </span>
             <span class="pd-quick-text">
                 <strong>Student Submissions</strong>
@@ -157,7 +205,7 @@ $workflowSteps = [
         </a>
         <a class="pd-quick-card" href="<?= e(route_url('chat')) ?>">
             <span class="pd-quick-icon pd-quick-icon--chat" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 5h16v10H7l-3 3V5Z"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </span>
             <span class="pd-quick-text">
                 <strong>Live Chat</strong>

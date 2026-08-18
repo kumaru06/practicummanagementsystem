@@ -219,6 +219,11 @@ function route_url(string $route, array $params = []): string
         'partner.settings' => 'index.php?r=partner_settings',
         'partner.profile' => 'index.php?r=partner_profile',
         'partner.password.edit' => 'index.php?r=partner_password',
+        'partner.student_evaluation' => 'index.php?r=partner_student_evaluation',
+        'partner.timeline' => 'index.php?r=partner_timeline',
+        'partner.reports' => 'index.php?r=partner_reports',
+        'partner.export_reports' => 'index.php?r=partner_export_reports',
+        'partner.evaluations' => 'index.php?r=partner_evaluations',
     ];
     $url = $map[$route] ?? $route;
     if ($params) {
@@ -1515,4 +1520,124 @@ function build_student_timeline_entries(array $dtrs, array $weeklyReports): arra
     });
 
     return $entries;
+}
+
+/**
+ * Partner-facing timeline including deployment milestones and student submissions.
+ *
+ * @return array<int, array{type: string, sort_date: string, data: array<string, mixed>}>
+ */
+function build_partner_timeline_entries(?array $enrollment, array $dtrs, array $weeklyReports, ?array $evaluation = null): array
+{
+    $entries = [];
+
+    if ($enrollment) {
+        $milestones = [
+            ['field' => 'forwarded_at', 'title' => 'Documents forwarded', 'detail' => 'Coordinator forwarded pre-deployment documents for review.', 'tone' => 'forwarded'],
+            ['field' => 'accepted_at', 'title' => 'Deployment accepted', 'detail' => 'Your organization accepted the forwarded deployment documents.', 'tone' => 'accepted'],
+            ['field' => 'orientation_datetime', 'title' => 'Orientation scheduled', 'detail' => 'Orientation date and time were set for this student.', 'tone' => 'scheduled'],
+            ['field' => 'official_start_date', 'title' => 'OJT started', 'detail' => 'Official OJT start date recorded after orientation completion.', 'tone' => 'active'],
+        ];
+        foreach ($milestones as $milestone) {
+            $value = trim((string)($enrollment[$milestone['field']] ?? ''));
+            if ($value === '') {
+                continue;
+            }
+            $sortDate = strlen($value) >= 10 ? substr($value, 0, 10) : $value;
+            $entries[] = [
+                'type' => 'milestone',
+                'sort_date' => $sortDate,
+                'data' => [
+                    'title' => $milestone['title'],
+                    'detail' => $milestone['detail'],
+                    'tone' => $milestone['tone'],
+                    'timestamp' => $value,
+                ],
+            ];
+        }
+        if (($enrollment['status'] ?? '') === 'completed') {
+            $entries[] = [
+                'type' => 'milestone',
+                'sort_date' => substr((string)($enrollment['updated_at'] ?? date('Y-m-d')), 0, 10),
+                'data' => [
+                    'title' => 'OJT completed',
+                    'detail' => 'Student completed the required OJT program.',
+                    'tone' => 'done',
+                    'timestamp' => (string)($enrollment['updated_at'] ?? ''),
+                ],
+            ];
+        }
+    }
+
+    if ($evaluation && !empty($evaluation['submitted_at'])) {
+        $entries[] = [
+            'type' => 'milestone',
+            'sort_date' => substr((string)$evaluation['submitted_at'], 0, 10),
+            'data' => [
+                'title' => 'Final evaluation submitted',
+                'detail' => 'Final grade: ' . number_format((float)($evaluation['final_grade'] ?? 0), 2) . '%',
+                'tone' => 'eval',
+                'timestamp' => (string)$evaluation['submitted_at'],
+            ],
+        ];
+    }
+
+    foreach ($dtrs as $d) {
+        $status = strtolower(trim((string)($d['verification_status'] ?? 'pending')));
+        $entries[] = [
+            'type' => 'dtr',
+            'sort_date' => (string)($d['work_date'] ?? ''),
+            'data' => array_merge($d, ['review_status' => $status]),
+        ];
+    }
+
+    foreach ($weeklyReports as $r) {
+        $createdAt = (string)($r['created_at'] ?? $r['submitted_at'] ?? '');
+        $sortDate = $createdAt !== '' ? substr($createdAt, 0, 10) : '1970-01-01';
+        $entries[] = [
+            'type' => 'weekly',
+            'sort_date' => $sortDate,
+            'data' => array_merge($r, [
+                'review_status' => strtolower(trim((string)($r['verification_status'] ?? 'pending'))),
+            ]),
+        ];
+    }
+
+    usort($entries, static function (array $a, array $b): int {
+        return strcmp($b['sort_date'] . ($b['data']['timestamp'] ?? ''), $a['sort_date'] . ($a['data']['timestamp'] ?? ''));
+    });
+
+    return $entries;
+}
+
+/** Whether an enrollment should count/show as active OJT (excludes completed). */
+function partner_enrollment_is_active_ojt(array $enrollment): bool
+{
+    if (strtolower(trim((string)($enrollment['status'] ?? ''))) === 'completed') {
+        return false;
+    }
+    $predeployment = strtolower(trim((string)($enrollment['predeployment_status'] ?? '')));
+    $status = strtolower(trim((string)($enrollment['status'] ?? '')));
+
+    return $status === 'active' || $predeployment === 'orientation_completed';
+}
+
+/** Pipeline step index for partner portal: 0 Documents … 4 Done. */
+function partner_enrollment_pipeline_step(array $enrollment, ?array $partnerEvaluation = null): int
+{
+    $status = strtolower(trim((string)($enrollment['status'] ?? '')));
+    if ($status === 'completed') {
+        return 4;
+    }
+    if ($partnerEvaluation && !empty($partnerEvaluation['submitted_at'])) {
+        return 4;
+    }
+
+    return match (strtolower(trim((string)($enrollment['predeployment_status'] ?? '')))) {
+        'orientation_completed' => 3,
+        'orientation_scheduled' => 2,
+        'accepted' => 1,
+        'forwarded' => 0,
+        default => 0,
+    };
 }

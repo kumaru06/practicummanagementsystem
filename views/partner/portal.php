@@ -34,28 +34,10 @@ $needsAction = static function (array $student) use ($statusMeta): bool {
 
 $actionStudents = array_values(array_filter($students ?? [], $needsAction));
 $forwardedStudents = array_values(array_filter($students ?? [], static fn ($s) => ($s['predeployment_status'] ?? '') === 'forwarded'));
-$activeStudents = array_values(array_filter($students ?? [], static fn ($s) => in_array($s['predeployment_status'] ?? '', ['orientation_completed'], true) || ($s['status'] ?? '') === 'active'));
-
-$pipelineStep = static function (?string $status): int {
-    return match (strtolower(trim((string)$status))) {
-        'forwarded' => 0,
-        'accepted' => 1,
-        'orientation_scheduled' => 2,
-        'orientation_completed' => 3,
-        'completed' => 4,
-        default => 0,
-    };
-};
+$activeStudents = array_values(array_filter($students ?? [], static fn ($s) => partner_enrollment_is_active_ojt($s)));
 
 $pipelineLabels = ['Documents', 'Accept', 'Orient', 'OJT', 'Done'];
-$currentPipeline = $selected ? $pipelineStep($selected['predeployment_status'] ?? '') : -1;
-$ojtDone = $selected && (
-    ($selected['status'] ?? '') === 'completed'
-    || !empty($evaluation)
-);
-if ($ojtDone) {
-    $currentPipeline = 4;
-}
+$currentPipeline = $selected ? partner_enrollment_pipeline_step($selected, $evaluation ?? null) : -1;
 ?>
 <div class="partner-portal-v2<?= $selected ? ' has-selection' : '' ?>">
     <div class="pp-layout">
@@ -100,7 +82,7 @@ if ($ojtDone) {
                     if (($s['predeployment_status'] ?? '') === 'forwarded') {
                         $filterGroup .= ' forwarded';
                     }
-                    if (in_array($s['predeployment_status'] ?? '', ['orientation_completed'], true) || ($s['status'] ?? '') === 'active') {
+                    if (partner_enrollment_is_active_ojt($s)) {
                         $filterGroup .= ' active';
                     }
                     $searchBlob = strtolower(implode(' ', [
@@ -412,41 +394,113 @@ if ($ojtDone) {
                     </div>
 
                     <div class="pp-workspace-bottom">
+                    <?php
+                    $approvedDtrCount = 0;
+                    $approvedWeeklyCount = 0;
+                    foreach ($dtrs ?? [] as $dtrRow) {
+                        if (($dtrRow['verification_status'] ?? '') === 'approved') {
+                            $approvedDtrCount++;
+                        }
+                    }
+                    foreach ($weeklies ?? [] as $weeklyRow) {
+                        if (($weeklyRow['verification_status'] ?? '') === 'approved') {
+                            $approvedWeeklyCount++;
+                        }
+                    }
+                    $pendingSubmissionTotal = (int)($pendingDtrCount ?? 0) + (int)($pendingWeeklyCount ?? 0);
+                    ?>
                     <section class="pp-panel pp-panel--records">
-                        <div class="pp-panel-head">
-                            <h3><?= e($selected['student_name']) ?> - Time Records</h3>
+                        <div class="pp-panel-head pp-panel-head--split">
+                            <div>
+                                <h3>Student Submissions</h3>
+                                <p class="muted">Daily time records and weekly reports for <?= e($selected['student_name']) ?>.</p>
+                            </div>
+                            <?php if (!empty($reportsUnlocked)): ?>
+                                <a class="pp-link-btn" href="<?= e(route_url('partner.submissions', ['student_id' => (int)$selected['student_id']])) ?>">
+                                    <?= $pendingSubmissionTotal > 0 ? 'Review now (' . $pendingSubmissionTotal . ' pending)' : 'Open submissions' ?>
+                                    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m7.5 5 5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </a>
+                            <?php endif; ?>
                         </div>
-                        <div class="table-wrap">
-                            <table class="data-table compact-table" data-no-enhance="1">
-                                <thead><tr><th>Date</th><th>Schedule</th><th>Hours</th><th>Status</th><th>Tasks</th></tr></thead>
-                                <tbody>
-                                    <?php if (empty($dtrs)): ?>
-                                        <tr><td colspan="5" class="pp-muted">No time records yet.</td></tr>
-                                    <?php endif; ?>
-                                    <?php foreach ($dtrs as $d): ?>
-                                        <?php
-                                        $dtrStatus = strtolower(trim((string)($d['verification_status'] ?? 'pending')));
-                                        if (!in_array($dtrStatus, ['pending', 'approved', 'rejected'], true)) {
-                                            $dtrStatus = 'pending';
-                                        }
-                                        $dtrChip = match ($dtrStatus) {
-                                            'approved' => 'pp-chip--approved',
-                                            'rejected' => 'pp-chip--default',
-                                            default => 'pp-chip--forwarded',
-                                        };
-                                        ?>
-                                        <tr>
-                                            <td><?= e($d['work_date']) ?></td>
-                                            <td><?= e(format_dtr_schedule($d)) ?></td>
-                                            <td><?= e($d['hours']) ?></td>
-                                            <td><span class="pp-chip <?= e($dtrChip) ?>"><?= e(ucfirst($dtrStatus)) ?></span></td>
-                                            <td><?= e($d['tasks_done']) ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
+
+                        <?php if (empty($reportsUnlocked)): ?>
+                            <div class="pp-submissions-locked">
+                                <div class="pp-submissions-locked-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                </div>
+                                <p><?= e(enrollment_report_lock_message($selected)) ?></p>
+                            </div>
+                        <?php else: ?>
+                            <div class="pp-submissions-summary">
+                                <a class="pp-submission-stat" href="<?= e(route_url('partner.submissions', ['student_id' => (int)$selected['student_id'], 'tab' => 'dtr'])) ?>">
+                                    <span class="pp-submission-stat-label">Daily Time Records</span>
+                                    <span class="pp-submission-stat-values">
+                                        <?php if ((int)($pendingDtrCount ?? 0) > 0): ?><em class="pp-submission-stat-pending"><?= (int)$pendingDtrCount ?> pending</em><?php endif; ?>
+                                        <span><?= $approvedDtrCount ?> approved · <?= count($dtrs ?? []) ?> total</span>
+                                    </span>
+                                </a>
+                                <a class="pp-submission-stat" href="<?= e(route_url('partner.submissions', ['student_id' => (int)$selected['student_id'], 'tab' => 'weekly'])) ?>">
+                                    <span class="pp-submission-stat-label">Weekly Reports</span>
+                                    <span class="pp-submission-stat-values">
+                                        <?php if ((int)($pendingWeeklyCount ?? 0) > 0): ?><em class="pp-submission-stat-pending"><?= (int)$pendingWeeklyCount ?> pending</em><?php endif; ?>
+                                        <span><?= $approvedWeeklyCount ?> approved · <?= count($weeklies ?? []) ?> total</span>
+                                    </span>
+                                </a>
+                            </div>
+                            <div class="table-wrap">
+                                <table class="data-table compact-table" data-no-enhance="1">
+                                    <thead><tr><th>Date</th><th>Schedule</th><th>Hours</th><th>Status</th><th>Tasks</th></tr></thead>
+                                    <tbody>
+                                        <?php if (empty($dtrs)): ?>
+                                            <tr><td colspan="5" class="pp-muted">No time records yet.</td></tr>
+                                        <?php endif; ?>
+                                        <?php foreach (array_slice($dtrs ?? [], 0, 5) as $d): ?>
+                                            <?php
+                                            $dtrStatus = strtolower(trim((string)($d['verification_status'] ?? 'pending')));
+                                            if (!in_array($dtrStatus, ['pending', 'approved', 'rejected'], true)) {
+                                                $dtrStatus = 'pending';
+                                            }
+                                            $dtrChip = match ($dtrStatus) {
+                                                'approved' => 'pp-chip--approved',
+                                                'rejected' => 'pp-chip--default',
+                                                default => 'pp-chip--forwarded',
+                                            };
+                                            ?>
+                                            <tr>
+                                                <td><?= e($d['work_date']) ?></td>
+                                                <td><?= e(format_dtr_schedule($d)) ?></td>
+                                                <td><?= e($d['hours']) ?></td>
+                                                <td><span class="pp-chip <?= e($dtrChip) ?>"><?= e(ucfirst($dtrStatus)) ?></span></td>
+                                                <td><?= e($d['tasks_done']) ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <?php if (count($dtrs ?? []) > 5): ?>
+                                <p class="pp-submissions-more muted">Showing latest 5 records. <a href="<?= e(route_url('partner.submissions', ['student_id' => (int)$selected['student_id']])) ?>">View all in Submissions</a></p>
+                            <?php endif; ?>
+                        <?php endif; ?>
                     </section>
+
+                    <?php if (!empty($studentEvalSubmitted)): ?>
+                        <section class="pp-panel pp-panel--feedback">
+                            <div class="pp-panel-head pp-panel-head--split">
+                                <div>
+                                    <h3>Student Feedback</h3>
+                                    <p class="muted">This student submitted an evaluation of your organization.</p>
+                                </div>
+                                <a class="pp-link-btn" href="<?= e(route_url('partner.student_evaluation', ['student_id' => (int)$selected['student_id']])) ?>">
+                                    View evaluation
+                                    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m7.5 5 5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </a>
+                            </div>
+                            <div class="pp-feedback-summary">
+                                <strong><?= e(number_format((float)($studentEvaluation['partner_grade'] ?? 0), 2)) ?>%</strong>
+                                <span>Overall rating from student</span>
+                            </div>
+                        </section>
+                    <?php endif; ?>
 
                     <section class="pp-panel pp-panel--eval">
                         <div class="pp-panel-head">

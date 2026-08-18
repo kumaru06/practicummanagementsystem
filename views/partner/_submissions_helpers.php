@@ -80,9 +80,9 @@ $renderDtrRecord = static function (array $d, ?array $selectedStudent) use ($sta
                     <input type="hidden" name="action" value="partner_review_dtr">
                     <input type="hidden" name="dtr_id" value="<?= (int)$d['id'] ?>">
                     <input type="hidden" name="student_id" value="<?= (int)$selectedStudent['student_id'] ?>">
-                    <input type="text" name="notes" placeholder="Optional review notes..." maxlength="500">
+                    <input type="text" name="notes" placeholder="Required when rejecting — explain what to correct..." maxlength="500" data-ps-review-notes>
                     <button class="btn btn-small btn-approve" type="submit" name="decision" value="approved">Approve</button>
-                    <button class="btn btn-small btn-reject" type="submit" name="decision" value="rejected">Reject</button>
+                    <button class="btn btn-small btn-reject" type="submit" name="decision" value="rejected" data-ps-reject-btn>Reject</button>
                 </form>
             <?php endif; ?>
         </div>
@@ -135,9 +135,9 @@ $renderWeeklyRecord = static function (array $w, ?array $selectedStudent) use ($
                     <input type="hidden" name="action" value="partner_review_weekly">
                     <input type="hidden" name="weekly_id" value="<?= (int)$w['id'] ?>">
                     <input type="hidden" name="student_id" value="<?= (int)$selectedStudent['student_id'] ?>">
-                    <input type="text" name="notes" placeholder="Optional review notes..." maxlength="500">
+                    <input type="text" name="notes" placeholder="Required when rejecting — explain what to correct..." maxlength="500" data-ps-review-notes>
                     <button class="btn btn-small btn-approve" type="submit" name="decision" value="approved">Approve</button>
-                    <button class="btn btn-small btn-reject" type="submit" name="decision" value="rejected">Reject</button>
+                    <button class="btn btn-small btn-reject" type="submit" name="decision" value="rejected" data-ps-reject-btn>Reject</button>
                 </form>
             <?php endif; ?>
         </div>

@@ -1,6 +1,6 @@
 <?php
 /**
- * Quick CLI smoke test for coordinator-side fixes.
+ * Quick CLI smoke test for coordinator + HTE/partner fixes.
  * Usage: php tools/coordinator-smoke-test.php
  */
 declare(strict_types=1);
@@ -51,6 +51,16 @@ $touched = [
     'views/coordinator/dashboard.php',
     'views/partner/dashboard.php',
     'views/partner/submissions.php',
+    'views/partner/portal.php',
+    'views/partner/timeline.php',
+    'views/partner/reports.php',
+    'views/partner/evaluations.php',
+    'views/partner/student_evaluation.php',
+    'views/partner/evaluate.php',
+    'views/partner/settings.php',
+    'models/Evaluation.php',
+    'models/StudentEvaluation.php',
+    'controllers/ChatController.php',
     'assets/js/main.js',
 ];
 
@@ -202,6 +212,128 @@ smoke_assert(!str_contains($partnerSrcLow, "'company' => null"), 'submissionsVie
 
 $headerSrc = file_get_contents($root . '/views/shared/header.php') ?: '';
 smoke_assert(str_contains($headerSrc, "route_url('partner.portal')"), 'Partner nav uses route_url');
+smoke_assert(str_contains($headerSrc, "route_url('partner.timeline')"), 'Partner nav includes timeline route');
+smoke_assert(str_contains($headerSrc, "route_url('partner.reports')"), 'Partner nav includes reports route');
+smoke_assert(str_contains($headerSrc, "route_url('partner.evaluations')"), 'Partner nav includes evaluations route');
+smoke_assert(str_contains($headerSrc, "route_url('chat')"), 'Partner chat nav uses route_url');
+smoke_assert(!str_contains($headerSrc, 'notif-panel-gear'), 'Decorative notification settings gear removed');
+
+$helpersSrc = file_get_contents($root . '/helpers.php') ?: '';
+smoke_assert(str_contains($helpersSrc, 'function build_partner_timeline_entries'), 'build_partner_timeline_entries helper exists');
+smoke_assert(str_contains($helpersSrc, 'function partner_enrollment_is_active_ojt'), 'partner_enrollment_is_active_ojt helper exists');
+smoke_assert(str_contains($helpersSrc, 'function partner_enrollment_pipeline_step'), 'partner_enrollment_pipeline_step helper exists');
+smoke_assert(str_contains($helpersSrc, "'partner.timeline'"), 'route_url partner.timeline registered');
+smoke_assert(str_contains($helpersSrc, "'partner.reports'"), 'route_url partner.reports registered');
+smoke_assert(str_contains($helpersSrc, "'partner.evaluations'"), 'route_url partner.evaluations registered');
+smoke_assert(str_contains($helpersSrc, "'partner.student_evaluation'"), 'route_url partner.student_evaluation registered');
+
+smoke_assert(str_contains($indexSrc, "'partner_timeline'"), 'index partner_timeline route registered');
+smoke_assert(str_contains($indexSrc, "'partner_reports'"), 'index partner_reports route registered');
+smoke_assert(str_contains($indexSrc, "'partner_evaluations'"), 'index partner_evaluations route registered');
+smoke_assert(str_contains($indexSrc, "'partner_student_evaluation'"), 'index partner_student_evaluation route registered');
+smoke_assert(str_contains($indexSrc, "'partner_export_reports'"), 'index partner_export_reports route registered');
+
+smoke_assert(str_contains($partnerSrc, 'function timeline()'), 'PartnerController timeline action exists');
+smoke_assert(str_contains($partnerSrc, 'function reports()'), 'PartnerController reports action exists');
+smoke_assert(str_contains($partnerSrc, 'function evaluations()'), 'PartnerController evaluations action exists');
+smoke_assert(str_contains($partnerSrc, 'function studentEvaluation()'), 'PartnerController studentEvaluation action exists');
+smoke_assert(str_contains($partnerSrc, 'function exportReports()'), 'PartnerController exportReports action exists');
+smoke_assert(str_contains($partnerSrc, 'validateReviewNotes'), 'Partner reject notes validation exists');
+smoke_assert(str_contains($partnerSrc, 'submissionStatsFromSummaries'), 'Partner dashboard submission stats helper exists');
+smoke_assert(str_contains($partnerSrc, 'enrichSubmissionSummaries'), 'Partner submission summaries enrichment exists');
+smoke_assert(str_contains($partnerSrc, 'partner_enrollment_is_active_ojt'), 'Partner dashboard uses active OJT helper');
+
+$reportSrcExt = file_get_contents($root . '/models/Report.php') ?: '';
+smoke_assert(str_contains($reportSrcExt, 'companyStudentHoursSummary'), 'Report companyStudentHoursSummary exists');
+
+$evalSrc = file_get_contents($root . '/models/Evaluation.php') ?: '';
+smoke_assert(str_contains($evalSrc, 'function byCompany'), 'Evaluation byCompany exists');
+
+$studentEvalSrc = file_get_contents($root . '/models/StudentEvaluation.php') ?: '';
+smoke_assert(str_contains($studentEvalSrc, 'submittedPartnerEvaluationsByCompany'), 'StudentEvaluation company feedback query exists');
+
+$companySrc = file_get_contents($root . '/models/Company.php') ?: '';
+smoke_assert(str_contains($companySrc, 'findByUserWithPrograms'), 'Company findByUserWithPrograms exists');
+
+$chatSrc = file_get_contents($root . '/controllers/ChatController.php') ?: '';
+smoke_assert(str_contains($chatSrc, 'dedupeChatPartners'), 'Chat contact deduplication exists');
+
+smoke_assert(str_contains($studentSrcFile, "route_url('partner.student_evaluation'"), 'Student eval notifies HTE partner');
+smoke_assert(str_contains($studentSrcFile, "route_url('coordinator.student_final'"), 'Student eval coordinator link uses route_url');
+
+smoke_assert(str_contains($dashboardSrc, 'submissionStats'), 'Partner dashboard shows submission stats');
+smoke_assert(str_contains($dashboardSrc, 'pd-attention-banner'), 'Partner dashboard pending review banner exists');
+smoke_assert(str_contains($dashboardSrc, 'pd-stat-card--completed'), 'Partner dashboard completed KPI exists');
+
+$portalSrc = file_get_contents($root . '/views/partner/portal.php') ?: '';
+smoke_assert(str_contains($portalSrc, 'partner_enrollment_pipeline_step'), 'Partner portal uses pipeline helper');
+smoke_assert(str_contains($portalSrc, 'partner_enrollment_is_active_ojt'), 'Partner portal uses active OJT helper');
+smoke_assert(str_contains($portalSrc, 'route_url(\'partner.submissions\''), 'Partner portal links to submissions review');
+
+$submissionsDetailSrc = file_get_contents($root . '/views/partner/submissions_detail.php') ?: '';
+smoke_assert(str_contains($submissionsDetailSrc, 'reports_unlocked'), 'Submissions detail handles locked students');
+smoke_assert(str_contains($submissionsDetailSrc, 'data-ps-bulk-notes'), 'Bulk reject requires notes field');
+
+$settingsSrc = file_get_contents($root . '/views/partner/settings.php') ?: '';
+smoke_assert(str_contains($settingsSrc, 'Accepted Programs'), 'Partner settings shows accepted programs');
+smoke_assert(str_contains($settingsSrc, 'hte-settings'), 'Partner settings uses hte- CSS prefix');
+
+$evaluateSrc = file_get_contents($root . '/views/partner/evaluate.php') ?: '';
+smoke_assert(str_contains($evaluateSrc, 'data-partner-eval-form'), 'Partner evaluate form uses shared JS hook');
+smoke_assert(!str_contains($evaluateSrc, '<style>'), 'Partner evaluate has no inline CSS');
+
+$mainJsSrc = file_get_contents($root . '/assets/js/main.js') ?: '';
+smoke_assert(str_contains($mainJsSrc, 'initPartnerSubmissionReview'), 'main.js partner submission review init exists');
+smoke_assert(str_contains($mainJsSrc, 'initPartnerEvaluationForm'), 'main.js partner evaluation form init exists');
+smoke_assert(str_contains($mainJsSrc, 'partnerBulkRejectConfirm'), 'main.js bulk reject confirm helper exists');
+
+// --- Partner helper smoke (no session) ---
+$timelineEntries = build_partner_timeline_entries(null, [], [], null);
+smoke_assert(is_array($timelineEntries) && count($timelineEntries) === 0, 'build_partner_timeline_entries empty input returns array');
+smoke_assert(partner_enrollment_pipeline_step(['predeployment_status' => 'forwarded', 'status' => 'active'], null) >= 0, 'partner_enrollment_pipeline_step returns step index');
+smoke_assert(!partner_enrollment_is_active_ojt(['predeployment_status' => 'forwarded', 'status' => 'completed']), 'partner_enrollment_is_active_ojt rejects completed');
+
+$timelineUrl = route_url('partner.timeline');
+$reportsUrl = route_url('partner.reports');
+$evaluationsUrl = route_url('partner.evaluations');
+$studentEvalUrl = route_url('partner.student_evaluation', ['student_id' => 7]);
+smoke_assert(str_contains($timelineUrl, 'partner_timeline'), 'route_url partner.timeline');
+smoke_assert(str_contains($reportsUrl, 'partner_reports'), 'route_url partner.reports');
+smoke_assert(str_contains($evaluationsUrl, 'partner_evaluations'), 'route_url partner.evaluations');
+smoke_assert(str_contains($studentEvalUrl, 'partner_student_evaluation') && str_contains($studentEvalUrl, 'student_id=7'), 'route_url partner.student_evaluation');
+
+// --- Partner live DB smoke (read-only) ---
+$partnerRow = $db->query(
+    "SELECT pc.id company_id, pc.user_id
+     FROM partner_companies pc
+     WHERE pc.user_id IS NOT NULL
+     LIMIT 1"
+)->fetch(PDO::FETCH_ASSOC);
+if ($partnerRow) {
+    $companyId = (int)$partnerRow['company_id'];
+    $userId = (int)$partnerRow['user_id'];
+
+    $hoursSummary = (new Report($db))->companyStudentHoursSummary($companyId);
+    smoke_assert(is_array($hoursSummary), 'Report::companyStudentHoursSummary returns array');
+
+    $partnerEvals = (new Evaluation($db))->byCompany($companyId);
+    smoke_assert(is_array($partnerEvals), 'Evaluation::byCompany returns array');
+
+    $studentEvals = (new StudentEvaluation($db))->submittedPartnerEvaluationsByCompany($companyId);
+    smoke_assert(is_array($studentEvals), 'StudentEvaluation::submittedPartnerEvaluationsByCompany returns array');
+
+    $companyWithPrograms = (new Company($db))->findByUserWithPrograms($userId);
+    smoke_assert(is_array($companyWithPrograms) && array_key_exists('accepted_programs', $companyWithPrograms), 'Company::findByUserWithPrograms includes accepted_programs');
+
+    $submissionSummaries = (new Report($db))->submissionSummaryByCompany($companyId);
+    smoke_assert(is_array($submissionSummaries), 'Report::submissionSummaryByCompany returns array');
+    if ($submissionSummaries !== []) {
+        $first = $submissionSummaries[0];
+        smoke_assert(array_key_exists('student_id', $first) && array_key_exists('pending_dtr', $first), 'submissionSummaryByCompany row shape');
+    }
+} else {
+    smoke_pass('Partner live DB checks skipped (no partner company in DB)');
+}
 
 // --- effectivePredeploymentStatus sync smoke (read-only) ---
 $sample = $db->query(

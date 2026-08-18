@@ -169,6 +169,25 @@ class Evaluation
         return $stmt->fetch() ?: null;
     }
 
+    /** @return array<int, array<string, mixed>> */
+    public function byCompany(int $companyId): array
+    {
+        $this->ensureDetailSupport();
+        $stmt = $this->db->prepare(
+            'SELECT e.*, u.name AS student_name, s.student_no, s.course, s.year_level,
+                    en.id AS enrollment_id, en.status AS enrollment_status
+             FROM evaluations e
+             JOIN ojt_enrollments en ON en.id = e.enrollment_id
+             JOIN students s ON s.id = en.student_id
+             JOIN users u ON u.id = s.user_id
+             WHERE e.company_id = ?
+             ORDER BY e.submitted_at DESC'
+        );
+        $stmt->execute([$companyId]);
+
+        return $stmt->fetchAll();
+    }
+
     public function allWithDetails(): array
     {
         $this->ensureDetailSupport();

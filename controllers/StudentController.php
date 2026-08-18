@@ -471,18 +471,29 @@ class StudentController extends BaseController
                 (string)($p['partner_comments'] ?? '')
             );
             $coordinatorUserId = (int)($student['coordinator_id'] ?? 0);
+            $studentName = (string)($student['name'] ?? 'A student');
+            $title = $wasSubmitted ? 'Host training establishment evaluation updated' : 'Host training establishment evaluation received';
+            $message = $wasSubmitted
+                ? $studentName . ' updated their evaluation of the host training establishment and OJT supervisor.'
+                : $studentName . ' submitted an evaluation of the host training establishment and OJT supervisor.';
             if ($coordinatorUserId > 0) {
-                $studentName = (string)($student['name'] ?? 'A student');
-                $title = $wasSubmitted ? 'Host training establishment evaluation updated' : 'Host training establishment evaluation received';
-                $message = $wasSubmitted
-                    ? $studentName . ' updated their evaluation of the host training establishment and OJT supervisor.'
-                    : $studentName . ' submitted an evaluation of the host training establishment and OJT supervisor.';
                 (new Notification($this->db))->create(
                     $coordinatorUserId,
                     $title,
                     $message,
-                    'index.php?r=coordinator_student_final&student_id=' . (int)$student['id'] . '&eval=industry_partner'
+                    route_url('coordinator.student_final', ['student_id' => (int)$student['id'], 'eval' => 'industry_partner'])
                 );
+            }
+            if ($enrollment && !empty($enrollment['company_id'])) {
+                $company = (new Company($this->db))->find((int)$enrollment['company_id']);
+                if ($company && !empty($company['user_id'])) {
+                    (new Notification($this->db))->create(
+                        (int)$company['user_id'],
+                        $wasSubmitted ? 'Student feedback updated' : 'New student feedback received',
+                        $studentName . ' ' . ($wasSubmitted ? 'updated' : 'submitted') . ' an evaluation of your organization and OJT supervisor.',
+                        route_url('partner.student_evaluation', ['student_id' => (int)$student['id']])
+                    );
+                }
             }
             flash('success', 'Host Training Establishment evaluation saved.');
         } catch (Throwable $e) {

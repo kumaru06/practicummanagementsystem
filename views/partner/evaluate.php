@@ -4,7 +4,7 @@ $savedRatings = Evaluation::decodeRatings($evaluation['criteria_ratings'] ?? nul
 $enrollmentId = (int)($selected['id'] ?? 0);
 $rowIndex = 0;
 ?>
-<div class="eval-page">
+<div class="partner-eval-page">
     <div class="eval-back">
         <a class="btn btn-small" href="<?= e(route_url('partner.portal', ['enrollment' => $enrollmentId])) ?>">&larr; Back to Portal</a>
     </div>
@@ -20,7 +20,7 @@ $rowIndex = 0;
             </div>
         </div>
 
-        <form method="post" enctype="multipart/form-data" class="form js-validate eval-form" id="evalForm">
+        <form method="post" enctype="multipart/form-data" class="form js-validate eval-form partner-eval-form" id="evalForm" data-partner-eval-form>
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="partner_submit_evaluation">
             <input type="hidden" name="enrollment_id" value="<?= $enrollmentId ?>">
@@ -95,85 +95,3 @@ $rowIndex = 0;
         </form>
     </section>
 </div>
-
-<style>
-.eval-page { max-width: 980px; margin: 0 auto; }
-.eval-back { margin-bottom: 14px; }
-.eval-card { padding: 28px 30px; }
-.eval-head { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
-.eval-head-icon { width: 46px; height: 46px; border-radius: 12px; background: #fde8e8; color: #b91c1c; display: flex; align-items: center; justify-content: center; flex: none; }
-.eval-head h2 { font-size: 1.4rem; font-weight: 800; }
-.eval-section { margin-top: 22px; }
-.eval-section-head { display: flex; align-items: center; background: #fdeaea; border-radius: 8px; padding: 10px 14px; font-weight: 700; color: #b91c1c; font-size: .85rem; letter-spacing: .02em; }
-.eval-section-title { flex: 1; }
-.eval-col-weight { width: 80px; text-align: center; }
-.eval-col-rating { width: 160px; text-align: center; }
-.eval-row { display: flex; align-items: center; padding: 12px 14px; border-bottom: 1px solid #f0f0f0; }
-.eval-row-num { width: 26px; color: #888; font-weight: 600; }
-.eval-row-label { flex: 1; padding-right: 12px; font-size: .92rem; }
-.eval-row-weight { width: 80px; text-align: center; color: #555; font-weight: 600; }
-.eval-row-rating { width: 160px; display: flex; justify-content: center; }
-.star-rating { display: inline-flex; flex-direction: row-reverse; gap: 2px; position: relative; }
-.star-rating input { position: absolute; bottom: 0; left: 50%; width: 1px; height: 1px; opacity: 0; pointer-events: none; margin: 0; }
-.star-rating label { color: #d8d8d8; cursor: pointer; font-size: 22px; line-height: 1; transition: color .12s; }
-.star-rating label:hover, .star-rating label:hover ~ label { color: #f5b301; }
-.star-rating input:checked ~ label { color: #f5b301; }
-.eval-total-row { display: flex; align-items: center; background: #fdeaea; border-radius: 8px; padding: 12px 14px; margin-top: 14px; font-weight: 800; color: #b91c1c; }
-.eval-total-label { flex: 1; }
-.eval-total-weight { width: 80px; text-align: center; }
-.eval-total-value { width: 160px; text-align: center; }
-.eval-field { margin-top: 22px; display: flex; flex-direction: column; }
-.eval-field-label { font-weight: 700; margin-bottom: 8px; }
-.eval-field textarea { width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 12px; resize: vertical; font: inherit; }
-.eval-char-count { align-self: flex-end; font-size: .8rem; color: #999; margin-top: 6px; }
-.eval-cert-existing { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.eval-upload { display: flex; align-items: center; gap: 14px; border: 1px dashed #e0a0a0; border-radius: 10px; padding: 16px 18px; background: #fffafa; }
-.eval-upload-icon { width: 42px; height: 42px; border-radius: 50%; background: #fde8e8; color: #b91c1c; display: flex; align-items: center; justify-content: center; flex: none; }
-.eval-upload-copy { flex: 1; display: flex; flex-direction: column; }
-.eval-upload-copy small { color: #999; }
-.eval-upload-btn { cursor: pointer; }
-.eval-cert-name { margin-top: 8px; }
-.eval-actions { margin-top: 26px; display: flex; justify-content: center; }
-.eval-actions .btn-primary { min-width: 240px; }
-</style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const form = document.getElementById('evalForm');
-    if (!form) return;
-
-    const totalValue = document.getElementById('evalTotalValue');
-    const computeTotal = function () {
-        let total = 0;
-        let allRated = true;
-        form.querySelectorAll('.star-rating').forEach(function (widget) {
-            const weight = parseFloat(widget.dataset.weight) || 0;
-            const checked = widget.querySelector('input:checked');
-            if (checked) {
-                total += (parseInt(checked.value, 10) / 5) * weight;
-            } else {
-                allRated = false;
-            }
-        });
-        totalValue.textContent = allRated ? total.toFixed(2) + '%' : '\u2014';
-    };
-    form.querySelectorAll('.star-rating input').forEach(function (input) {
-        input.addEventListener('change', computeTotal);
-    });
-    computeTotal();
-
-    const comments = document.getElementById('evalComments');
-    const charCount = document.getElementById('evalCharCount');
-    const updateCount = function () { charCount.textContent = (500 - comments.value.length); };
-    comments.addEventListener('input', updateCount);
-    updateCount();
-
-    const certInput = document.getElementById('evalCertInput');
-    const certName = document.getElementById('evalCertName');
-    if (certInput) {
-        certInput.addEventListener('change', function () {
-            certName.textContent = certInput.files.length ? 'Selected: ' + certInput.files[0].name : '';
-        });
-    }
-});
-</script>

@@ -241,6 +241,8 @@ class Report
     {
         $stmt = $this->db->prepare(
             'SELECT s.id student_id, u.name student_name, s.student_no, s.course, s.year_level,
+                e.id enrollment_id, e.status enrollment_status, e.predeployment_status,
+                e.official_start_date, e.start_date, e.company_id,
                 (SELECT COUNT(*) FROM daily_time_records d WHERE d.student_id = s.id AND d.verification_status = "pending") pending_dtr,
                 (SELECT COUNT(*) FROM weekly_reports w WHERE w.student_id = s.id AND w.verification_status = "pending") pending_weekly,
                 (SELECT COUNT(*) FROM daily_time_records d WHERE d.student_id = s.id) total_dtr,
@@ -254,6 +256,40 @@ class Report
                  OR e.status = "completed"
                )
              ORDER BY (pending_dtr + pending_weekly) DESC, u.name ASC'
+        );
+        $stmt->execute([$companyId]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Per-student hour and submission summary for partner reporting.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function companyStudentHoursSummary(int $companyId): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT s.id student_id, u.name student_name, s.student_no, s.course, s.year_level,
+                e.id enrollment_id, e.status enrollment_status, e.predeployment_status,
+                e.required_hours,
+                COALESCE((
+                    SELECT SUM(d.hours)
+                    FROM daily_time_records d
+                    WHERE d.student_id = s.id AND d.verification_status = "approved"
+                ), 0) approved_hours,
+                (SELECT COUNT(*) FROM daily_time_records d WHERE d.student_id = s.id AND d.verification_status = "pending") pending_dtr,
+                (SELECT COUNT(*) FROM weekly_reports w WHERE w.student_id = s.id AND w.verification_status = "pending") pending_weekly,
+                (SELECT COUNT(*) FROM daily_time_records d WHERE d.student_id = s.id) total_dtr,
+                (SELECT COUNT(*) FROM weekly_reports w WHERE w.student_id = s.id) total_weekly
+             FROM ojt_enrollments e
+             JOIN students s ON s.id = e.student_id
+             JOIN users u ON u.id = s.user_id
+             WHERE e.company_id = ?
+               AND (
+                 e.predeployment_status IN ("forwarded", "accepted", "orientation_scheduled", "orientation_completed")
+                 OR e.status = "completed"
+               )
+             ORDER BY u.name ASC'
         );
         $stmt->execute([$companyId]);
         return $stmt->fetchAll();

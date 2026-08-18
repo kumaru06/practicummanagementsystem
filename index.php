@@ -60,6 +60,11 @@ $pathRoutes = [
     'partner/settings' => 'partner_settings',
     'partner/profile' => 'partner_profile',
     'partner/password' => 'partner_password',
+    'partner/student-evaluation' => 'partner_student_evaluation',
+    'partner/timeline' => 'partner_timeline',
+    'partner/reports' => 'partner_reports',
+    'partner/reports/export' => 'partner_export_reports',
+    'partner/evaluations' => 'partner_evaluations',
     'partner/chat' => 'chat',
 ];
 $route = $_GET['r'] ?? ($pathRoutes[$path] ?? current_user()['role']);
@@ -352,5 +357,10 @@ match ($route) {
     'partner_settings' => (new PartnerController())->settings(),
     'partner_profile' => (new PartnerController())->profileForm(),
     'partner_password' => (new PartnerController())->changePasswordForm(),
+    'partner_student_evaluation' => (new PartnerController())->studentEvaluation(),
+    'partner_timeline' => (new PartnerController())->timeline(),
+    'partner_reports' => (new PartnerController())->reports(),
+    'partner_export_reports' => (new PartnerController())->exportReports(),
+    'partner_evaluations' => (new PartnerController())->evaluations(),
     default => redirect('index.php?r=' . current_user()['role']),
 };

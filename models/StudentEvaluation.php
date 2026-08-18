@@ -173,6 +173,24 @@ class StudentEvaluation
         $stmt->execute($values);
     }
 
+    /** @return array<int, array<string, mixed>> */
+    public function submittedPartnerEvaluationsByCompany(int $companyId): array
+    {
+        $this->ensureTable();
+        $stmt = $this->db->prepare(
+            'SELECT se.*, u.name AS student_name, s.student_no, s.course, s.year_level, e.id AS enrollment_id
+             FROM student_evaluations se
+             JOIN students s ON s.id = se.student_id
+             JOIN users u ON u.id = s.user_id
+             JOIN ojt_enrollments e ON e.student_id = s.id AND e.company_id = ?
+             WHERE se.partner_status = "submitted"
+             ORDER BY se.updated_at DESC'
+        );
+        $stmt->execute([$companyId]);
+
+        return $stmt->fetchAll();
+    }
+
     private function ensureTable(): void
     {
         $this->db->exec('CREATE TABLE IF NOT EXISTS student_evaluations (

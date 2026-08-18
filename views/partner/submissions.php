@@ -22,10 +22,11 @@
                         <?php foreach ($studentSummaries as $row): ?>
                             <?php
                             $isSelected = $selectedStudent && (int)$selectedStudent['student_id'] === (int)$row['student_id'];
-                            $pendingTotal = (int)$row['pending_dtr'] + (int)$row['pending_weekly'];
+                            $isLocked = empty($row['reports_unlocked']);
+                            $pendingTotal = $isLocked ? 0 : (int)$row['pending_dtr'] + (int)$row['pending_weekly'];
                             ?>
-                            <li data-ps-student-item data-search="<?= e(strtolower($row['student_name'] . ' ' . $row['student_no'])) ?>">
-                                <a class="ps-v2-student-card <?= $isSelected ? 'is-selected' : '' ?>"
+                            <li data-ps-student-item data-search="<?= e(strtolower($row['student_name'] . ' ' . $row['student_no'])) ?>"<?= $isLocked ? ' data-ps-student-locked="1"' : '' ?>>
+                                <a class="ps-v2-student-card <?= $isSelected ? 'is-selected' : '' ?><?= $isLocked ? ' is-locked' : '' ?>"
                                    data-ps-ajax
                                    data-student-id="<?= (int)$row['student_id'] ?>"
                                    href="<?= e($submissionUrl(['student_id' => (int)$row['student_id']])) ?>">
@@ -40,7 +41,9 @@
                                             </span>
                                         </span>
                                     </span>
-                                    <?php if ($pendingTotal > 0): ?>
+                                    <?php if ($isLocked): ?>
+                                        <span class="ps-v2-student-lock" title="Submissions locked">Locked</span>
+                                    <?php elseif ($pendingTotal > 0): ?>
                                         <span class="ps-v2-student-pending" title="Pending submissions"><?= $pendingTotal ?></span>
                                     <?php endif; ?>
                                 </a>

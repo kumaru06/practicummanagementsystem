@@ -1,4 +1,4 @@
-<div class="ip-settings">
+<div class="hte-settings">
     <section class="card" style="max-width: 640px; margin: 1.5rem auto; padding: 1.5rem;">
         <span class="spf-eyebrow">Account</span>
         <h1>Host Training Establishment profile unavailable</h1>

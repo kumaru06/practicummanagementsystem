@@ -166,6 +166,28 @@ class Company
         return $stmt->fetch() ?: null;
     }
 
+    public function findByUserWithPrograms(int $userId): ?array
+    {
+        $company = $this->findByUser($userId);
+        if (!$company) {
+            return null;
+        }
+
+        $stmt = $this->db->prepare(
+            'SELECT GROUP_CONCAT(DISTINCT p.code ORDER BY p.code SEPARATOR ", ") accepted_programs,
+                    GROUP_CONCAT(DISTINCT p.name ORDER BY p.name SEPARATOR ", ") accepted_program_names
+             FROM company_programs cp
+             JOIN programs p ON p.id = cp.program_id
+             WHERE cp.company_id = ?'
+        );
+        $stmt->execute([(int)$company['id']]);
+        $programs = $stmt->fetch() ?: [];
+        $company['accepted_programs'] = trim((string)($programs['accepted_programs'] ?? ''));
+        $company['accepted_program_names'] = trim((string)($programs['accepted_program_names'] ?? ''));
+
+        return $company;
+    }
+
     public function updateProfile(int $companyId, string $name, string $address, string $contactPerson, string $contactEmail, string $contactNumber, ?string $photoFile = null): void
     {
         $this->ensurePhotoSupport();
