@@ -284,6 +284,8 @@ $totalPrograms = count($programs);
                                 }
                                 $programCount = count($programDetails);
                                 $isActive = !empty($u['is_active']);
+                                $hasMoaRecord = !empty($u['moa_mou_file']);
+                                $moaFileMissing = $hasMoaRecord && !upload_file_exists((string)$u['moa_mou_file']);
                                 $initial = strtoupper(mb_substr((string)($u['name'] ?? 'H'), 0, 1));
                                 $searchHaystack = strtolower(trim(
                                     ($u['name'] ?? '') . ' ' .
@@ -301,7 +303,14 @@ $totalPrograms = count($programs);
                                         <span class="asu-student-avatar aco-avatar-tone--<?= (abs((int)($u['user_id'] ?? $u['id'] ?? 0)) % 6) + 1 ?>">
                                             <?= e($initial) ?>
                                         </span>
-                                        <span title="<?= e($u['name'] ?? '') ?>"><?= e($u['name'] ?? '—') ?></span>
+                                        <div class="asu-partner-name-stack">
+                                            <span title="<?= e($u['name'] ?? '') ?>"><?= e($u['name'] ?? '—') ?></span>
+                                            <?php if ($moaFileMissing): ?>
+                                                <span class="asu-moa-missing-pill" title="Database has an MOA/MOU record, but the file is missing on the server. Re-upload from Edit Details.">MOA file missing</span>
+                                            <?php elseif ($hasMoaRecord): ?>
+                                                <span class="asu-moa-ok-pill">MOA on file</span>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
                                 </td>
                                 <td class="asu-name-cell"><?= e($u['contact_person'] ?? '—') ?></td>
@@ -349,10 +358,15 @@ $totalPrograms = count($programs);
                                             <svg class="admin-user-action-trigger-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
                                         </summary>
                                         <div class="admin-user-action-panel">
-                                            <?php if (!empty($u['moa_mou_file'])): ?>
+                                            <?php if ($hasMoaRecord && !$moaFileMissing): ?>
                                                 <a class="admin-user-action-item" target="_blank" rel="noopener noreferrer" href="index.php?r=admin_partner_document&amp;company_id=<?= (int)$u['id'] ?>">
                                                     <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
                                                     View MOA / MOU
+                                                </a>
+                                            <?php elseif ($moaFileMissing): ?>
+                                                <a class="admin-user-action-item admin-user-action-item--danger" target="_blank" rel="noopener noreferrer" href="index.php?r=admin_partner_document&amp;company_id=<?= (int)$u['id'] ?>">
+                                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 15h-2v-2h2v2Zm0-4h-2V7h2v6Z"/></svg>
+                                                    MOA missing — re-upload
                                                 </a>
                                             <?php endif; ?>
 
@@ -366,7 +380,8 @@ $totalPrograms = count($programs);
                                                 data-email="<?= e($u['email'] ?? $u['contact_email'] ?? '') ?>"
                                                 data-address="<?= e($u['address'] ?? '') ?>"
                                                 data-contact-number="<?= e($u['contact_number'] ?? '') ?>"
-                                                data-has-moa="<?= !empty($u['moa_mou_file']) ? '1' : '0' ?>"
+                                                data-has-moa="<?= $hasMoaRecord && !$moaFileMissing ? '1' : '0' ?>"
+                                                data-moa-missing="<?= $moaFileMissing ? '1' : '0' ?>"
                                             >
                                                 <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
                                                 Edit Details

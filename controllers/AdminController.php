@@ -388,17 +388,22 @@ class AdminController extends BaseController
         $company = (new Company($this->db))->find($companyId);
 
         if (!$company || empty($company['moa_mou_file'])) {
-            http_response_code(404);
-            exit('MOA/MOU file not found.');
+            render_missing_upload_page(
+                'MOA/MOU not on file',
+                'This Host Training Establishment has no MOA/MOU document record yet. Upload one from Manage Companies.',
+                route_url('admin.partners')
+            );
         }
 
         $relativePath = ltrim((string)$company['moa_mou_file'], '/\\');
-        $absolutePath = realpath(__DIR__ . '/../' . $relativePath);
-        $uploadsRoot = realpath(__DIR__ . '/../uploads');
+        $absolutePath = upload_absolute_path($relativePath);
 
-        if (!$absolutePath || !$uploadsRoot || !str_starts_with($absolutePath, $uploadsRoot) || !is_file($absolutePath)) {
-            http_response_code(404);
-            exit('MOA/MOU file not found.');
+        if ($absolutePath === null) {
+            render_missing_upload_page(
+                'MOA/MOU file missing on server',
+                'A document record exists for "' . (string)($company['name'] ?? 'this establishment') . '", but the file is missing from the server uploads folder. Re-upload the MOA/MOU from Manage Companies → Edit Details. Do not overwrite the live uploads folder when deploying.',
+                route_url('admin.partners')
+            );
         }
 
         $mime = mime_content_type($absolutePath) ?: 'application/octet-stream';
@@ -1202,8 +1207,9 @@ class AdminController extends BaseController
             if ($moaMouFile) {
                 $oldMoa = trim((string)($company['moa_mou_file'] ?? ''));
                 $companies->updateMoaMouFile($companyId, $moaMouFile);
-                if ($oldMoa !== '' && $oldMoa !== $moaMouFile && is_file(__DIR__ . '/../' . $oldMoa)) {
-                    @unlink(__DIR__ . '/../' . $oldMoa);
+                // Keep previous MOA recoverable — archive instead of permanent delete.
+                if ($oldMoa !== '' && $oldMoa !== $moaMouFile) {
+                    archive_uploaded_file($oldMoa);
                 }
             }
             $this->db->commit();

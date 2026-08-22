@@ -9,6 +9,7 @@ config/mail.local.dev.php
 uploads/*
 !uploads/.htaccess
 !uploads/**/.gitkeep
+!uploads/DO_NOT_DELETE.txt
 
 # Database exports & local dumps
 database/hostinger_export.sql

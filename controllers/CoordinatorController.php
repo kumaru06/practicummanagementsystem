@@ -212,8 +212,11 @@ class CoordinatorController extends BaseController
         $company = (new Company($this->db))->find($companyId);
 
         if (!$company || empty($company['moa_mou_file'])) {
-            http_response_code(404);
-            exit('MOA/MOU file not found.');
+            render_missing_upload_page(
+                'MOA/MOU not on file',
+                'This Host Training Establishment has no MOA/MOU document record yet.',
+                route_url('coordinator.moa_mou')
+            );
         }
         if (!(new Company($this->db))->coordinatorCanAccessMoa((int)current_user()['id'], $companyId)) {
             http_response_code(403);
@@ -221,12 +224,14 @@ class CoordinatorController extends BaseController
         }
 
         $relativePath = ltrim((string)$company['moa_mou_file'], '/\\');
-        $absolutePath = realpath(__DIR__ . '/../' . $relativePath);
-        $uploadsRoot = realpath(__DIR__ . '/../uploads');
+        $absolutePath = upload_absolute_path($relativePath);
 
-        if (!$absolutePath || !$uploadsRoot || !str_starts_with($absolutePath, $uploadsRoot) || !is_file($absolutePath)) {
-            http_response_code(404);
-            exit('MOA/MOU file not found.');
+        if ($absolutePath === null) {
+            render_missing_upload_page(
+                'MOA/MOU file missing on server',
+                'A document record exists for "' . (string)($company['name'] ?? 'this establishment') . '", but the file is missing from the server uploads folder. Ask the administrator to re-upload the MOA/MOU.',
+                route_url('coordinator.moa_mou')
+            );
         }
 
         $mime = mime_content_type($absolutePath) ?: 'application/octet-stream';

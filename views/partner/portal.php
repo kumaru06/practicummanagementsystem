@@ -47,8 +47,10 @@ $currentPipeline = $selected ? partner_enrollment_pipeline_step($selected, $eval
                     <h2>Deployed Students</h2>
                     <p><?= count($students ?? []) ?> assigned to your organization</p>
                 </div>
-                <?php if (!empty($company['moa_mou_file'])): ?>
+                <?php if (!empty($company['moa_mou_file']) && upload_file_exists((string)$company['moa_mou_file'])): ?>
                     <a class="pp-roster-moa" target="_blank" href="<?= e(asset($company['moa_mou_file'])) ?>">MOA/MOU</a>
+                <?php elseif (!empty($company['moa_mou_file'])): ?>
+                    <span class="pp-roster-moa pp-roster-moa--missing" title="MOA/MOU record exists but the file is missing on the server">MOA missing</span>
                 <?php endif; ?>
             </div>
 
@@ -244,8 +246,12 @@ $currentPipeline = $selected ? partner_enrollment_pipeline_step($selected, $eval
                                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                     <input type="hidden" name="action" value="partner_schedule_orientation">
                                     <input type="hidden" name="enrollment_id" value="<?= (int)$selected['id'] ?>">
+                                    <?php
+                                    $allowPastOrientation = temporary_orientation_past_dates_allowed();
+                                    $orientationMinAttr = $allowPastOrientation ? '' : date('Y-m-d');
+                                    ?>
                                     <label class="no-floating-label required-label orientation-field"><span class="field-title">Orientation Date/Time <span class="req">*</span></span>
-                                        <span class="filter-date-picker form-date-picker form-datetime-picker is-placeholder" data-datetime-picker="1" data-date-required="1">
+                                        <span class="filter-date-picker form-date-picker form-datetime-picker is-placeholder" data-datetime-picker="1" data-date-required="1"<?= $allowPastOrientation ? ' data-allow-past-dates="1"' : '' ?><?= $orientationMinAttr !== '' ? ' data-date-min="' . e($orientationMinAttr) . '"' : '' ?>>
                                             <input type="hidden" name="orientation_datetime" value="">
                                             <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select orientation date and time">
                                                 <span class="filter-date-value">Select date &amp; time</span>
@@ -290,9 +296,11 @@ $currentPipeline = $selected ? partner_enrollment_pipeline_step($selected, $eval
                                             $scheduledLabel = !empty($selected['orientation_datetime'])
                                                 ? (new DateTime($selected['orientation_datetime']))->format('M j, Y g:i A')
                                                 : 'Select date & time';
+                                            $allowPastOrientation = temporary_orientation_past_dates_allowed();
+                                            $orientationMinAttr = $allowPastOrientation ? '' : date('Y-m-d');
                                             ?>
                                             <label class="no-floating-label required-label orientation-field"><span class="field-title">New Orientation Date/Time <span class="req">*</span></span>
-                                                <span class="filter-date-picker form-date-picker form-datetime-picker<?= $scheduledValue !== '' ? '' : ' is-placeholder' ?>" data-datetime-picker="1" data-date-required="1">
+                                                <span class="filter-date-picker form-date-picker form-datetime-picker<?= $scheduledValue !== '' ? '' : ' is-placeholder' ?>" data-datetime-picker="1" data-date-required="1"<?= $allowPastOrientation ? ' data-allow-past-dates="1"' : '' ?><?= $orientationMinAttr !== '' ? ' data-date-min="' . e($orientationMinAttr) . '"' : '' ?>>
                                                     <input type="hidden" name="orientation_datetime" value="<?= e($scheduledValue) ?>">
                                                     <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select orientation date and time">
                                                         <span class="filter-date-value"><?= e($scheduledLabel) ?></span>

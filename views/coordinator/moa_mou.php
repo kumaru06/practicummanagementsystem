@@ -122,12 +122,15 @@ $programCoverage = count($uniquePrograms);
                 $documentPath = (string)($company['moa_mou_file'] ?? '');
                 $documentName = basename($documentPath) ?: 'MOA / MOU Document';
                 $documentExt  = strtoupper(pathinfo($documentName, PATHINFO_EXTENSION) ?: 'FILE');
-                $absoluteDocumentPath = $documentPath !== '' ? realpath(__DIR__ . '/../../' . ltrim($documentPath, '/\\')) : false;
-                $documentSize = ($absoluteDocumentPath && is_file($absoluteDocumentPath)) ? filesize($absoluteDocumentPath) : null;
-                $documentSizeLabel = $documentSize !== null ? number_format(max(1, $documentSize / 1024), 0) . ' KB' : 'Ready to view';
+                $absoluteDocumentPath = upload_absolute_path($documentPath);
+                $documentMissing = $documentPath !== '' && $absoluteDocumentPath === null;
+                $documentSize = $absoluteDocumentPath !== null ? filesize($absoluteDocumentPath) : null;
+                $documentSizeLabel = $documentMissing
+                    ? 'Missing on server — ask admin to re-upload'
+                    : ($documentSize !== null ? number_format(max(1, $documentSize / 1024), 0) . ' KB' : 'Ready to view');
                 $searchText = strtolower(trim($name . ' ' . $contact . ' ' . $email . ' ' . $phone . ' ' . $address . ' ' . implode(' ', $programCodes) . ' ' . $documentName));
             ?>
-            <article class="cdoc-card<?= $isActive ? '' : ' cdoc-card--inactive' ?>" data-cdoc-card data-status="<?= $isActive ? 'active' : 'inactive' ?>" data-search="<?= e($searchText) ?>">
+            <article class="cdoc-card<?= $isActive ? '' : ' cdoc-card--inactive' ?><?= $documentMissing ? ' cdoc-card--moa-missing' : '' ?>" data-cdoc-card data-status="<?= $isActive ? 'active' : 'inactive' ?>" data-search="<?= e($searchText) ?>">
                 <div class="cdoc-card-accent" aria-hidden="true"></div>
                 <header class="cdoc-card-header">
                     <div class="cdoc-avatar" aria-hidden="true"><?= e($initial) ?></div>
@@ -196,8 +199,8 @@ $programCoverage = count($uniquePrograms);
                             <?php endif; ?>
                         </div>
                     </div>
-                    <a class="cdoc-open-btn" href="<?= e(route_url('coordinator.partner_document', ['company_id' => (int)$company['id']])) ?>" target="_blank" rel="noopener noreferrer">
-                        Open Document
+                    <a class="cdoc-open-btn<?= $documentMissing ? ' cdoc-open-btn--warn' : '' ?>" href="<?= e(route_url('coordinator.partner_document', ['company_id' => (int)$company['id']])) ?>" target="_blank" rel="noopener noreferrer">
+                        <?= $documentMissing ? 'File missing' : 'Open Document' ?>
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7h-2V6.41l-9.3 9.3-1.4-1.42 9.29-9.29H14V3ZM5 5h6v2H5v12h12v-6h2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg>
                     </a>
                 </footer>

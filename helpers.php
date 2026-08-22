@@ -444,10 +444,10 @@ function temporary_report_unlock_enabled(): bool
 
 function temporary_orientation_past_dates_allowed(): bool
 {
-    // Past-dated orientation / official-start is a local/dev testing aid only
-    // and is likewise ignored in production regardless of the .env flag.
-    return (defined('APP_IS_LOCAL') && APP_IS_LOCAL)
-        && (defined('TEMPORARY_ORIENTATION_PAST_DATES') && TEMPORARY_ORIENTATION_PAST_DATES);
+    // When TEMPORARY_ORIENTATION_PAST_DATES=true in .env, partners may schedule
+    // orientation / official start using past dates. Workflow steps stay the same;
+    // only the past-date validation is relaxed. Set the flag back to false after testing.
+    return defined('TEMPORARY_ORIENTATION_PAST_DATES') && TEMPORARY_ORIENTATION_PAST_DATES;
 }
 
 function temporary_official_start_past_dates_allowed(): bool
@@ -1049,6 +1049,96 @@ function upload_cor(array $file): string
         throw new RuntimeException('Unable to save uploaded COR.');
     }
     return 'uploads/cor/' . $name;
+}
+
+/**
+ * Absolute filesystem path for a stored upload relative path (e.g. uploads/company_moa_mou/x.pdf).
+ * Returns null when the path is invalid or the file does not exist under /uploads.
+ */
+function upload_absolute_path(?string $relativePath): ?string
+{
+    $relativePath = str_replace('\\', '/', trim((string)$relativePath));
+    $relativePath = ltrim($relativePath, '/');
+    if ($relativePath === '' || str_contains($relativePath, '..')) {
+        return null;
+    }
+    $root = realpath(__DIR__ . '/uploads');
+    if ($root === false) {
+        return null;
+    }
+    $normalized = str_starts_with($relativePath, 'uploads/')
+        ? substr($relativePath, strlen('uploads/'))
+        : $relativePath;
+    $absolute = realpath($root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $normalized));
+    if ($absolute === false
+        || !str_starts_with($absolute, $root . DIRECTORY_SEPARATOR)
+        || !is_file($absolute)) {
+        return null;
+    }
+    return $absolute;
+}
+
+/** True when DB path points to an existing file under /uploads. */
+function upload_file_exists(?string $relativePath): bool
+{
+    return upload_absolute_path($relativePath) !== null;
+}
+
+/**
+ * Move a replaced upload into uploads/.../_archive/ instead of deleting it.
+ * Keeps important docs recoverable if a deploy or edit goes wrong.
+ */
+function archive_uploaded_file(?string $relativePath): bool
+{
+    $absolute = upload_absolute_path($relativePath);
+    if ($absolute === null) {
+        return false;
+    }
+    $uploadsRoot = realpath(__DIR__ . '/uploads');
+    if ($uploadsRoot === false) {
+        return false;
+    }
+    $relFromUploads = ltrim(str_replace('\\', '/', substr($absolute, strlen($uploadsRoot))), '/');
+    $parts = explode('/', $relFromUploads);
+    $folder = $parts[0] ?? 'documents';
+    $baseName = basename($absolute);
+    $archiveDir = $uploadsRoot . DIRECTORY_SEPARATOR . $folder . DIRECTORY_SEPARATOR . '_archive';
+    if (!is_dir($archiveDir) && !mkdir($archiveDir, 0755, true) && !is_dir($archiveDir)) {
+        return false;
+    }
+    $target = $archiveDir . DIRECTORY_SEPARATOR . date('Ymd_His') . '_' . $baseName;
+    return @rename($absolute, $target);
+}
+
+/**
+ * Friendly HTML page when a stored MOA/MOU path exists in DB but the file is missing on disk.
+ */
+function render_missing_upload_page(string $title, string $message, ?string $backUrl = null): never
+{
+    http_response_code(404);
+    header('Content-Type: text/html; charset=utf-8');
+    $safeTitle = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
+    $safeMessage = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
+    $back = $backUrl ? htmlspecialchars($backUrl, ENT_QUOTES, 'UTF-8') : '';
+    echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">';
+    echo '<title>' . $safeTitle . '</title>';
+    echo '<style>
+        body{margin:0;font-family:Segoe UI,system-ui,sans-serif;background:#f8fafc;color:#0f172a;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px}
+        .box{max-width:520px;width:100%;background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:28px 26px;box-shadow:0 18px 40px rgba(15,23,42,.08)}
+        h1{margin:0 0 10px;font-size:1.25rem;color:#9f1239}
+        p{margin:0 0 14px;line-height:1.55;color:#334155}
+        ul{margin:0 0 18px;padding-left:1.15rem;color:#475569;line-height:1.5}
+        a{display:inline-flex;align-items:center;gap:8px;background:#9f1239;color:#fff;text-decoration:none;padding:10px 14px;border-radius:10px;font-weight:600}
+        a:hover{background:#881337}
+    </style></head><body><div class="box">';
+    echo '<h1>' . $safeTitle . '</h1>';
+    echo '<p>' . $safeMessage . '</p>';
+    echo '<ul><li>The database still has a document record.</li><li>The actual file is missing from the server <code>uploads/</code> folder.</li><li>Re-upload the document to restore access.</li><li>When deploying, never overwrite or delete the live <code>uploads/</code> folder.</li></ul>';
+    if ($back !== '') {
+        echo '<a href="' . $back . '">Back to directory</a>';
+    }
+    echo '</div></body></html>';
+    exit;
 }
 
 function upload_document(array $file, string $folder = 'documents', bool $required = true): ?string

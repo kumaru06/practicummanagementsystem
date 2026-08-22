@@ -1302,6 +1302,9 @@ function initDateTimePickers() {
         const state = {
             selected: initialDate,
             view: initialDate ? new Date(initialDate.getFullYear(), initialDate.getMonth(), 1) : new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+            min: picker.dataset.allowPastDates === '1'
+                ? null
+                : (parseCustomDateValue(picker.dataset.dateMin || '') || stripTime(new Date())),
             max: null,
             hour: initialHour,
             minute: initialMinute,

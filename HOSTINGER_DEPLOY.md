@@ -67,6 +67,10 @@ This uploads all app files to `public_html` via FTP. It **skips**:
 - User files in `uploads/`
 - `.git`, zip files, SQL exports
 
+### Protect `uploads/` (MOA, COR, requirements)
+
+`uploads/` holds irreplaceable documents. **Never** wipe or replace the live `uploads/` folder during Git/zip/File Manager deploys. If you restore a database, restore a matching `uploads/` backup too. Replacing an MOA now **archives** the previous file under `uploads/company_moa_mou/_archive/` instead of deleting it.
+
 ### Zip only (manual upload fallback)
 
 ```powershell

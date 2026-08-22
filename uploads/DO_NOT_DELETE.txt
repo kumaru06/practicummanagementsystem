@@ -1,0 +1,11 @@
+# IMPORTANT — DO NOT DELETE OR OVERWRITE THIS FOLDER ON LIVE
+
+User documents live here (MOA/MOU, COR, requirements, proofs, photos).
+
+Rules for Hostinger / deploys:
+1. Never replace the whole public_html in a way that wipes `uploads/`.
+2. FTP deploy scripts must SKIP `uploads/` (already configured).
+3. When restoring a database backup, also restore a matching `uploads/` backup.
+4. Replacing an MOA archives the previous file under `company_moa_mou/_archive/` — do not empty `_archive/` unless you intentionally purge old copies.
+
+If a document shows "file missing", re-upload it from Admin → Host Training Establishments.

@@ -4905,6 +4905,19 @@ body.student-nav-reveal.role-student .sidebar .nav > *:nth-child(9) { animation-
     box-shadow: 0 16px 32px rgba(127, 29, 29, 0.28);
 }
 
+.cdoc-open-btn--warn {
+    background: linear-gradient(135deg, #d97706, #b45309);
+}
+
+.cdoc-open-btn--warn:hover {
+    box-shadow: 0 16px 32px rgba(180, 83, 9, 0.28);
+}
+
+.cdoc-card--moa-missing .cdoc-document-strip {
+    border-color: rgba(180, 83, 9, 0.35);
+    background: #fffbeb;
+}
+
 .cdoc-open-btn svg { font-size: 1rem; }
 
 .cdoc-empty,
@@ -16488,6 +16501,24 @@ body.is-confirm-open .app-confirm-overlay {
     padding-top: 2px;
 }
 
+.pp-temp-bypass-note {
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(180, 83, 9, 0.35);
+    background: #fffbeb;
+    color: #92400e;
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+
+.pp-temp-bypass-note code {
+    font-size: 0.76rem;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 1px 5px;
+    border-radius: 4px;
+}
+
 .orientation-field {
     display: grid;
     gap: 10px;
@@ -26279,6 +26310,19 @@ body.role-partner .content:has(.hte-profile-v2) {
     border-color: rgba(139, 26, 26, 0.35);
 }
 
+.partner-portal-v2 .pp-roster-moa--missing {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(180, 83, 9, 0.35);
+    background: #fffbeb;
+    color: #92400e;
+    font-size: 0.72rem;
+    font-weight: 800;
+    cursor: default;
+}
+
 .partner-portal-v2 .pp-roster-head h2 {
     margin: 0 0 4px;
     font-size: 1.05rem;
@@ -32958,6 +33002,38 @@ body.is-asu-create-open {
     border-color: rgba(190, 18, 60, 0.28);
     background: #fff7f7;
     box-shadow: 0 0 0 3px rgba(190, 18, 60, 0.08);
+}
+
+.asu-partner-name-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.asu-moa-missing-pill,
+.asu-moa-ok-pill {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.asu-moa-missing-pill {
+    color: #92400e;
+    background: #fffbeb;
+    border: 1px solid rgba(180, 83, 9, 0.35);
+}
+
+.asu-moa-ok-pill {
+    color: #166534;
+    background: #f0fdf4;
+    border: 1px solid rgba(22, 101, 52, 0.2);
 }
 
 .asu-partner-programs-count {
