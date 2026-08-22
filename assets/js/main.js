@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initPartnerTimelinePicker();
     initPartnerSubmissionReview();
     initPartnerEvaluationForm();
+    initPartnerOrientationProjectedEnd();
     initEmailLogViews();
     initRequirementReviewModals();
     initRegistrationRequestsReview();
@@ -1655,9 +1656,14 @@ function initCustomFilterSelects() {
                 item.dataset.value = option.value;
                 item.dataset.index = String(optionIndex);
                 item.disabled = option.disabled;
+                const labelText = option.textContent.trim();
+                const labelHtml = escapeHtml(labelText).replace(
+                    /✓/g,
+                    '<span class="custom-select-check" aria-hidden="true">✓</span>'
+                );
                 item.innerHTML = `
                     <span class="custom-select-option-dot" aria-hidden="true"></span>
-                    <span class="custom-select-option-label">${escapeHtml(option.textContent.trim())}</span>
+                    <span class="custom-select-option-label">${labelHtml}</span>
                 `;
                 item.addEventListener('click', () => {
                     if (option.disabled) return;
@@ -1694,6 +1700,7 @@ function initCustomFilterSelects() {
 
         trigger.addEventListener('click', event => {
             event.stopPropagation();
+            closeDtrTimePicker();
             syncState();
             const opening = !custom.classList.contains('is-open');
             closeCustomSelects(opening ? custom : null);
@@ -1704,6 +1711,7 @@ function initCustomFilterSelects() {
         trigger.addEventListener('keydown', event => {
             if (!['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) return;
             event.preventDefault();
+            closeDtrTimePicker();
             if (!custom.classList.contains('is-open')) {
                 closeCustomSelects(custom);
                 setOpen(true);
@@ -3111,6 +3119,8 @@ function renderDtrTimePanel() {
 
 function openDtrTimePicker(context) {
     closeDtrTimePicker();
+    closeCustomSelects();
+    closeCustomDatePickers();
     _dtrTimeContext = context;
     _dtrTimeState = parseDtrTimeValue(context.input.value);
     const panel = getDtrTimePanel();
@@ -3118,6 +3128,9 @@ function openDtrTimePicker(context) {
     const rect = context.trigger.getBoundingClientRect();
     const viewportPadding = 10;
     const width = Math.min(320, window.innerWidth - (viewportPadding * 2));
+    // Measure after content is rendered and panel is temporarily visible for height.
+    panel.hidden = false;
+    panel.classList.add('is-open');
     const panelHeight = Math.min(panel.getBoundingClientRect().height || 380, window.innerHeight - (viewportPadding * 2));
     const belowTop = rect.bottom + 8;
     const aboveTop = rect.top - panelHeight - 8;
@@ -3125,8 +3138,8 @@ function openDtrTimePicker(context) {
     panel.style.width = `${width}px`;
     panel.style.left = `${Math.max(viewportPadding, Math.min(rect.left, window.innerWidth - width - viewportPadding))}px`;
     panel.style.top = `${Math.max(viewportPadding, hasRoomBelow ? belowTop : aboveTop)}px`;
-    panel.hidden = false;
-    requestAnimationFrame(() => panel.classList.add('is-open'));
+    // Keep panel above other overlays / menus.
+    document.body.appendChild(panel);
 }
 
 function closeDtrTimePicker() {
@@ -3135,6 +3148,10 @@ function closeDtrTimePicker() {
     _dtrTimePanel.hidden = true;
     _dtrTimeContext = null;
     _dtrTimeState = null;
+    const backdrop = document.getElementById('dtr-time-backdrop');
+    if (backdrop) {
+        backdrop.remove();
+    }
 }
 
 function initDtrTimeLocks() {
@@ -3229,6 +3246,18 @@ function initDtrTimeLocks() {
         const datePicker = form.querySelector('.dtr-date-section .filter-date-picker');
         const workDateInput = form.querySelector('input[name="work_date"]');
         const useTodayBtn = form.querySelector('[data-dtr-date-today]');
+        const dateTakenBanner = form.querySelector('[data-dtr-date-taken-banner]');
+        let submittedDates = [];
+        try {
+            submittedDates = JSON.parse(form.dataset.submittedDtrDates || '[]');
+            if (!Array.isArray(submittedDates)) submittedDates = [];
+        } catch (e) {
+            submittedDates = [];
+        }
+        const isWorkDateTaken = () => {
+            const value = String(workDateInput?.value || '').trim();
+            return value !== '' && submittedDates.includes(value);
+        };
         if (!groups.length || !tasks || !submit || !dayTypeSelect) return;
 
         const getDayType = () => dayTypeConfig[dayTypeSelect.value] ? dayTypeSelect.value : 'full';
@@ -3331,6 +3360,7 @@ function initDtrTimeLocks() {
         const sync = () => {
             const config = getConfig();
             const required = config.requiredIndices;
+            const dateTaken = isWorkDateTaken();
 
             if (formIntro) formIntro.textContent = config.intro;
             if (tasksLabel) tasksLabel.textContent = config.tasksLabel;
@@ -3339,9 +3369,14 @@ function initDtrTimeLocks() {
                 tasks.placeholder = config.tasksPlaceholder;
             }
 
+            if (dateTakenBanner) {
+                dateTakenBanner.hidden = !dateTaken;
+            }
+            form.classList.toggle('dtr-date-taken', dateTaken);
+
             morningSession?.toggleAttribute('hidden', !config.morning);
             afternoonSession?.toggleAttribute('hidden', !config.afternoon);
-            sessionsWrap?.toggleAttribute('hidden', !config.needsTimes);
+            sessionsWrap?.toggleAttribute('hidden', !config.needsTimes || dateTaken);
             form.classList.toggle('dtr-leave-mode', !config.needsTimes);
 
             groups.forEach((item, index) => {
@@ -3353,17 +3388,21 @@ function initDtrTimeLocks() {
                 const reqPos = required.indexOf(index);
                 const mustWait = isRequired && reqPos > 0 && !groups[required[reqPos - 1]]?.locked;
                 const isSaved = item.locked && hasDtrTimeValue(item.input.value);
+                const blocked = dateTaken || !isRequired;
 
                 item.group.toggleAttribute('hidden', !isRequired);
                 item.input.disabled = false;
-                item.trigger.disabled = !isRequired;
-                item.button.disabled = !isRequired;
+                item.trigger.disabled = blocked;
+                item.button.disabled = blocked;
 
-                if (!isRequired) {
+                if (blocked) {
                     item.trigger.setAttribute('aria-disabled', 'true');
                     item.button.setAttribute('aria-disabled', 'true');
                     item.group.classList.remove('is-locked', 'is-waiting', 'has-time', 'needs-time');
                     item.group.querySelector('[data-time-lock-badge]')?.setAttribute('hidden', '');
+                    if (dateTaken) {
+                        item.display.textContent = formatDtrTimeDisplay(item.input.value);
+                    }
                     return;
                 }
 
@@ -3385,13 +3424,14 @@ function initDtrTimeLocks() {
             const timesReady = !config.needsTimes || required.every(index => groups[index]?.locked && hasDtrTimeValue(groups[index]?.input?.value));
             const dateReady = !!workDateInput?.value?.trim();
             const tasksReady = !!tasks.value.trim();
-            const canSubmit = dateReady && tasksReady && timesReady;
+            const canSubmit = !dateTaken && dateReady && tasksReady && timesReady;
 
-            tasks.disabled = false;
+            tasks.disabled = dateTaken;
+            dayTypeSelect.disabled = dateTaken;
             submit.disabled = !canSubmit;
-            form.classList.toggle('dtr-ready-for-tasks', config.needsTimes ? timesReady : true);
+            form.classList.toggle('dtr-ready-for-tasks', !dateTaken && (config.needsTimes ? timesReady : true));
 
-            datePicker?.classList.toggle('date-required-error', !dateReady);
+            datePicker?.classList.toggle('date-required-error', !dateReady || dateTaken);
 
             if (canSubmit) {
                 form.dataset.confirmTitle = config.confirmTitle || 'Submit DTR';
@@ -3415,7 +3455,10 @@ function initDtrTimeLocks() {
             }
 
             if (submitHint) {
-                if (canSubmit) {
+                if (dateTaken) {
+                    submitHint.textContent = 'This work date already has a submitted DTR. Choose a different date.';
+                    submitHint.hidden = false;
+                } else if (canSubmit) {
                     submitHint.textContent = '';
                     submitHint.hidden = true;
                 } else {
@@ -5234,6 +5277,59 @@ function initPartnerEvaluationForm() {
             certName.textContent = certInput.files.length ? 'Selected: ' + certInput.files[0].name : '';
         });
     }
+}
+
+/** Match PHP projected_ojt_end_date(): 8 hrs/day, Mon–Sat. */
+function projectedOjtEndDateIso(startIso, requiredHours, hoursPerDay = 8) {
+    const start = parseCustomDateValue(startIso);
+    if (!start) return '';
+    const hours = Math.max(1, Number(requiredHours) || 0);
+    const perDay = Math.max(1, Number(hoursPerDay) || 8);
+    const daysNeeded = Math.max(1, Math.ceil(hours / perDay));
+    const date = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    let workedDays = 0;
+    while (workedDays < daysNeeded) {
+        const weekday = date.getDay(); // 0=Sun ... 6=Sat
+        if (weekday !== 0) {
+            workedDays++;
+        }
+        if (workedDays < daysNeeded) {
+            date.setDate(date.getDate() + 1);
+        }
+    }
+    return formatCustomDateValue(date);
+}
+
+function initPartnerOrientationProjectedEnd() {
+    document.querySelectorAll('[data-orientation-complete-form]').forEach(form => {
+        if (form.dataset.projectedEndBound === '1') return;
+        form.dataset.projectedEndBound = '1';
+
+        const startInput = form.querySelector('input[name="official_start_date"]');
+        const startPicker = form.querySelector('[data-ojt-start-picker]');
+        const endPicker = form.querySelector('[data-ojt-end-picker]');
+        if (!startInput || !startPicker || !endPicker) return;
+
+        const requiredHours = Number(form.dataset.requiredHours || 0);
+
+        const syncProjectedEnd = () => {
+            const startIso = String(startInput.value || '').trim();
+            if (!startIso) {
+                setFormDatePickerValue(endPicker, '');
+                endPicker.removeAttribute('data-date-min');
+                return;
+            }
+            const endIso = projectedOjtEndDateIso(startIso, requiredHours);
+            endPicker.dataset.dateMin = startIso;
+            setFormDatePickerValue(endPicker, endIso);
+        };
+
+        startInput.addEventListener('change', syncProjectedEnd);
+        startInput.addEventListener('input', syncProjectedEnd);
+        if (startInput.value) {
+            syncProjectedEnd();
+        }
+    });
 }
 
 function openSlidePanel(html) {
@@ -7906,6 +8002,8 @@ function initAdminPartnerEditDetailsModal() {
     const phoneInput = overlay.querySelector('[data-asu-edit-partner-phone]');
     const addressInput = overlay.querySelector('[data-asu-edit-partner-address]');
     const moaHint = overlay.querySelector('[data-asu-edit-partner-moa-hint]');
+    const moaFileLabel = overlay.querySelector('.asu-partner-edit-moa-copy strong');
+    const fileInput = overlay.querySelector('input[type="file"][name="moa_mou_file"]');
 
     const closeModal = () => {
         overlay.classList.remove('is-open');
@@ -7925,15 +8023,21 @@ function initAdminPartnerEditDetailsModal() {
         if (addressInput) addressInput.value = trigger.dataset.address || '';
         if (moaHint) {
             moaHint.textContent = trigger.dataset.hasMoa === '1'
-                ? 'Optional. Upload a file only if you need to replace the current MOA/MOU.'
+                ? 'Leave empty to keep the current document.'
                 : 'Optional. Upload the establishment MOA/MOU document.';
         }
-        const fileInput = overlay.querySelector('input[type="file"][name="moa_mou_file"]');
         if (fileInput) fileInput.value = '';
+        if (moaFileLabel) moaFileLabel.textContent = 'Choose file';
         overlay.classList.add('is-open');
         overlay.setAttribute('aria-hidden', 'false');
         nameInput?.focus();
     };
+
+    fileInput?.addEventListener('change', () => {
+        if (!moaFileLabel) return;
+        const name = fileInput.files?.[0]?.name;
+        moaFileLabel.textContent = name || 'Choose file';
+    });
 
     document.addEventListener('click', event => {
         const trigger = event.target.closest('[data-asu-edit-partner]');
@@ -8248,7 +8352,8 @@ function initAdminStudentsDirectory() {
 
 function initWeeklyReportUpload() {
     const form = document.getElementById('weeklyReportForm');
-    if (!form) return;
+    if (!form || form.dataset.wrUploadBound === '1') return;
+    form.dataset.wrUploadBound = '1';
 
     initWeeklyReportDateRange(form);
 
@@ -8346,19 +8451,24 @@ function initWeeklyReportUpload() {
         if (el) el.remove();
     }
 
-    form.addEventListener('submit', e => {
+    form.addEventListener('submit', () => {
+        // Confirm modal calls requestSubmit() again — remove any prior dynamic
+        // inputs so the same photo is not appended twice.
+        form.querySelectorAll('input[data-wr-proof-input]').forEach(el => el.remove());
+
         const activeFiles = proofFiles.filter(f => f !== null);
-        if (activeFiles.length > 0) {
-            const dt = new DataTransfer();
-            activeFiles.forEach(f => dt.items.add(f));
-            const dynamicInput = document.createElement('input');
-            dynamicInput.type = 'file';
-            dynamicInput.name = 'proof_files[]';
-            dynamicInput.multiple = true;
-            dynamicInput.hidden = true;
-            dynamicInput.files = dt.files;
-            form.appendChild(dynamicInput);
-        }
+        if (activeFiles.length === 0) return;
+
+        const dt = new DataTransfer();
+        activeFiles.forEach(f => dt.items.add(f));
+        const dynamicInput = document.createElement('input');
+        dynamicInput.type = 'file';
+        dynamicInput.name = 'proof_files[]';
+        dynamicInput.multiple = true;
+        dynamicInput.hidden = true;
+        dynamicInput.dataset.wrProofInput = '1';
+        dynamicInput.files = dt.files;
+        form.appendChild(dynamicInput);
     });
 }
 
@@ -8647,6 +8757,7 @@ function reinitAppPageContent() {
     initPartnerTimelinePicker();
     initPartnerSubmissionReview();
     initPartnerEvaluationForm();
+    initPartnerOrientationProjectedEnd();
     initEmailLogViews();
     initEmailLogsFeed();
     initRequirementReviewModals();

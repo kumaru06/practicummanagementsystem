@@ -354,6 +354,7 @@ match ($route) {
     'partner_evaluate' => (new PartnerController())->evaluateForm(),
     'partner_submissions' => (new PartnerController())->submissions(),
     'partner_view_endorsement' => (new PartnerController())->viewEndorsementLetter(),
+    'partner_view_requirement_form' => (new PartnerController())->viewRequirementForm(),
     'partner_settings' => (new PartnerController())->settings(),
     'partner_profile' => (new PartnerController())->profileForm(),
     'partner_password' => (new PartnerController())->changePasswordForm(),

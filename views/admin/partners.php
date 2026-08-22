@@ -473,52 +473,66 @@ $totalPrograms = count($programs);
 </div>
 
 <div class="asu-partner-programs-overlay" id="asuPartnerEditDetailsOverlay" aria-hidden="true">
-    <div class="asu-partner-programs-modal asu-partner-edit-programs-modal" role="dialog" aria-modal="true" aria-labelledby="asuPartnerEditDetailsTitle">
-        <div class="asu-partner-programs-modal-head">
-            <div>
+    <div class="asu-partner-programs-modal asu-partner-edit-details-modal" role="dialog" aria-modal="true" aria-labelledby="asuPartnerEditDetailsTitle">
+        <div class="asu-partner-programs-modal-head asu-partner-edit-details-head">
+            <div class="asu-partner-edit-details-copy">
                 <span class="asu-eyebrow">Edit Details</span>
                 <h2 id="asuPartnerEditDetailsTitle">Host Training Establishment</h2>
                 <p class="asu-partner-programs-modal-sub">Update profile information and optionally replace the MOA/MOU file.</p>
             </div>
             <button type="button" class="asu-partner-programs-close" data-asu-edit-partner-close aria-label="Close">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
             </button>
         </div>
-        <form method="post" enctype="multipart/form-data" class="asu-partner-edit-programs-form form js-validate" id="asuPartnerEditDetailsForm">
+        <form method="post" enctype="multipart/form-data" class="asu-partner-edit-programs-form asu-partner-edit-details-form form js-validate" id="asuPartnerEditDetailsForm">
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="admin_update_company">
             <input type="hidden" name="company_id" value="" data-asu-edit-partner-id>
-            <div class="asu-partner-programs-modal-body asu-partner-edit-programs-body">
-                <div class="partner-form-fields">
+            <div class="asu-partner-programs-modal-body asu-partner-edit-details-body">
+                <div class="asu-partner-edit-details-grid">
                     <label class="partner-field">
                         <span class="partner-field-label">Company Name <em>*</em></span>
-                        <input required name="company_name" data-asu-edit-partner-name autocomplete="organization">
+                        <input required name="company_name" data-asu-edit-partner-name autocomplete="organization" placeholder="Company or establishment name">
                     </label>
                     <label class="partner-field">
                         <span class="partner-field-label">Contact Person <em>*</em></span>
-                        <input required name="contact_person" data-asu-edit-partner-contact autocomplete="name">
+                        <input required name="contact_person" data-asu-edit-partner-contact autocomplete="name" placeholder="Full name">
                     </label>
                     <label class="partner-field">
                         <span class="partner-field-label">Email Address <em>*</em></span>
-                        <input required type="email" name="contact_email" data-asu-edit-partner-email autocomplete="email">
+                        <input required type="email" name="contact_email" data-asu-edit-partner-email autocomplete="email" placeholder="name@company.com">
                     </label>
                     <label class="partner-field">
                         <span class="partner-field-label">Contact Number <em>*</em></span>
-                        <input required name="contact_number" data-asu-edit-partner-phone inputmode="numeric" autocomplete="tel-national" maxlength="16" data-phone-format="ph" pattern="\+63\s9\d{2}\s\d{3}\s\d{4}" title="Use format +63 951 192 5735">
+                        <input required name="contact_number" data-asu-edit-partner-phone inputmode="numeric" autocomplete="tel-national" maxlength="16" data-phone-format="ph" pattern="\+63\s9\d{2}\s\d{3}\s\d{4}" title="Use format +63 951 192 5735" placeholder="+63 9XX XXX XXXX">
                     </label>
-                    <label class="partner-field">
+                    <label class="partner-field partner-field--span-2">
                         <span class="partner-field-label">Address <em>*</em></span>
-                        <textarea required name="address" rows="3" data-asu-edit-partner-address></textarea>
+                        <textarea required name="address" rows="3" data-asu-edit-partner-address placeholder="Street, city, province"></textarea>
                     </label>
-                    <label class="partner-field">
+                    <div class="partner-field partner-field--span-2 asu-partner-edit-moa">
                         <span class="partner-field-label">MOA / MOU File</span>
-                        <input type="file" name="moa_mou_file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
-                        <small class="muted" data-asu-edit-partner-moa-hint>Optional. Upload a file only if you need to replace the current document.</small>
-                    </label>
+                        <label class="asu-partner-edit-moa-drop">
+                            <input type="file" name="moa_mou_file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                            <span class="asu-partner-edit-moa-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+                                    <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+                                    <path d="M12 18v-6"/>
+                                    <path d="m9 15 3-3 3 3"/>
+                                </svg>
+                            </span>
+                            <span class="asu-partner-edit-moa-copy">
+                                <strong>Choose file</strong>
+                                <span>PDF, DOC, or DOCX — optional replacement</span>
+                            </span>
+                        </label>
+                        <small class="muted" data-asu-edit-partner-moa-hint>Leave empty to keep the current document.</small>
+                    </div>
                 </div>
             </div>
-            <div class="asu-partner-edit-programs-footer">
-                <button type="button" class="btn btn-small" data-asu-edit-partner-close>Cancel</button>
+            <div class="asu-partner-edit-programs-footer asu-partner-edit-details-footer">
+                <button type="button" class="btn btn-small asu-partner-edit-cancel" data-asu-edit-partner-close>Cancel</button>
                 <button type="submit" class="btn btn-small btn-primary">Save Details</button>
             </div>
         </form>

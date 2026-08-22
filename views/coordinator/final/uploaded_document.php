@@ -5,6 +5,9 @@
     $studentId = (int)($student['id'] ?? 0);
     $status = (string)($requirement['status'] ?? 'pending');
     $filePath = (string)($requirement['file_path'] ?? '');
+    $isForm = requirement_is_form_path($filePath);
+    $formSection = $isForm ? requirement_form_section_key($requirementKey) : null;
+    $finalRequirement = $finalRequirement ?? [];
     $canReview = $filePath !== '' && ($requirement['owner'] ?? 'student') === 'student'
         && in_array($status, ['uploaded', 'approved'], true);
     $canApprove = $canReview && $status === 'uploaded';
@@ -20,7 +23,9 @@
         <span class="badge <?= e($status) ?>"><?= e(str_replace('_', ' ', $status)) ?></span>
     </div>
 
-    <?php if ($filePath !== ''): ?>
+    <?php if ($isForm && $formSection): ?>
+        <?php require __DIR__ . '/../../shared/requirement_form_readonly.php'; ?>
+    <?php elseif ($filePath !== '' && !$isForm): ?>
         <a class="btn btn-primary" target="_blank" href="<?= e(asset($filePath)) ?>">View uploaded file</a>
     <?php else: ?>
         <p class="muted">No file uploaded.</p>
@@ -34,7 +39,7 @@
 
     <?php if ($canReview): ?>
         <div class="requirement-review-actions" style="margin-top: 1.25rem; display: grid; gap: 0.75rem;">
-            <p class="muted" style="margin: 0;"><?= $status === 'approved' ? 'This document was approved. You can revoke approval if it was reviewed by mistake.' : 'Review this uploaded document to mark it approved or rejected.' ?></p>
+            <p class="muted" style="margin: 0;"><?= $status === 'approved' ? 'This document was approved. You can revoke approval if it was reviewed by mistake.' : 'Review this submission to mark it approved or rejected.' ?></p>
             <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-start;">
                 <?php if ($canApprove): ?>
                 <form method="post" class="inline">

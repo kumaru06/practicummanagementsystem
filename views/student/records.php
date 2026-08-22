@@ -174,9 +174,20 @@
             </div>
             <span class="dtr-form-badge">OJT Attendance</span>
         </div>
-        <form method="post" class="form js-validate dtr-form" data-dtr-lock-flow data-confirm-submit="Submit this DTR? Please verify the date, session times, and tasks before submitting." data-confirm-title="Submit DTR" data-confirm-ok="Submit DTR">
+        <form method="post" class="form js-validate dtr-form" data-dtr-lock-flow
+              data-confirm-submit="Submit this DTR? Please verify the date, session times, and tasks before submitting."
+              data-confirm-title="Submit DTR" data-confirm-ok="Submit DTR"
+              data-submitted-dtr-dates="<?= e(json_encode(array_values(array_unique(array_filter(array_map(
+                  static fn ($row) => (string)($row['work_date'] ?? ''),
+                  $dtrs ?? []
+              )))), JSON_UNESCAPED_SLASHES)) ?>">
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="student_add_dtr">
+
+            <div class="dtr-date-taken-banner" data-dtr-date-taken-banner hidden>
+                <strong>A DTR already exists for this date.</strong>
+                <span>Only one daily time record is allowed per work day. Pick another date, or fix a rejected entry under Correct Rejected Submissions.</span>
+            </div>
 
             <div class="dtr-date-section">
                 <span class="dtr-field-label">Work Date</span>
@@ -307,12 +318,45 @@
                 <div class="wr-week-row">
                     <div>
                         <span class="wr-field-label">Week Number</span>
-                        <select required name="week_no">
+                        <?php
+                        $weeklyByWeek = [];
+                        foreach ($weeklyReports ?? [] as $wrRow) {
+                            $wn = (int)($wrRow['week_no'] ?? 0);
+                            if ($wn > 0 && !isset($weeklyByWeek[$wn])) {
+                                $weeklyByWeek[$wn] = strtolower(trim((string)($wrRow['verification_status'] ?? 'pending')));
+                            }
+                        }
+                        $firstOpenWeek = null;
+                        for ($probe = 1; $probe <= 18; $probe++) {
+                            if (!isset($weeklyByWeek[$probe])) {
+                                $firstOpenWeek = $probe;
+                                break;
+                            }
+                        }
+                        ?>
+                        <select required name="week_no" aria-label="Week number">
                             <option value="">Select week</option>
                             <?php for ($w = 1; $w <= 18; $w++): ?>
-                                <option value="<?= $w ?>">Week <?= $w ?></option>
+                                <?php
+                                $weekStatus = $weeklyByWeek[$w] ?? null;
+                                $isTaken = $weekStatus !== null;
+                                if ($isTaken) {
+                                    $weekLabel = match ($weekStatus) {
+                                        'approved' => 'Week ' . $w . ' ✓ Submitted',
+                                        'rejected' => 'Week ' . $w . ' ✓ Rejected — use Correct entry',
+                                        default => 'Week ' . $w . ' ✓ Submitted (pending approval)',
+                                    };
+                                } else {
+                                    $weekLabel = 'Week ' . $w;
+                                }
+                                $selectedAttr = (!$isTaken && $firstOpenWeek === $w) ? ' selected' : '';
+                                ?>
+                                <option value="<?= $w ?>"<?= $isTaken ? ' disabled' : '' ?><?= $selectedAttr ?>><?= e($weekLabel) ?></option>
                             <?php endfor; ?>
                         </select>
+                        <?php if ($weeklyByWeek !== []): ?>
+                            <small class="muted wr-week-hint">Weeks with a checkmark are already submitted and cannot be selected again. Rejected weeks can be fixed in Correct Rejected Submissions above.</small>
+                        <?php endif; ?>
                     </div>
                     <div>
                         <span class="wr-field-label">Date Covered</span>

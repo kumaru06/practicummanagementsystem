@@ -24,7 +24,11 @@ $monthLabel = static function (string $date): string {
         return '';
     }
     try {
-        return (new DateTimeImmutable($date))->format('F Y');
+        $dt = new DateTimeImmutable($date);
+        if ((int)$dt->format('Y') < 1990) {
+            return '';
+        }
+        return $dt->format('F Y');
     } catch (Throwable) {
         return '';
     }

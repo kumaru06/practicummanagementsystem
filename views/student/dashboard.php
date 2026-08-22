@@ -71,20 +71,89 @@ $showUrgentAction = $rejectedRequirementCount > 0
     || $rejectedDtrCount > 0
     || $rejectedWeeklyCount > 0
     || $predeployment === 'needs_revision';
+$formatJourneyDate = static function (?string $date): ?string {
+    if (!$date || strtotime($date) === false) {
+        return null;
+    }
+    return date('M j, Y', strtotime($date));
+};
+$ojtStartLabel = $formatJourneyDate($officialStart ? (string)$officialStart : null);
+$ojtEndLabel = $formatJourneyDate($projectedEnd ? (string)$projectedEnd : null);
+if ($ojtStartLabel && $ojtEndLabel) {
+    // Compact: "Aug 23 – Dec 15, 2026" (year once if same year)
+    $startTs = strtotime((string)$officialStart);
+    $endTs = strtotime((string)$projectedEnd);
+    if (date('Y', $startTs) === date('Y', $endTs)) {
+        $ojtStatusDetail = date('M j', $startTs) . ' – ' . date('M j, Y', $endTs);
+    } else {
+        $ojtStatusDetail = $ojtStartLabel . ' – ' . $ojtEndLabel;
+    }
+} elseif ($ojtStartLabel) {
+    $ojtStatusDetail = 'Started ' . $ojtStartLabel;
+} else {
+    $ojtStatusDetail = 'In progress';
+}
+
 $journeySteps = [
-    ['label' => 'Profile', 'done' => $profileComplete],
-    ['label' => 'Documents', 'done' => in_array($predeployment, ['approved', 'forwarded', 'accepted', 'orientation_scheduled', 'orientation_completed'], true)],
-    ['label' => 'Deployment', 'done' => in_array($predeployment, ['accepted', 'orientation_scheduled', 'orientation_completed'], true)],
-    ['label' => 'Orientation', 'done' => $deploymentComplete],
-    ['label' => 'OJT', 'done' => ($canSubmitReports ?? false) || $hoursComplete],
-    ['label' => 'Finals', 'done' => $finalRequirementsDone],
-    ['label' => 'Cleared', 'done' => $ojtCleared],
+    [
+        'label' => 'Profile',
+        'done' => $profileComplete,
+        'status' => $profileComplete ? 'Completed' : 'Pending',
+    ],
+    [
+        'label' => 'Documents',
+        'done' => in_array($predeployment, ['approved', 'forwarded', 'accepted', 'orientation_scheduled', 'orientation_completed'], true),
+        'status' => in_array($predeployment, ['approved', 'forwarded', 'accepted', 'orientation_scheduled', 'orientation_completed'], true)
+            ? 'Completed'
+            : ($uploadedRequirements > 0 ? $uploadedRequirements . '/' . $totalRequirements . ' uploaded' : 'Pending'),
+    ],
+    [
+        'label' => 'Deployment',
+        'done' => in_array($predeployment, ['accepted', 'orientation_scheduled', 'orientation_completed'], true),
+        'status' => in_array($predeployment, ['accepted', 'orientation_scheduled', 'orientation_completed'], true)
+            ? 'Completed'
+            : (in_array($predeployment, ['forwarded', 'approved'], true) ? 'In review' : 'Pending'),
+    ],
+    [
+        'label' => 'Orientation',
+        'done' => $deploymentComplete,
+        'status' => $deploymentComplete
+            ? 'Completed'
+            : ($predeployment === 'orientation_scheduled' ? 'Scheduled' : 'Pending'),
+    ],
+    [
+        'label' => 'OJT',
+        'done' => $hoursComplete || $ojtCleared,
+        'status' => ($hoursComplete || $ojtCleared)
+            ? 'Completed'
+            : (($canSubmitReports ?? false) ? $ojtStatusDetail : 'Pending'),
+    ],
+    [
+        'label' => 'Finals',
+        'done' => $finalRequirementsDone,
+        'status' => $finalRequirementsDone
+            ? 'Completed'
+            : ($canAccessFinalRequirements ? 'In progress' : 'Pending'),
+    ],
+    [
+        'label' => 'Cleared',
+        'done' => $ojtCleared,
+        'status' => $ojtCleared ? 'Completed' : 'Pending',
+    ],
 ];
 $currentJourneyIndex = count($journeySteps) - 1;
 foreach ($journeySteps as $i => $step) {
     if (!$step['done']) {
         $currentJourneyIndex = $i;
         break;
+    }
+}
+if (!empty($journeySteps[$currentJourneyIndex]) && !$journeySteps[$currentJourneyIndex]['done']) {
+    $currentLabel = (string)$journeySteps[$currentJourneyIndex]['label'];
+    if ($currentLabel === 'OJT' && ($canSubmitReports ?? false)) {
+        $journeySteps[$currentJourneyIndex]['status'] = $ojtStatusDetail;
+    } elseif ($journeySteps[$currentJourneyIndex]['status'] === 'Pending') {
+        $journeySteps[$currentJourneyIndex]['status'] = 'Current';
     }
 }
 $studentName = (string)($student['name'] ?? current_user()['name'] ?? 'Student');
@@ -114,18 +183,27 @@ $companyName = (string)($enrollment['company_name'] ?? 'Not enrolled');
 
     <nav class="sd3-journey" aria-label="OJT journey progress">
         <?php foreach ($journeySteps as $i => $step): ?>
-            <div class="sd3-journey-step<?= $step['done'] ? ' is-done' : '' ?><?= $i === $currentJourneyIndex ? ' is-current' : '' ?>">
+            <?php
+            $isCurrent = $i === $currentJourneyIndex;
+            $stepClass = ($step['done'] ? ' is-done' : '') . ($isCurrent ? ' is-current' : '');
+            ?>
+            <div class="sd3-journey-step<?= $stepClass ?>">
                 <span class="sd3-journey-dot" aria-hidden="true">
                     <?php if ($step['done']): ?>
-                        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                        <svg class="sd3-journey-check" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M9.2 16.6 4.8 12.3l1.5-1.5 2.9 2.9 7.4-7.5 1.5 1.5z"/>
+                        </svg>
                     <?php else: ?>
                         <span><?= $i + 1 ?></span>
                     <?php endif; ?>
                 </span>
-                <span class="sd3-journey-label"><?= e($step['label']) ?></span>
+                <span class="sd3-journey-copy">
+                    <span class="sd3-journey-label"><?= e($step['label']) ?></span>
+                    <span class="sd3-journey-status"><?= e($step['status']) ?></span>
+                </span>
             </div>
             <?php if ($i < count($journeySteps) - 1): ?>
-                <span class="sd3-journey-line<?= $step['done'] ? ' is-done' : '' ?>" aria-hidden="true"></span>
+                <span class="sd3-journey-line<?= $step['done'] ? ' is-done' : ($isCurrent ? ' is-current' : '') ?>" aria-hidden="true"></span>
             <?php endif; ?>
         <?php endforeach; ?>
     </nav>

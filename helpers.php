@@ -216,6 +216,7 @@ function route_url(string $route, array $params = []): string
         'partner.evaluate' => 'index.php?r=partner_evaluate',
         'partner.submissions' => 'index.php?r=partner_submissions',
         'partner.view_endorsement' => 'index.php?r=partner_view_endorsement',
+        'partner.view_requirement_form' => 'index.php?r=partner_view_requirement_form',
         'partner.settings' => 'index.php?r=partner_settings',
         'partner.profile' => 'index.php?r=partner_profile',
         'partner.password.edit' => 'index.php?r=partner_password',
@@ -304,30 +305,25 @@ function partner_profile_photo_url(?array $company): string
 
 function requirement_card_icon(string $requirementKey): string
 {
-    $svg = 'class="req-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
-    $svgFilled = 'class="req-icon-svg req-icon-svg--filled" viewBox="0 0 24 24" aria-hidden="true"';
+    $svg = 'class="req-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
     $icons = [
-        'cor' => '<svg ' . $svgFilled . '><rect x="2" y="4.5" width="20" height="11.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="4" y="7" width="10.5" height="1.25" rx="0.62" fill="currentColor"/><rect x="4" y="9.1" width="7.5" height="1.25" rx="0.62" fill="currentColor"/><rect x="4" y="11.2" width="5.5" height="1.25" rx="0.62" fill="currentColor"/><path d="M4.2 13.5c.8-.5 1.3-.5 2.1 0 .8.5 1.3.5 2.1 0" fill="none" stroke="currentColor" stroke-width=".9" stroke-linecap="round"/><path fill="currentColor" fill-rule="evenodd" d="M17.5 9.8a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm0 1.4a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2z"/><path fill="currentColor" d="M16 15.5 15 18.2 16.5 16.8 18 18.2 17 15.5z"/></svg>',
-        'cv' => '<svg ' . $svgFilled . '><rect x="6.5" y="2" width="11" height="20" rx="0.6" fill="none" stroke="currentColor" stroke-width="1.35"/><path fill="currentColor" d="M12 3.8C9.8 3.8 8.5 5.2 8.5 6.8v1h7V6.8C15.5 5.2 14.2 3.8 12 3.8z"/><path fill="currentColor" d="M8.8 10.2c-.3.7-.5 1.5-.5 2.3h1.8c.1-.9.2-1.6.4-2.3H8.8z"/><path fill="currentColor" d="M15.2 10.2c.3.7.5 1.5.5 2.3H14c-.1-.9-.2-1.6-.4-2.3h1.6z"/><path fill="none" stroke="currentColor" stroke-width="1.1" d="M9.8 7.5c0 1.2.9 2.2 2.2 2.2s2.2-1 2.2-2.2"/><path fill="none" stroke="currentColor" stroke-width=".85" d="M10.2 11.5c.7.4 1.9.4 2.6 0"/><rect x="8" y="14.3" width="3.8" height="1.15" rx=".58" fill="currentColor"/><rect x="12.2" y="14.3" width="3.8" height="1.15" rx=".58" fill="currentColor"/><rect x="8" y="16.3" width="8" height="1.15" rx=".58" fill="currentColor"/><rect x="8" y="18.3" width="8" height="1.15" rx=".58" fill="currentColor"/></svg>',
+        'cor' => '<svg ' . $svg . '><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/><path d="M6 15h2"/><path d="M10 15h4"/></svg>',
+        'cv' => '<svg ' . $svg . '><path d="M16 2H8a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z"/><circle cx="12" cy="8" r="2"/><path d="M9.5 14a3.5 3.5 0 0 1 5 0"/><path d="M8 18h8"/></svg>',
         'philhealth' => '<svg ' . $svg . '><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M12 5v6"/><path d="M9 8h6"/></svg>',
         'vaccine_card' => '<svg ' . $svg . '><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 3"/></svg>',
-        'guardian_consent' => '<svg class="req-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="7.8" cy="6.5" r="3.6"/><path d="M4.5 17.5a4.8 4.8 0 0 1 6.6 0"/><circle cx="15.2" cy="9.5" r="2.4"/><path d="M13 17.5a3.5 3.5 0 0 1 4.4 0"/></svg>',
-        'guardian_id' => '<svg ' . $svgFilled . '><rect x="2" y="5.5" width="20" height="13" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="4" y="7.5" width="11" height="1.4" rx=".7" fill="currentColor"/><rect x="16.5" y="7.5" width="3.5" height="1.4" rx=".7" fill="currentColor"/><ellipse cx="8.5" cy="10.8" rx="1.9" ry="2.1" fill="currentColor"/><path fill="currentColor" d="M6.5 9.2c0-.9.7-1.6 1.6-1.6.3 0 .6.1.9.3.2-.5.7-.9 1.3-.9.8 0 1.5.6 1.5 1.4"/><path fill="currentColor" d="M5.5 17.5c0-2.8 1.1-4.5 3-4.5s3 1.7 3 4.5"/><rect x="11.5" y="11" width="9" height="1.2" rx=".6" fill="currentColor"/><rect x="11.5" y="13.2" width="5.5" height="1.2" rx=".6" fill="currentColor"/><rect x="17.5" y="13.2" width="3" height="1.2" rx=".6" fill="currentColor"/><rect x="11.5" y="15.4" width="9" height="1.2" rx=".6" fill="currentColor"/></svg>',
+        'guardian_consent' => '<svg ' . $svg . '><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+        'guardian_id' => '<svg ' . $svg . '><rect width="20" height="14" x="2" y="5" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M14 10h4"/><path d="M14 14h2"/></svg>',
         'endorsement_letter' => '<svg ' . $svg . '><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="m16 17 2 2 4-4"/></svg>',
         'recommendation_letter' => '<svg ' . $svg . '><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="m16 17 2 2 4-4"/></svg>',
-        'moa_mou' => '<svg ' . $svg . '><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 14 2 2 4-4"/></svg>',
-        'dtr_document' => '<svg ' . $svg . '><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/></svg>',
-        'supervisor_id' => '<svg ' . $svg . '><rect width="20" height="14" x="2" y="5" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M8 14v1"/><path d="M14 10h4"/><path d="M14 14h2"/></svg>',
         'confidentiality_agreement' => '<svg ' . $svg . '><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>',
-        'acceptance_form' => '<svg ' . $svg . '><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 14 2 2 4-4"/></svg>',
-        'company_profile_doc' => '<svg ' . $svg . '><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/></svg>',
-        'job_description_doc' => '<svg ' . $svg . '><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 13h.01"/></svg>',
+        'company_profile_doc' => '<svg ' . $svg . '><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>',
+        'job_description_doc' => '<svg ' . $svg . '><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/></svg>',
         'weekly_accomplishment' => '<svg ' . $svg . '><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h4"/><path d="M8 18h.01"/><path d="M12 18h4"/></svg>',
         'summary_accomplishment' => '<svg ' . $svg . '><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>',
-        'personal_observation_doc' => '<svg ' . $svg . '><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="m16 17 2 2 4-4"/></svg>',
+        'personal_observation_doc' => '<svg ' . $svg . '><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
         'evaluation_form' => '<svg ' . $svg . '><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>',
         'coc' => '<svg ' . $svg . '><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>',
-        'industry_partner_evaluation' => '<svg ' . $svg . '><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/></svg>',
+        'industry_partner_evaluation' => '<svg ' . $svg . '><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/></svg>',
         'coordinator_evaluation' => '<svg ' . $svg . '><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
     ];
 
@@ -616,6 +612,82 @@ function student_stage3_legacy_doc_aliases(): array
         'company_profile' => 'company_profile_doc',
         'personal_observation' => 'personal_observation_doc',
     ];
+}
+
+function requirement_form_path(string $requirementKey): string
+{
+    return 'form:' . $requirementKey;
+}
+
+function requirement_is_form_path(?string $path): bool
+{
+    return is_string($path) && str_starts_with($path, 'form:');
+}
+
+/**
+ * Map a student_requirements key (or legacy form key) to FinalRequirement section key.
+ */
+function requirement_form_section_key(string $requirementOrFormKey): ?string
+{
+    $aliases = student_stage3_legacy_doc_aliases();
+    $requirementKey = $aliases[$requirementOrFormKey] ?? $requirementOrFormKey;
+    $def = Student::REQUIREMENTS[$requirementKey] ?? null;
+    if (!$def || ($def['kind'] ?? '') !== 'form') {
+        return null;
+    }
+    $formKey = (string)($def['form_key'] ?? '');
+    return $formKey !== '' ? $formKey : null;
+}
+
+/**
+ * @return array<string, string> form_key => requirement_key for stage-3 form docs
+ */
+function student_stage3_form_requirement_keys(): array
+{
+    $map = [];
+    foreach (Student::REQUIREMENTS as $key => $def) {
+        if (($def['kind'] ?? '') !== 'form') {
+            continue;
+        }
+        $formKey = (string)($def['form_key'] ?? '');
+        if ($formKey !== '') {
+            $map[$formKey] = $key;
+        }
+    }
+    return $map;
+}
+
+/**
+ * Pending admin queue counts for sidebar badges.
+ *
+ * @return array{registration:int,password_reset:int,total:int}
+ */
+function admin_pending_request_counts(): array
+{
+    static $cached = null;
+    if (is_array($cached)) {
+        return $cached;
+    }
+
+    $registration = 0;
+    $passwordReset = 0;
+    try {
+        $registration = (new StudentRegistrationRequest(db()))->pendingCount();
+    } catch (Throwable) {
+        // ignore if table missing
+    }
+    try {
+        $passwordReset = (new PasswordResetRequest(db()))->pendingCount();
+    } catch (Throwable) {
+        // ignore if table missing
+    }
+
+    $cached = [
+        'registration' => max(0, (int)$registration),
+        'password_reset' => max(0, (int)$passwordReset),
+        'total' => max(0, (int)$registration) + max(0, (int)$passwordReset),
+    ];
+    return $cached;
 }
 
 /**
@@ -1575,7 +1647,36 @@ function format_timeline_date(?string $date): string
         return trim($date);
     }
 
+    // Guard against Unix-epoch / zero-date placeholders leaking into the UI.
+    if ((int)$dt->format('Y') < 1990) {
+        return '';
+    }
+
     return $dt->format('M j, Y') . ' · ' . $dt->format('l');
+}
+
+/**
+ * First usable calendar date from candidates (Y-m-d). Skips empty / epoch / zero dates.
+ */
+function timeline_usable_date(string ...$candidates): string
+{
+    foreach ($candidates as $candidate) {
+        $candidate = trim($candidate);
+        if ($candidate === '' || str_starts_with($candidate, '0000-00-00')) {
+            continue;
+        }
+        try {
+            $dt = new DateTimeImmutable($candidate);
+        } catch (Throwable) {
+            continue;
+        }
+        if ((int)$dt->format('Y') < 1990) {
+            continue;
+        }
+        return $dt->format('Y-m-d');
+    }
+
+    return '';
 }
 
 /**
@@ -1590,14 +1691,18 @@ function build_student_timeline_entries(array $dtrs, array $weeklyReports): arra
     foreach ($dtrs as $d) {
         $entries[] = [
             'type' => 'dtr',
-            'sort_date' => (string)($d['work_date'] ?? ''),
+            'sort_date' => timeline_usable_date((string)($d['work_date'] ?? '')),
             'data' => $d,
         ];
     }
 
     foreach ($weeklyReports as $r) {
-        $createdAt = (string)($r['created_at'] ?? '');
-        $sortDate = $createdAt !== '' ? substr($createdAt, 0, 10) : '1970-01-01';
+        $sortDate = timeline_usable_date(
+            (string)($r['date_covered_start'] ?? ''),
+            (string)($r['submitted_at'] ?? ''),
+            (string)($r['created_at'] ?? ''),
+            (string)($r['date_covered_end'] ?? '')
+        );
         $entries[] = [
             'type' => 'weekly',
             'sort_date' => $sortDate,
@@ -1682,8 +1787,12 @@ function build_partner_timeline_entries(?array $enrollment, array $dtrs, array $
     }
 
     foreach ($weeklyReports as $r) {
-        $createdAt = (string)($r['created_at'] ?? $r['submitted_at'] ?? '');
-        $sortDate = $createdAt !== '' ? substr($createdAt, 0, 10) : '1970-01-01';
+        $sortDate = timeline_usable_date(
+            (string)($r['date_covered_start'] ?? ''),
+            (string)($r['submitted_at'] ?? ''),
+            (string)($r['created_at'] ?? ''),
+            (string)($r['date_covered_end'] ?? '')
+        );
         $entries[] = [
             'type' => 'weekly',
             'sort_date' => $sortDate,

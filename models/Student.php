@@ -42,13 +42,23 @@ class Student
         'recommendation_letter' => ['name' => 'Recommendation Letter', 'stage' => 2, 'owner' => 'student', 'notes' => 'Upload the recommendation letter issued for your placement.'],
 
         // ---- Stage 3: 3rd to Comply (during / after OJT) ----
-        'moa_mou' => ['name' => 'MOA/MOU', 'stage' => 3, 'owner' => 'student', 'notes' => 'Signed by both parties.'],
-        'dtr_document' => ['name' => 'Daily Time Record (DTR)', 'stage' => 3, 'owner' => 'student', 'notes' => 'Compiled DTR (8AM-5PM, Monday to Saturday, 8 hrs/day).'],
-        'supervisor_id' => ['name' => "Supervisor's ID with Signature", 'stage' => 3, 'owner' => 'student', 'notes' => 'Upload scan or photo with signature.'],
         'confidentiality_agreement' => ['name' => 'Confidentiality Agreement', 'stage' => 3, 'owner' => 'student', 'notes' => 'Signed confidentiality agreement.'],
-        'acceptance_form' => ['name' => 'Acceptance Form', 'stage' => 3, 'owner' => 'student', 'notes' => 'Signed acceptance form from the Host Training Establishment.'],
-        'company_profile_doc' => ['name' => 'Company Profile', 'stage' => 3, 'owner' => 'student', 'notes' => 'Profile of your Host Training Establishment.'],
-        'job_description_doc' => ['name' => 'Job Description', 'stage' => 3, 'owner' => 'student', 'notes' => 'Job description for your OJT role.'],
+        'company_profile_doc' => [
+            'name' => 'Company Profile',
+            'stage' => 3,
+            'owner' => 'student',
+            'notes' => 'Profile of your Host Training Establishment.',
+            'kind' => 'form',
+            'form_key' => 'company_profile',
+        ],
+        'job_description_doc' => [
+            'name' => 'Job Description',
+            'stage' => 3,
+            'owner' => 'student',
+            'notes' => 'Job description for your OJT role.',
+            'kind' => 'form',
+            'form_key' => 'job_description',
+        ],
         'weekly_accomplishment' => ['name' => 'Weekly Accomplishment Report', 'stage' => 3, 'owner' => 'student', 'notes' => 'Weekly accomplishment report (with daily onsite pictures where required).'],
         'summary_accomplishment' => ['name' => 'Summary Accomplishment Report', 'stage' => 3, 'owner' => 'student', 'notes' => 'Summary accomplishment report.'],
         'personal_observation_doc' => ['name' => 'Personal Observation', 'stage' => 3, 'owner' => 'student', 'notes' => 'Your personal observation write-up.'],
@@ -220,6 +230,7 @@ class Student
                     'stage' => (int)$def['stage'],
                     'kind' => $def['kind'] ?? 'upload',
                     'evaluation_key' => $def['evaluation_key'] ?? null,
+                    'form_key' => $def['form_key'] ?? null,
                 ];
             }
         }
@@ -370,6 +381,7 @@ class Student
             $rows[$key]['owner'] = $def['owner'];
             $rows[$key]['kind'] = $def['kind'] ?? 'upload';
             $rows[$key]['evaluation_key'] = $def['evaluation_key'] ?? null;
+            $rows[$key]['form_key'] = $def['form_key'] ?? null;
         }
         if ($stage === 3) {
             $evalRow = (new StudentEvaluation($this->db))->getByStudent($studentId);
@@ -481,8 +493,15 @@ class Student
         if (!isset(self::REQUIREMENTS[$key])) {
             throw new RuntimeException('Invalid requirement.');
         }
-        if ((self::REQUIREMENTS[$key]['kind'] ?? 'upload') === 'evaluation') {
+        $kind = self::REQUIREMENTS[$key]['kind'] ?? 'upload';
+        if ($kind === 'evaluation') {
             throw new RuntimeException('Complete this requirement using the evaluation form in 3rd to Comply.');
+        }
+        if ($kind === 'form' && !requirement_is_form_path($filePath)) {
+            throw new RuntimeException('Complete this requirement using the form in 3rd to Comply.');
+        }
+        if ($kind !== 'form' && requirement_is_form_path($filePath)) {
+            throw new RuntimeException('Invalid requirement file path.');
         }
         $name = self::REQUIREMENTS[$key]['name'];
         $existingStmt = $this->db->prepare('SELECT status FROM student_requirements WHERE student_id = ? AND requirement_key = ? LIMIT 1');
@@ -501,6 +520,17 @@ class Student
                 (new Enrollment($this->db))->setPredeploymentStatus($studentId, $nextStatus);
             }
         }
+    }
+
+    /**
+     * Mark a structured form requirement as submitted (sentinel file_path).
+     */
+    public function saveFormRequirement(int $studentId, string $key): void
+    {
+        if ((self::REQUIREMENTS[$key]['kind'] ?? 'upload') !== 'form') {
+            throw new RuntimeException('Invalid form requirement.');
+        }
+        $this->saveRequirement($studentId, $key, requirement_form_path($key));
     }
 
     public function reviewRequirement(int $studentId, string $key, string $status, string $notes = ''): void
@@ -679,7 +709,8 @@ class Student
         if (($requirement['kind'] ?? 'upload') === 'evaluation') {
             return false;
         }
-        // Only student-owned documents can be uploaded by the student.
+        // Form requirements are saved via structured forms, not file upload — but the same
+        // empty/rejected gate controls whether the student may submit/edit the form.
         if (($requirement['owner'] ?? 'student') !== 'student') {
             return false;
         }
@@ -748,6 +779,23 @@ class Student
                 return 'Completed';
             }
             return 'Complete the evaluation form';
+        }
+        if (($requirement['kind'] ?? 'upload') === 'form') {
+            if (!$this->canAccessStage($studentId, $stage)) {
+                return 'Locked';
+            }
+            $status = $requirement['status'] ?? 'pending';
+            $hasFile = !empty($requirement['file_path']);
+            if ($status === 'approved') {
+                return 'Approved';
+            }
+            if ($status === 'rejected') {
+                return 'Update the rejected form';
+            }
+            if ($hasFile) {
+                return 'Awaiting review';
+            }
+            return 'Fill out the form';
         }
         $owner = $requirement['owner'] ?? 'student';
         $status = $requirement['status'] ?? 'pending';
@@ -900,6 +948,15 @@ class Student
 
     public function requirementFilePaths(int $studentId): array
     {
-        return array_values(array_filter(array_map(static fn ($req) => $req['file_path'] ?? null, $this->requirements($studentId))));
+        return array_values(array_filter(array_map(
+            static function ($req) {
+                $path = $req['file_path'] ?? null;
+                if ($path === null || $path === '' || requirement_is_form_path((string)$path)) {
+                    return null;
+                }
+                return $path;
+            },
+            $this->requirements($studentId)
+        )));
     }
 }

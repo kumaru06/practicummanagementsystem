@@ -1,11 +1,15 @@
 <?php
     $finalRequirement = $finalRequirement ?? [];
-    $svgAttrs = 'class="final-req-icon" viewBox="0 0 24 24" aria-hidden="true"';
-    $jobIcon = '<svg ' . $svgAttrs . '><path fill="currentColor" d="M10 2h4a2 2 0 0 1 2 2v1h4a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h4V4a2 2 0 0 1 2-2Zm0 4V4h-4v2h4Zm-2 8v2h4v-2H8Z"/></svg>';
+    $formReadOnly = !empty($formReadOnly);
 ?>
 <section class="card final-form-card">
     <div class="final-form-head">
-        <span class="final-form-icon final-form-icon--job"><?= $jobIcon ?></span>
+        <span class="final-form-icon final-form-icon--job" aria-hidden="true">
+            <svg class="final-form-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                <rect width="20" height="14" x="2" y="6" rx="2"/>
+            </svg>
+        </span>
         <div class="final-form-head-copy">
             <h2>Job Description</h2>
             <p class="muted">Provide a detailed description of duties and responsibilities.</p>
@@ -16,20 +20,22 @@
         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="action" value="student_save_final_job_description">
 
-        <label class="final-form-field">
-            <span class="final-form-label">Position Held <span class="req-star">*</span></span>
-            <input type="text" name="position_held" required maxlength="255" placeholder="Enter position held..." value="<?= e($finalRequirement['position_held'] ?? '') ?>">
-        </label>
+        <div class="final-form-field">
+            <label class="final-form-label" for="job-position-held">Position Held <span class="req-star">*</span></label>
+            <input id="job-position-held" type="text" name="position_held" <?= $formReadOnly ? 'readonly' : 'required' ?> maxlength="255" placeholder="Enter position held..." value="<?= e($finalRequirement['position_held'] ?? '') ?>" autocomplete="organization-title">
+        </div>
 
-        <label class="final-form-field">
-            <span class="final-form-label">Job Description (Duties and Responsibilities) <span class="req-star">*</span></span>
-            <span class="final-form-hint">Provide a detailed description of the duties and responsibilities of this position.</span>
-            <textarea name="job_description" required maxlength="2000" rows="7" placeholder="Write detailed description of duties and responsibilities..."><?= e($finalRequirement['job_description'] ?? '') ?></textarea>
-        </label>
+        <div class="final-form-field">
+            <label class="final-form-label" for="job-description-text">Job Description (Duties and Responsibilities) <span class="req-star">*</span></label>
+            <p class="final-form-hint">Provide a detailed description of the duties and responsibilities of this position.</p>
+            <textarea id="job-description-text" name="job_description" <?= $formReadOnly ? 'readonly' : 'required' ?> maxlength="2000" rows="7" placeholder="Write detailed description of duties and responsibilities..."><?= e($finalRequirement['job_description'] ?? '') ?></textarea>
+        </div>
 
+        <?php if (!$formReadOnly): ?>
         <button class="btn btn-primary final-form-submit" type="submit">
-            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4Zm-5 16H8v-2h4v2Zm4-4H8v-2h8v2Zm0-5V5l3 3h-3Z"/></svg>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg>
             <span>Save Job Description</span>
         </button>
+        <?php endif; ?>
     </form>
 </section>

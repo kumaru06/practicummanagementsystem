@@ -213,7 +213,9 @@ $currentPipeline = $selected ? partner_enrollment_pipeline_step($selected, $eval
                                         <span class="pp-chip pp-chip--default"><?= e(ucfirst(str_replace('_', ' ', $reqStatus))) ?></span>
                                     <?php endif; ?>
                                     <?= !empty($req['file_path']) && $reqStatus === 'approved'
-                                        ? '<a class="pp-doc-btn pp-doc-btn--ghost" target="_blank" href="' . e(asset($req['file_path'])) . '">View</a>'
+                                        ? (requirement_is_form_path((string)$req['file_path'])
+                                            ? '<a class="pp-doc-btn pp-doc-btn--ghost" href="' . e(route_url('partner.view_requirement_form', ['student_id' => (int)$selected['student_id'], 'key' => (string)$req['requirement_key']])) . '">View</a>'
+                                            : '<a class="pp-doc-btn pp-doc-btn--ghost" target="_blank" href="' . e(asset($req['file_path'])) . '">View</a>')
                                         : '<span class="pp-muted">—</span>' ?>
                                 </div>
                             <?php endforeach; ?>
@@ -374,7 +376,7 @@ $currentPipeline = $selected ? partner_enrollment_pipeline_step($selected, $eval
                                         <p>Set the official OJT start date to begin tracking hours.</p>
                                     </div>
                                 </div>
-                                <form method="post" class="form js-validate">
+                                <form method="post" class="form js-validate" data-orientation-complete-form data-required-hours="<?= (int)($selected['required_hours'] ?? 0) ?>">
                                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                     <input type="hidden" name="action" value="partner_complete_orientation">
                                     <input type="hidden" name="enrollment_id" value="<?= (int)$selected['id'] ?>">
@@ -383,17 +385,16 @@ $currentPipeline = $selected ? partner_enrollment_pipeline_step($selected, $eval
                                     $officialStartMinAttr = temporary_official_start_past_dates_allowed() ? '' : $orientationDate;
                                     ?>
                                     <label class="no-floating-label required-label orientation-field"><span class="field-title">Official OJT Start Date <span class="req">*</span></span>
-                                        <span class="filter-date-picker form-date-picker is-placeholder" data-date-required="1"<?= $officialStartMinAttr !== '' ? ' data-date-min="' . e($officialStartMinAttr) . '"' : '' ?>>
+                                        <span class="filter-date-picker form-date-picker is-placeholder" data-ojt-start-picker data-date-required="1"<?= $officialStartMinAttr !== '' ? ' data-date-min="' . e($officialStartMinAttr) . '"' : '' ?>>
                                             <input type="hidden" name="official_start_date" value="">
                                             <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select OJT start date"><span class="filter-date-value">mm/dd/yyyy</span><span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span></button>
                                         </span>
                                     </label>
                                     <label class="no-floating-label orientation-field"><span class="field-title">Projected End Date</span>
-                                        <span class="filter-date-picker form-date-picker is-placeholder">
+                                        <span class="filter-date-picker form-date-picker is-placeholder" data-ojt-end-picker>
                                             <input type="hidden" name="projected_end_date" value="">
                                             <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select projected end date"><span class="filter-date-value">mm/dd/yyyy</span><span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span></button>
                                         </span>
-                                        <small class="muted">Leave blank to calculate from <?= (int)$selected['required_hours'] ?> required hours at 8 hrs/day, Mon - Sat.</small>
                                     </label>
                                     <button class="btn btn-primary" type="submit">Mark Orientation Completed</button>
                                 </form>

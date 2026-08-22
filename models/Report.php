@@ -484,7 +484,24 @@ class Report
         $this->ensureWeeklyReportFilesTable();
         $stmt = $this->db->prepare('SELECT * FROM weekly_report_files WHERE weekly_report_id = ? ORDER BY id');
         $stmt->execute([$weeklyReportId]);
-        return $stmt->fetchAll();
+        $rows = $stmt->fetchAll();
+        if (!$rows) {
+            return [];
+        }
+
+        // Hide accidental duplicates from older double-submit bug (same name + size).
+        $seen = [];
+        $unique = [];
+        foreach ($rows as $row) {
+            $key = strtolower((string)($row['file_name'] ?? '')) . '|' . (int)($row['file_size'] ?? 0);
+            if ($key !== '|' && isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $unique[] = $row;
+        }
+
+        return $unique;
     }
 
     private function ensureWeeklyReportFilesTable(): void

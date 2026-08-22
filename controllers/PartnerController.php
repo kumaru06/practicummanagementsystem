@@ -908,6 +908,55 @@ class PartnerController extends BaseController
         }
     }
 
+    public function viewRequirementForm(): void
+    {
+        require_role('partner');
+        $company = $this->requireCompanyProfile();
+        $studentId = (int)($_GET['student_id'] ?? 0);
+        $requirementKey = trim((string)($_GET['key'] ?? ''));
+        if ($studentId <= 0 || $requirementKey === '') {
+            flash('error', 'Invalid request.');
+            redirect(route_url('partner.portal'));
+        }
+
+        $selected = null;
+        foreach ((new Enrollment($this->db))->deployedByCompany((int)$company['id']) as $row) {
+            if ((int)($row['student_id'] ?? 0) === $studentId) {
+                $selected = $row;
+                break;
+            }
+        }
+        if (!$selected) {
+            flash('error', 'Student not found for your Host Training Establishment.');
+            redirect(route_url('partner.portal'));
+        }
+
+        $studentModel = new Student($this->db);
+        $stage = $studentModel->requirementStage($requirementKey);
+        $requirement = $stage > 0
+            ? ($studentModel->stageRequirements($studentId, $stage)[$requirementKey] ?? null)
+            : null;
+        if (!$requirement || ($requirement['status'] ?? '') !== 'approved' || empty($requirement['file_path'])) {
+            flash('error', 'This document is not available.');
+            redirect(route_url('partner.portal', ['enrollment' => (int)($selected['id'] ?? 0)]));
+        }
+        if (!requirement_is_form_path((string)$requirement['file_path'])) {
+            flash('error', 'This document is a file upload.');
+            redirect(route_url('partner.portal', ['enrollment' => (int)($selected['id'] ?? 0)]));
+        }
+
+        $formSection = requirement_form_section_key($requirementKey);
+        $this->renderAppPage('partner/requirement_form_view', [
+            'title' => ($requirement['requirement_name'] ?? 'Document') . ' - ' . ($selected['name'] ?? 'Student'),
+            'company' => $company,
+            'student' => $selected,
+            'requirement' => $requirement,
+            'requirementKey' => $requirementKey,
+            'formSection' => $formSection,
+            'finalRequirement' => (new FinalRequirement($this->db))->getByStudent($studentId),
+        ]);
+    }
+
     public function settings(): void
     {
         require_role('partner');

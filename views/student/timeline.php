@@ -344,12 +344,17 @@ $isEmpty = $totalEntries === 0;
                     <?php $currentMonth = ''; ?>
                     <?php foreach ($timelineEntries as $entry): ?>
                         <?php
-                        $monthLabel = format_timeline_date($entry['sort_date']);
-                        $monthLabel = $monthLabel !== '' ? explode(' · ', $monthLabel)[0] : '';
-                        try {
-                            $monthKey = (new DateTimeImmutable($entry['sort_date']))->format('F Y');
-                        } catch (Throwable) {
-                            $monthKey = $monthLabel;
+                        $monthKey = '';
+                        $sortDate = trim((string)($entry['sort_date'] ?? ''));
+                        if ($sortDate !== '') {
+                            try {
+                                $monthDt = new DateTimeImmutable($sortDate);
+                                if ((int)$monthDt->format('Y') >= 1990) {
+                                    $monthKey = $monthDt->format('F Y');
+                                }
+                            } catch (Throwable) {
+                                $monthKey = '';
+                            }
                         }
                         ?>
                         <?php if ($monthKey !== '' && $monthKey !== $currentMonth): ?>
@@ -379,15 +384,25 @@ $isEmpty = $totalEntries === 0;
                             <?php
                             $r = $entry['data'];
                             $weekNo = (int)($r['week_no'] ?? 0);
-                            $createdAt = (string)($r['created_at'] ?? '');
+                            $weeklyWhen = timeline_usable_date(
+                                (string)($r['submitted_at'] ?? ''),
+                                (string)($r['created_at'] ?? ''),
+                                (string)($r['date_covered_start'] ?? '')
+                            );
+                            $dateCovered = '';
+                            if (!empty($r['date_covered_start']) && !empty($r['date_covered_end'])) {
+                                $dateCovered = date('M d', strtotime((string)$r['date_covered_start']))
+                                    . ' – '
+                                    . date('M d, Y', strtotime((string)$r['date_covered_end']));
+                            }
                             $reportSummary = $r['file_path']
                                 ? 'PDF attachment available'
-                                : (string)($r['report_text'] ?? '');
+                                : (string)($r['report_text'] ?? $r['accomplishments'] ?? '');
                             ?>
                             <article
                                 class="timeline-item st-timeline-item"
                                 data-type="weekly"
-                                data-detail="<?= e('Week ' . $weekNo . '|' . ($createdAt !== '' ? format_timeline_date(substr($createdAt, 0, 10)) : '') . '|Weekly Report|' . $reportSummary) ?>"
+                                data-detail="<?= e('Week ' . $weekNo . '|' . ($dateCovered !== '' ? $dateCovered : ($weeklyWhen !== '' ? format_timeline_date($weeklyWhen) : '')) . '|Weekly Report|' . $reportSummary) ?>"
                             >
                                 <span class="timeline-dot st-timeline-dot st-timeline-dot--weekly" aria-hidden="true"></span>
                                 <div class="timeline-card st-entry-card st-entry-card--weekly">
@@ -396,14 +411,16 @@ $isEmpty = $totalEntries === 0;
                                         <span class="st-week-pill">Week <?= $weekNo ?></span>
                                     </div>
                                     <strong>Weekly Report <?= $weekNo ?></strong>
-                                    <?php if ($createdAt !== ''): ?>
-                                        <small>Submitted <?= e(format_timeline_date(substr($createdAt, 0, 10))) ?></small>
+                                    <?php if ($dateCovered !== ''): ?>
+                                        <small><?= e($dateCovered) ?></small>
+                                    <?php elseif ($weeklyWhen !== ''): ?>
+                                        <small>Submitted <?= e(format_timeline_date($weeklyWhen)) ?></small>
                                     <?php endif; ?>
                                     <p>
                                         <?php if (!empty($r['file_path'])): ?>
                                             <a class="btn btn-small st-view-pdf" target="_blank" href="<?= e(asset($r['file_path'])) ?>">View PDF</a>
                                         <?php else: ?>
-                                            <?= e($r['report_text'] ?? '') ?>
+                                            <?= e($r['report_text'] ?? $r['accomplishments'] ?? '') ?>
                                         <?php endif; ?>
                                     </p>
                                 </div>

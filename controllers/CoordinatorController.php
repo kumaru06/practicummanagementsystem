@@ -154,13 +154,20 @@ class CoordinatorController extends BaseController
             $data['title'] = ($requirement['requirement_name'] ?? 'Document') . ' - ' . ($student['name'] ?? 'Student');
             $data['requirement'] = $requirement;
             $data['requirementKey'] = $requirementKey;
+            if (requirement_is_form_path((string)$requirement['file_path'])) {
+                $data['finalRequirement'] = (new FinalRequirement($this->db))->getByStudent($studentId);
+            }
             $this->renderAppPage('coordinator/final/uploaded_document', $data);
             return;
         }
         
-        // Handle document sections
+        // Legacy form section keys now open the synced student_requirements review page.
         if (array_key_exists($doc, FinalRequirement::SECTIONS)) {
-            flash('info', 'This document is now submitted as a file upload in 3rd to Comply.');
+            $mappedKey = student_stage3_legacy_doc_aliases()[$doc] ?? '';
+            if ($mappedKey !== '' && isset($allReviewableRequirements[$mappedKey]) && !empty($allReviewableRequirements[$mappedKey]['file_path'])) {
+                redirect('index.php?r=coordinator_student_final&student_id=' . $studentId . '&doc=' . rawurlencode($mappedKey));
+            }
+            flash('info', 'This document has not been submitted yet.');
             redirect('index.php?r=coordinator_student_final&student_id=' . $studentId);
         }
         
@@ -495,6 +502,9 @@ class CoordinatorController extends BaseController
             $attachments = [];
             foreach ($studentModel->requirements((int)$student['id']) as $req) {
                 if (($req['status'] ?? '') !== 'approved' || empty($req['file_path'])) {
+                    continue;
+                }
+                if (requirement_is_form_path((string)$req['file_path'])) {
                     continue;
                 }
                 $attachments[] = ['path' => $req['file_path']];

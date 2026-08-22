@@ -27,10 +27,11 @@
         return !empty($req['file_path']);
     }));
     $activePanel = $activePanel ?? '';
-    $showEvalForm = $activeStage === 3 && $activePanel !== '';
+    $activeKind = $activeKind ?? '';
+    $showPanelForm = $activeStage === 3 && $activePanel !== '';
 ?>
 <div class="docs-comply-page docs-comply-page--single">
-    <?php if (!$showEvalForm): ?>
+    <?php if (!$showPanelForm): ?>
     <header class="docs-comply-head">
         <div class="docs-comply-head__main">
             <span class="docs-comply-eyebrow">OJT Documents · Stage <?= (int)$activeStage ?> of 3</span>
@@ -71,7 +72,7 @@
                     <p class="muted">
                         <?= $activeStage === 2
                             ? 'Upload your recommendation letter before orientation is completed. Your endorsement letter appears here once your coordinator forwards your documents.'
-                            : 'Complete each document below. Upload files for review and finish self-evaluations when unlocked.' ?>
+                            : 'Complete each document below. Fill out forms or upload files for review, and finish self-evaluations when unlocked.' ?>
                     </p>
                 </div>
             </div>
@@ -90,13 +91,17 @@
                         <?php
                             $reqKind = $req['kind'] ?? 'upload';
                             $isEvaluation = $reqKind === 'evaluation';
+                            $isForm = $reqKind === 'form';
                             $evalKey = (string)($req['evaluation_key'] ?? '');
+                            $formKey = (string)($req['form_key'] ?? '');
                             $reqStatus = $req['status'] ?? 'pending';
                             $viewUrl = trim((string)($req['view_url'] ?? ''));
                             $hasFile = !$isEvaluation && (!empty($req['file_path']) || $viewUrl !== '');
                             $fileHref = $viewUrl !== ''
                                 ? $viewUrl
-                                : (!empty($req['file_path']) ? asset((string)$req['file_path']) : '');
+                                : (!empty($req['file_path']) && !requirement_is_form_path((string)$req['file_path'])
+                                    ? asset((string)$req['file_path'])
+                                    : '');
                             $evalComplete = $isEvaluation && $reqStatus === 'approved';
                             $iconStatus = ($hasFile || $evalComplete) ? ($evalComplete ? 'approved' : $reqStatus) : 'pending';
                             $owner = $req['owner'] ?? 'student';
@@ -105,7 +110,7 @@
                             $cardStatus = ($hasFile || $evalComplete) ? ($evalComplete ? 'approved' : $reqStatus) : 'empty';
                             $evalLocked = $isEvaluation && !($canAccessFinalRequirements ?? false);
                         ?>
-                        <article class="requirement-card status-<?= e($cardStatus) ?><?= $isEvaluation ? ' requirement-card--evaluation' : '' ?>" id="requirement-<?= e($key) ?>">
+                        <article class="requirement-card status-<?= e($cardStatus) ?><?= $isEvaluation ? ' requirement-card--evaluation' : '' ?><?= $isForm ? ' requirement-card--form' : '' ?>" id="requirement-<?= e($key) ?>">
                             <div class="requirement-card-top">
                                 <div class="requirement-card-head">
                                     <span class="requirement-status-icon <?= e(requirement_card_icon_class((string)$key)) ?>"><?= requirement_card_icon((string)$key) ?></span>
@@ -114,6 +119,8 @@
                                         <?php if (!empty($req['notes'])): ?><p class="requirement-card-notes"><?= e($req['notes']) ?></p><?php endif; ?>
                                         <?php if ($isEvaluation): ?>
                                             <span class="requirement-owner-chip">Self-evaluation</span>
+                                        <?php elseif ($isForm): ?>
+                                            <span class="requirement-owner-chip">Fill-out form</span>
                                         <?php elseif ($owner === 'coordinator'): ?>
                                             <span class="requirement-owner-chip">Provided by coordinator</span>
                                         <?php endif; ?>
@@ -147,8 +154,19 @@
                                             <?= $evalComplete ? 'Edit Evaluation' : 'Start Evaluation' ?>
                                         </a>
                                     <?php endif; ?>
-                                <?php else: ?>
+                                <?php elseif ($isForm): ?>
                                     <?php if ($hasFile): ?>
+                                        <span class="requirement-empty-chip<?= $reqStatus === 'approved' ? ' requirement-empty-chip--success' : '' ?>">
+                                            <?= $reqStatus === 'approved' ? 'Form approved' : ($reqStatus === 'rejected' ? 'Needs revision' : 'Submitted for review') ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="requirement-empty-chip">Not filled out yet</span>
+                                    <?php endif; ?>
+                                    <a class="btn btn-small" href="<?= e(route_url('student.documents', ['stage' => 3, 'doc' => $formKey !== '' ? $formKey : $key])) ?>">
+                                        <?= $canUpload ? ($hasFile ? 'Edit Form' : 'Fill Out') : 'View Form' ?>
+                                    </a>
+                                <?php else: ?>
+                                    <?php if ($hasFile && $fileHref !== ''): ?>
                                         <a class="requirement-file-chip" target="_blank" href="<?= e($fileHref) ?>">
                                             <svg class="requirement-file-svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5Z"/></svg>
                                             View file
@@ -167,7 +185,7 @@
                                             <input required type="file" name="requirement_file" accept=".pdf,.jpg,.jpeg,.png">
                                             <button class="btn btn-small" type="submit"><?= $reqStatus === 'rejected' ? 'Replace File' : 'Upload' ?></button>
                                         </form>
-                                    <?php elseif ($owner === 'student'): ?>
+                                    <?php elseif ($owner === 'student' && !$canUpload && $uploadMessage !== ''): ?>
                                         <span class="requirement-lock">
                                             <svg class="requirement-lock-svg" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18 8h-1V6a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2Zm-7 8.5V17h2v-1.5a1.5 1.5 0 1 0-2 0ZM9 8V6a3 3 0 0 1 6 0v2H9Z"/></svg>
                                             <?= e($uploadMessage) ?>
@@ -183,8 +201,12 @@
     <?php endif; ?>
     <?php endif; ?>
 
-    <?php if ($showEvalForm): ?>
-        <?php require __DIR__ . '/partials/stage3_evaluation_form.php'; ?>
+    <?php if ($showPanelForm): ?>
+        <?php if (($activeKind ?? '') === 'eval'): ?>
+            <?php require __DIR__ . '/partials/stage3_evaluation_form.php'; ?>
+        <?php else: ?>
+            <?php require __DIR__ . '/partials/stage3_form_panel.php'; ?>
+        <?php endif; ?>
     <?php endif; ?>
 </div>
 <script>

@@ -189,10 +189,13 @@ $renderTabMeta = static function (array $counts, bool $isActiveTab) use ($status
         <?php
         return;
     }
+
+    // Inactive tab: always show pending count (same number on label + badge).
+    $pendingCount = (int)$counts['pending'];
     ?>
     <span class="ps-v2-tab-meta">
-        <em class="ps-v2-tab-filter-label ps-v2-tab-filter-label--pending"><?= (int)$counts['pending'] ?> pending</em>
-        <span class="ps-v2-tab-total"><?= (int)$counts['pending'] + (int)$counts['approved'] + (int)$counts['rejected'] ?></span>
+        <em class="ps-v2-tab-filter-label ps-v2-tab-filter-label--pending"><?= $pendingCount ?> pending</em>
+        <span class="ps-v2-tab-total ps-v2-tab-total--pending"><?= $pendingCount ?></span>
     </span>
     <?php
 };

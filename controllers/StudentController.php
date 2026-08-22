@@ -278,10 +278,13 @@ class StudentController extends BaseController
         $data['stages'] = $this->buildDocumentStages($student, $enrollment);
 
         $eval = (string)($_GET['eval'] ?? '');
+        $doc = (string)($_GET['doc'] ?? '');
         $data['activePanel'] = '';
         $data['activeKind'] = '';
         $data['studentEvaluation'] = $student ? (new StudentEvaluation($this->db))->getByStudent((int)$student['id']) : [];
         $data['evaluationSections'] = FinalRequirement::EVALUATION_SECTIONS;
+        $data['finalRequirement'] = $student ? (new FinalRequirement($this->db))->getByStudent((int)$student['id']) : [];
+        $formKeys = student_stage3_form_requirement_keys();
 
         if ($activeStage === 3 && $eval !== '') {
             if (!$data['canAccessFinalRequirements']) {
@@ -292,6 +295,20 @@ class StudentController extends BaseController
                 $data['activePanel'] = $eval;
                 $data['activeKind'] = 'eval';
                 $data['title'] = FinalRequirement::EVALUATION_SECTIONS[$eval]['name'];
+            }
+        } elseif ($activeStage === 3 && $doc !== '') {
+            $formKey = requirement_form_section_key($doc) ?? (isset($formKeys[$doc]) ? $doc : null);
+            if ($formKey !== null && isset($formKeys[$formKey])) {
+                $requirementKey = $formKeys[$formKey];
+                $data['activePanel'] = $formKey;
+                $data['activeKind'] = 'doc';
+                $data['activeFormRequirementKey'] = $requirementKey;
+                $data['title'] = Student::REQUIREMENTS[$requirementKey]['name'] ?? FinalRequirement::SECTIONS[$formKey]['name'] ?? 'Document';
+                $reqRow = $data['stages'][3]['requirements'][$requirementKey] ?? null;
+                $data['canEditForm'] = $student
+                    ? (new Student($this->db))->canUploadRequirement((int)$student['id'], $requirementKey)
+                    : false;
+                $data['formRequirementStatus'] = (string)($reqRow['status'] ?? 'pending');
             }
         }
 
@@ -415,6 +432,12 @@ class StudentController extends BaseController
             $params['eval'] = $doc;
             redirect(route_url('student.documents', $params));
         }
+        $formKeys = student_stage3_form_requirement_keys();
+        $formKey = requirement_form_section_key($doc);
+        if ($formKey !== null && isset($formKeys[$formKey])) {
+            $params['doc'] = $formKey;
+            redirect(route_url('student.documents', $params));
+        }
         $legacyAliases = student_stage3_legacy_doc_aliases();
         if ($doc !== '') {
             $requirementKey = $legacyAliases[$doc] ?? $doc;
@@ -426,15 +449,63 @@ class StudentController extends BaseController
     public function saveFinalJobDescription(): void
     {
         require_role('student');
-        flash('info', 'Job Description is submitted as a file upload in 3rd to Comply.');
-        redirect(route_url('student.documents', ['stage' => 3]) . '#requirement-job_description_doc');
+        $p = $this->post();
+        $student = (new Student($this->db))->findByUser((int)current_user()['id']);
+        if (!$student) {
+            flash('error', 'Student record not found.');
+            redirect(route_url('student.documents', ['stage' => 3]));
+        }
+        $requirementKey = 'job_description_doc';
+        $studentModel = new Student($this->db);
+        try {
+            if (!$studentModel->canUploadRequirement((int)$student['id'], $requirementKey)) {
+                throw new RuntimeException($studentModel->requirementUploadMessage((int)$student['id'], $requirementKey) . '.');
+            }
+            (new FinalRequirement($this->db))->saveJobDescription(
+                (int)$student['id'],
+                (string)($p['position_held'] ?? ''),
+                (string)($p['job_description'] ?? '')
+            );
+            $studentModel->saveFormRequirement((int)$student['id'], $requirementKey);
+            $this->notifyCoordinatorRequirementUpload($student, $requirementKey, $studentModel);
+            flash('success', 'Job Description saved for review.');
+            redirect(route_url('student.documents', ['stage' => 3]) . '#requirement-' . $requirementKey);
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+            redirect(route_url('student.documents', ['stage' => 3, 'doc' => 'job_description']));
+        }
     }
 
     public function saveFinalCompanyProfile(): void
     {
         require_role('student');
-        flash('info', 'Company Profile is submitted as a file upload in 3rd to Comply.');
-        redirect(route_url('student.documents', ['stage' => 3]) . '#requirement-company_profile_doc');
+        $p = $this->post();
+        $student = (new Student($this->db))->findByUser((int)current_user()['id']);
+        if (!$student) {
+            flash('error', 'Student record not found.');
+            redirect(route_url('student.documents', ['stage' => 3]));
+        }
+        $requirementKey = 'company_profile_doc';
+        $studentModel = new Student($this->db);
+        try {
+            if (!$studentModel->canUploadRequirement((int)$student['id'], $requirementKey)) {
+                throw new RuntimeException($studentModel->requirementUploadMessage((int)$student['id'], $requirementKey) . '.');
+            }
+            (new FinalRequirement($this->db))->saveCompanyProfile(
+                (int)$student['id'],
+                (string)($p['company_history'] ?? ''),
+                (string)($p['company_description'] ?? ''),
+                (string)($p['company_mission'] ?? ''),
+                (string)($p['company_vision'] ?? '')
+            );
+            $studentModel->saveFormRequirement((int)$student['id'], $requirementKey);
+            $this->notifyCoordinatorRequirementUpload($student, $requirementKey, $studentModel);
+            flash('success', 'Company Profile saved for review.');
+            redirect(route_url('student.documents', ['stage' => 3]) . '#requirement-' . $requirementKey);
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+            redirect(route_url('student.documents', ['stage' => 3, 'doc' => 'company_profile']));
+        }
     }
 
     public function saveFinalPersonalObservation(): void
@@ -636,6 +707,9 @@ class StudentController extends BaseController
             }
             $requirementKey = trim($p['requirement_key'] ?? '');
             $studentModel = new Student($this->db);
+            if ((Student::REQUIREMENTS[$requirementKey]['kind'] ?? 'upload') === 'form') {
+                throw new RuntimeException('Complete this requirement using the form in 3rd to Comply.');
+            }
             if (!$studentModel->canUploadRequirement((int)$student['id'], $requirementKey)) {
                 throw new RuntimeException($studentModel->requirementUploadMessage((int)$student['id'], $requirementKey) . '.');
             }
@@ -915,6 +989,7 @@ class StudentController extends BaseController
         }
 
         $count = count($files['name']);
+        $seenInRequest = [];
         for ($i = 0; $i < $count; $i++) {
             if (($files['error'][$i] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) continue;
             if ($files['size'][$i] > 10 * 1024 * 1024) continue;
@@ -922,15 +997,23 @@ class StudentController extends BaseController
             $mime = (new finfo(FILEINFO_MIME_TYPE))->file($files['tmp_name'][$i]);
             if (!isset($allowed[$mime])) continue;
 
+            $originalName = basename((string)$files['name'][$i]);
+            $dedupeKey = strtolower($originalName) . '|' . (int)$files['size'][$i];
+            // Guard against double-append from confirm dialog re-submit.
+            if (isset($seenInRequest[$dedupeKey])) {
+                continue;
+            }
+            $seenInRequest[$dedupeKey] = true;
+
             $ext = $allowed[$mime];
             $safeName = bin2hex(random_bytes(12)) . '.' . $ext;
-            $originalName = htmlspecialchars(basename($files['name'][$i]), ENT_QUOTES, 'UTF-8');
+            $safeOriginal = htmlspecialchars($originalName, ENT_QUOTES, 'UTF-8');
 
             move_uploaded_file($files['tmp_name'][$i], $dir . '/' . $safeName);
             $report->addWeeklyProofFile(
                 $reportId,
                 'uploads/proof/' . $studentId . '/' . $safeName,
-                $originalName,
+                $safeOriginal,
                 $ext,
                 (int)$files['size'][$i]
             );
