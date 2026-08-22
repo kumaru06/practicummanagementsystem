@@ -391,7 +391,7 @@ $activeCoordinators = array_values(array_filter(
                         </label>
                         <label class="asu-create-field">
                             <span>First Name <em>*</em></span>
-                            <input required name="first_name" autocomplete="given-name" pattern="[A-Za-z\s\-\.]+" title="First name must contain letters only" data-capitalize-words placeholder="e.g. Kuramu">
+                            <input required name="first_name" autocomplete="given-name" pattern="[A-Za-z\s\-\.]+" title="First name must contain letters only" data-capitalize-words placeholder="Juan">
                         </label>
                         <label class="asu-create-field">
                             <span>Middle Name</span>
@@ -399,7 +399,7 @@ $activeCoordinators = array_values(array_filter(
                         </label>
                         <label class="asu-create-field">
                             <span>Last Name <em>*</em></span>
-                            <input required name="last_name" autocomplete="family-name" pattern="[A-Za-z\s\-\.]+" title="Last name must contain letters only" data-capitalize-words placeholder="e.g. Doreyan">
+                            <input required name="last_name" autocomplete="family-name" pattern="[A-Za-z\s\-\.]+" title="Last name must contain letters only" data-capitalize-words placeholder="Dela Cruz">
                         </label>
                         <label class="asu-create-field asu-create-field--full">
                             <span>Email <em>*</em></span>

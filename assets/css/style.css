@@ -32621,41 +32621,47 @@ body.is-asu-create-open {
 
 .asu-programs-table {
     width: 100%;
-    min-width: 720px;
+    min-width: 680px;
     table-layout: fixed;
 }
 
 .asu-programs-table thead th {
-    padding: 15px 20px;
+    padding: 15px 14px;
 }
 
 .asu-programs-table thead th:nth-child(1) {
-    width: 118px;
+    width: 9%;
     padding-left: 24px;
 }
 
 .asu-programs-table thead th:nth-child(2) {
-    width: auto;
+    width: 47%;
 }
 
-.asu-programs-table thead th:nth-child(3) {
-    width: 140px;
+.asu-programs-table thead th:nth-child(3),
+.asu-programs-table tbody td:nth-child(3) {
+    width: 16%;
+    text-align: left;
 }
 
-.asu-programs-table thead th:nth-child(4) {
-    width: 150px;
+.asu-programs-table thead th:nth-child(4),
+.asu-programs-table tbody td:nth-child(4),
+.asu-programs-table .asu-program-status-cell {
+    width: 20%;
+    text-align: left;
 }
 
 .asu-programs-table thead th:nth-child(5),
 .asu-programs-table tbody td:nth-child(5) {
-    width: 64px;
-    padding-left: 8px;
-    padding-right: 18px;
+    width: 8%;
+    padding-left: 4px;
+    padding-right: 16px;
+    text-align: center;
 }
 
 .asu-programs-table tbody td {
     white-space: nowrap;
-    padding: 18px 20px;
+    padding: 18px 14px;
     vertical-align: middle;
     border-bottom: 1px solid #f1f5f9;
 }
@@ -32678,8 +32684,7 @@ body.is-asu-create-open {
 
 .asu-program-code-cell,
 .asu-program-hours-cell,
-.asu-program-status-cell,
-.asu-program-action-cell {
+.asu-program-status-cell {
     text-align: left;
 }
 
@@ -32687,6 +32692,7 @@ body.is-asu-create-open {
     position: relative;
     overflow: visible;
     z-index: 2;
+    text-align: center;
 }
 
 .asu-program-name-cell {
@@ -32779,9 +32785,12 @@ body.is-asu-create-open {
 }
 
 .asu-program-status-wrap {
-    display: block;
+    display: inline-block;
     width: 128px;
-    margin: 0;
+    max-width: 100%;
+    margin: 0 6px 0 0;
+    vertical-align: middle;
+    text-align: left;
 }
 
 .asu-program-status-wrap .custom-select,
@@ -34750,8 +34759,8 @@ body.is-asu-create-open {
     position: fixed;
     inset: 0;
     background: rgba(15, 23, 42, 0.52);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     z-index: 1100;
     align-items: center;
     justify-content: center;

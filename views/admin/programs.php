@@ -131,7 +131,7 @@ $inactivePrograms = $totalPrograms - $activePrograms;
                             <th data-sort>Program Name</th>
                             <th data-sort>Hours</th>
                             <th>Status</th>
-                            <th class="asu-col-action"><span class="visually-hidden">Actions</span></th>
+                            <th class="asu-col-action">Action</th>
                         </tr>
                     </thead>
                     <tbody>
