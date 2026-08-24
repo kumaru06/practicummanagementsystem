@@ -31,3 +31,7 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+
+# for laragon pop_up blocker
+close_laragon_popup.py
