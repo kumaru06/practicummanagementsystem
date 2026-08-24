@@ -22276,9 +22276,9 @@ body.is-profile-crop-open .student-bottom-nav-root {
 }
 
 .final-form-icon--observation {
-    background: #f0fdf8;
-    border-color: #bbf7d0;
-    color: #047857;
+    background: rgba(139, 26, 26, 0.06);
+    border-color: rgba(139, 26, 26, 0.18);
+    color: #8b1a1a;
 }
 
 .final-form-icon--eval {
@@ -22616,6 +22616,71 @@ body.is-profile-crop-open .student-bottom-nav-root {
     max-width: none;
 }
 
+.po-wizard-progress {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.po-wizard-progress-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.po-wizard-progress-meta strong {
+    font-size: 0.9rem;
+    color: #1f2937;
+}
+
+.po-wizard-progress-meta span {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #8b1a1a;
+}
+
+.po-wizard-bar {
+    width: 100%;
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #f1f5f9;
+}
+
+.po-wizard-bar-fill {
+    display: block;
+    height: 100%;
+    width: 16.66%;
+    border-radius: inherit;
+    background: #8b1a1a;
+    transition: width 0.25s ease;
+}
+
+.po-wizard-dots {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+}
+
+.po-wizard-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #e2e8f0;
+}
+
+.po-wizard-dot.is-active {
+    background: #8b1a1a;
+}
+
+.po-wizard-dot.is-done {
+    background: #c4a0a0;
+}
+
 .po-field-list {
     display: grid;
     gap: 14px;
@@ -22631,12 +22696,20 @@ body.is-profile-crop-open .student-bottom-nav-root {
 }
 
 .po-field {
-    display: grid;
-    gap: 14px;
-    padding: 18px;
+    display: none;
+    gap: 12px;
+    padding: 16px 18px;
     border: 1px solid #e8edf4;
     border-radius: var(--ff-radius, 5px);
-    background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+    background: #fff;
+}
+
+.po-field.is-active {
+    display: grid;
+}
+
+.po-field.has-error {
+    border-color: rgba(139, 26, 26, 0.35);
 }
 
 .po-field-head {
@@ -22653,34 +22726,89 @@ body.is-profile-crop-open .student-bottom-nav-root {
     height: 40px;
     flex-shrink: 0;
     padding: 8px;
-    border: 1px solid #fecdd3;
-    border-radius: var(--ff-radius, 5px);
-    background: #fff8f8;
-    color: #be123c;
+    border: 1px solid rgba(139, 26, 26, 0.18);
+    border-radius: 10px;
+    background: rgba(139, 26, 26, 0.06);
+    color: #8b1a1a;
+}
+
+.po-field-icon .final-form-icon-svg,
+.po-field-icon svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.po-field-icon svg * {
+    fill: none !important;
+    stroke: currentColor !important;
+}
+
+.po-field-copy {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+}
+
+.po-field-eyebrow {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #8b1a1a;
 }
 
 .po-field-label {
     display: block;
-    font-weight: 800;
+    font-weight: 700;
+    font-size: 0.95rem;
     color: #1f2937;
-}
-
-.po-field-desc {
-    display: block;
-    margin-top: 3px;
-    font-weight: 500;
-    font-size: 0.83rem;
-    color: #6b7280;
-    line-height: 1.4;
+    line-height: 1.35;
 }
 
 .po-field-input {
     display: flex;
     flex-direction: column;
+    gap: 6px;
 }
 
 .po-field-input textarea {
-    min-height: 110px;
+    min-height: 180px;
+    border-radius: 8px;
+}
+
+.po-step-error {
+    margin: 0;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #8b1a1a;
+}
+
+.po-wizard-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.po-wizard-nav-spacer {
+    flex: 1 1 auto;
+}
+
+.po-wizard-btn {
+    min-width: 120px;
+}
+
+.po-wizard-nav .final-form-submit {
+    margin: 0;
+    justify-self: auto;
 }
 
 .final-readonly-card .final-readonly-field {

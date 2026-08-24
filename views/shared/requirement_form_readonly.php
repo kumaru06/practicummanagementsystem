@@ -1,7 +1,7 @@
 <?php
     /**
      * Read-only display of structured form requirement fields.
-     * Expects: $formSection (company_profile|job_description), $finalRequirement (row).
+     * Expects: $formSection (company_profile|job_description|personal_observation), $finalRequirement (row).
      */
     $formSection = (string)($formSection ?? '');
     $finalRequirement = $finalRequirement ?? [];
@@ -35,6 +35,16 @@
             <h4>Job Description (Duties and Responsibilities)</h4>
             <p><?= nl2br(e((string)($finalRequirement['job_description'] ?? ''))) ?></p>
         </div>
+    </div>
+<?php elseif ($formSection === 'personal_observation'): ?>
+    <div class="final-readonly-fields">
+        <?php foreach (FinalRequirement::PERSONAL_OBSERVATION_FIELDS as $column => $field): ?>
+            <div class="final-readonly-field">
+                <h4><?= e($field[0]) ?></h4>
+                <p class="muted"><?= e($field[1]) ?></p>
+                <p><?= nl2br(e((string)($finalRequirement[$column] ?? ''))) ?></p>
+            </div>
+        <?php endforeach; ?>
     </div>
 <?php else: ?>
     <p class="muted">No form content available.</p>

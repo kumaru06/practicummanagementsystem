@@ -117,6 +117,9 @@
                                     <div class="requirement-card-info">
                                         <h4><?= e($req['requirement_name']) ?></h4>
                                         <?php if (!empty($req['notes'])): ?><p class="requirement-card-notes"><?= e($req['notes']) ?></p><?php endif; ?>
+                                        <?php if ($key === 'confidentiality_agreement'): ?>
+                                            <a class="requirement-template-link" href="<?= e(asset('template/CONFIDENTIALITY AGREEMENT FOR OJT OFFICIAL_-A.docx')) ?>" download>Download template</a>
+                                        <?php endif; ?>
                                         <?php if ($isEvaluation): ?>
                                             <span class="requirement-owner-chip">Self-evaluation</span>
                                         <?php elseif ($isForm): ?>

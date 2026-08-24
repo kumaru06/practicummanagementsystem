@@ -511,8 +511,31 @@ class StudentController extends BaseController
     public function saveFinalPersonalObservation(): void
     {
         require_role('student');
-        flash('info', 'Personal Observation is submitted as a file upload in 3rd to Comply.');
-        redirect(route_url('student.documents', ['stage' => 3]) . '#requirement-personal_observation_doc');
+        $p = $this->post();
+        $student = (new Student($this->db))->findByUser((int)current_user()['id']);
+        if (!$student) {
+            flash('error', 'Student record not found.');
+            redirect(route_url('student.documents', ['stage' => 3]));
+        }
+        $requirementKey = 'personal_observation_doc';
+        $studentModel = new Student($this->db);
+        try {
+            if (!$studentModel->canUploadRequirement((int)$student['id'], $requirementKey)) {
+                throw new RuntimeException($studentModel->requirementUploadMessage((int)$student['id'], $requirementKey) . '.');
+            }
+            $fields = [];
+            foreach (array_keys(FinalRequirement::PERSONAL_OBSERVATION_FIELDS) as $column) {
+                $fields[$column] = (string)($p[$column] ?? '');
+            }
+            (new FinalRequirement($this->db))->savePersonalObservation((int)$student['id'], $fields);
+            $studentModel->saveFormRequirement((int)$student['id'], $requirementKey);
+            $this->notifyCoordinatorRequirementUpload($student, $requirementKey, $studentModel);
+            flash('success', 'Personal Observation saved for review.');
+            redirect(route_url('student.documents', ['stage' => 3]) . '#requirement-' . $requirementKey);
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+            redirect(route_url('student.documents', ['stage' => 3, 'doc' => 'personal_observation']));
+        }
     }
 
     public function saveStudentEvaluationPartner(): void

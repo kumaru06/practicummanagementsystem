@@ -6,6 +6,7 @@
     $panelTitles = [
         'company_profile' => 'Company Profile',
         'job_description' => 'Job Description',
+        'personal_observation' => 'Personal Observation',
     ];
     $panelTitlesJson = json_encode($panelTitles, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 ?>
@@ -39,6 +40,12 @@
                     <?php
                         $formReadOnly = !$canEditForm;
                         require __DIR__ . '/../final/job_description.php';
+                    ?>
+                </div>
+                <div class="final-req-panel<?= $activePanel === 'personal_observation' ? ' is-active' : '' ?>" data-final-panel="personal_observation">
+                    <?php
+                        $formReadOnly = !$canEditForm;
+                        require __DIR__ . '/../final/personal_observation.php';
                     ?>
                 </div>
             </div>

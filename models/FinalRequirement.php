@@ -40,12 +40,36 @@ class FinalRequirement
      * Column name => [label, description, placeholder].
      */
     public const PERSONAL_OBSERVATION_FIELDS = [
-        'po_facilities' => ['Facilities', 'Describe the facilities of the Company', 'Write your observations here...'],
-        'po_services' => ['Services', 'Describe the services offered by the Company', 'Write your observations here...'],
-        'po_employee' => ['Employee', 'Describe the employees of the Company', 'Write your observations here...'],
-        'po_management' => ['Management', 'Describe the management of the Company', 'Write your observations here...'],
-        'po_organization' => ['Organization', 'Describe the Company as an organization', 'Write your observations here...'],
-        'po_recommendation' => ['Recommendation', 'The recommendation focused on how the OJT Program was implemented by the company.', 'Write your recommendation here...'],
+        'po_facilities' => [
+            'Facilities',
+            'Describe the facilities of the Company',
+            'Describe the facilities of the Company...',
+        ],
+        'po_services' => [
+            'Services',
+            'Describe the services offered by the Company',
+            'Describe the services offered by the Company...',
+        ],
+        'po_employee' => [
+            'Employee',
+            'Describe the employees of the Company',
+            'Describe the employees of the Company...',
+        ],
+        'po_management' => [
+            'Management',
+            'Describe the management of the Company',
+            'Describe the management of the Company...',
+        ],
+        'po_organization' => [
+            'Organization',
+            'Describe the Company as an organization',
+            'Describe the Company as an organization...',
+        ],
+        'po_recommendation' => [
+            'Recommendation',
+            'The recommendation focused on how the OJT Program was implemented by the company.',
+            'Write your recommendation about how the OJT Program was implemented...',
+        ],
     ];
 
     public function getByStudent(int $studentId): array
