@@ -2,7 +2,6 @@
 $totalPartners = count($partners);
 $activePartners = count(array_filter($partners, static fn ($partner) => (int)($partner['is_active'] ?? 0) === 1));
 $inactivePartners = $totalPartners - $activePartners;
-$totalPrograms = count($programs);
 ?>
 
 <form
@@ -54,15 +53,6 @@ $totalPrograms = count($programs);
             <div class="partner-stat-body">
                 <span>Inactive</span>
                 <strong><?= (int)$inactivePartners ?></strong>
-            </div>
-        </div>
-        <div class="partner-stat-card partner-stat-programs">
-            <div class="partner-stat-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3 1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>
-            </div>
-            <div class="partner-stat-body">
-                <span>Programs</span>
-                <strong><?= (int)$totalPrograms ?></strong>
             </div>
         </div>
     </div>
@@ -305,11 +295,6 @@ $totalPrograms = count($programs);
                                         </span>
                                         <div class="asu-partner-name-stack">
                                             <span title="<?= e($u['name'] ?? '') ?>"><?= e($u['name'] ?? '—') ?></span>
-                                            <?php if ($moaFileMissing): ?>
-                                                <span class="asu-moa-missing-pill" title="Database has an MOA/MOU record, but the file is missing on the server. Re-upload from Edit Details.">MOA file missing</span>
-                                            <?php elseif ($hasMoaRecord): ?>
-                                                <span class="asu-moa-ok-pill">MOA on file</span>
-                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 </td>

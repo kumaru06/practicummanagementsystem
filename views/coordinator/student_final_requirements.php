@@ -150,7 +150,7 @@
                         <span class="cfp-panel-icon cfp-panel-icon--docs"><?= $sectionDocsIcon ?></span>
                         <div>
                             <h2>2nd to Comply</h2>
-                            <p>Recommendation letter uploaded by the student after documents are forwarded.</p>
+                            <p>Confidentiality agreement and other Stage 2 documents uploaded by the student.</p>
                         </div>
                     </div>
                     <?php if ($stage2PendingReview > 0): ?>
