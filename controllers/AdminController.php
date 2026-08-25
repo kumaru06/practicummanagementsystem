@@ -430,9 +430,34 @@ class AdminController extends BaseController
     public function manageTerms(): void
     {
         require_role('admin');
+        $terms = (new Term($this->db))->all();
+        $labels = array_map(static fn ($term) => (string)($term['term_label'] ?? ''), $terms);
+        $requested = trim((string)($_GET['completion_term'] ?? ''));
+        $selectedTerm = $requested;
+        if ($selectedTerm === '' || !in_array($selectedTerm, $labels, true)) {
+            $selectedTerm = '';
+            foreach ($terms as $term) {
+                if ((int)($term['is_active'] ?? 0) === 1) {
+                    $selectedTerm = (string)($term['term_label'] ?? '');
+                    break;
+                }
+            }
+            if ($selectedTerm === '' && $terms) {
+                $selectedTerm = (string)($terms[0]['term_label'] ?? '');
+            }
+        }
+
+        $enrollment = new Enrollment($this->db);
+        $report = $selectedTerm !== ''
+            ? $enrollment->completionTimingByTerm($selectedTerm)
+            : $enrollment->emptyCompletionTiming();
+        $report = $enrollment->fillCompletionPrograms($report, (new Program($this->db))->all(true));
+
         $this->renderAppPage('admin/terms', [
             'title' => 'Academic Term',
-            'terms' => (new Term($this->db))->all(),
+            'terms' => $terms,
+            'completionTerm' => $selectedTerm,
+            'completionReport' => $report,
         ]);
     }
 

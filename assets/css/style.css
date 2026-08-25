@@ -2155,6 +2155,634 @@ body.student-nav-reveal.role-student .sidebar .nav > *:nth-child(9) { animation-
     }
 }
 
+.atm-oc-card.card {
+    overflow: visible;
+    border-radius: 4px !important;
+    padding: 22px 24px 18px;
+    background: #f8fafc;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
+}
+
+.atm-oc-card.card:hover {
+    transform: none;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
+}
+
+/* Overall Completion: 4px corners; keep true circles circular */
+.admin-terms-page .atm-oc-card,
+.admin-terms-page .atm-oc-card .filter-select-wrap,
+.admin-terms-page .atm-oc-card .custom-select-trigger,
+.admin-terms-page .atm-oc-card .custom-select-menu,
+.admin-terms-page .atm-oc-export,
+.admin-terms-page .atm-oc-kpi,
+.admin-terms-page .atm-oc-table-card,
+.admin-terms-page .atm-oc-chart-card,
+.admin-terms-page .atm-oc-code-pill,
+.admin-terms-page .atm-oc-bar,
+.admin-terms-page .atm-oc-bar i,
+.admin-terms-page .atm-oc-note {
+    border-radius: 4px !important;
+}
+
+.admin-terms-page .atm-oc-kpi-icon,
+.admin-terms-page .atm-oc-dot,
+.admin-terms-page .atm-oc-note-icon,
+.admin-terms-page .atm-oc-donut-hole {
+    border-radius: 50% !important;
+}
+
+.admin-terms-page .atm-oc-card .atm-oc-table-wrap,
+.admin-terms-page .atm-oc-table.data-table thead th {
+    border-radius: 0 !important;
+}
+
+.atm-oc-toolbar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.atm-oc-term-label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: min(100%, 380px);
+}
+
+.atm-oc-term-label > span:first-child {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.atm-oc-term-control {
+    position: relative;
+}
+
+.atm-oc-term-cal {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    z-index: 2;
+    width: 18px;
+    height: 18px;
+    color: #64748b;
+    pointer-events: none;
+    transform: translateY(-50%);
+}
+
+.atm-oc-term-cal svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+    fill: none !important;
+}
+
+.atm-oc-term-cal svg * {
+    fill: none !important;
+    stroke: #64748b !important;
+}
+
+.atm-oc-term-select,
+.atm-oc-term-select .custom-select-trigger {
+    min-width: 300px;
+}
+
+.atm-oc-card .custom-select-trigger {
+    padding-left: 40px;
+    background: #fff;
+    border: 1px solid #dbe4f0;
+    min-height: 44px;
+}
+
+.atm-oc-export {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 16px;
+    border: 1.5px solid #93c5fd;
+    border-radius: 4px !important;
+    background: #fff;
+    color: #2563eb;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.atm-oc-export svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.atm-oc-export:hover:not(:disabled) {
+    border-color: #60a5fa;
+    background: #eff6ff;
+}
+
+.atm-oc-export:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.atm-oc-head {
+    margin: 0 0 14px;
+}
+
+.atm-oc-head .asu-eyebrow {
+    color: #64748b;
+}
+
+.atm-oc-head h2 {
+    margin: 0;
+    font-size: 1.28rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #0f172a;
+}
+
+.atm-oc-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.atm-oc-kpi {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 148px;
+    padding: 16px 16px 14px;
+    border-radius: 4px !important;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+}
+
+.atm-oc-kpi-icon {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 50% !important;
+    color: #fff;
+}
+
+.atm-oc-kpi-icon svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+    fill: none !important;
+    color: #fff;
+}
+
+.atm-oc-kpi-icon svg * {
+    fill: none !important;
+    stroke: #fff !important;
+}
+
+.atm-oc-kpi-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #475569;
+    line-height: 1.3;
+}
+
+.atm-oc-kpi strong {
+    font-size: 2rem;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: #0f172a;
+}
+
+.atm-oc-kpi-sub {
+    font-size: 0.82rem;
+    color: #64748b;
+}
+
+.atm-oc-kpi--before {
+    background: #ecfdf5;
+    border: 1px solid #bbf7d0;
+}
+.atm-oc-kpi--ontime {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+}
+.atm-oc-kpi--beyond {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+}
+.atm-oc-kpi--total {
+    background: #f5f3ff;
+    border: 1px solid #ddd6fe;
+}
+.atm-oc-kpi--before .atm-oc-kpi-icon { background: #16a34a !important; color: #fff; }
+.atm-oc-kpi--ontime .atm-oc-kpi-icon { background: #2563eb !important; color: #fff; }
+.atm-oc-kpi--beyond .atm-oc-kpi-icon { background: #dc2626 !important; color: #fff; }
+.atm-oc-kpi--total .atm-oc-kpi-icon { background: #7c3aed !important; color: #fff; }
+.atm-oc-kpi--before strong { color: #16a34a; }
+.atm-oc-kpi--ontime strong { color: #2563eb; }
+.atm-oc-kpi--beyond strong { color: #dc2626; }
+.atm-oc-kpi--total strong { color: #7c3aed; }
+
+.atm-oc-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 14px;
+    align-items: stretch;
+}
+
+.atm-oc-table-card,
+.atm-oc-chart-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 4px !important;
+    background: #fff;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.atm-oc-table-card {
+    padding: 12px 12px 8px;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.atm-oc-table-card h3 {
+    margin: 0 0 14px;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.atm-oc-chart-card h3 {
+    margin: 0 0 10px;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-transform: none;
+    color: #0f172a;
+}
+
+.atm-oc-program {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.atm-oc-program strong {
+    display: block;
+    font-size: 0.72rem;
+    line-height: 1.25;
+    font-weight: 700;
+}
+
+.atm-oc-code-pill {
+    display: inline-flex;
+    margin-top: 4px;
+    padding: 1px 6px;
+    border-radius: 4px !important;
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+.atm-oc-table tfoot tr,
+.atm-oc-table tfoot th {
+    background: #fefce8 !important;
+}
+
+.atm-oc-table tfoot th:first-child {
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.atm-oc-table tfoot .atm-oc-metric {
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 600;
+}
+
+.atm-oc-chart-card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px 16px 14px;
+}
+
+.atm-oc-donut-wrap {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: 6px auto 4px;
+}
+
+.atm-oc-donut {
+    width: 200px;
+    height: 200px;
+    display: block;
+}
+
+.atm-oc-donut-track,
+.atm-oc-donut-slice {
+    fill: none;
+    stroke-width: 26;
+    stroke-linecap: butt;
+}
+
+.atm-oc-donut-track {
+    stroke: #e2e8f0;
+}
+
+.atm-oc-donut-label {
+    fill: #fff;
+    font-size: 8px;
+    font-weight: 800;
+    paint-order: stroke;
+    stroke: rgba(15, 23, 42, 0.12);
+    stroke-width: 0.4px;
+}
+
+.atm-oc-donut-hole {
+    position: absolute;
+    inset: 55px;
+    display: grid;
+    place-content: center;
+    text-align: center;
+    background: #fff;
+    border-radius: 50% !important;
+    box-shadow: none;
+}
+
+.atm-oc-donut-hole strong {
+    font-size: 1.45rem;
+    line-height: 1;
+    color: #0f172a;
+}
+
+.atm-oc-donut-hole span {
+    margin-top: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.atm-oc-card .atm-oc-table-wrap {
+    overflow: hidden;
+    border-radius: 0 !important;
+}
+
+.atm-oc-table.data-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+}
+
+.atm-oc-table.data-table thead th,
+.atm-oc-table.data-table tbody td,
+.atm-oc-table.data-table tfoot th {
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    padding: 7px 7px;
+    vertical-align: top;
+}
+
+.atm-oc-table.data-table thead th {
+    font-size: 0.58rem;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+    border-radius: 0 !important;
+}
+
+.atm-oc-col-before { color: #15803d; }
+.atm-oc-col-ontime { color: #1d4ed8; }
+.atm-oc-col-beyond { color: #b91c1c; }
+
+.atm-oc-table.data-table th:nth-child(1),
+.atm-oc-table.data-table td:nth-child(1) {
+    width: 28%;
+}
+
+.atm-oc-table.data-table th:nth-child(2),
+.atm-oc-table.data-table td:nth-child(2),
+.atm-oc-table.data-table th:nth-child(3),
+.atm-oc-table.data-table td:nth-child(3),
+.atm-oc-table.data-table th:nth-child(4),
+.atm-oc-table.data-table td:nth-child(4) {
+    width: 18%;
+}
+
+.atm-oc-table.data-table th:nth-child(5),
+.atm-oc-table.data-table td:nth-child(5) {
+    width: 12%;
+}
+
+.atm-oc-metric {
+    min-width: 0;
+}
+
+.atm-oc-metric strong {
+    display: block;
+    font-size: 0.78rem;
+    line-height: 1.1;
+}
+
+.atm-oc-metric span {
+    display: block;
+    margin-top: 1px;
+    font-size: 0.58rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.atm-oc-metric--before strong { color: #15803d; }
+.atm-oc-metric--ontime strong { color: #1d4ed8; }
+.atm-oc-metric--beyond strong { color: #b91c1c; }
+
+.atm-oc-bar {
+    display: block;
+    height: 4px;
+    margin-top: 5px;
+    border-radius: 4px !important;
+    background: #eef2f7;
+    overflow: hidden;
+}
+
+.atm-oc-bar i {
+    display: block;
+    height: 100%;
+    border-radius: 4px !important;
+}
+
+.atm-oc-metric--before .atm-oc-bar i { background: #22c55e; }
+.atm-oc-metric--ontime .atm-oc-bar i { background: #3b82f6; }
+.atm-oc-metric--beyond .atm-oc-bar i { background: #ef4444; }
+
+.atm-oc-total-cell {
+    font-weight: 800;
+    color: #0f172a;
+    font-size: 0.78rem;
+}
+
+.atm-oc-empty {
+    padding: 28px 8px 24px;
+    text-align: center;
+}
+
+.atm-oc-empty p {
+    margin: 0 0 4px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.atm-oc-empty span {
+    color: #64748b;
+    font-size: 0.88rem;
+}
+
+.atm-oc-legend {
+    width: 100%;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+}
+
+.atm-oc-legend li {
+    display: grid;
+    grid-template-columns: 8px minmax(0, 1fr) auto auto;
+    gap: 8px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #eef2f7;
+    font-size: 0.72rem;
+}
+
+.atm-oc-legend li:last-child {
+    border-bottom: none;
+}
+
+.atm-oc-legend span {
+    color: #475569;
+    min-width: 0;
+    line-height: 1.3;
+}
+
+.atm-oc-legend strong {
+    font-weight: 800;
+    color: #0f172a;
+    white-space: nowrap;
+}
+
+.atm-oc-legend small {
+    color: #64748b;
+    font-size: 0.72rem;
+    white-space: nowrap;
+}
+
+.atm-oc-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.atm-oc-dot--before { background: #22c55e; }
+.atm-oc-dot--ontime { background: #3b82f6; }
+.atm-oc-dot--beyond { background: #ef4444; }
+
+.atm-oc-chart-note {
+    margin: 4px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid #eef2f7;
+    font-size: 0.68rem;
+    line-height: 1.45;
+    color: #94a3b8;
+    text-align: left;
+}
+
+.atm-oc-card.card::before {
+    display: none;
+}
+
+.atm-oc-note {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    max-width: 100%;
+    margin: 14px auto 0;
+    padding: 8px 14px;
+    border-radius: 4px !important;
+    background: #eff6ff;
+    color: #1e3a8a;
+    border: 1px solid #dbeafe;
+}
+
+.atm-oc-note-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 50% !important;
+    background: #2563eb;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+}
+
+.atm-oc-note p {
+    margin: 0;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    text-align: center;
+}
+
+@media (max-width: 1100px) {
+    .atm-oc-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .atm-oc-body {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .atm-oc-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .atm-oc-term-label,
+    .atm-oc-term-select,
+    .atm-oc-export {
+        min-width: 0;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .atm-oc-kpis {
+        grid-template-columns: 1fr;
+    }
+}
+
 .programs-stat-card {
     position: relative;
     display: flex;

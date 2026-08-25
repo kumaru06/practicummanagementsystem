@@ -399,4 +399,276 @@ class Enrollment
 
         return $stmt->rowCount() > 0;
     }
+
+    /**
+     * Finished OJT students in a term, split by projected end date.
+     *
+     * @return array{
+     *   term: string,
+     *   total: int,
+     *   before: array{count: int, pct: int},
+     *   ontime: array{count: int, pct: int},
+     *   beyond: array{count: int, pct: int},
+     *   programs: list<array{
+     *     name: string,
+     *     code: string,
+     *     before: int,
+     *     ontime: int,
+     *     beyond: int,
+     *     total: int,
+     *     before_pct: int,
+     *     ontime_pct: int,
+     *     beyond_pct: int
+     *   }>
+     * }
+     */
+    public function completionTimingByTerm(string $academicTerm): array
+    {
+        $academicTerm = trim($academicTerm);
+        $empty = $this->emptyCompletionTiming($academicTerm);
+        if ($academicTerm === '') {
+            return $empty;
+        }
+
+        $stmt = $this->db->prepare(
+            'SELECT
+                e.student_id,
+                e.status,
+                e.required_hours,
+                e.projected_end_date,
+                e.end_date,
+                COALESCE(NULLIF(TRIM(p.name), ""), NULLIF(TRIM(s.course), ""), "Unspecified Program") AS program_name,
+                COALESCE(NULLIF(TRIM(p.code), ""), "") AS program_code
+             FROM ojt_enrollments e
+             JOIN students s ON s.id = e.student_id
+             LEFT JOIN programs p ON p.id = s.program_id
+             WHERE TRIM(e.academic_term) = ?'
+        );
+        $stmt->execute([$academicTerm]);
+        $enrollments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if (!$enrollments) {
+            return $empty;
+        }
+
+        $studentIds = array_values(array_unique(array_map(static fn ($row) => (int)$row['student_id'], $enrollments)));
+        $dtrsByStudent = [];
+        if ($studentIds) {
+            $placeholders = implode(',', array_fill(0, count($studentIds), '?'));
+            $dtrStmt = $this->db->prepare(
+                "SELECT student_id, work_date, hours
+                 FROM daily_time_records
+                 WHERE verification_status = 'approved'
+                   AND student_id IN ($placeholders)
+                 ORDER BY student_id, work_date, id"
+            );
+            $dtrStmt->execute($studentIds);
+            foreach ($dtrStmt->fetchAll(PDO::FETCH_ASSOC) as $dtr) {
+                $dtrsByStudent[(int)$dtr['student_id']][] = $dtr;
+            }
+        }
+
+        $buckets = ['before' => 0, 'ontime' => 0, 'beyond' => 0];
+        $programs = [];
+
+        foreach ($enrollments as $row) {
+            $projected = trim((string)($row['projected_end_date'] ?? ''));
+            if ($projected === '' || strtotime($projected) === false) {
+                continue;
+            }
+            $projected = date('Y-m-d', strtotime($projected));
+            $studentId = (int)$row['student_id'];
+            $required = (float)$row['required_hours'];
+            $records = $dtrsByStudent[$studentId] ?? [];
+            $approvedHours = 0.0;
+            $finishDate = null;
+            foreach ($records as $dtr) {
+                $approvedHours += (float)$dtr['hours'];
+                if ($finishDate === null && $required > 0 && $approvedHours >= $required) {
+                    $workDate = trim((string)($dtr['work_date'] ?? ''));
+                    if ($workDate !== '' && strtotime($workDate) !== false) {
+                        $finishDate = date('Y-m-d', strtotime($workDate));
+                    }
+                }
+            }
+
+            $finished = $approvedHours >= $required || ($row['status'] ?? '') === 'completed';
+            if (!$finished) {
+                continue;
+            }
+            if ($finishDate === null) {
+                $fallback = trim((string)($row['end_date'] ?? ''));
+                if ($fallback !== '' && strtotime($fallback) !== false) {
+                    $finishDate = date('Y-m-d', strtotime($fallback));
+                }
+            }
+            if ($finishDate === null) {
+                continue;
+            }
+
+            if ($finishDate < $projected) {
+                $bucket = 'before';
+            } elseif ($finishDate === $projected) {
+                $bucket = 'ontime';
+            } else {
+                $bucket = 'beyond';
+            }
+
+            $programName = (string)$row['program_name'];
+            $programCode = (string)$row['program_code'];
+            $key = strtolower($programCode !== '' ? $programCode : $programName);
+            if (!isset($programs[$key])) {
+                $programs[$key] = [
+                    'name' => $programName,
+                    'code' => $programCode,
+                    'before' => 0,
+                    'ontime' => 0,
+                    'beyond' => 0,
+                    'total' => 0,
+                ];
+            }
+            $programs[$key][$bucket]++;
+            $programs[$key]['total']++;
+            $buckets[$bucket]++;
+        }
+
+        $total = $buckets['before'] + $buckets['ontime'] + $buckets['beyond'];
+        $overallPct = $this->sharePercents([$buckets['before'], $buckets['ontime'], $buckets['beyond']], $total);
+
+        uasort($programs, static fn ($a, $b) => strcasecmp((string)$a['name'], (string)$b['name']));
+        $programRows = [];
+        foreach ($programs as $program) {
+            $shares = $this->sharePercents(
+                [(int)$program['before'], (int)$program['ontime'], (int)$program['beyond']],
+                (int)$program['total']
+            );
+            $programRows[] = [
+                'name' => $program['name'],
+                'code' => $program['code'],
+                'before' => (int)$program['before'],
+                'ontime' => (int)$program['ontime'],
+                'beyond' => (int)$program['beyond'],
+                'total' => (int)$program['total'],
+                'before_pct' => $shares[0],
+                'ontime_pct' => $shares[1],
+                'beyond_pct' => $shares[2],
+            ];
+        }
+
+        return [
+            'term' => $academicTerm,
+            'total' => $total,
+            'before' => ['count' => $buckets['before'], 'pct' => $overallPct[0]],
+            'ontime' => ['count' => $buckets['ontime'], 'pct' => $overallPct[1]],
+            'beyond' => ['count' => $buckets['beyond'], 'pct' => $overallPct[2]],
+            'programs' => $programRows,
+        ];
+    }
+
+    /**
+     * @return array{term: string, total: int, before: array{count: int, pct: int}, ontime: array{count: int, pct: int}, beyond: array{count: int, pct: int}, programs: list}
+     */
+    public function emptyCompletionTiming(string $academicTerm = ''): array
+    {
+        return [
+            'term' => $academicTerm,
+            'total' => 0,
+            'before' => ['count' => 0, 'pct' => 0],
+            'ontime' => ['count' => 0, 'pct' => 0],
+            'beyond' => ['count' => 0, 'pct' => 0],
+            'programs' => [],
+        ];
+    }
+
+    /**
+     * Keep existing totals, but show every active program in the table.
+     *
+     * @param array{
+     *   term: string,
+     *   total: int,
+     *   before: array{count: int, pct: int},
+     *   ontime: array{count: int, pct: int},
+     *   beyond: array{count: int, pct: int},
+     *   programs: list<array<string, mixed>>
+     * } $report
+     * @param list<array<string, mixed>> $programs
+     * @return array{
+     *   term: string,
+     *   total: int,
+     *   before: array{count: int, pct: int},
+     *   ontime: array{count: int, pct: int},
+     *   beyond: array{count: int, pct: int},
+     *   programs: list<array<string, mixed>>
+     * }
+     */
+    public function fillCompletionPrograms(array $report, array $programs): array
+    {
+        $rows = [];
+        foreach ($report['programs'] as $row) {
+            $code = strtoupper(trim((string)($row['code'] ?? '')));
+            $key = $code !== '' ? $code : strtolower(trim((string)($row['name'] ?? '')));
+            $rows[$key] = $row;
+        }
+
+        foreach ($programs as $program) {
+            $code = strtoupper(trim((string)($program['code'] ?? '')));
+            $name = trim((string)($program['name'] ?? ''));
+            $key = $code !== '' ? $code : strtolower($name);
+            if ($key === '' || isset($rows[$key])) {
+                continue;
+            }
+            $rows[$key] = [
+                'name' => $name !== '' ? $name : $code,
+                'code' => $code,
+                'before' => 0,
+                'ontime' => 0,
+                'beyond' => 0,
+                'total' => 0,
+                'before_pct' => 0,
+                'ontime_pct' => 0,
+                'beyond_pct' => 0,
+            ];
+        }
+
+        uasort($rows, static fn ($a, $b) => strcasecmp((string)$a['name'], (string)$b['name']));
+        $report['programs'] = array_values($rows);
+        return $report;
+    }
+
+    /**
+     * @param list<int> $counts
+     * @return list<int>
+     */
+    private function sharePercents(array $counts, int $total): array
+    {
+        if ($total <= 0) {
+            return array_fill(0, count($counts), 0);
+        }
+
+        $raw = [];
+        $remainders = [];
+        $used = 0;
+        foreach ($counts as $i => $count) {
+            $exact = ($count / $total) * 100;
+            $floor = (int)floor($exact);
+            $raw[$i] = $floor;
+            $remainders[$i] = $exact - $floor;
+            $used += $floor;
+        }
+
+        $leftover = 100 - $used;
+        arsort($remainders);
+        foreach (array_keys($remainders) as $i) {
+            if ($leftover <= 0) {
+                break;
+            }
+            if ((int)$counts[$i] <= 0) {
+                continue;
+            }
+            $raw[$i]++;
+            $leftover--;
+        }
+
+        ksort($raw);
+        return array_values($raw);
+    }
 }

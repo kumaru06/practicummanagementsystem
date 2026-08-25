@@ -224,6 +224,289 @@ $incompleteCount = count(array_filter($termRows, static fn ($t) => $t['status'] 
             </footer>
         <?php endif; ?>
     </section>
+
+    <?php
+    $completionReport = $completionReport ?? [
+        'term' => '',
+        'total' => 0,
+        'before' => ['count' => 0, 'pct' => 0],
+        'ontime' => ['count' => 0, 'pct' => 0],
+        'beyond' => ['count' => 0, 'pct' => 0],
+        'programs' => [],
+    ];
+    $completionTerm = (string)($completionTerm ?? ($completionReport['term'] ?? ''));
+    $ocTotal = (int)($completionReport['total'] ?? 0);
+    $ocBefore = (int)($completionReport['before']['count'] ?? 0);
+    $ocOnTime = (int)($completionReport['ontime']['count'] ?? 0);
+    $ocBeyond = (int)($completionReport['beyond']['count'] ?? 0);
+    $ocBeforePct = (int)($completionReport['before']['pct'] ?? 0);
+    $ocOnTimePct = (int)($completionReport['ontime']['pct'] ?? 0);
+    $ocBeyondPct = (int)($completionReport['beyond']['pct'] ?? 0);
+    $ocPrograms = $completionReport['programs'] ?? [];
+    $ocStudentWord = static fn (int $count): string => $count === 1 ? 'Student' : 'Students';
+    $ocDonutRadius = 40;
+    $ocDonutCircumference = 2 * M_PI * $ocDonutRadius;
+    $ocDonutOffset = 0;
+    $ocDonutStartDeg = -90;
+    $ocDonutSlices = [];
+    foreach ([
+        ['pct' => $ocBeforePct, 'color' => '#22c55e'],
+        ['pct' => $ocOnTimePct, 'color' => '#3b82f6'],
+        ['pct' => $ocBeyondPct, 'color' => '#ef4444'],
+    ] as $slice) {
+        $length = $ocTotal > 0 ? (($slice['pct'] / 100) * $ocDonutCircumference) : 0;
+        $sweepDeg = $ocTotal > 0 ? (($slice['pct'] / 100) * 360) : 0;
+        $midDeg = $ocDonutStartDeg + ($sweepDeg / 2);
+        $midRad = deg2rad($midDeg);
+        $ocDonutSlices[] = [
+            'color' => $slice['color'],
+            'pct' => (int)$slice['pct'],
+            'length' => $length,
+            'offset' => -$ocDonutOffset,
+            'labelX' => 60 + $ocDonutRadius * cos($midRad),
+            'labelY' => 60 + $ocDonutRadius * sin($midRad),
+        ];
+        $ocDonutOffset += $length;
+        $ocDonutStartDeg += $sweepDeg;
+    }
+    ?>
+
+    <section class="card atm-oc-card" data-atm-oc data-term="<?= e($completionTerm) ?>">
+        <div class="atm-oc-toolbar">
+            <form method="get" class="atm-oc-term-form" data-atm-oc-term-form>
+                <input type="hidden" name="r" value="admin_terms">
+                <label class="atm-oc-term-label">
+                    <span>Academic Term</span>
+                    <div class="atm-oc-term-control">
+                        <span class="atm-oc-term-cal" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <rect x="4" y="5.5" width="16" height="14" rx="2" fill="none" stroke="#64748b" stroke-width="1.8"/>
+                                <path d="M8 3.8v3.2M16 3.8v3.2M4 10.5h16" fill="none" stroke="#64748b" stroke-width="1.8" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                        <span class="filter-select-wrap atm-oc-term-select">
+                            <select name="completion_term" data-atm-oc-term data-select-label="Academic Term" aria-label="Academic Term" <?= $terms === [] ? 'disabled' : '' ?>>
+                                <?php if ($terms === []): ?>
+                                    <option value="">No terms yet</option>
+                                <?php else: ?>
+                                    <?php foreach ($terms as $termOption): ?>
+                                        <?php $termLabel = (string)($termOption['term_label'] ?? ''); ?>
+                                        <option value="<?= e($termLabel) ?>" <?= $termLabel === $completionTerm ? 'selected' : '' ?>><?= e($termLabel) ?></option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </span>
+                    </div>
+                </label>
+            </form>
+            <button class="atm-oc-export" type="button" data-atm-oc-export <?= $ocPrograms === [] ? 'disabled' : '' ?>>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                Export Report
+            </button>
+        </div>
+
+        <div class="atm-oc-head">
+            <span class="asu-eyebrow">Overall Completion</span>
+            <h2>Overall Completion (All Programs)</h2>
+        </div>
+
+        <div class="atm-oc-kpis">
+            <article class="atm-oc-kpi atm-oc-kpi--before">
+                <span class="atm-oc-kpi-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <circle cx="12" cy="12" r="8.25" fill="none" stroke="#fff" stroke-width="2"/>
+                        <path d="M8.2 12.2 10.7 14.7 15.8 9.2" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </span>
+                <span class="atm-oc-kpi-label">Finished Before Projected End</span>
+                <strong><?= (int)$ocBeforePct ?>%</strong>
+                <span class="atm-oc-kpi-sub"><?= (int)$ocBefore ?> <?= e($ocStudentWord($ocBefore)) ?></span>
+            </article>
+            <article class="atm-oc-kpi atm-oc-kpi--ontime">
+                <span class="atm-oc-kpi-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <circle cx="12" cy="12" r="8.25" fill="none" stroke="#fff" stroke-width="2"/>
+                        <path d="M12 8v4.2l2.8 1.7" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </span>
+                <span class="atm-oc-kpi-label">Finished On Time</span>
+                <strong><?= (int)$ocOnTimePct ?>%</strong>
+                <span class="atm-oc-kpi-sub"><?= (int)$ocOnTime ?> <?= e($ocStudentWord($ocOnTime)) ?></span>
+            </article>
+            <article class="atm-oc-kpi atm-oc-kpi--beyond">
+                <span class="atm-oc-kpi-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <rect x="4" y="5.5" width="16" height="14" rx="2" fill="none" stroke="#fff" stroke-width="2"/>
+                        <path d="M8 3.8v3.2M16 3.8v3.2M4 10.5h16" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="atm-oc-kpi-label">Finished Beyond Schedule</span>
+                <strong><?= (int)$ocBeyondPct ?>%</strong>
+                <span class="atm-oc-kpi-sub"><?= (int)$ocBeyond ?> <?= e($ocStudentWord($ocBeyond)) ?></span>
+            </article>
+            <article class="atm-oc-kpi atm-oc-kpi--total">
+                <span class="atm-oc-kpi-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M16.5 20.5v-1.6a3.4 3.4 0 0 0-3.4-3.4H7.4A3.4 3.4 0 0 0 4 18.9v1.6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="10" cy="8" r="3.2" fill="none" stroke="#fff" stroke-width="2"/>
+                        <path d="M20 20.5v-1.4a3 3 0 0 0-2.2-2.9" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M15.7 4.8a3.2 3.2 0 0 1 0 6.1" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <span class="atm-oc-kpi-label">Total Students</span>
+                <strong><?= (int)$ocTotal ?></strong>
+                <span class="atm-oc-kpi-sub">All Programs</span>
+            </article>
+        </div>
+
+        <div class="atm-oc-body">
+            <div class="atm-oc-table-card">
+                <h3>Completion Status by Program</h3>
+                <?php if ($ocPrograms === []): ?>
+                    <div class="atm-oc-empty">
+                        <p>No programs to show yet.</p>
+                        <span>Add degree programs to see completion by course.</span>
+                    </div>
+                <?php else: ?>
+                    <div class="table-wrap atm-oc-table-wrap">
+                        <table class="data-table no-row-details atm-oc-table" data-no-tools data-no-enhance data-atm-oc-table>
+                            <thead>
+                                <tr>
+                                    <th>Program</th>
+                                    <th class="atm-oc-col-before">Before Projected End</th>
+                                    <th class="atm-oc-col-ontime">On Time</th>
+                                    <th class="atm-oc-col-beyond">Beyond Schedule</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($ocPrograms as $program): ?>
+                                    <?php
+                                    $programName = trim((string)($program['name'] ?? ''));
+                                    $programCode = trim((string)($program['code'] ?? ''));
+                                    if ($programName === '') {
+                                        $programName = $programCode !== '' ? $programCode : 'Unspecified Program';
+                                    }
+                                    ?>
+                                    <tr
+                                        data-program="<?= e($programName) ?>"
+                                        data-before="<?= (int)$program['before'] ?>"
+                                        data-ontime="<?= (int)$program['ontime'] ?>"
+                                        data-beyond="<?= (int)$program['beyond'] ?>"
+                                        data-total="<?= (int)$program['total'] ?>"
+                                    >
+                                        <td class="atm-oc-program">
+                                            <strong><?= e($programName) ?></strong>
+                                            <?php if ($programCode !== ''): ?>
+                                                <span class="atm-oc-code-pill"><?= e($programCode) ?></span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="atm-oc-metric atm-oc-metric--before">
+                                            <strong><?= (int)$program['before_pct'] ?>%</strong>
+                                            <span><?= (int)$program['before'] ?> <?= e($ocStudentWord((int)$program['before'])) ?></span>
+                                            <span class="atm-oc-bar" aria-hidden="true"><i style="width: <?= (int)$program['before_pct'] ?>%"></i></span>
+                                        </td>
+                                        <td class="atm-oc-metric atm-oc-metric--ontime">
+                                            <strong><?= (int)$program['ontime_pct'] ?>%</strong>
+                                            <span><?= (int)$program['ontime'] ?> <?= e($ocStudentWord((int)$program['ontime'])) ?></span>
+                                            <span class="atm-oc-bar" aria-hidden="true"><i style="width: <?= (int)$program['ontime_pct'] ?>%"></i></span>
+                                        </td>
+                                        <td class="atm-oc-metric atm-oc-metric--beyond">
+                                            <strong><?= (int)$program['beyond_pct'] ?>%</strong>
+                                            <span><?= (int)$program['beyond'] ?> <?= e($ocStudentWord((int)$program['beyond'])) ?></span>
+                                            <span class="atm-oc-bar" aria-hidden="true"><i style="width: <?= (int)$program['beyond_pct'] ?>%"></i></span>
+                                        </td>
+                                        <td class="atm-oc-total-cell"><strong><?= (int)$program['total'] ?></strong></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th>Overall</th>
+                                    <th class="atm-oc-metric atm-oc-metric--before">
+                                        <strong><?= (int)$ocBeforePct ?>%</strong>
+                                        <span><?= (int)$ocBefore ?> <?= e($ocStudentWord($ocBefore)) ?></span>
+                                    </th>
+                                    <th class="atm-oc-metric atm-oc-metric--ontime">
+                                        <strong><?= (int)$ocOnTimePct ?>%</strong>
+                                        <span><?= (int)$ocOnTime ?> <?= e($ocStudentWord($ocOnTime)) ?></span>
+                                    </th>
+                                    <th class="atm-oc-metric atm-oc-metric--beyond">
+                                        <strong><?= (int)$ocBeyondPct ?>%</strong>
+                                        <span><?= (int)$ocBeyond ?> <?= e($ocStudentWord($ocBeyond)) ?></span>
+                                    </th>
+                                    <th class="atm-oc-total-cell"><strong><?= (int)$ocTotal ?></strong></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <aside class="atm-oc-chart-card">
+                <h3>Chart Overview</h3>
+                <div class="atm-oc-donut-wrap">
+                    <svg class="atm-oc-donut" viewBox="0 0 120 120" role="img" aria-label="Completion breakdown for <?= e((string)$ocTotal) ?> students">
+                        <g transform="rotate(-90 60 60)">
+                            <circle class="atm-oc-donut-track" cx="60" cy="60" r="<?= $ocDonutRadius ?>"></circle>
+                            <?php foreach ($ocDonutSlices as $slice): ?>
+                                <?php if ($slice['length'] <= 0) continue; ?>
+                                <circle
+                                    class="atm-oc-donut-slice"
+                                    cx="60"
+                                    cy="60"
+                                    r="<?= $ocDonutRadius ?>"
+                                    stroke="<?= e($slice['color']) ?>"
+                                    stroke-dasharray="<?= number_format($slice['length'], 2, '.', '') ?> <?= number_format($ocDonutCircumference, 2, '.', '') ?>"
+                                    stroke-dashoffset="<?= number_format($slice['offset'], 2, '.', '') ?>"
+                                ></circle>
+                            <?php endforeach; ?>
+                        </g>
+                        <?php foreach ($ocDonutSlices as $slice): ?>
+                            <?php if ((int)$slice['pct'] < 8) continue; ?>
+                            <text
+                                class="atm-oc-donut-label"
+                                x="<?= number_format((float)$slice['labelX'], 2, '.', '') ?>"
+                                y="<?= number_format((float)$slice['labelY'], 2, '.', '') ?>"
+                                text-anchor="middle"
+                                dominant-baseline="middle"
+                            ><?= (int)$slice['pct'] ?>%</text>
+                        <?php endforeach; ?>
+                    </svg>
+                    <div class="atm-oc-donut-hole">
+                        <strong><?= (int)$ocTotal ?></strong>
+                        <span>Total</span>
+                    </div>
+                </div>
+                <ul class="atm-oc-legend">
+                    <li>
+                        <i class="atm-oc-dot atm-oc-dot--before"></i>
+                        <span>Finished Before Projected End</span>
+                        <strong><?= (int)$ocBeforePct ?>%</strong>
+                        <small>(<?= (int)$ocBefore ?>)</small>
+                    </li>
+                    <li>
+                        <i class="atm-oc-dot atm-oc-dot--ontime"></i>
+                        <span>Finished On Time</span>
+                        <strong><?= (int)$ocOnTimePct ?>%</strong>
+                        <small>(<?= (int)$ocOnTime ?>)</small>
+                    </li>
+                    <li>
+                        <i class="atm-oc-dot atm-oc-dot--beyond"></i>
+                        <span>Finished Beyond Schedule</span>
+                        <strong><?= (int)$ocBeyondPct ?>%</strong>
+                        <small>(<?= (int)$ocBeyond ?>)</small>
+                    </li>
+                </ul>
+                <p class="atm-oc-chart-note">Percentages are based on the total number of students in the selected academic term.</p>
+            </aside>
+        </div>
+
+        <div class="atm-oc-note">
+            <span class="atm-oc-note-icon" aria-hidden="true">i</span>
+            <p><strong>Before Projected End</strong> finished required hours before the company projected end date. <strong>On Time</strong> finished on that date. <strong>Beyond Schedule</strong> finished after that date.</p>
+        </div>
+    </section>
 </div>
 
 <div class="asu-create-overlay" id="atmTermOverlay" aria-hidden="true">

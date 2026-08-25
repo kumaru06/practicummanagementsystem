@@ -4178,6 +4178,48 @@ function initAdminTermsPage() {
 
     initCustomFilterSelects();
     initCustomDatePickers();
+    initAcademicTermCompletion();
+}
+
+function initAcademicTermCompletion() {
+    const root = document.querySelector('[data-atm-oc]');
+    if (!root || root.dataset.ocReady === '1') return;
+    root.dataset.ocReady = '1';
+
+    const form = root.querySelector('[data-atm-oc-term-form]');
+    const termSelect = root.querySelector('[data-atm-oc-term]');
+    termSelect?.addEventListener('change', () => form?.submit());
+
+    root.querySelector('[data-atm-oc-export]')?.addEventListener('click', () => {
+        const table = root.querySelector('[data-atm-oc-table]');
+        if (!table) return;
+        const rows = [['Program', 'Finished Before Projected End', 'Before %', 'Finished On Time', 'On Time %', 'Finished Beyond Schedule', 'Beyond %', 'Total Students']];
+        table.querySelectorAll('tbody tr').forEach(tr => {
+            const total = Number(tr.dataset.total || 0);
+            const before = Number(tr.dataset.before || 0);
+            const ontime = Number(tr.dataset.ontime || 0);
+            const beyond = Number(tr.dataset.beyond || 0);
+            const pct = (count) => (total > 0 ? Math.round((count / total) * 100) : 0);
+            rows.push([
+                tr.dataset.program || '',
+                String(before),
+                String(pct(before)),
+                String(ontime),
+                String(pct(ontime)),
+                String(beyond),
+                String(pct(beyond)),
+                String(total),
+            ]);
+        });
+        const csv = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        const slug = (root.dataset.term || 'term').replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'term';
+        a.href = URL.createObjectURL(blob);
+        a.download = `ojt-completion-${slug}.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    });
 }
 
 function initStudentRegistrationPasswordIndicators() {
