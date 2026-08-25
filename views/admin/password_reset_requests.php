@@ -51,7 +51,7 @@ $model = new PasswordResetRequest(db());
                             <td><?= e(date('M d, Y g:i A', strtotime((string)$request['created_at']))) ?></td>
                             <td>
                                 <div class="reg-req-actions">
-                                    <form method="post" action="index.php" class="inline" data-pwd-reset-form data-pwd-reset-decision="approve">
+                                    <form method="post" action="index.php?r=admin_password_reset_requests" class="inline" data-pwd-reset-form data-pwd-reset-decision="approve">
                                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                         <input type="hidden" name="action" value="admin_review_password_reset_request">
                                         <input type="hidden" name="request_id" value="<?= (int)$request['id'] ?>">
@@ -63,7 +63,7 @@ $model = new PasswordResetRequest(db());
                                     </form>
                                     <details class="reg-req-decline">
                                         <summary class="btn btn-small btn-ghost">Reject</summary>
-                                        <form method="post" action="index.php" class="reg-req-decline-form" data-pwd-reset-form data-pwd-reset-decision="reject">
+                                        <form method="post" action="index.php?r=admin_password_reset_requests" class="reg-req-decline-form" data-pwd-reset-form data-pwd-reset-decision="reject">
                                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                             <input type="hidden" name="action" value="admin_review_password_reset_request">
                                             <input type="hidden" name="request_id" value="<?= (int)$request['id'] ?>">

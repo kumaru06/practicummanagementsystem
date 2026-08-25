@@ -6475,9 +6475,9 @@ function initRegistrationRequestsReview() {
         form.addEventListener('submit', async e => {
             e.preventDefault();
             const confirmed = await showConfirmModal(
-                'Delete this stuck registration? The student will be able to register again with the same email or USN.',
+                'Delete this expired registration? The student will be able to register again with the same email or USN.',
                 {
-                    title: 'Delete stuck registration',
+                    title: 'Delete expired registration',
                     confirmText: 'Yes, delete',
                     cancelText: 'Cancel',
                 }

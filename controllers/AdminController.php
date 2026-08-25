@@ -1357,7 +1357,7 @@ class AdminController extends BaseController
                 throw new RuntimeException('This registration cannot be deleted from here.');
             }
             $model->deleteRequest($requestId);
-            flash('success', 'Stuck registration removed. The student may register again using the same email or USN.');
+            flash('success', 'Expired registration removed. The student may register again using the same email or USN.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
         }

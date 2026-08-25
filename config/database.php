@@ -1,5 +1,5 @@
 <?php
-if (!function_exists('env')) {
+if (!function_exists('env') || !function_exists('app_is_local_host')) {
     require_once __DIR__ . '/../bootstrap/env.php';
 }
 
@@ -70,7 +70,7 @@ function database_connection_error_message(array $config, PDOException $exceptio
 
     if ($code === 2002) {
         return 'Could not reach MySQL on host "' . $config['host'] . '". '
-            . 'On Hostinger use DB_HOST=localhost in ' . $source . '.';
+            . 'On Hostinger set DB_HOST=localhost (not 127.0.0.1) in ' . $source . '.';
     }
 
     return 'Database connection failed using ' . $source . '. ' . $details
@@ -78,12 +78,10 @@ function database_connection_error_message(array $config, PDOException $exceptio
         . 'config/database.production.php (or .env), then reset the MySQL password if needed.';
 }
 
-// Auto-detect local vs production environment
-$host = strtolower((string)($_SERVER['SERVER_NAME'] ?? ''));
-define('APP_IS_LOCAL', in_array($host, ['localhost', '127.0.0.1', ''], true)
-    || str_ends_with($host, '.test')
-    || str_ends_with($host, '.loc')
-    || str_ends_with($host, '.localhost'));
+// Auto-detect local vs production from the public host, not SERVER_NAME.
+// Hostinger (and some proxies) can set SERVER_NAME to 127.0.0.1 on POST/AJAX,
+// which previously made live requests use Laragon credentials and fail.
+define('APP_IS_LOCAL', app_is_local_host());
 
 if (APP_IS_LOCAL) {
     // Laragon defaults — do not use production DB_* from .env on .test / localhost.
@@ -94,7 +92,11 @@ if (APP_IS_LOCAL) {
     define('_DB_CONFIG_SOURCE', 'local');
 } else {
     $dbConfig = load_database_config();
-    define('_DB_HOST', $dbConfig['host'] ?: 'localhost');
+    $dbHost = strtolower(trim((string)($dbConfig['host'] ?: 'localhost')));
+    if (in_array($dbHost, ['127.0.0.1', '::1'], true)) {
+        $dbHost = 'localhost';
+    }
+    define('_DB_HOST', $dbHost);
     define('_DB_NAME', $dbConfig['name']);
     define('_DB_USER', $dbConfig['user']);
     define('_DB_PASS', $dbConfig['pass']);
@@ -114,7 +116,9 @@ function db(): PDO
         return $pdo;
     }
 
-    $hosts = array_values(array_unique([_DB_HOST, 'localhost', '127.0.0.1']));
+    $hosts = APP_IS_LOCAL
+        ? array_values(array_unique([_DB_HOST, 'localhost', '127.0.0.1']))
+        : array_values(array_unique([_DB_HOST, 'localhost']));
     $config = [
         'source' => defined('_DB_CONFIG_SOURCE') ? (string)_DB_CONFIG_SOURCE : '',
         'host' => _DB_HOST,

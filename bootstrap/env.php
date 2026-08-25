@@ -81,6 +81,33 @@ function env(string $key, ?string $default = null): ?string
     return $default;
 }
 
+function app_request_host(): string
+{
+    $host = trim((string)($_SERVER['HTTP_HOST'] ?? ''));
+    if ($host === '') {
+        $host = trim((string)($_SERVER['SERVER_NAME'] ?? ''));
+    }
+    $host = strtolower($host);
+    if (str_contains($host, ':')) {
+        $host = explode(':', $host, 2)[0];
+    }
+
+    return $host;
+}
+
+function app_is_local_host(?string $host = null): bool
+{
+    $host = strtolower((string)($host ?? app_request_host()));
+    if ($host === '') {
+        return false;
+    }
+
+    return in_array($host, ['localhost', '127.0.0.1'], true)
+        || str_ends_with($host, '.test')
+        || str_ends_with($host, '.loc')
+        || str_ends_with($host, '.localhost');
+}
+
 $envFile = resolve_env_file();
 if ($envFile !== null) {
     load_env($envFile);

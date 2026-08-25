@@ -1,13 +1,9 @@
 <?php
-if (!function_exists('env')) {
+if (!function_exists('env') || !function_exists('app_is_local_host')) {
     require_once __DIR__ . '/../bootstrap/env.php';
 }
 
-$host = strtolower((string)($_SERVER['SERVER_NAME'] ?? ''));
-$isLocal = in_array($host, ['localhost', '127.0.0.1', ''], true)
-    || str_ends_with($host, '.test')
-    || str_ends_with($host, '.loc')
-    || str_ends_with($host, '.localhost');
+$isLocal = app_is_local_host();
 
 // Legacy PHP config files (optional fallback if .env is missing).
 if ((env('SMTP_PASSWORD') ?? '') === '') {

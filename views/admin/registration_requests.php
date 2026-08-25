@@ -9,18 +9,25 @@ $incompleteCount = count($incompleteRequests ?? []);
         <span aria-current="page">Student Account Requests</span>
     </nav>
 
+    <div class="reg-req-split">
     <section class="card reg-req-pending-card">
         <div class="reg-req-card-head">
             <div class="reg-req-card-copy">
                 <span class="reg-req-eyebrow">Student Self-Registration</span>
                 <h2>Pending Student Account Requests</h2>
             </div>
-            <?php if ($pendingCount > 0): ?>
-                <div class="reg-req-pending-badge" aria-live="polite">
-                    <strong><?= $pendingCount ?></strong>
-                    <span>Pending</span>
-                </div>
-            <?php endif; ?>
+            <div class="reg-req-card-meta">
+                <?php if ($pendingCount > 0): ?>
+                    <div class="reg-req-pending-badge" aria-live="polite">
+                        <strong><?= $pendingCount ?></strong>
+                        <span>Pending</span>
+                    </div>
+                    <button class="reg-req-export-btn" type="button" data-reg-req-export>
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                        Export CSV
+                    </button>
+                <?php endif; ?>
+            </div>
         </div>
 
         <?php if ($pendingCount === 0): ?>
@@ -32,42 +39,35 @@ $incompleteCount = count($incompleteRequests ?? []);
                 <p class="reg-req-empty-sub">New student account requests will appear here after the student verifies their email.</p>
             </div>
         <?php else: ?>
-            <div class="reg-req-toolbar">
-                <button class="reg-req-export-btn" type="button" data-reg-req-export>
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-                    Export CSV
-                </button>
-            </div>
-
             <div class="table-wrap reg-req-table-wrap">
                 <table class="data-table reg-req-table no-row-details" data-no-tools data-no-enhance>
                     <thead>
                         <tr>
-                            <th class="reg-req-col-num">#</th>
-                            <th data-sort>Last Name</th>
-                            <th data-sort>First Name</th>
-                            <th data-sort>Middle Name</th>
+                            <th data-sort class="reg-req-col-student">Student</th>
                             <th data-sort>USN</th>
                             <th data-sort>Email</th>
-                            <th data-sort class="reg-req-col-course">Program / Course</th>
+                            <th data-sort class="reg-req-col-course">Program</th>
                             <th data-sort class="reg-req-col-submitted">Submitted</th>
                             <th class="reg-req-col-action">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($requests as $index => $request): ?>
+                        <?php foreach ($requests as $request): ?>
                             <?php
                             $verifiedAt = !empty($request['email_verified_at'])
                                 ? date('M d, Y g:i A', strtotime((string)$request['email_verified_at']))
                                 : '';
                             $submittedAt = date('M d, Y g:i A', strtotime((string)$request['created_at']));
                             $corUrl = !empty($request['cor_file']) ? asset($request['cor_file']) : '';
-                            $fullName = trim(($request['last_name'] ?? '') . ', ' . ($request['first_name'] ?? ''));
+                            $firstName = trim((string)($request['first_name'] ?? ''));
+                            $lastName = trim((string)($request['last_name'] ?? ''));
+                            $middleName = trim((string)($request['middle_name'] ?? ''));
+                            $fullName = trim($lastName . ', ' . $firstName . ($middleName !== '' ? ' ' . $middleName : ''));
+                            $initials = strtoupper(substr($firstName !== '' ? $firstName : 'S', 0, 1) . substr($lastName !== '' ? $lastName : 'T', 0, 1));
                             $courseLabel = trim((string)(($request['program_code'] ?? '') !== '' ? $request['program_code'] . ' — ' . ($request['program_name'] ?? '') : ($request['program_name'] ?? '')));
                             if ($courseLabel === '') {
                                 $courseLabel = '—';
                             }
-                            $middleName = trim((string)($request['middle_name'] ?? ''));
                             ?>
                             <tr
                                 class="reg-req-row"
@@ -83,10 +83,12 @@ $incompleteCount = count($incompleteRequests ?? []);
                                 data-cor-url="<?= e($corUrl) ?>"
                                 data-full-name="<?= e($fullName) ?>"
                             >
-                                <td class="reg-req-col-num"><?= $index + 1 ?></td>
-                                <td class="reg-req-name"><?= e($request['last_name']) ?></td>
-                                <td><?= e($request['first_name']) ?></td>
-                                <td class="reg-req-middle"><?= $middleName !== '' ? e($middleName) : '<span class="muted">—</span>' ?></td>
+                                <td class="reg-req-student reg-req-col-student">
+                                    <div class="reg-req-name-cell">
+                                        <span class="reg-req-avatar" aria-hidden="true"><?= e($initials) ?></span>
+                                        <strong class="reg-req-name"><?= e($fullName) ?></strong>
+                                    </div>
+                                </td>
                                 <td class="reg-req-usn"><?= e($request['student_no']) ?></td>
                                 <td class="reg-req-email">
                                     <span class="reg-req-email-line">
@@ -105,7 +107,7 @@ $incompleteCount = count($incompleteRequests ?? []);
                                     <div class="reg-req-row-actions">
                                         <button class="reg-req-review-btn" type="button" data-reg-req-review>
                                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
-                                            Review Request
+                                            Review
                                         </button>
                                     </div>
                                 </td>
@@ -121,41 +123,40 @@ $incompleteCount = count($incompleteRequests ?? []);
         <div class="reg-req-card-head">
             <div class="reg-req-card-copy">
                 <span class="reg-req-eyebrow">Cleanup</span>
-                <h2>Stuck Registrations</h2>
-                <p class="reg-req-card-desc">Only expired verifications and orphaned requests appear here. New sign-ups waiting for email verification are handled on the student side first.</p>
+                <h2>Expired Registration</h2>
             </div>
             <?php if ($incompleteCount > 0): ?>
                 <div class="reg-req-pending-badge reg-req-pending-badge--muted" aria-live="polite">
                     <strong><?= $incompleteCount ?></strong>
-                    <span>Stuck</span>
+                    <span>Expired</span>
                 </div>
             <?php endif; ?>
         </div>
 
         <?php if ($incompleteCount === 0): ?>
             <div class="reg-req-empty reg-req-empty--compact">
-                <p class="reg-req-empty-title">No stuck registrations</p>
-                <p class="reg-req-empty-sub">Expired verifications and orphaned records that block email or USN reuse will appear here.</p>
+                <p class="reg-req-empty-title">No expired registrations</p>
+                <p class="reg-req-empty-sub">Expired verifications and orphaned records will appear here.</p>
             </div>
         <?php else: ?>
             <div class="table-wrap reg-req-table-wrap">
                 <table class="data-table reg-req-table reg-req-incomplete-table no-row-details" data-no-tools data-no-enhance>
                     <thead>
                         <tr>
-                            <th class="reg-req-col-num">#</th>
-                            <th data-sort>Name</th>
-                            <th data-sort>USN</th>
-                            <th data-sort>Email</th>
+                            <th data-sort class="reg-req-col-student">Student</th>
                             <th data-sort>Status</th>
                             <th data-sort class="reg-req-col-submitted">Submitted</th>
                             <th class="reg-req-col-action">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($incompleteRequests as $index => $request): ?>
+                        <?php foreach ($incompleteRequests as $request): ?>
                             <?php
                             $submittedAt = date('M d, Y g:i A', strtotime((string)$request['created_at']));
-                            $fullName = trim(($request['last_name'] ?? '') . ', ' . ($request['first_name'] ?? ''));
+                            $firstName = trim((string)($request['first_name'] ?? ''));
+                            $lastName = trim((string)($request['last_name'] ?? ''));
+                            $fullName = trim($lastName . ', ' . $firstName);
+                            $initials = strtoupper(substr($firstName !== '' ? $firstName : 'S', 0, 1) . substr($lastName !== '' ? $lastName : 'T', 0, 1));
                             $reqStatus = (string)($request['status'] ?? '');
                             if ($reqStatus === 'pending_verification') {
                                 $statusLabel = 'Verification expired';
@@ -166,10 +167,12 @@ $incompleteCount = count($incompleteRequests ?? []);
                             }
                             ?>
                             <tr class="reg-req-row reg-req-row--incomplete">
-                                <td class="reg-req-col-num"><?= $index + 1 ?></td>
-                                <td class="reg-req-name"><?= e($fullName) ?></td>
-                                <td class="reg-req-usn"><?= e($request['student_no']) ?></td>
-                                <td class="reg-req-email"><?= e($request['email']) ?></td>
+                                <td class="reg-req-student reg-req-col-student">
+                                    <div class="reg-req-name-cell">
+                                        <span class="reg-req-avatar reg-req-avatar--muted" aria-hidden="true"><?= e($initials) ?></span>
+                                        <strong class="reg-req-name"><?= e($fullName) ?></strong>
+                                    </div>
+                                </td>
                                 <td><span class="reg-req-status-badge <?= e($statusClass) ?>"><?= e($statusLabel) ?></span></td>
                                 <td class="reg-req-submitted"><?= e($submittedAt) ?></td>
                                 <td class="reg-req-col-action">
@@ -190,6 +193,7 @@ $incompleteCount = count($incompleteRequests ?? []);
             </div>
         <?php endif; ?>
     </section>
+    </div>
 
     <section class="card reg-req-review-card" id="regReqReviewPanel" data-reg-req-panel hidden>
         <div class="reg-req-review-head">
