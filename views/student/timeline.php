@@ -246,33 +246,157 @@ $isEmpty = $totalEntries === 0;
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
 }
+
 @media (max-width: 720px) {
     .student-timeline-page {
+        gap: 10px !important;
+    }
+
+    .student-timeline-page .st-stats {
+        gap: 8px !important;
+        margin-bottom: 8px !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .student-timeline-page .st-stat-card {
+        padding: 11px 12px !important;
+        gap: 10px !important;
+    }
+
+    .student-timeline-page .st-stat-card .st-stat-icon {
+        width: 34px !important;
+        height: 34px !important;
+        min-width: 34px !important;
+        min-height: 34px !important;
+    }
+
+    .student-timeline-page .st-stat-card .st-stat-icon svg {
+        width: 16px !important;
+        height: 16px !important;
+        max-width: 16px !important;
+        max-height: 16px !important;
+    }
+
+    .student-timeline-page .st-stat-card strong {
+        font-size: 1.15rem !important;
+    }
+
+    .student-timeline-page .st-stat-card > div > span {
+        font-size: 0.72rem !important;
+        line-height: 1.25 !important;
+    }
+
+    .student-timeline-page .st-box-head {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+        padding: 14px 14px 12px !important;
+    }
+
+    .student-timeline-page .st-box-head h2 {
+        font-size: 1rem !important;
+    }
+
+    .student-timeline-page .st-box-head .muted {
+        font-size: 0.76rem !important;
+    }
+
+    .student-timeline-page .st-filters {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        width: 100% !important;
+        gap: 6px !important;
+        flex-wrap: nowrap !important;
+    }
+
+    .student-timeline-page .st-filter {
+        justify-content: center !important;
+        min-height: 40px !important;
+        width: 100% !important;
+        padding: 8px 6px !important;
+        gap: 5px !important;
+        font-size: 0.72rem !important;
+        white-space: nowrap !important;
+    }
+
+    .student-timeline-page .st-filter-count {
+        min-width: 18px !important;
+        height: 18px !important;
+        padding: 0 4px !important;
+        font-size: 0.66rem !important;
+    }
+
+    .student-timeline-page .st-timeline-scroll {
+        max-height: none !important;
+        padding: 12px 12px 14px !important;
+    }
+
+    .student-timeline-page .st-timeline {
         gap: 12px !important;
     }
-    .student-timeline-page .st-stats {
-        gap: 10px !important;
-        margin-bottom: 10px !important;
-    }
-    .student-timeline-page .st-stat-card {
-        padding: 12px 14px !important;
-    }
-    .student-timeline-page .st-box-head,
-    .student-timeline-page .st-filter-row {
-        flex-wrap: wrap !important;
-        gap: 10px !important;
-    }
-    .student-timeline-page .st-filter,
-    .student-timeline-page .st-filter-btn {
-        min-height: 40px;
+
+    .student-timeline-page .st-entry-card {
+        padding: 12px 12px !important;
     }
 }
+
 @media (max-width: 560px) {
     .student-timeline-page .st-stats {
-        grid-template-columns: 1fr !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
+
     body.role-student .top-actions {
         max-width: none !important;
+    }
+
+    /* Shorter filter labels on narrow phones */
+    .student-timeline-page .st-filter[data-st-filter="dtr"] {
+        font-size: 0 !important;
+        gap: 0 !important;
+    }
+
+    .student-timeline-page .st-filter[data-st-filter="dtr"]::before {
+        content: "Daily" !important;
+        font-size: 0.72rem !important;
+        font-weight: 700 !important;
+        margin-right: 5px !important;
+    }
+
+    .student-timeline-page .st-filter[data-st-filter="dtr"] .st-filter-count {
+        font-size: 0.66rem !important;
+    }
+
+    .student-timeline-page .st-filter[data-st-filter="weekly"] {
+        font-size: 0 !important;
+        gap: 0 !important;
+    }
+
+    .student-timeline-page .st-filter[data-st-filter="weekly"]::before {
+        content: "Weekly" !important;
+        font-size: 0.72rem !important;
+        font-weight: 700 !important;
+        margin-right: 5px !important;
+    }
+
+    .student-timeline-page .st-filter[data-st-filter="weekly"] .st-filter-count {
+        font-size: 0.66rem !important;
+    }
+}
+
+@media (max-width: 380px) {
+    .student-timeline-page .st-stat-card {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+        padding: 10px !important;
+    }
+
+    .student-timeline-page .st-filters {
+        gap: 5px !important;
+    }
+
+    .student-timeline-page .st-filter {
+        padding: 8px 4px !important;
     }
 }
 </style>

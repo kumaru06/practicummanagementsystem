@@ -813,14 +813,9 @@ class AuthController extends BaseController
                 (new User($this->db))->updatePassword((int)$request['user_id'], $password, 1);
                 $model->markCompleted((int)$request['id']);
 
-                $loginRoute = match ((string)($request['role'] ?? '')) {
-                    'coordinator' => 'coordinator.login',
-                    'partner' => 'partner.login',
-                    default => 'student.login',
-                };
-
-                flash('success', 'Your password has been updated. You can now sign in with your new password.');
-                redirect(route_url($loginRoute));
+                $role = (string)($request['role'] ?? 'student');
+                $redirectRole = in_array($role, ['student', 'coordinator', 'partner'], true) ? $role : 'student';
+                redirect('reset-password.php?updated=1&role=' . urlencode($redirectRole));
             } catch (Throwable $e) {
                 $tokenError = $e->getMessage();
             }

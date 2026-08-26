@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initRegisterCourseSelect();
     initRegistrationBackLink();
     initRegistrationSuccessCountdown();
+    initRegisterSubmitAnimation();
     initCoordinatorAvailability();
     initCoordinatorDirectory();
     initPartnerAvailability();
@@ -3096,10 +3097,12 @@ function getDtrTimePanel() {
         if (set) {
             const minuteInput = _dtrTimePanel.querySelector('[data-dtr-minute]');
             _dtrTimeState.minute = Math.max(0, Math.min(59, Number(minuteInput?.value || 0)));
-            _dtrTimeContext.input.value = toDtrTimeValue(_dtrTimeState.hour, _dtrTimeState.minute, _dtrTimeState.period);
-            _dtrTimeContext.sync();
+            const ctx = _dtrTimeContext;
+            ctx.input.value = toDtrTimeValue(_dtrTimeState.hour, _dtrTimeState.minute, _dtrTimeState.period);
+            ctx.sync();
+            const saveBtn = ctx.saveButton;
             closeDtrTimePicker();
-            _dtrTimeContext.saveButton?.focus();
+            saveBtn?.focus();
         }
     });
     _dtrTimePanel.addEventListener('input', e => {
@@ -3118,6 +3121,16 @@ function renderDtrTimePanel() {
 }
 
 function openDtrTimePicker(context) {
+    // Re-opening the same field causes a close/open blink of the panel and time UI.
+    if (
+        _dtrTimePanel
+        && !_dtrTimePanel.hidden
+        && _dtrTimeContext?.input
+        && context?.input
+        && _dtrTimeContext.input === context.input
+    ) {
+        return;
+    }
     closeDtrTimePicker();
     closeCustomSelects();
     closeCustomDatePickers();
@@ -3140,9 +3153,11 @@ function openDtrTimePicker(context) {
     panel.style.top = `${Math.max(viewportPadding, hasRoomBelow ? belowTop : aboveTop)}px`;
     // Keep panel above other overlays / menus.
     document.body.appendChild(panel);
+    bindDtrTimePickerScrollClose();
 }
 
 function closeDtrTimePicker() {
+    unbindDtrTimePickerScrollClose();
     if (!_dtrTimePanel) return;
     _dtrTimePanel.classList.remove('is-open');
     _dtrTimePanel.hidden = true;
@@ -3152,6 +3167,31 @@ function closeDtrTimePicker() {
     if (backdrop) {
         backdrop.remove();
     }
+}
+
+let _dtrTimeScrollCloseBound = false;
+function onDtrTimePickerScrollClose(event) {
+    if (!_dtrTimePanel || _dtrTimePanel.hidden || !_dtrTimePanel.classList.contains('is-open')) return;
+    // Keep picker usable when user scrolls inside the panel itself.
+    if (event.target && typeof event.target.closest === 'function' && event.target.closest('.dtr-time-panel')) {
+        return;
+    }
+    if (_dtrTimePanel.contains?.(event.target)) return;
+    closeDtrTimePicker();
+}
+
+function bindDtrTimePickerScrollClose() {
+    if (_dtrTimeScrollCloseBound) return;
+    _dtrTimeScrollCloseBound = true;
+    window.addEventListener('scroll', onDtrTimePickerScrollClose, true);
+    document.addEventListener('scroll', onDtrTimePickerScrollClose, true);
+}
+
+function unbindDtrTimePickerScrollClose() {
+    if (!_dtrTimeScrollCloseBound) return;
+    _dtrTimeScrollCloseBound = false;
+    window.removeEventListener('scroll', onDtrTimePickerScrollClose, true);
+    document.removeEventListener('scroll', onDtrTimePickerScrollClose, true);
 }
 
 function initDtrTimeLocks() {
@@ -3401,14 +3441,20 @@ function initDtrTimeLocks() {
                     item.group.classList.remove('is-locked', 'is-waiting', 'has-time', 'needs-time');
                     item.group.querySelector('[data-time-lock-badge]')?.setAttribute('hidden', '');
                     if (dateTaken) {
-                        item.display.textContent = formatDtrTimeDisplay(item.input.value);
+                        const nextDisplay = formatDtrTimeDisplay(item.input.value);
+                        if (item.display.textContent !== nextDisplay) {
+                            item.display.textContent = nextDisplay;
+                        }
                     }
                     return;
                 }
 
                 item.trigger.setAttribute('aria-disabled', String(mustWait || isSaved));
                 item.button.setAttribute('aria-disabled', String(mustWait));
-                item.display.textContent = formatDtrTimeDisplay(item.input.value);
+                const nextDisplay = formatDtrTimeDisplay(item.input.value);
+                if (item.display.textContent !== nextDisplay) {
+                    item.display.textContent = nextDisplay;
+                }
                 item.group.classList.toggle('is-locked', isSaved);
                 item.group.classList.toggle('is-waiting', mustWait);
                 item.group.classList.toggle('has-time', hasDtrTimeValue(item.input.value));
@@ -3504,71 +3550,79 @@ function initDtrTimeLocks() {
         tasks.addEventListener('input', sync);
 
         groups.forEach((item, index) => {
-            let lastTap = 0;
-            const runOnce = (event, handler) => {
-                const now = Date.now();
-                if (event.type !== 'keydown' && now - lastTap < 350) return;
-                lastTap = now;
-                event.preventDefault();
-                event.stopPropagation();
-                handler();
-            };
-
+            let lockBusy = false;
             const openPicker = () => {
                 if (item.trigger.getAttribute('aria-disabled') === 'true') return;
                 openDtrTimePicker({ input: item.input, trigger: item.trigger, saveButton: item.button, sync });
             };
 
             const toggleLock = async () => {
-                sync();
-                if (item.button.getAttribute('aria-disabled') === 'true') return;
-                if (item.locked) {
-                    unlockFrom(index);
-                    clearFrom(index);
+                if (lockBusy) {
+                    return;
+                }
+                lockBusy = true;
+                try {
                     sync();
-                    await saveDraft();
-                    item.trigger.focus();
-                    return;
-                }
-                if (!hasDtrTimeValue(item.input.value)) {
-                    item.group.classList.add('needs-time');
-                    openPicker();
-                    return;
-                }
-                item.group.classList.remove('needs-time');
-                item.locked = true;
-                sync();
-                const saved = await saveDraft();
-                if (!saved) {
-                    item.locked = false;
+                    if (item.button.getAttribute('aria-disabled') === 'true') return;
+                    if (item.locked) {
+                        unlockFrom(index);
+                        clearFrom(index);
+                        sync();
+                        await saveDraft();
+                        item.trigger.focus();
+                        return;
+                    }
+                    if (!hasDtrTimeValue(item.input.value)) {
+                        item.group.classList.add('needs-time');
+                        openPicker();
+                        return;
+                    }
+                    item.group.classList.remove('needs-time');
+                    item.locked = true;
                     sync();
-                    console.error('Failed to save DTR draft.');
-                    return;
+                    const saved = await saveDraft();
+                    if (!saved) {
+                        item.locked = false;
+                        sync();
+                        console.error('Failed to save DTR draft.');
+                        return;
+                    }
+                    const config = getConfig();
+                    const required = config.requiredIndices;
+                    const reqPos = required.indexOf(index);
+                    const nextRequiredIndex = reqPos >= 0 ? required[reqPos + 1] : undefined;
+                    const nextInput = nextRequiredIndex !== undefined ? groups[nextRequiredIndex]?.input : tasks;
+                    const nextTrigger = nextRequiredIndex !== undefined ? groups[nextRequiredIndex]?.trigger : null;
+                    (nextTrigger || nextInput)?.focus();
+                } finally {
+                    lockBusy = false;
                 }
-                const config = getConfig();
-                const required = config.requiredIndices;
-                const reqPos = required.indexOf(index);
-                const nextRequiredIndex = reqPos >= 0 ? required[reqPos + 1] : undefined;
-                const nextInput = nextRequiredIndex !== undefined ? groups[nextRequiredIndex]?.input : tasks;
-                const nextTrigger = nextRequiredIndex !== undefined ? groups[nextRequiredIndex]?.trigger : null;
-                (nextTrigger || nextInput)?.focus();
             };
 
             item.input.addEventListener('input', sync);
             item.input.addEventListener('change', sync);
             item.input.addEventListener('blur', sync);
             item.input.addEventListener('keyup', sync);
-            ['pointerup', 'touchend', 'click'].forEach(eventName => {
-                item.trigger.addEventListener(eventName, event => runOnce(event, openPicker), { passive: false });
-                item.button.addEventListener(eventName, event => runOnce(event, toggleLock), { passive: false });
+            // Use click only — pointerup+touchend+click caused duplicate handling / UI blink on mobile.
+            item.trigger.addEventListener('click', event => {
+                event.preventDefault();
+                event.stopPropagation();
+                openPicker();
+            });
+            item.button.addEventListener('click', event => {
+                event.preventDefault();
+                event.stopPropagation();
+                void toggleLock();
             });
             item.trigger.addEventListener('keydown', event => {
                 if (!['Enter', ' '].includes(event.key)) return;
-                runOnce(event, openPicker);
+                event.preventDefault();
+                openPicker();
             });
             item.button.addEventListener('keydown', event => {
                 if (!['Enter', ' '].includes(event.key)) return;
-                runOnce(event, toggleLock);
+                event.preventDefault();
+                void toggleLock();
             });
         });
 
@@ -4305,6 +4359,12 @@ function initRegistrationSuccessCountdown() {
     const panel = document.querySelector('[data-register-success]');
     if (!panel) return;
 
+    panel.classList.remove('is-revealed');
+    void panel.offsetWidth;
+    requestAnimationFrame(() => {
+        panel.classList.add('is-revealed');
+    });
+
     const redirectUrl = panel.dataset.redirectUrl || '/';
     const countdownEl = panel.querySelector('[data-register-countdown-value]');
     const configuredSeconds = parseInt(panel.dataset.countdownSeconds ?? '10', 10);
@@ -4314,20 +4374,126 @@ function initRegistrationSuccessCountdown() {
 
     let remaining = Math.max(3, configuredSeconds);
 
-    if (countdownEl) countdownEl.textContent = String(remaining);
-
-    const finish = () => {
-        closeRegistrationAndReturnToLogin(redirectUrl);
+    const tick = () => {
+        if (countdownEl) countdownEl.textContent = String(remaining);
+        if (remaining <= 0) {
+            closeRegistrationAndReturnToLogin(redirectUrl);
+            return;
+        }
+        remaining -= 1;
+        window.setTimeout(tick, 1000);
     };
 
-    const timer = window.setInterval(() => {
-        remaining -= 1;
-        if (countdownEl) countdownEl.textContent = String(Math.max(remaining, 0));
-        if (remaining <= 0) {
-            window.clearInterval(timer);
-            finish();
+    window.setTimeout(tick, 900);
+}
+
+function initRegisterSubmitAnimation() {
+    const form = document.getElementById('studentRegisterForm');
+    if (!form || form.dataset.registerSubmitBound === '1') return;
+    form.dataset.registerSubmitBound = '1';
+
+    const submitBtn = form.querySelector('[data-register-submit]') || form.querySelector('.register-submit');
+    if (!submitBtn) return;
+
+    const setLoading = (on) => {
+        form.classList.toggle('is-submitting', on);
+        submitBtn.classList.toggle('is-loading', on);
+        submitBtn.setAttribute('aria-busy', on ? 'true' : 'false');
+        submitBtn.disabled = on;
+        form.dataset.registerSubmitting = on ? '1' : '0';
+    };
+
+    const showInlineError = (message) => {
+        let alertEl = document.querySelector('.register-alert');
+        if (!alertEl) {
+            const body = document.querySelector('.register-body');
+            const head = body?.querySelector('.register-body-head');
+            alertEl = document.createElement('div');
+            alertEl.className = 'alert danger register-alert';
+            if (head) {
+                head.insertAdjacentElement('afterend', alertEl);
+            } else {
+                body?.prepend(alertEl);
+            }
         }
-    }, 1000);
+        alertEl.textContent = message || 'Registration failed. Please try again.';
+        alertEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+
+    const mountSuccessPanel = (successNode, finalUrl) => {
+        const body = document.querySelector('.register-body');
+        if (!body || !successNode) return false;
+
+        body.innerHTML = '';
+        body.appendChild(document.importNode(successNode, true));
+
+        const steps = document.querySelectorAll('.register-step');
+        if (steps.length >= 2) {
+            steps[0]?.classList.remove('is-active');
+            steps[0]?.classList.add('is-done');
+            steps[1]?.classList.add('is-active');
+        }
+
+        if (finalUrl) {
+            try {
+                history.replaceState({}, '', finalUrl);
+            } catch {
+                // ignore
+            }
+        }
+
+        initRegistrationSuccessCountdown();
+        initRegistrationBackLink();
+        return true;
+    };
+
+    form.addEventListener('submit', async (event) => {
+        if (event.defaultPrevented) return;
+        event.preventDefault();
+
+        if (form.dataset.registerSubmitting === '1') return;
+
+        if (typeof form.reportValidity === 'function' && !form.reportValidity()) {
+            return;
+        }
+
+        setLoading(true);
+        const startedAt = Date.now();
+        const minLoadingMs = 1200;
+
+        try {
+            const response = await fetch(form.getAttribute('action') || 'register.php', {
+                method: 'POST',
+                body: new FormData(form),
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    Accept: 'text/html',
+                },
+            });
+
+            const html = await response.text();
+            const remaining = Math.max(0, minLoadingMs - (Date.now() - startedAt));
+            if (remaining > 0) {
+                await new Promise((resolve) => window.setTimeout(resolve, remaining));
+            }
+
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const success = doc.querySelector('[data-register-success]');
+            if (success && response.ok) {
+                mountSuccessPanel(success, response.url || 'register.php?submitted=1');
+                return;
+            }
+
+            const errorText = doc.querySelector('.register-alert, .alert.danger')?.textContent?.trim()
+                || 'Registration failed. Please review your details and try again.';
+            setLoading(false);
+            showInlineError(errorText);
+        } catch {
+            setLoading(false);
+            showInlineError('Unable to submit registration right now. Please try again.');
+        }
+    });
 }
 
 function initRegisterCourseSelect() {
@@ -5584,7 +5750,7 @@ function initEmailLogsFeed() {
                 pager.appendChild(btn);
             };
 
-            addBtn('?', Math.max(1, page - 1), { disabled: page <= 1 });
+            addBtn('\u2039', Math.max(1, page - 1), { disabled: page <= 1 });
             for (let i = 1; i <= totalPages; i += 1) {
                 if (totalPages > 7 && Math.abs(i - page) > 2 && i !== 1 && i !== totalPages) {
                     if (i === 2 || i === totalPages - 1) {
@@ -5593,14 +5759,14 @@ function initEmailLogsFeed() {
                         dots.style.border = 'none';
                         dots.style.background = 'transparent';
                         dots.style.cursor = 'default';
-                        dots.textContent = '?';
+                        dots.textContent = '\u2026';
                         pager.appendChild(dots);
                     }
                     continue;
                 }
                 addBtn(String(i), i, { active: i === page });
             }
-            addBtn('?', Math.min(totalPages, page + 1), { disabled: page >= totalPages });
+            addBtn('\u203a', Math.min(totalPages, page + 1), { disabled: page >= totalPages });
         };
 
         const apply = () => {
@@ -6644,6 +6810,75 @@ function initRegistrationRequestsReview() {
     panel?.querySelector('[data-reg-req-close]')?.addEventListener('click', closeRegistrationRequestsReview);
 }
 
+function formatAdminBadgeCount(count) {
+    const value = Math.max(0, Number(count) || 0);
+    return value > 99 ? '99+' : String(value);
+}
+
+function updateAdminPendingBadges(counts) {
+    if (!counts || typeof counts !== 'object') return;
+
+    const total = Math.max(0, Number(counts.total) || 0);
+    const passwordReset = Math.max(0, Number(counts.password_reset) || 0);
+    const totalLabel = `${total} pending request${total === 1 ? '' : 's'}`;
+    const passwordResetLabel = `${passwordReset} pending password reset${passwordReset === 1 ? '' : 's'}`;
+
+    document.querySelectorAll('[data-admin-pending-total]').forEach(badge => {
+        if (total <= 0) {
+            badge.remove();
+            return;
+        }
+        badge.textContent = formatAdminBadgeCount(total);
+        badge.setAttribute('aria-label', totalLabel);
+    });
+
+    const manageUsersToggle = document.querySelector('.nav-group-toggle');
+    if (manageUsersToggle && total > 0 && !manageUsersToggle.querySelector('[data-admin-pending-total]')) {
+        const badge = document.createElement('span');
+        badge.className = 'nav-link-badge';
+        badge.setAttribute('data-admin-pending-total', '');
+        badge.setAttribute('aria-label', totalLabel);
+        badge.textContent = formatAdminBadgeCount(total);
+        manageUsersToggle.insertBefore(badge, manageUsersToggle.querySelector('.chevron'));
+    }
+
+    const passwordResetNav = document.querySelector('[data-admin-nav="password_reset"]');
+    let passwordResetBadge = passwordResetNav?.querySelector('[data-admin-pending-password-reset]');
+    if (passwordReset <= 0) {
+        passwordResetBadge?.remove();
+        return;
+    }
+    if (!passwordResetBadge && passwordResetNav) {
+        passwordResetBadge = document.createElement('span');
+        passwordResetBadge.className = 'nav-link-badge';
+        passwordResetBadge.setAttribute('data-admin-pending-password-reset', '');
+        passwordResetNav.appendChild(passwordResetBadge);
+    }
+    if (passwordResetBadge) {
+        passwordResetBadge.textContent = formatAdminBadgeCount(passwordReset);
+        passwordResetBadge.setAttribute('aria-label', passwordResetLabel);
+    }
+}
+
+function updateNotificationUnreadBadge(count) {
+    const value = Math.max(0, Number(count) || 0);
+    const trigger = document.getElementById('notifBtn');
+    if (!trigger) return;
+
+    let badge = trigger.querySelector('[data-notif-unread-count]');
+    if (value <= 0) {
+        badge?.remove();
+        return;
+    }
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'notif-badge';
+        badge.setAttribute('data-notif-unread-count', '');
+        trigger.appendChild(badge);
+    }
+    badge.textContent = formatAdminBadgeCount(value);
+}
+
 function initPasswordResetRequests() {
     const root = document.querySelector('[data-pwd-reset-requests]');
     if (!root) return;
@@ -6663,6 +6898,10 @@ function initPasswordResetRequests() {
     };
 
     let floatEl = document.querySelector('[data-pwd-reset-float]');
+    if (floatEl && !floatEl.querySelector('.pwd-reset-ios-status')) {
+        floatEl.remove();
+        floatEl = null;
+    }
     if (!floatEl) {
         floatEl = document.createElement('div');
         floatEl.className = 'pwd-reset-float';
@@ -6672,9 +6911,17 @@ function initPasswordResetRequests() {
         floatEl.hidden = true;
         floatEl.innerHTML = `
             <div class="pwd-reset-float-box" role="status">
-                <div class="pwd-reset-float-icon pwd-reset-float-icon--loading" data-pwd-reset-float-icon aria-hidden="true">
-                    <span class="pwd-reset-float-spinner"></span>
+                <div class="pwd-reset-ios-status" data-pwd-reset-float-icon aria-hidden="true">
+                    <svg class="pwd-reset-ios-svg" viewBox="0 0 52 52" fill="none">
+                        <circle class="pwd-reset-ios-track" cx="26" cy="26" r="22"></circle>
+                        <circle class="pwd-reset-ios-spinner" cx="26" cy="26" r="22"></circle>
+                        <circle class="pwd-reset-ios-circle" cx="26" cy="26" r="22"></circle>
+                        <path class="pwd-reset-ios-check" d="M15.5 26.8 22.4 33.5 36.5 18.5"></path>
+                        <path class="pwd-reset-ios-cross pwd-reset-ios-cross-a" d="M18 18 34 34"></path>
+                        <path class="pwd-reset-ios-cross pwd-reset-ios-cross-b" d="M34 18 18 34"></path>
+                    </svg>
                 </div>
+                <strong class="pwd-reset-float-title" data-pwd-reset-float-title>Please wait</strong>
                 <p class="pwd-reset-float-msg" data-pwd-reset-float-msg></p>
             </div>
         `;
@@ -6682,10 +6929,17 @@ function initPasswordResetRequests() {
     }
 
     const floatMsgEl = floatEl.querySelector('[data-pwd-reset-float-msg]');
+    const floatTitleEl = floatEl.querySelector('[data-pwd-reset-float-title]');
     const floatIconEl = floatEl.querySelector('[data-pwd-reset-float-icon]');
     let floatHideTimer = null;
 
     const wait = ms => new Promise(resolve => window.setTimeout(resolve, ms));
+
+    const titles = {
+        loading: 'Please wait',
+        success: 'All set',
+        error: 'Something went wrong',
+    };
 
     const hideFloat = async (delayMs = 0) => {
         if (floatHideTimer) {
@@ -6700,8 +6954,8 @@ function initPasswordResetRequests() {
         floatEl.setAttribute('aria-busy', 'false');
         await wait(320);
         floatEl.hidden = true;
-        floatEl.classList.remove('is-fading-out', 'is-success', 'is-error');
-        floatIconEl?.classList.remove('pwd-reset-float-icon--success', 'pwd-reset-float-icon--error');
+        floatEl.classList.remove('is-fading-out', 'is-success', 'is-error', 'is-loading', 'is-revealed');
+        floatIconEl?.classList.remove('is-revealed');
     };
 
     const showFloat = async (state, message) => {
@@ -6711,31 +6965,37 @@ function initPasswordResetRequests() {
         }
 
         floatEl.hidden = false;
-        floatEl.classList.remove('is-fading-out', 'is-success', 'is-error');
-        floatIconEl?.classList.remove('pwd-reset-float-icon--success', 'pwd-reset-float-icon--error');
+        floatEl.classList.remove('is-fading-out', 'is-success', 'is-error', 'is-loading', 'is-revealed');
+        floatIconEl?.classList.remove('is-revealed');
 
+        if (floatTitleEl) floatTitleEl.textContent = titles[state] || 'Please wait';
         if (floatMsgEl) floatMsgEl.textContent = message;
         floatEl.setAttribute('aria-busy', state === 'loading' ? 'true' : 'false');
 
         if (state === 'success') {
             floatEl.classList.add('is-success');
-            floatIconEl?.classList.add('pwd-reset-float-icon--success');
         } else if (state === 'error') {
             floatEl.classList.add('is-error');
-            floatIconEl?.classList.add('pwd-reset-float-icon--error');
+        } else {
+            floatEl.classList.add('is-loading');
         }
 
         await wait(16);
         floatEl.classList.add('is-visible');
+        void floatEl.offsetWidth;
+        requestAnimationFrame(() => {
+            floatEl.classList.add('is-revealed');
+            floatIconEl?.classList.add('is-revealed');
+        });
 
         if (state === 'success') {
             floatHideTimer = window.setTimeout(() => {
                 hideFloat();
-            }, 1800);
+            }, 2200);
         } else if (state === 'error') {
             floatHideTimer = window.setTimeout(() => {
                 hideFloat();
-            }, 2800);
+            }, 3000);
         }
     };
 
@@ -6786,6 +7046,8 @@ function initPasswordResetRequests() {
 
             const decision = form.dataset.pwdResetDecision || 'approve';
             const formData = new FormData(form);
+            const startedAt = Date.now();
+            const minLoadingMs = 1100;
 
             await showFloat('loading', loadingLabels[decision] || 'Processing...');
             setFormLoading(form, true);
@@ -6815,11 +7077,15 @@ function initPasswordResetRequests() {
                     throw new Error(data.message || 'Unable to process this password reset request.');
                 }
 
+                const remaining = Math.max(0, minLoadingMs - (Date.now() - startedAt));
+                if (remaining > 0) await wait(remaining);
+
                 form.closest('[data-pwd-reset-row]')?.remove();
                 updatePendingCount();
-
-                const details = form.closest('details.reg-req-decline');
-                if (details) details.open = false;
+                updateAdminPendingBadges(data.pendingCounts);
+                if (typeof data.unreadNotifications === 'number') {
+                    updateNotificationUnreadBadge(data.unreadNotifications);
+                }
 
                 setFormLoading(form, false);
                 await showFloat('success', data.message || successLabels[decision] || 'Done.');
@@ -6827,6 +7093,28 @@ function initPasswordResetRequests() {
                 setFormLoading(form, false);
                 await showFloat('error', error.message || 'Unable to process this password reset request.');
             }
+        });
+    });
+
+    root.querySelectorAll('[data-pwd-reset-reject]').forEach(button => {
+        button.addEventListener('click', async event => {
+            event.preventDefault();
+            event.stopPropagation();
+            const row = button.closest('[data-pwd-reset-row]');
+            const form = row?.querySelector('[data-pwd-reset-form][data-pwd-reset-decision="reject"]');
+            if (!form) return;
+
+            const accountName = row?.querySelector('td strong')?.textContent?.trim() || 'this account';
+            const confirmed = await showConfirmModal(
+                `Reject the password reset request for ${accountName}?`,
+                {
+                    title: 'Reject password reset',
+                    confirmText: 'Yes, reject',
+                    cancelText: 'Cancel',
+                }
+            );
+            if (!confirmed) return;
+            form.requestSubmit();
         });
     });
 }
@@ -8249,7 +8537,7 @@ function initAdminActivitiesFeed() {
                 pager.appendChild(btn);
             };
 
-            addBtn('?', Math.max(1, page - 1), { disabled: page <= 1 });
+            addBtn('\u2039', Math.max(1, page - 1), { disabled: page <= 1 });
             for (let i = 1; i <= totalPages; i += 1) {
                 if (totalPages > 7 && Math.abs(i - page) > 2 && i !== 1 && i !== totalPages) {
                     if (i === 2 || i === totalPages - 1) {
@@ -8258,14 +8546,14 @@ function initAdminActivitiesFeed() {
                         dots.style.border = 'none';
                         dots.style.background = 'transparent';
                         dots.style.cursor = 'default';
-                        dots.textContent = '?';
+                        dots.textContent = '\u2026';
                         pager.appendChild(dots);
                     }
                     continue;
                 }
                 addBtn(String(i), i, { active: i === page });
             }
-            addBtn('?', Math.min(totalPages, page + 1), { disabled: page >= totalPages });
+            addBtn('\u203a', Math.min(totalPages, page + 1), { disabled: page >= totalPages });
         };
 
         const apply = () => {

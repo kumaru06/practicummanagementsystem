@@ -61,23 +61,20 @@ $model = new PasswordResetRequest(db());
                                             <span class="spinner" aria-hidden="true"></span>
                                         </button>
                                     </form>
-                                    <details class="reg-req-decline">
-                                        <summary class="btn btn-small btn-ghost">Reject</summary>
-                                        <form method="post" action="index.php?r=admin_password_reset_requests" class="reg-req-decline-form" data-pwd-reset-form data-pwd-reset-decision="reject">
-                                            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                            <input type="hidden" name="action" value="admin_review_password_reset_request">
-                                            <input type="hidden" name="request_id" value="<?= (int)$request['id'] ?>">
-                                            <input type="hidden" name="decision" value="reject">
-                                            <label>
-                                                <span>Reason (optional)</span>
-                                                <textarea name="decline_reason" rows="2" placeholder="Optional note for internal reference"></textarea>
-                                            </label>
-                                            <button class="btn btn-small btn-danger-outline" type="submit" data-pwd-reset-submit>
-                                                <span class="btn-text">Confirm Reject</span>
-                                                <span class="spinner" aria-hidden="true"></span>
-                                            </button>
-                                        </form>
-                                    </details>
+                                    <button class="btn btn-small btn-ghost" type="button" data-pwd-reset-reject>
+                                        Reject
+                                    </button>
+                                    <form method="post" action="index.php?r=admin_password_reset_requests" class="reg-req-decline-form is-hidden" data-pwd-reset-form data-pwd-reset-decision="reject" hidden>
+                                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                        <input type="hidden" name="action" value="admin_review_password_reset_request">
+                                        <input type="hidden" name="request_id" value="<?= (int)$request['id'] ?>">
+                                        <input type="hidden" name="decision" value="reject">
+                                        <input type="hidden" name="decline_reason" value="">
+                                        <button class="btn btn-small btn-danger-outline" type="submit" data-pwd-reset-submit hidden aria-hidden="true" tabindex="-1">
+                                            <span class="btn-text">Confirm Reject</span>
+                                            <span class="spinner" aria-hidden="true"></span>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>

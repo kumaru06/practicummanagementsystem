@@ -69,7 +69,6 @@ $formatReportDate = static function (string $date): string {
             <div>
                 <span class="sr-card-kicker">OJT Attendance</span>
                 <h2>Recent Daily Time Records</h2>
-                <p>Track submitted DTR entries and approval status in one place.</p>
             </div>
         </div>
         <div class="sr-card-meta">
@@ -155,7 +154,6 @@ $formatReportDate = static function (string $date): string {
             <div>
                 <span class="sr-card-kicker">Weekly Narrative</span>
                 <h2>Recent Weekly Reports</h2>
-                <p>Review submitted weekly accomplishments and uploaded files.</p>
             </div>
         </div>
         <div class="sr-card-meta">

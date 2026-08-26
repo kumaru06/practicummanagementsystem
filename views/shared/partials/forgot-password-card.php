@@ -1,6 +1,10 @@
 <?php
 $selectedRole = $role ?? '';
-$portalPartialUrl = route_url('login', ['portal' => $selectedRole]);
+$portalPartialParams = ['partial' => 'portal'];
+if ($selectedRole !== '') {
+    $portalPartialParams['portal'] = $selectedRole;
+}
+$portalPartialUrl = route_url('login', $portalPartialParams);
 ?>
 <div
     class="login-card portal-login-card forgot-password-card is-revealed js-forgot-shell"
@@ -15,7 +19,9 @@ $portalPartialUrl = route_url('login', ['portal' => $selectedRole]);
             </div>
         </div>
 
-        <?php require __DIR__ . '/forgot-password-view.php'; ?>
+        <div class="js-forgot-view-host" data-loaded="1" data-forgot-role="<?= e($selectedRole) ?>">
+            <?php require __DIR__ . '/forgot-password-view.php'; ?>
+        </div>
     </div>
 
     <div class="login-card-footer">

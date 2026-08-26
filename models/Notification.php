@@ -41,4 +41,20 @@ class Notification
         $stmt = $this->db->prepare('UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0');
         $stmt->execute([$userId]);
     }
+
+    public function markRecentUnreadByTitle(int $userId, string $title, int $limit = 1): int
+    {
+        $limit = max(1, min(10, $limit));
+        $stmt = $this->db->prepare(
+            "UPDATE notifications
+             SET is_read = 1
+             WHERE user_id = ?
+               AND is_read = 0
+               AND title = ?
+             ORDER BY created_at DESC
+             LIMIT {$limit}"
+        );
+        $stmt->execute([$userId, $title]);
+        return $stmt->rowCount();
+    }
 }

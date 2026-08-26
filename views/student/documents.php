@@ -9,11 +9,6 @@
         'not_started'    => ['label' => 'Not started',    'cls' => 'is-idle'],
         'locked'         => ['label' => 'Locked',         'cls' => 'is-locked'],
     ];
-    $stageDescriptions = [
-        1 => 'Upload your pre-deployment requirements, then submit them for coordinator review.',
-        2 => 'View your endorsement letter and upload your signed confidentiality agreement.',
-        3 => 'Submit your during and post-OJT documents and complete your self-evaluations when your OJT hours are complete.',
-    ];
 
     $currentStage = $stages[$activeStage] ?? null;
     $headStatusMeta = $currentStage ? ($statusMeta[$currentStage['status']] ?? $statusMeta['locked']) : $statusMeta['locked'];
@@ -36,7 +31,6 @@
         <div class="docs-comply-head__main">
             <span class="docs-comply-eyebrow">OJT Documents · Stage <?= (int)$activeStage ?> of 3</span>
             <h1><?= e($stageLabel) ?></h1>
-            <p class="muted"><?= e($stageDescriptions[$activeStage] ?? '') ?></p>
         </div>
         <div class="docs-comply-head__aside">
             <span class="badge docs-stage-badge <?= e($headStatusMeta['cls']) ?>"><?= e($headStatusMeta['label']) ?></span>
@@ -69,11 +63,6 @@
             <div class="section-head section-head-split">
                 <div>
                     <h2><?= $activeStage === 2 ? 'Endorsement &amp; Confidentiality' : 'During &amp; Post-OJT Documents' ?></h2>
-                    <p class="muted">
-                        <?= $activeStage === 2
-                            ? 'Your endorsement letter appears here once your coordinator forwards your documents. Upload your signed confidentiality agreement for review.'
-                            : 'Complete each document below. Fill out forms or upload files for review, and finish self-evaluations when unlocked.' ?>
-                    </p>
                 </div>
             </div>
 

@@ -127,39 +127,83 @@
     <?php $dtrDraft = $dtrDraft ?? []; ?>
     <?php $dtrDayType = normalize_dtr_day_type($dtrDraft['day_type'] ?? 'full'); ?>
     <?php
+    $dtrRequiredByType = [
+        'full' => [0, 1, 2, 3],
+        'half_am' => [0, 1],
+        'half_pm' => [2, 3],
+        'sick' => [],
+        'absent' => [],
+    ];
+    $dtrRequiredIndices = $dtrRequiredByType[$dtrDayType] ?? $dtrRequiredByType['full'];
+    $dtrFieldKeys = ['morning_time_in', 'morning_time_out', 'afternoon_time_in', 'afternoon_time_out'];
+    $dtrLockedFlags = [];
+    foreach ($dtrFieldKeys as $fieldKey) {
+        $dtrLockedFlags[] = dtr_field_is_locked($dtrDraft, $fieldKey);
+    }
+    $dtrFieldUiState = static function (int $index) use ($dtrRequiredIndices, $dtrLockedFlags): array {
+        $isRequired = in_array($index, $dtrRequiredIndices, true);
+        $reqPos = array_search($index, $dtrRequiredIndices, true);
+        $mustWait = $isRequired
+            && $reqPos !== false
+            && $reqPos > 0
+            && empty($dtrLockedFlags[$dtrRequiredIndices[$reqPos - 1]]);
+        return [
+            'blocked' => !$isRequired,
+            'mustWait' => $mustWait,
+            'isSaved' => !empty($dtrLockedFlags[$index]),
+        ];
+    };
     $renderDtrTimeLock = static function (
         string $label,
         string $name,
         ?string $value,
         bool $locked,
         string $applyLabel,
-        string $editLabel
+        string $editLabel,
+        bool $mustWait = false,
+        bool $blocked = false
     ): void {
+        $hasTime = dtr_time_has_value($value);
+        $isSaved = $locked && $hasTime;
+        $btnAriaDisabled = $blocked || $mustWait;
+        $triggerAriaDisabled = $blocked || $mustWait || $isSaved;
+        $groupClasses = 'dtr-time-lock';
+        if ($isSaved) {
+            $groupClasses .= ' is-locked';
+        }
+        if ($mustWait && !$blocked) {
+            $groupClasses .= ' is-waiting';
+        }
+        if ($hasTime) {
+            $groupClasses .= ' has-time';
+        }
+        $btnLabel = $isSaved ? $editLabel : $applyLabel;
+        $display = $hasTime ? format_dtr_time_display($value) : '--:-- --';
         ?>
-        <div class="dtr-time-lock" data-time-lock-group data-saved-locked="<?= $locked ? '1' : '0' ?>">
+        <div class="<?= e($groupClasses) ?>" data-time-lock-group data-saved-locked="<?= $locked ? '1' : '0' ?>"<?= $blocked ? ' hidden' : '' ?>>
             <div class="dtr-time-lock-top">
                 <span class="dtr-time-lock-label"><?= e($label) ?></span>
-                <span class="dtr-time-lock-badge" data-time-lock-badge <?= $locked ? '' : 'hidden' ?>>
+                <span class="dtr-time-lock-badge" data-time-lock-badge <?= $isSaved ? '' : 'hidden' ?>>
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z"/></svg>
                     Saved
                 </span>
             </div>
             <div class="dtr-time-field-group">
                 <input type="hidden" name="<?= e($name) ?>" value="<?= e($value ?? '') ?>" data-lockable-time>
-                <button class="dtr-time-picker-trigger" type="button" data-time-picker-trigger aria-label="<?= e($label) ?>">
-                    <span class="dtr-time-display" data-time-display>--:-- --</span>
+                <button class="dtr-time-picker-trigger" type="button" data-time-picker-trigger aria-label="<?= e($label) ?>" aria-disabled="<?= $triggerAriaDisabled ? 'true' : 'false' ?>"<?= $blocked ? ' disabled' : '' ?>>
+                    <span class="dtr-time-display" data-time-display><?= e($display) ?></span>
                     <span class="dtr-time-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1 0 20a10 10 0 0 1 0-20Zm0 2a8 8 0 1 0 0 16a8 8 0 0 0 0-16Zm0 2.75a1 1 0 0 1 1 1v3.67l2.28 2.28a1 1 0 1 1-1.42 1.42l-2.57-2.58A1 1 0 0 1 11 11.83V7.75a1 1 0 0 1 1-1Z"/></svg>
                     </span>
                 </button>
-                <button class="dtr-time-lock-btn" type="button" data-time-lock-toggle data-apply-label="<?= e($applyLabel) ?>" data-edit-label="<?= e($editLabel) ?>" aria-label="<?= e($applyLabel) ?>">
+                <button class="dtr-time-lock-btn<?= $isSaved ? ' is-edit-mode' : '' ?>" type="button" data-time-lock-toggle data-apply-label="<?= e($applyLabel) ?>" data-edit-label="<?= e($editLabel) ?>" aria-label="<?= e($btnLabel) ?>" aria-disabled="<?= $btnAriaDisabled ? 'true' : 'false' ?>"<?= $blocked ? ' disabled' : '' ?>>
                     <span class="dtr-time-lock-btn-icon dtr-time-lock-btn-icon--save" aria-hidden="true">
                         <svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z"/></svg>
                     </span>
                     <span class="dtr-time-lock-btn-icon dtr-time-lock-btn-icon--undo" aria-hidden="true">
                         <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12.5 8c-2.65 0-5.05 1.04-6.9 2.9L2 7v9h9l-3.62-3.62c1.39-1.39 3.3-2.26 5.42-2.26 4.14 0 7.5 3.36 7.5 7.5h2c0-5.24-4.26-9.5-9.5-9.5Z"/></svg>
                     </span>
-                    <span class="dtr-time-lock-btn-text"><?= e($applyLabel) ?></span>
+                    <span class="dtr-time-lock-btn-text"><?= e($btnLabel) ?></span>
                 </button>
             </div>
         </div>
@@ -170,7 +214,6 @@
         <div class="dtr-form-head">
             <div>
                 <h2>Submit Daily Time Record</h2>
-                <p class="muted" data-dtr-form-intro>Record your morning and afternoon attendance, then describe the tasks you completed today.</p>
             </div>
             <span class="dtr-form-badge">OJT Attendance</span>
         </div>
@@ -206,7 +249,6 @@
 
             <div class="dtr-day-type-section">
                 <span class="dtr-field-label">Day Type</span>
-                <p class="muted dtr-day-type-hint">Choose what kind of work day this is. Only the required time sessions will be shown.</p>
                 <select name="day_type" class="dtr-day-type-select" data-dtr-day-type required>
                     <?php foreach (dtr_day_types() as $value => $label): ?>
                         <option value="<?= e($value) ?>"<?= $dtrDayType === $value ? ' selected' : '' ?>><?= e($label) ?></option>
@@ -215,7 +257,7 @@
             </div>
 
             <div class="dtr-sessions" data-dtr-sessions>
-                <section class="dtr-session dtr-session--morning" data-dtr-session="morning">
+                <section class="dtr-session dtr-session--morning" data-dtr-session="morning"<?= in_array($dtrDayType, ['half_pm', 'sick', 'absent'], true) ? ' hidden' : '' ?>>
                     <header class="dtr-session-head">
                         <div class="dtr-session-title-wrap">
                             <span class="dtr-session-icon" aria-hidden="true">
@@ -229,26 +271,34 @@
                         <span class="dtr-session-chip">AM</span>
                     </header>
                     <div class="dtr-session-fields">
-                        <?php $renderDtrTimeLock(
+                        <?php
+                        $ui0 = $dtrFieldUiState(0);
+                        $renderDtrTimeLock(
                             'Time In',
                             'morning_time_in',
                             $dtrDraft['morning_time_in'] ?? '',
                             dtr_field_is_locked($dtrDraft, 'morning_time_in'),
                             'Save',
-                            'Undo'
-                        ); ?>
-                        <?php $renderDtrTimeLock(
+                            'Undo',
+                            $ui0['mustWait'],
+                            $ui0['blocked']
+                        );
+                        $ui1 = $dtrFieldUiState(1);
+                        $renderDtrTimeLock(
                             'Time Out',
                             'morning_time_out',
                             $dtrDraft['morning_time_out'] ?? '',
                             dtr_field_is_locked($dtrDraft, 'morning_time_out'),
                             'Save',
-                            'Undo'
-                        ); ?>
+                            'Undo',
+                            $ui1['mustWait'],
+                            $ui1['blocked']
+                        );
+                        ?>
                     </div>
                 </section>
 
-                <section class="dtr-session dtr-session--afternoon" data-dtr-session="afternoon">
+                <section class="dtr-session dtr-session--afternoon" data-dtr-session="afternoon"<?= in_array($dtrDayType, ['half_am', 'sick', 'absent'], true) ? ' hidden' : '' ?>>
                     <header class="dtr-session-head">
                         <div class="dtr-session-title-wrap">
                             <span class="dtr-session-icon" aria-hidden="true">
@@ -262,29 +312,36 @@
                         <span class="dtr-session-chip">PM</span>
                     </header>
                     <div class="dtr-session-fields">
-                        <?php $renderDtrTimeLock(
+                        <?php
+                        $ui2 = $dtrFieldUiState(2);
+                        $renderDtrTimeLock(
                             'Time In',
                             'afternoon_time_in',
                             $dtrDraft['afternoon_time_in'] ?? '',
                             dtr_field_is_locked($dtrDraft, 'afternoon_time_in'),
                             'Save',
-                            'Undo'
-                        ); ?>
-                        <?php $renderDtrTimeLock(
+                            'Undo',
+                            $ui2['mustWait'],
+                            $ui2['blocked']
+                        );
+                        $ui3 = $dtrFieldUiState(3);
+                        $renderDtrTimeLock(
                             'Time Out',
                             'afternoon_time_out',
                             $dtrDraft['afternoon_time_out'] ?? '',
                             dtr_field_is_locked($dtrDraft, 'afternoon_time_out'),
                             'Save',
-                            'Undo'
-                        ); ?>
+                            'Undo',
+                            $ui3['mustWait'],
+                            $ui3['blocked']
+                        );
+                        ?>
                     </div>
                 </section>
             </div>
 
             <div class="dtr-tasks-section">
                 <span class="dtr-field-label" data-dtr-tasks-label>Tasks Done</span>
-                <p class="muted dtr-tasks-hint" data-dtr-tasks-hint>Summarize your practicum activities for this work day.</p>
                 <div class="dtr-textarea-wrap">
                     <textarea required maxlength="500" name="tasks_done" rows="5" placeholder="Describe the tasks you completed today..." data-dtr-tasks data-dtr-tasks-placeholder="Describe the tasks you completed today..."></textarea>
                 </div>
@@ -303,7 +360,6 @@
         <div class="wr-form-head">
             <div>
                 <h2>Weekly Task Report</h2>
-                <p class="muted">Submit your weekly accomplishments and proof of work.</p>
             </div>
             <span class="wr-form-badge">Weekly Report</span>
         </div>
@@ -314,62 +370,59 @@
             <input type="hidden" name="action" value="student_add_weekly">
 
             <div class="wr-section">
-                <h3 class="wr-section-title">Week Information</h3>
-                <div class="wr-week-row">
-                    <div>
-                        <span class="wr-field-label">Week Number</span>
-                        <?php
-                        $weeklyByWeek = [];
-                        foreach ($weeklyReports ?? [] as $wrRow) {
-                            $wn = (int)($wrRow['week_no'] ?? 0);
-                            if ($wn > 0 && !isset($weeklyByWeek[$wn])) {
-                                $weeklyByWeek[$wn] = strtolower(trim((string)($wrRow['verification_status'] ?? 'pending')));
-                            }
+                <div class="wr-section-head">
+                    <h3 class="wr-section-title">Week Information</h3>
+                    <span class="wr-field-label wr-week-head-label">Week Number</span>
+                </div>
+                <div class="wr-week-select">
+                    <?php
+                    $weeklyByWeek = [];
+                    foreach ($weeklyReports ?? [] as $wrRow) {
+                        $wn = (int)($wrRow['week_no'] ?? 0);
+                        if ($wn > 0 && !isset($weeklyByWeek[$wn])) {
+                            $weeklyByWeek[$wn] = strtolower(trim((string)($wrRow['verification_status'] ?? 'pending')));
                         }
-                        $firstOpenWeek = null;
-                        for ($probe = 1; $probe <= 18; $probe++) {
-                            if (!isset($weeklyByWeek[$probe])) {
-                                $firstOpenWeek = $probe;
-                                break;
-                            }
+                    }
+                    $firstOpenWeek = null;
+                    for ($probe = 1; $probe <= 18; $probe++) {
+                        if (!isset($weeklyByWeek[$probe])) {
+                            $firstOpenWeek = $probe;
+                            break;
                         }
-                        ?>
-                        <select required name="week_no" aria-label="Week number">
-                            <option value="">Select week</option>
-                            <?php for ($w = 1; $w <= 18; $w++): ?>
-                                <?php
-                                $weekStatus = $weeklyByWeek[$w] ?? null;
-                                $isTaken = $weekStatus !== null;
-                                if ($isTaken) {
-                                    $weekLabel = match ($weekStatus) {
-                                        'approved' => 'Week ' . $w . ' ✓ Submitted',
-                                        'rejected' => 'Week ' . $w . ' ✓ Rejected — use Correct entry',
-                                        default => 'Week ' . $w . ' ✓ Submitted (pending approval)',
-                                    };
-                                } else {
-                                    $weekLabel = 'Week ' . $w;
-                                }
-                                $selectedAttr = (!$isTaken && $firstOpenWeek === $w) ? ' selected' : '';
-                                ?>
-                                <option value="<?= $w ?>"<?= $isTaken ? ' disabled' : '' ?><?= $selectedAttr ?>><?= e($weekLabel) ?></option>
-                            <?php endfor; ?>
-                        </select>
-                        <?php if ($weeklyByWeek !== []): ?>
-                            <small class="muted wr-week-hint">Weeks with a checkmark are already submitted and cannot be selected again. Rejected weeks can be fixed in Correct Rejected Submissions above.</small>
-                        <?php endif; ?>
-                    </div>
-                    <div>
-                        <span class="wr-field-label">Date Covered</span>
-                        <div class="wr-date-range" data-wr-date-range>
-                            <div class="wr-date-field">
-                                <span class="wr-date-field-label">Start date</span>
-                                <?php render_form_date_picker('date_covered_start', '', ['data-wr-date' => 'start']); ?>
-                            </div>
-                            <span class="wr-date-sep" aria-hidden="true">to</span>
-                            <div class="wr-date-field">
-                                <span class="wr-date-field-label">End date</span>
-                                <?php render_form_date_picker('date_covered_end', '', ['data-wr-date' => 'end']); ?>
-                            </div>
+                    }
+                    ?>
+                    <select required name="week_no" aria-label="Week number">
+                        <option value="">Select week</option>
+                        <?php for ($w = 1; $w <= 18; $w++): ?>
+                            <?php
+                            $weekStatus = $weeklyByWeek[$w] ?? null;
+                            $isTaken = $weekStatus !== null;
+                            if ($isTaken) {
+                                $weekLabel = match ($weekStatus) {
+                                    'approved' => 'Week ' . $w . ' ✓ Submitted',
+                                    'rejected' => 'Week ' . $w . ' ✓ Rejected — use Correct entry',
+                                    default => 'Week ' . $w . ' ✓ Submitted (pending approval)',
+                                };
+                            } else {
+                                $weekLabel = 'Week ' . $w;
+                            }
+                            $selectedAttr = (!$isTaken && $firstOpenWeek === $w) ? ' selected' : '';
+                            ?>
+                            <option value="<?= $w ?>"<?= $isTaken ? ' disabled' : '' ?><?= $selectedAttr ?>><?= e($weekLabel) ?></option>
+                        <?php endfor; ?>
+                    </select>
+                </div>
+                <div class="wr-date-covered">
+                    <span class="wr-field-label">Date Covered</span>
+                    <div class="wr-date-range" data-wr-date-range>
+                        <div class="wr-date-field">
+                            <span class="wr-date-field-label">Start date</span>
+                            <?php render_form_date_picker('date_covered_start', '', ['data-wr-date' => 'start']); ?>
+                        </div>
+                        <span class="wr-date-sep" aria-hidden="true">to</span>
+                        <div class="wr-date-field">
+                            <span class="wr-date-field-label">End date</span>
+                            <?php render_form_date_picker('date_covered_end', '', ['data-wr-date' => 'end']); ?>
                         </div>
                     </div>
                 </div>
@@ -377,7 +430,6 @@
 
             <div class="wr-section">
                 <h3 class="wr-section-title">Weekly Accomplishments</h3>
-                <p class="muted">What tasks did you accomplish this week?</p>
                 <div class="wr-textarea-wrap">
                     <textarea name="accomplishments" maxlength="2000" rows="5" placeholder="Write your weekly accomplishments here..."></textarea>
                     <span class="wr-char-count"><span data-char-current>0</span> / 2000 characters</span>
@@ -386,7 +438,6 @@
 
             <div class="wr-section">
                 <h3 class="wr-section-title">Upload Proof of Work</h3>
-                <p class="muted">Upload pictures, screenshots or files as proof of your accomplishments.</p>
                 <div class="wr-dropzone" id="wrDropzone">
                     <div class="wr-dropzone-inner">
                         <svg class="wr-dropzone-icon" viewBox="0 0 24 24" width="36" height="36"><path fill="currentColor" d="M11 14.414V20h2v-5.586l2.293 2.293 1.414-1.414L12 10.586l-4.707 4.707 1.414 1.414L11 14.414ZM4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4v-2h4V6H4v12h4v2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg>

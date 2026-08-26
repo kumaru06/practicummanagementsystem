@@ -95,6 +95,20 @@ function app_request_host(): string
     return $host;
 }
 
+function app_is_private_lan_ip(string $host): bool
+{
+    if (!filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+        return false;
+    }
+
+    // Phone/LAN access to Laragon (e.g. 192.168.x.x) should use local DB, not Hostinger .env.
+    return !filter_var(
+        $host,
+        FILTER_VALIDATE_IP,
+        FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+    );
+}
+
 function app_is_local_host(?string $host = null): bool
 {
     $host = strtolower((string)($host ?? app_request_host()));
@@ -102,10 +116,11 @@ function app_is_local_host(?string $host = null): bool
         return false;
     }
 
-    return in_array($host, ['localhost', '127.0.0.1'], true)
+    return in_array($host, ['localhost', '127.0.0.1', '::1'], true)
         || str_ends_with($host, '.test')
         || str_ends_with($host, '.loc')
-        || str_ends_with($host, '.localhost');
+        || str_ends_with($host, '.localhost')
+        || app_is_private_lan_ip($host);
 }
 
 $envFile = resolve_env_file();

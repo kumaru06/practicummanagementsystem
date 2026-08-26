@@ -259,6 +259,16 @@
     color: #fff;
 }
 
+.register-step.is-done {
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.register-step.is-done .register-step-num {
+    background: rgba(34, 197, 94, 0.22);
+    border-color: rgba(134, 239, 172, 0.45);
+    color: #bbf7d0;
+}
+
 .register-step-num {
     flex-shrink: 0;
     width: 36px;
@@ -1079,6 +1089,7 @@
 }
 
 .register-submit {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1094,12 +1105,34 @@
     font-weight: 800;
     box-shadow: 0 12px 28px rgba(10, 61, 143, 0.28);
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+}
+
+.register-submit::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 20%, rgba(255, 255, 255, 0.28) 48%, transparent 72%);
+    transform: translateX(-120%);
+    pointer-events: none;
 }
 
 .register-submit:hover {
     transform: translateY(-2px);
     box-shadow: 0 16px 34px rgba(10, 61, 143, 0.34);
+}
+
+.register-submit-idle,
+.register-submit-busy {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.register-submit-busy {
+    display: none;
 }
 
 .register-submit-icon {
@@ -1115,6 +1148,55 @@
 
 .register-submit:hover .register-submit-icon {
     transform: translateX(3px);
+}
+
+.register-submit.is-loading {
+    cursor: wait;
+    pointer-events: none;
+    transform: none;
+    box-shadow: 0 10px 24px rgba(10, 61, 143, 0.22);
+    filter: saturate(0.95);
+}
+
+.register-submit.is-loading .register-submit-idle {
+    display: none;
+}
+
+.register-submit.is-loading .register-submit-busy {
+    display: inline-flex;
+}
+
+.register-submit.is-loading::after {
+    animation: register-submit-sheen 1.15s ease-in-out infinite;
+}
+
+.register-submit-spinner {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.28);
+    border-top-color: #fff;
+    animation: register-submit-spin 0.75s linear infinite;
+    flex-shrink: 0;
+}
+
+.register-submit-busy-text {
+    font-size: 0.92rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+}
+
+.register-form.is-submitting {
+    pointer-events: none;
+}
+
+@keyframes register-submit-spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes register-submit-sheen {
+    0% { transform: translateX(-120%); }
+    100% { transform: translateX(120%); }
 }
 
 .register-signin-link {
@@ -1138,54 +1220,104 @@
 /* ── Success state ── */
 .register-success-panel {
     display: grid;
-    gap: 14px;
+    justify-items: center;
+    gap: 18px;
     text-align: center;
     margin: auto;
-    padding: 24px 12px;
+    padding: 28px 12px 12px;
     max-width: 420px;
 }
 
-.register-success-icon {
-    width: 56px;
-    height: 56px;
-    margin: 0 auto 8px;
-    color: #16a34a;
-    border-radius: 50%;
-    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.2);
-    animation: register-success-in 0.28s ease-out both;
+.register-ios-status {
+    width: 72px;
+    height: 72px;
+    opacity: 0;
+    transform: scale(0.92);
 }
 
-.register-success-icon svg {
+.register-success-panel.is-revealed .register-ios-status {
+    animation: register-ios-status-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.register-ios-status-svg {
+    width: 72px;
+    height: 72px;
     display: block;
-    width: 100%;
-    height: 100%;
+    overflow: visible;
 }
 
-@keyframes register-success-in {
-    from {
-        opacity: 0;
-        transform: scale(0.94);
-    }
+.register-ios-status-svg,
+.register-ios-status-svg * {
+    fill: none !important;
+}
 
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
+.register-ios-status-track {
+    stroke: rgba(15, 23, 42, 0.08);
+    stroke-width: 2.5;
+}
+
+.register-ios-status-circle {
+    stroke: #22c55e;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-dasharray: 138.2;
+    stroke-dashoffset: 138.2;
+    transform-origin: 26px 26px;
+    transform: rotate(-90deg);
+}
+
+.register-success-panel.is-revealed .register-ios-status-circle {
+    animation: register-ios-circle-draw 0.55s cubic-bezier(0.4, 0, 0.2, 1) 0.08s forwards;
+}
+
+.register-ios-status-check {
+    stroke: #16a34a;
+    stroke-width: 2.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 36;
+    stroke-dashoffset: 36;
+}
+
+.register-success-panel.is-revealed .register-ios-status-check {
+    animation: register-ios-check-draw 0.42s cubic-bezier(0.4, 0, 0.2, 1) 0.48s forwards;
+}
+
+.register-success-copy {
+    display: grid;
+    gap: 8px;
+    max-width: 36ch;
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+.register-success-panel.is-revealed .register-success-copy {
+    animation: register-success-fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.68s both;
+}
+
+.register-success-eyebrow {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #15803d;
 }
 
 .register-success-heading {
     margin: 0;
-    font-size: clamp(1.35rem, 2.5vw, 1.65rem);
+    font-size: 1.35rem;
     font-weight: 800;
-    color: var(--reg-text);
     letter-spacing: -0.03em;
+    color: var(--reg-text, #0f172a);
+    line-height: 1.25;
 }
 
 .register-success-text {
     margin: 0;
-    color: var(--reg-muted);
     font-size: 0.92rem;
-    line-height: 1.6;
+    line-height: 1.55;
+    color: var(--reg-muted, #64748b);
+    font-weight: 500;
 }
 
 .register-countdown {
@@ -1197,6 +1329,8 @@
     color: var(--reg-blue);
     font-size: 0.86rem;
     font-weight: 600;
+    opacity: 0;
+    transform: translateY(10px);
 }
 
 .register-countdown strong {
@@ -1204,10 +1338,38 @@
     font-weight: 800;
 }
 
+.register-success-panel.is-revealed .register-countdown {
+    animation: register-success-fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.82s both;
+}
+
 .register-success-btn {
-    width: 100%;
+    width: min(100%, 320px);
     min-height: 48px;
     border-radius: var(--reg-radius);
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+.register-success-panel.is-revealed .register-success-btn {
+    animation: register-success-fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.96s both;
+}
+
+@keyframes register-ios-status-in {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes register-ios-circle-draw {
+    to { stroke-dashoffset: 0; }
+}
+
+@keyframes register-ios-check-draw {
+    to { stroke-dashoffset: 0; }
+}
+
+@keyframes register-success-fade-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Short viewports ── */
@@ -1294,8 +1456,25 @@
 @media (prefers-reduced-motion: reduce) {
     .register-card,
     .register-bg-glow,
-    .register-success-icon {
-        animation: none;
+    .register-ios-status,
+    .register-success-copy,
+    .register-countdown,
+    .register-success-btn,
+    .register-submit.is-loading::after {
+        animation: none !important;
+    }
+
+    .register-ios-status,
+    .register-success-copy,
+    .register-countdown,
+    .register-success-btn {
+        opacity: 1 !important;
+        transform: none !important;
+    }
+
+    .register-ios-status-circle,
+    .register-ios-status-check {
+        stroke-dashoffset: 0 !important;
     }
 
     .register-submit:hover,

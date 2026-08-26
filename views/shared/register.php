@@ -7,7 +7,7 @@
     <link rel="icon" type="image/jpeg" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600;1,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260703-register">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/register.css')) ?>?v=20260706-register-v19">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/register.css')) ?>?v=20260826-reg-ios">
 </head>
 <body class="register-page" data-app-base="<?= e(app_base_path()) ?>">
     <div class="register-bg" aria-hidden="true">
@@ -104,14 +104,18 @@
                             data-redirect-url="<?= e(route_url('student.login')) ?>"
                             data-countdown-seconds="<?= $showCountdown ? '10' : '0' ?>"
                         >
-                            <div class="register-success-icon" aria-hidden="true">
-                                <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="24" cy="24" r="24" fill="currentColor"/>
-                                    <path d="M15 24.5 21 30.5 33 18" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <div class="register-ios-status" aria-hidden="true">
+                                <svg class="register-ios-status-svg" viewBox="0 0 52 52" fill="none">
+                                    <circle class="register-ios-status-track" cx="26" cy="26" r="22"></circle>
+                                    <circle class="register-ios-status-circle" cx="26" cy="26" r="22"></circle>
+                                    <path class="register-ios-status-check" d="M15.5 26.8 22.4 33.5 36.5 18.5"></path>
                                 </svg>
                             </div>
-                            <h2 class="register-success-heading"><?= e($successHeading) ?></h2>
-                            <p class="register-success-text"><?= e($successText) ?></p>
+                            <div class="register-success-copy">
+                                <span class="register-success-eyebrow"><?= $isVerifiedView ? 'Email verified' : 'Request received' ?></span>
+                                <h2 class="register-success-heading"><?= e($successHeading) ?></h2>
+                                <p class="register-success-text"><?= e($successText) ?></p>
+                            </div>
                             <?php if ($showCountdown): ?>
                             <p class="register-countdown" data-register-countdown aria-live="polite">
                                 Closing this page in <strong data-register-countdown-value>10</strong> seconds&hellip;
@@ -290,10 +294,15 @@
                             </section>
 
                             <div class="register-form-actions">
-                                <button class="btn btn-primary register-submit" type="submit">
-                                    <span class="btn-text">Submit Registration</span>
-                                    <svg class="register-submit-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
-                                    <span class="spinner"></span>
+                                <button class="btn btn-primary register-submit" type="submit" data-register-submit>
+                                    <span class="register-submit-idle">
+                                        <span class="btn-text">Submit Registration</span>
+                                        <svg class="register-submit-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+                                    </span>
+                                    <span class="register-submit-busy" aria-hidden="true">
+                                        <span class="register-submit-spinner"></span>
+                                        <span class="register-submit-busy-text">Submitting…</span>
+                                    </span>
                                 </button>
                                 <p class="register-signin-link">Already have an account? <a href="<?= e(route_url('student.login')) ?>" data-register-close-login data-login-url="<?= e(route_url('student.login')) ?>">Sign in</a></p>
                             </div>
@@ -303,6 +312,6 @@
             </div>
         </main>
     </div>
-<script src="<?= e(asset('assets/js/main.js')) ?>?v=20260706-register-v11"></script>
+<script src="<?= e(asset('assets/js/main.js')) ?>?v=20260826-reg-ios"></script>
 </body>
 </html>

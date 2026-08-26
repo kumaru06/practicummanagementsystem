@@ -1533,7 +1533,7 @@ class AdminController extends BaseController
                 $model->reject($requestId, (int)current_user()['id'], trim((string)($p['decline_reason'] ?? '')));
                 $message = 'Password reset request rejected.';
                 if ($ajax) {
-                    $this->respondJson(['ok' => true, 'message' => $message, 'requestId' => $requestId]);
+                    $this->respondJson($this->passwordResetReviewPayload($message, $requestId));
                 }
                 flash('success', $message);
                 redirect('index.php?r=admin_password_reset_requests');
@@ -1572,7 +1572,7 @@ class AdminController extends BaseController
 
             $message = 'Password reset approved and a secure reset link was sent to ' . $request['email'] . '.';
             if ($ajax) {
-                $this->respondJson(['ok' => true, 'message' => $message, 'requestId' => $requestId]);
+                $this->respondJson($this->passwordResetReviewPayload($message, $requestId));
             }
             flash('success', $message);
         } catch (Throwable $e) {
@@ -1583,5 +1583,23 @@ class AdminController extends BaseController
         }
 
         redirect('index.php?r=admin_password_reset_requests');
+    }
+
+    /**
+     * @return array{ok:true,message:string,requestId:int,pendingCounts:array{registration:int,password_reset:int,total:int},unreadNotifications:int}
+     */
+    private function passwordResetReviewPayload(string $message, int $requestId): array
+    {
+        $adminId = (int)current_user()['id'];
+        $notifications = new Notification($this->db);
+        $notifications->markRecentUnreadByTitle($adminId, 'Password Reset Request', 1);
+
+        return [
+            'ok' => true,
+            'message' => $message,
+            'requestId' => $requestId,
+            'pendingCounts' => admin_pending_request_counts(true),
+            'unreadNotifications' => $notifications->unreadCount($adminId),
+        ];
     }
 }

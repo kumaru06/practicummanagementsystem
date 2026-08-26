@@ -657,10 +657,10 @@ function student_stage3_form_requirement_keys(): array
  *
  * @return array{registration:int,password_reset:int,total:int}
  */
-function admin_pending_request_counts(): array
+function admin_pending_request_counts(bool $refresh = false): array
 {
     static $cached = null;
-    if (is_array($cached)) {
+    if (!$refresh && is_array($cached)) {
         return $cached;
     }
 
