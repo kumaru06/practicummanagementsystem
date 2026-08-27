@@ -30,8 +30,7 @@ class Student
      */
     public const REQUIREMENTS = [
         // ---- Stage 1: 1st to Comply (pre-deployment) ----
-        'cor' => ['name' => 'Certificate of Registration (COR)', 'stage' => 1, 'owner' => 'student', 'notes' => 'Upload current term COR.'],
-        'cv' => ['name' => 'Curriculum Vitae (CV)', 'stage' => 1, 'owner' => 'student', 'notes' => 'Upload your updated CV / resume.'],
+        // COR is collected at registration / admin create (students.cor_file); CV is the student profile.
         'philhealth' => ['name' => 'PhilHealth ID / Health Insurance', 'stage' => 1, 'owner' => 'student', 'notes' => 'Upload scan or photo.'],
         'vaccine_card' => ['name' => 'Vaccination Card', 'stage' => 1, 'owner' => 'student', 'notes' => 'Upload scan or photo.'],
         'guardian_consent' => ['name' => 'Parent/Guardian Consent Form', 'stage' => 1, 'owner' => 'student', 'notes' => 'Download the template, then submit the notarized file.'],
@@ -322,6 +321,72 @@ class Student
     }
 
     /**
+     * Realign predeployment_status after stage-1 requirement definitions change
+     * (e.g. removed keys). Does not downgrade advanced pipeline states or approved.
+     *
+     * @return string|null New status, unchanged status, or null when no enrollment
+     */
+    public function reconcilePredeploymentAfterRequirementDefChange(int $studentId): ?string
+    {
+        $enrollment = (new Enrollment($this->db))->byStudent($studentId);
+        if (!$enrollment) {
+            return null;
+        }
+
+        $current = $this->normalizePredeploymentStatus($enrollment['predeployment_status'] ?? 'not_submitted');
+        if ($this->isPredeploymentPipelineAdvanced($current)) {
+            return $current;
+        }
+        if (!in_array($current, ['not_submitted', 'needs_revision', 'submitted'], true)) {
+            return $current;
+        }
+
+        if ($this->hasApprovedRequirements($studentId)) {
+            $next = 'approved';
+        } elseif ($this->hasRejectedRequirements($studentId)) {
+            $next = 'needs_revision';
+        } elseif ($this->hasCompleteRequirements($studentId)) {
+            $next = 'submitted';
+        } else {
+            $next = 'not_submitted';
+        }
+
+        if ($next !== $current) {
+            (new Enrollment($this->db))->setPredeploymentStatus($studentId, $next);
+        }
+
+        return $next;
+    }
+
+    /**
+     * @return array{scanned:int, updated:int, unchanged:int}
+     */
+    public function reconcileAllPredeploymentAfterRequirementDefChange(): array
+    {
+        $rows = $this->db->query(
+            'SELECT student_id, predeployment_status FROM ojt_enrollments
+             WHERE predeployment_status IN ("not_submitted", "needs_revision", "submitted")'
+        )->fetchAll();
+
+        $scanned = 0;
+        $updated = 0;
+        $unchanged = 0;
+        foreach ($rows as $row) {
+            $scanned++;
+            $studentId = (int)$row['student_id'];
+            $before = $this->normalizePredeploymentStatus($row['predeployment_status'] ?? 'not_submitted');
+            $after = $this->reconcilePredeploymentAfterRequirementDefChange($studentId);
+            if ($after !== null && $after !== $before) {
+                $updated++;
+            } else {
+                $unchanged++;
+            }
+        }
+
+        return ['scanned' => $scanned, 'updated' => $updated, 'unchanged' => $unchanged];
+    }
+
+    /**
      * @return array<int, bool>
      */
     public function documentStageAccess(int $studentId): array
@@ -548,7 +613,7 @@ class Student
             throw new RuntimeException('Only student-uploaded documents can be reviewed here.');
         }
         // Stage 1 keeps its "student must submit for review first" gate, except late uploads
-        // while the student is already in the deployment pipeline (e.g. newly added CV).
+        // while the student is already in the deployment pipeline (e.g. late-added requirement).
         if ($stage === 1 && !$this->canCoordinatorReviewStage1Requirement($studentId, $key)) {
             throw new RuntimeException('This requirement is not ready for coordinator review.');
         }
@@ -734,7 +799,7 @@ class Student
             if ($hasFile) {
                 return false;
             }
-            // Missing files stay uploadable (e.g. CV added after other docs were approved).
+            // Missing files stay uploadable (e.g. late-added requirement after other docs were approved).
             return true;
         }
 

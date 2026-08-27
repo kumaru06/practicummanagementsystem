@@ -83,7 +83,7 @@
     <?php if ($hasMissingUploads && $predeploymentAdvanced && !$hasRejectedRequirements): ?>
         <div class="status-callout warning">
             <strong>Additional document required</strong>
-            <p>New requirements were added to 1st to Comply. Please upload any missing files (such as your CV) so your coordinator can review them.</p>
+            <p>New requirements were added to 1st to Comply. Please upload any missing required files so your coordinator can review them.</p>
         </div>
     <?php endif; ?>
 
