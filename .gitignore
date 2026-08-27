@@ -25,6 +25,9 @@ debug-*.log
 uploads/debug-*.log
 _zip_test/
 
+# k6 live capacity run outputs
+tools/k6/results/
+
 # OS & IDE
 Thumbs.db
 .Desktop.ini
