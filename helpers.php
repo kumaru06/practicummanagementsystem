@@ -211,6 +211,7 @@ function route_url(string $route, array $params = []): string
         'student.password.edit' => 'index.php?r=student_password',
         'student.chat' => 'index.php?r=chat',
         'chat' => 'index.php?r=chat',
+        'psgc.api' => 'index.php?r=psgc_api',
         'partner.dashboard' => 'index.php?r=partner',
         'partner.portal' => 'index.php?r=partner_portal',
         'partner.evaluate' => 'index.php?r=partner_evaluate',
@@ -291,6 +292,14 @@ function asset_version(string $path): string
 function asset_url(string $path): string
 {
     return asset($path) . '?v=' . asset_version($path);
+}
+
+/** Release session lock early on read-only requests so parallel tabs/AJAX are not serialized. */
+function release_session_lock(): void
+{
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close();
+    }
 }
 
 function student_profile_photo_url(?array $student): string

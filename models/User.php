@@ -16,6 +16,12 @@ class User
             return;
         }
 
+        // Production DB is migrated via deployment scripts; skip runtime ALTER/backfill.
+        if (!APP_IS_LOCAL) {
+            self::$namePartsReady = true;
+            return;
+        }
+
         foreach ([
             'first_name' => 'VARCHAR(100) NULL AFTER name',
             'middle_name' => 'VARCHAR(100) NULL AFTER first_name',
@@ -352,6 +358,11 @@ class User
     public function ensureLastLoginSupport(): void
     {
         if (self::$lastLoginReady === true) {
+            return;
+        }
+
+        if (!APP_IS_LOCAL) {
+            self::$lastLoginReady = true;
             return;
         }
 

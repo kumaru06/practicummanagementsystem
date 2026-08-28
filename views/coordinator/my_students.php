@@ -221,6 +221,8 @@ ksort($termOptions);
                                     data-course="<?= e($s['course']) ?>"
                                     data-year-level="<?= e($s['year_level']) ?>"
                                     data-birthdate="<?= e($s['birthdate'] ?? '') ?>"
+                                    data-contact-number="<?= e($s['contact_number'] ?? '') ?>"
+                                    data-address="<?= e(student_display_address($s)) ?>"
                                     data-company="<?= e($s['company_name'] ?? '-') ?>"
                                     data-status="<?= e($s['deployment_status'] ?? 'pending') ?>"
                                     data-predeployment-status="<?= e(str_replace('_', ' ', $s['predeployment_status'] ?? 'not_submitted')) ?>"
@@ -287,6 +289,13 @@ ksort($termOptions);
                     <div class="student-panel-item student-panel-item-wide"><span class="sm-label">Course</span><strong id="sm-course"></strong></div>
                     <div class="student-panel-item"><span class="sm-label">Birthdate</span><strong id="sm-birthdate"></strong></div>
                     <div class="student-panel-item"><span class="sm-label">Year Level</span><strong id="sm-year-level"></strong></div>
+                </div>
+            </div>
+            <div class="student-panel-section">
+                <h3 class="student-panel-section-title">Contact &amp; Address</h3>
+                <div class="sm-details-grid student-panel-grid">
+                    <div class="student-panel-item"><span class="sm-label">Contact Number</span><strong id="sm-contact-number"></strong></div>
+                    <div class="student-panel-item student-panel-item-wide"><span class="sm-label">Home Address</span><strong id="sm-address"></strong></div>
                 </div>
             </div>
             <div class="student-panel-section">

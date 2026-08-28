@@ -34,6 +34,9 @@ if ($studentFirstName === '' && $studentLastName === '') {
 
 $verifiedTagSvg = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Z" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M5.5 8 7 9.5 10.5 6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
+$hasLegacyAddressOnly = student_has_legacy_address_only($student ?? []);
+$displayAddress = student_display_address($student ?? []);
+
 ?>
 
 <div class="student-profile-page spf-v2">
@@ -105,7 +108,7 @@ $verifiedTagSvg = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a6
 
     <section class="card student-profile-card spf-card">
 
-        <form id="studentProfileForm" method="post" enctype="multipart/form-data" class="form js-validate student-profile-form spf-form" data-student-profile-form data-profile-photo-crop>
+        <form id="studentProfileForm" method="post" enctype="multipart/form-data" class="form js-validate student-profile-form spf-form" data-student-profile-form data-profile-photo-crop data-philippine-address-form data-address-api="<?= e(route_url('psgc.api')) ?>" data-legacy-only="<?= $hasLegacyAddressOnly ? '1' : '0' ?>" data-address-province-code="<?= e($student['address_province_code'] ?? '') ?>" data-address-municipality-code="<?= e($student['address_municipality_code'] ?? '') ?>" data-address-barangay-code="<?= e($student['address_barangay_code'] ?? '') ?>">
 
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
 
@@ -419,13 +422,79 @@ $verifiedTagSvg = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a6
 
                         </div>
 
-                        <label class="spf-field spf-field--full">
+                        <div class="spf-address-block" data-address-block<?= $hasLegacyAddressOnly ? ' hidden' : '' ?>>
 
-                            <span class="spf-field-label">Address</span>
+                            <div class="grid two student-profile-grid spf-field-grid">
 
-                            <textarea required name="address" placeholder="Street, barangay, city, province"><?= e($student['address'] ?? '') ?></textarea>
+                                <label class="spf-field spf-address-select-wrap">
 
-                        </label>
+                                    <span class="spf-field-label">Province</span>
+
+                                    <select name="address_province_code" data-address-province-select<?= $hasLegacyAddressOnly ? '' : ' required' ?>>
+
+                                        <option value="" disabled <?= empty($student['address_province_code']) ? 'selected' : '' ?>>Select province</option>
+
+                                    </select>
+
+                                    <input type="hidden" name="address_province" value="<?= e($student['address_province'] ?? '') ?>" data-address-province-name>
+
+                                </label>
+
+                                <label class="spf-field spf-address-select-wrap">
+
+                                    <span class="spf-field-label">Municipality / City</span>
+
+                                    <select name="address_municipality_code" data-address-municipality-select<?= $hasLegacyAddressOnly ? '' : ' required' ?> disabled>
+
+                                        <option value="" disabled selected>Select municipality / city</option>
+
+                                    </select>
+
+                                    <input type="hidden" name="address_municipality" value="<?= e($student['address_municipality'] ?? '') ?>" data-address-municipality-name>
+
+                                </label>
+
+                                <label class="spf-field spf-address-select-wrap">
+
+                                    <span class="spf-field-label">Barangay</span>
+
+                                    <select name="address_barangay_code" data-address-barangay-select<?= $hasLegacyAddressOnly ? '' : ' required' ?> disabled>
+
+                                        <option value="" disabled selected>Select barangay</option>
+
+                                    </select>
+
+                                    <input type="hidden" name="address_barangay" value="<?= e($student['address_barangay'] ?? '') ?>" data-address-barangay-name>
+
+                                </label>
+
+                                <label class="spf-field">
+
+                                    <span class="spf-field-label">Street / House No.</span>
+
+                                    <input name="address_street" value="<?= e($student['address_street'] ?? '') ?>" placeholder="e.g. 123 Rizal St." data-address-street<?= $hasLegacyAddressOnly ? '' : ' required' ?>>
+
+                                </label>
+
+                            </div>
+
+                        </div>
+
+                        <div class="spf-address-legacy<?= $hasLegacyAddressOnly ? '' : ' is-hidden' ?>" data-address-legacy-note>
+
+                            <div class="spf-address-legacy-card">
+
+                                <span class="spf-field-label">Current address on file</span>
+
+                                <p data-address-legacy-text><?= e($displayAddress) ?></p>
+
+                                <button class="btn btn-small" type="button" data-address-update-toggle>Update to new address format</button>
+
+                            </div>
+
+                        </div>
+
+                        <input type="hidden" name="address" value="<?= e($displayAddress) ?>" data-address-composed>
 
                     </div>
 

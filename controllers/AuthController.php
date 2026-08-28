@@ -222,7 +222,7 @@ class AuthController extends BaseController
         $flashError = flash('error');
 
         require __DIR__ . '/../views/shared/partials/login-portal-card.php';
-
+        release_session_lock();
     }
 
 

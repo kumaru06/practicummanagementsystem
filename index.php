@@ -81,6 +81,11 @@ if ($route === 'chat_api') {
     exit;
 }
 
+if ($route === 'psgc_api') {
+    require __DIR__ . '/api/psgc.php';
+    exit;
+}
+
 if ($method === 'POST' && ($_POST['action'] ?? '') === 'mark_all_notifications_read') {
     verify_csrf();
     (new Notification(db()))->markAllRead((int)current_user()['id']);

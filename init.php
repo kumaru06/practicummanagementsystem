@@ -13,6 +13,7 @@ require_once __DIR__ . '/bootstrap/env.php';
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/config/mail.php';
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/helpers/address.php';
 
 date_default_timezone_set('Asia/Manila');
 

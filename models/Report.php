@@ -183,11 +183,41 @@ class Report
         $stmt->execute([$studentId]);
     }
 
-    public function dtrByStudent(int $studentId): array
+    public function dtrByStudent(int $studentId, ?int $limit = null): array
     {
-        $stmt = $this->db->prepare('SELECT * FROM daily_time_records WHERE student_id = ? ORDER BY work_date DESC');
+        $sql = 'SELECT * FROM daily_time_records WHERE student_id = ? ORDER BY work_date DESC';
+        if ($limit !== null && $limit > 0) {
+            $sql .= ' LIMIT ' . (int)$limit;
+        }
+        $stmt = $this->db->prepare($sql);
         $stmt->execute([$studentId]);
         return $stmt->fetchAll();
+    }
+
+    public function dtrCountByStudent(int $studentId): int
+    {
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM daily_time_records WHERE student_id = ?');
+        $stmt->execute([$studentId]);
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function dtrRejectedCountByStudent(int $studentId): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM daily_time_records WHERE student_id = ? AND verification_status = ?'
+        );
+        $stmt->execute([$studentId, 'rejected']);
+        return (int)$stmt->fetchColumn();
+    }
+
+    public function dtrByStudentOnDate(int $studentId, string $workDate): ?array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT * FROM daily_time_records WHERE student_id = ? AND work_date = ? LIMIT 1'
+        );
+        $stmt->execute([$studentId, $workDate]);
+        $row = $stmt->fetch();
+        return $row ?: null;
     }
 
     public function totalHours(int $studentId, bool $approvedOnly = false): float
@@ -518,11 +548,22 @@ class Report
         ) ENGINE=InnoDB');
     }
 
-    public function weeklyByStudent(int $studentId): array
+    public function weeklyByStudent(int $studentId, ?int $limit = null): array
     {
-        $stmt = $this->db->prepare('SELECT * FROM weekly_reports WHERE student_id = ? ORDER BY week_no DESC');
+        $sql = 'SELECT * FROM weekly_reports WHERE student_id = ? ORDER BY week_no DESC';
+        if ($limit !== null && $limit > 0) {
+            $sql .= ' LIMIT ' . (int)$limit;
+        }
+        $stmt = $this->db->prepare($sql);
         $stmt->execute([$studentId]);
         return $stmt->fetchAll();
+    }
+
+    public function weeklyCountByStudent(int $studentId): int
+    {
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM weekly_reports WHERE student_id = ?');
+        $stmt->execute([$studentId]);
+        return (int)$stmt->fetchColumn();
     }
 
     private function normalizeDraftTime(?string $time): ?string

@@ -16,6 +16,7 @@ if (!$chat->isAuthenticated()) {
 
 try {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        release_session_lock();
         $action = $_GET['action'] ?? 'messages';
 
         if ($action === 'partners') {

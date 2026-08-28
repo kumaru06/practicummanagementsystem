@@ -14,17 +14,21 @@ $approvedRequirements = count(array_filter($requirements ?? [], static fn ($req)
 $totalRequirements = max(6, count($requirements ?? []));
 $officialStart = $enrollment['official_start_date'] ?? $enrollment['start_date'] ?? null;
 $projectedEnd = $enrollment['projected_end_date'] ?? $enrollment['end_date'] ?? null;
-$todayDtr = null;
-foreach (($dtrs ?? []) as $dtr) {
-    if (($dtr['work_date'] ?? '') === date('Y-m-d')) {
-        $todayDtr = $dtr;
-        break;
+$todayDtr = $todayDtr ?? null;
+if ($todayDtr === null) {
+    foreach (($dtrs ?? []) as $dtr) {
+        if (($dtr['work_date'] ?? '') === date('Y-m-d')) {
+            $todayDtr = $dtr;
+            break;
+        }
     }
 }
 $latestWeekly = ($weeklyReports ?? [])[0] ?? null;
 $profileComplete = !empty($student['profile_completed']);
 $deploymentComplete = $predeployment === 'orientation_completed';
-$reportCount = count($dtrs ?? []) + count($weeklyReports ?? []);
+$dtrTotalCount = $dtrTotalCount ?? count($dtrs ?? []);
+$weeklyTotalCount = $weeklyTotalCount ?? count($weeklyReports ?? []);
+$reportCount = $dtrTotalCount + $weeklyTotalCount;
 $ojtCompletion = $ojtCompletion ?? student_ojt_completion_status([
     'enrollment' => $enrollment,
     'approvedHours' => $approvedHours,
@@ -46,7 +50,7 @@ foreach (array_keys(FinalRequirement::EVALUATION_SECTIONS) as $evalKey) {
 }
 $finalRequirementsDone = $finalDocsDone && $selfEvalDone;
 $ojtCleared = ($ojtCompletion['status'] ?? '') === 'cleared';
-$rejectedDtrCount = count(array_filter($dtrs ?? [], static fn ($row) => strtolower((string)($row['verification_status'] ?? '')) === 'rejected'));
+$rejectedDtrCount = $dtrRejectedCount ?? count(array_filter($dtrs ?? [], static fn ($row) => strtolower((string)($row['verification_status'] ?? '')) === 'rejected'));
 $rejectedWeeklyCount = count(array_filter($weeklyReports ?? [], static fn ($row) => strtolower((string)($row['verification_status'] ?? '')) === 'rejected'));
 $rejectedRequirementCount = count(array_filter($requirements ?? [], static fn ($req) => ($req['status'] ?? '') === 'rejected'));
 $orientationDateTime = $enrollment['orientation_datetime'] ?? null;

@@ -133,6 +133,13 @@ $currentPipeline = $selected ? partner_enrollment_pipeline_step($selected, $eval
                                 <span class="pp-chip <?= e($selMeta['chip']) ?> pp-chip--lg"><?= e($selMeta['label']) ?></span>
                             </div>
                             <p><?= e($selected['course'] . ' ' . $selected['year_level']) ?> · <?= e($selected['student_no']) ?> · <?= e($selected['student_email']) ?></p>
+                            <?php $partnerStudentAddress = student_display_address($selected); ?>
+                            <?php if (!empty($selected['contact_number']) || $partnerStudentAddress !== ''): ?>
+                                <p class="pp-student-contact">
+                                    <?php if (!empty($selected['contact_number'])): ?><span><?= e($selected['contact_number']) ?></span><?php endif; ?>
+                                    <?php if ($partnerStudentAddress !== ''): ?><span><?= e($partnerStudentAddress) ?></span><?php endif; ?>
+                                </p>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <?php if ($selMeta['action']): ?>

@@ -253,7 +253,9 @@ class Enrollment
 
     public function find(int $id): ?array
     {
-        $stmt = $this->db->prepare('SELECT e.*, s.student_no, s.course, s.year_level, s.cor_file, u.name student_name, u.email student_email FROM ojt_enrollments e JOIN students s ON s.id = e.student_id JOIN users u ON u.id = s.user_id WHERE e.id = ?');
+        (new Student($this->db))->ensureAddressColumns();
+
+        $stmt = $this->db->prepare('SELECT e.*, s.student_no, s.course, s.year_level, s.cor_file, s.contact_number, s.address, s.address_street, s.address_barangay, s.address_municipality, s.address_province, s.emergency_contact_name, s.emergency_contact_number, u.name student_name, u.email student_email FROM ojt_enrollments e JOIN students s ON s.id = e.student_id JOIN users u ON u.id = s.user_id WHERE e.id = ?');
         $stmt->execute([$id]);
         $enrollment = $stmt->fetch() ?: null;
         if ($enrollment) {

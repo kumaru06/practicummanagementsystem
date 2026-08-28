@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initStudentDocsStepperScroll();
     initToasts();
     initFloatingLabels();
+    initPhilippineAddressForm();
     initCustomFilterSelects();
     initDateTimePickers();
     initCustomDatePickers();
@@ -1592,7 +1593,7 @@ function isSameCustomDate(first, second) {
 
 function initCustomFilterSelects() {
     document.querySelectorAll('select').forEach((select, index) => {
-        if (select.dataset.enhanced === '1' || select.classList.contains('filter-date-year-select') || select.multiple || select.dataset.nativeSelect === '1') return;
+        if (select.dataset.enhanced === '1' || select.classList.contains('filter-date-year-select') || select.multiple || select.dataset.nativeSelect === '1' || select.hasAttribute('data-address-province-select') || select.hasAttribute('data-address-municipality-select') || select.hasAttribute('data-address-barangay-select')) return;
 
         const wrap = select.closest('.filter-select-wrap') || select.parentElement;
         if (!wrap) return;
@@ -7292,6 +7293,10 @@ function initStudentModal() {
 
         document.getElementById('sm-course').textContent = d.course || '\u2014';
         document.getElementById('sm-year-level').textContent = d.yearLevel || '\u2014';
+        const contactEl = document.getElementById('sm-contact-number');
+        if (contactEl) contactEl.textContent = d.contactNumber || '\u2014';
+        const addressEl = document.getElementById('sm-address');
+        if (addressEl) addressEl.textContent = d.address || '\u2014';
         const bdRaw = d.birthdate || '';
         document.getElementById('sm-birthdate').textContent = bdRaw ? new Date(bdRaw + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '\u2014';
         document.getElementById('sm-company').textContent = d.company || '\u2014';
@@ -9074,6 +9079,7 @@ function destroyLiveChatIfNeeded() {
 function reinitAppPageContent() {
     initToasts();
     initFloatingLabels();
+    initPhilippineAddressForm();
     initCustomFilterSelects();
     initCustomDatePickers();
     initDateTimePickers();
@@ -9528,7 +9534,7 @@ function initLiveChat() {
 
     function startTypingPulse() {
         stopTypingPulse();
-        typingPulseTimer = window.setInterval(pulseTypingStatus, 2000);
+        typingPulseTimer = window.setInterval(pulseTypingStatus, 3000);
     }
 
     function stopTypingPulse() {
@@ -9696,10 +9702,13 @@ function initLiveChat() {
         startTypingPulse();
 
         pollTimer = window.setInterval(function () {
+            if (document.hidden) {
+                return;
+            }
             fetchMessages(false).catch(function (error) {
                 console.error(error);
             });
-        }, 3000);
+        }, 5000);
     }
 
     function stopPolling() {
@@ -9795,6 +9804,386 @@ function initLiveChat() {
     }
 }
 
+function enhanceAddressSelect(select) {
+    if (!select || select.dataset.addressEnhanced === '1') return;
+    select.dataset.addressEnhanced = '1';
+    select.dataset.enhanced = '1';
 
+    const wrap = select.parentElement;
+    if (!wrap) return;
+    wrap.classList.add('select-enhanced-wrap', 'is-enhanced');
 
+    const fieldLabel = select.closest('.spf-field')?.querySelector('.spf-field-label')?.textContent?.trim() || 'Select';
+    const menuId = `address-select-menu-${select.name || select.dataset.addressProvinceSelect || Math.random().toString(36).slice(2)}`;
+
+    const custom = document.createElement('div');
+    custom.className = 'custom-select spf-address-select';
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'custom-select-trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.setAttribute('aria-label', fieldLabel);
+    trigger.setAttribute('aria-controls', menuId);
+
+    const copy = document.createElement('span');
+    copy.className = 'custom-select-copy';
+    const value = document.createElement('span');
+    value.className = 'custom-select-value';
+    copy.append(value);
+
+    const caret = document.createElement('span');
+    caret.className = 'custom-select-caret';
+    caret.setAttribute('aria-hidden', 'true');
+
+    const menu = document.createElement('div');
+    menu.className = 'custom-select-menu';
+    menu.id = menuId;
+    menu.setAttribute('role', 'listbox');
+    menu.setAttribute('aria-label', fieldLabel);
+
+    trigger.append(copy, caret);
+    custom.append(trigger, menu);
+    wrap.appendChild(custom);
+
+    let optionSignature = '';
+
+    const renderOptions = () => {
+        const nextSignature = [...select.options].map(option => [option.value, option.textContent, option.hidden, option.disabled].join('|')).join('::');
+        const rebuilt = nextSignature !== optionSignature || !menu.children.length;
+        if (!rebuilt) return;
+        optionSignature = nextSignature;
+        menu.innerHTML = '';
+        [...select.options].forEach((option, optionIndex) => {
+            if (option.hidden) return;
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'custom-select-option';
+            item.setAttribute('role', 'option');
+            item.dataset.value = option.value;
+            item.dataset.index = String(optionIndex);
+            item.disabled = option.disabled;
+            item.innerHTML = `
+                <span class="custom-select-option-dot" aria-hidden="true"></span>
+                <span class="custom-select-option-label">${escapeHtml(option.textContent.trim())}</span>
+            `;
+            item.addEventListener('click', () => {
+                if (option.disabled) return;
+                closeCustomSelects();
+                select.selectedIndex = optionIndex;
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+                trigger.focus();
+            });
+            item.addEventListener('keydown', event => handleCustomSelectOptionKeys(event, custom));
+            menu.appendChild(item);
+        });
+    };
+
+    const syncState = () => {
+        const addressForm = select.closest('[data-philippine-address-form]');
+        const isLoading = select.dataset.addressLoading === '1';
+        if (addressForm?._addressCascading && !isLoading) {
+            select.dataset.addressSyncPending = '1';
+            return;
+        }
+
+        if (isLoading) {
+            const loadingLabel = select.name === 'address_municipality_code'
+                ? 'Loading municipalities...'
+                : 'Loading barangays...';
+            value.textContent = loadingLabel;
+            custom.classList.remove('is-disabled', 'is-placeholder');
+            custom.classList.add('is-loading');
+            trigger.disabled = true;
+            custom.classList.remove('is-open');
+            trigger.setAttribute('aria-expanded', 'false');
+            return;
+        }
+
+        custom.classList.remove('is-loading');
+        renderOptions();
+        const selectedOption = select.selectedOptions[0] || select.options[0];
+        const hasValue = !!(selectedOption?.value || '').trim();
+        value.textContent = selectedOption?.textContent?.trim() || fieldLabel;
+        custom.classList.toggle('is-placeholder', !hasValue);
+        custom.classList.toggle('is-disabled', select.disabled);
+        trigger.disabled = select.disabled;
+        [...menu.querySelectorAll('.custom-select-option')].forEach(item => {
+            const selected = item.dataset.index === String(selectedOption?.index ?? select.selectedIndex);
+            item.classList.toggle('is-selected', selected);
+            item.setAttribute('aria-selected', String(selected));
+            item.tabIndex = selected && !item.disabled ? 0 : -1;
+        });
+    };
+
+    const setOpen = open => {
+        custom.classList.toggle('is-open', open);
+        trigger.setAttribute('aria-expanded', String(open));
+    };
+
+    trigger.addEventListener('click', event => {
+        if (select.disabled) return;
+        event.stopPropagation();
+        closeDtrTimePicker();
+        const opening = !custom.classList.contains('is-open');
+        closeCustomSelects(opening ? custom : null);
+        setOpen(opening);
+        if (opening) {
+            syncState();
+            focusCustomSelectOption(custom);
+        }
+    });
+
+    trigger.addEventListener('keydown', event => {
+        if (select.disabled) return;
+        if (!['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) return;
+        event.preventDefault();
+        closeDtrTimePicker();
+        if (!custom.classList.contains('is-open')) {
+            closeCustomSelects(custom);
+            setOpen(true);
+        }
+        focusCustomSelectOption(custom, event.key === 'ArrowUp' ? 'last' : 'selected');
+    });
+
+    select.addEventListener('change', syncState);
+    select._syncCustomSelect = syncState;
+    syncState();
+}
+
+function initPhilippineAddressForm() {
+    const form = document.querySelector('[data-philippine-address-form]');
+    if (!form || form.dataset.addressBound === '1') return;
+    form.dataset.addressBound = '1';
+
+    const apiBase = form.dataset.addressApi || 'index.php?r=psgc_api';
+    const block = form.querySelector('[data-address-block]');
+    const legacyNote = form.querySelector('[data-address-legacy-note]');
+    const updateBtn = form.querySelector('[data-address-update-toggle]');
+    const provinceSelect = form.querySelector('[data-address-province-select]');
+    const municipalitySelect = form.querySelector('[data-address-municipality-select]');
+    const barangaySelect = form.querySelector('[data-address-barangay-select]');
+    const streetInput = form.querySelector('[data-address-street]');
+    const provinceNameInput = form.querySelector('[data-address-province-name]');
+    const municipalityNameInput = form.querySelector('[data-address-municipality-name]');
+    const barangayNameInput = form.querySelector('[data-address-barangay-name]');
+    const composedInput = form.querySelector('[data-address-composed]');
+
+    if (!provinceSelect || !municipalitySelect || !barangaySelect || !streetInput) return;
+
+    [provinceSelect, municipalitySelect, barangaySelect].forEach(enhanceAddressSelect);
+
+    let structuredActive = form.dataset.legacyOnly !== '1';
+
+    const setRequired = (active) => {
+        [provinceSelect, municipalitySelect, barangaySelect, streetInput].forEach(el => {
+            if (active) el.setAttribute('required', 'required');
+            else el.removeAttribute('required');
+        });
+    };
+
+    const setStructuredActive = (active) => {
+        structuredActive = active;
+        if (block) block.hidden = !active;
+        legacyNote?.classList.toggle('is-hidden', active);
+        setRequired(active);
+    };
+
+    updateBtn?.addEventListener('click', () => setStructuredActive(true));
+    if (form.dataset.legacyOnly === '1') {
+        setStructuredActive(false);
+    } else {
+        setStructuredActive(true);
+    }
+
+    function showAddressLoadError(err) {
+        console.warn('Address lookup failed:', err);
+    }
+
+    function syncName(select, hiddenInput) {
+        if (!hiddenInput) return;
+        const option = select.options[select.selectedIndex];
+        hiddenInput.value = option?.dataset?.name || option?.textContent?.trim() || '';
+    }
+
+    function flushAddressSelectSync(...selects) {
+        requestAnimationFrame(() => {
+            selects.forEach(sel => {
+                if (!sel) return;
+                delete sel.dataset.addressSyncPending;
+                delete sel.dataset.addressLoading;
+                sel._syncCustomSelect?.();
+            });
+        });
+    }
+
+    function setAddressSelectLoading(select, loading) {
+        if (!select) return;
+        if (loading) {
+            select.dataset.addressLoading = '1';
+            select._syncCustomSelect?.();
+            return;
+        }
+        delete select.dataset.addressLoading;
+    }
+
+    function fillSelect(select, items, placeholder, selectedCode, { sync = true } = {}) {
+        const current = selectedCode || '';
+        select.innerHTML = '';
+        const placeholderOption = document.createElement('option');
+        placeholderOption.value = '';
+        placeholderOption.textContent = placeholder;
+        placeholderOption.disabled = true;
+        placeholderOption.selected = current === '';
+        select.appendChild(placeholderOption);
+
+        items.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.code;
+            option.textContent = item.name;
+            option.dataset.name = item.name;
+            if (item.code === current) {
+                option.selected = true;
+                placeholderOption.selected = false;
+            }
+            select.appendChild(option);
+        });
+
+        select.disabled = items.length === 0;
+        if (form._addressCascading) {
+            select.dataset.addressSyncPending = '1';
+            return;
+        }
+        if (sync) {
+            select._syncCustomSelect?.();
+        }
+    }
+
+    async function fetchItems(action, code = '') {
+        const url = new URL(apiBase, window.location.href);
+        url.searchParams.set('action', action);
+        if (code) url.searchParams.set('code', code);
+        const response = await fetch(url.toString(), { credentials: 'same-origin' });
+        const payload = await response.json();
+        if (!response.ok || !payload.success) {
+            throw new Error(payload.error || 'Unable to load locations.');
+        }
+        return payload.items || [];
+    }
+
+    async function loadProvinces(selectedCode = '') {
+        const items = await fetchItems('provinces');
+        fillSelect(provinceSelect, items, 'Select province', selectedCode);
+        syncName(provinceSelect, provinceNameInput);
+    }
+
+    async function loadCities(provinceCode, selectedCode = '') {
+        if (!provinceCode) {
+            fillSelect(municipalitySelect, [], 'Select municipality / city', '', { sync: false });
+            fillSelect(barangaySelect, [], 'Select barangay', '', { sync: false });
+            municipalitySelect.disabled = true;
+            barangaySelect.disabled = true;
+            return;
+        }
+        const items = await fetchItems('cities', provinceCode);
+        fillSelect(municipalitySelect, items, 'Select municipality / city', selectedCode, { sync: false });
+        municipalitySelect.disabled = items.length === 0;
+        syncName(municipalitySelect, municipalityNameInput);
+        if (!selectedCode) {
+            fillSelect(barangaySelect, [], 'Select barangay', '', { sync: false });
+            barangaySelect.disabled = true;
+        }
+    }
+
+    async function loadBarangays(cityCode, selectedCode = '') {
+        if (!cityCode) {
+            fillSelect(barangaySelect, [], 'Select barangay', '', { sync: false });
+            barangaySelect.disabled = true;
+            return;
+        }
+        const items = await fetchItems('barangays', cityCode);
+        fillSelect(barangaySelect, items, 'Select barangay', selectedCode, { sync: false });
+        barangaySelect.disabled = items.length === 0;
+        syncName(barangaySelect, barangayNameInput);
+    }
+
+    provinceSelect.addEventListener('change', async () => {
+        form._addressCascading = true;
+        setAddressSelectLoading(municipalitySelect, true);
+        setAddressSelectLoading(barangaySelect, true);
+        syncName(provinceSelect, provinceNameInput);
+        municipalitySelect.value = '';
+        barangaySelect.value = '';
+        syncName(municipalitySelect, municipalityNameInput);
+        syncName(barangaySelect, barangayNameInput);
+        try {
+            await loadCities(provinceSelect.value);
+        } catch (err) {
+            showAddressLoadError(err);
+        } finally {
+            form._addressCascading = false;
+            setAddressSelectLoading(municipalitySelect, false);
+            setAddressSelectLoading(barangaySelect, false);
+            flushAddressSelectSync(municipalitySelect, barangaySelect);
+        }
+    });
+
+    municipalitySelect.addEventListener('change', async () => {
+        form._addressCascading = true;
+        setAddressSelectLoading(barangaySelect, true);
+        syncName(municipalitySelect, municipalityNameInput);
+        barangaySelect.value = '';
+        syncName(barangaySelect, barangayNameInput);
+        try {
+            await loadBarangays(municipalitySelect.value);
+        } catch (err) {
+            showAddressLoadError(err);
+        } finally {
+            form._addressCascading = false;
+            setAddressSelectLoading(barangaySelect, false);
+            flushAddressSelectSync(barangaySelect);
+        }
+    });
+
+    barangaySelect.addEventListener('change', () => {
+        syncName(barangaySelect, barangayNameInput);
+    });
+
+    form.addEventListener('submit', () => {
+        if (!structuredActive) return;
+        syncName(provinceSelect, provinceNameInput);
+        syncName(municipalitySelect, municipalityNameInput);
+        syncName(barangaySelect, barangayNameInput);
+        const parts = [
+            streetInput.value,
+            barangayNameInput?.value,
+            municipalityNameInput?.value,
+            provinceNameInput?.value,
+        ].map(value => String(value || '').trim()).filter(Boolean);
+        if (composedInput) composedInput.value = parts.join(', ');
+    });
+
+    async function initPrefill() {
+        if (!structuredActive) return;
+        const provinceCode = form.dataset.addressProvinceCode || '';
+        const municipalityCode = form.dataset.addressMunicipalityCode || '';
+        const barangayCode = form.dataset.addressBarangayCode || '';
+        form._addressCascading = true;
+        try {
+            await loadProvinces(provinceCode);
+            if (provinceCode) {
+                await loadCities(provinceCode, municipalityCode);
+            }
+            if (municipalityCode) {
+                await loadBarangays(municipalityCode, barangayCode);
+            }
+        } finally {
+            form._addressCascading = false;
+            flushAddressSelectSync(provinceSelect, municipalitySelect, barangaySelect);
+        }
+    }
+
+    initPrefill().catch(showAddressLoadError);
+}
 

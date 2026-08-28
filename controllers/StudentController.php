@@ -687,11 +687,23 @@ class StudentController extends BaseController
             redirect('index.php');
         }
         try {
-            foreach (['address', 'contact_number', 'emergency_contact_name', 'emergency_contact_number', 'year_level', 'gender'] as $field) {
+            foreach (['contact_number', 'emergency_contact_name', 'emergency_contact_number', 'year_level', 'gender'] as $field) {
                 if (trim((string)($p[$field] ?? '')) === '') {
                     throw new RuntimeException('Please complete all required profile fields.');
                 }
             }
+
+            $legacyAddressOnly = student_has_legacy_address_only($student);
+            $structuredSubmitted = student_address_payload_has_structured($p);
+
+            if (!$legacyAddressOnly || $structuredSubmitted) {
+                if (!student_structured_address_is_complete($p)) {
+                    throw new RuntimeException('Please complete province, municipality/city, barangay, and street address.');
+                }
+            } elseif (trim((string)($student['address'] ?? '')) === '') {
+                throw new RuntimeException('Please complete your home address.');
+            }
+
             if (!in_array(trim((string)($p['gender'] ?? '')), ['Male', 'Female', 'Other'], true)) {
                 throw new RuntimeException('Please select a valid gender.');
             }
@@ -1152,8 +1164,28 @@ class StudentController extends BaseController
             $enrollment['predeployment_status'] = $studentModel->effectivePredeploymentStatus((int)$student['id'], $enrollment['predeployment_status'] ?? null, $requirements);
         }
         $reports = new Report($this->db);
-        $dtrs = $student ? $reports->dtrByStudent((int)$student['id']) : [];
-        $weeklyReports = $student ? $reports->weeklyByStudent((int)$student['id']) : [];
+        $isDashboard = ($title === 'Student Dashboard');
+        $dtrTotalCount = null;
+        $dtrRejectedCount = null;
+        $todayDtr = null;
+        $weeklyTotalCount = null;
+        if ($student) {
+            $studentId = (int)$student['id'];
+            if ($isDashboard) {
+                $dtrs = $reports->dtrByStudent($studentId, 4);
+                $weeklyReports = $reports->weeklyByStudent($studentId, 1);
+                $dtrTotalCount = $reports->dtrCountByStudent($studentId);
+                $dtrRejectedCount = $reports->dtrRejectedCountByStudent($studentId);
+                $weeklyTotalCount = $reports->weeklyCountByStudent($studentId);
+                $todayDtr = $reports->dtrByStudentOnDate($studentId, date('Y-m-d'));
+            } else {
+                $dtrs = $reports->dtrByStudent($studentId);
+                $weeklyReports = $reports->weeklyByStudent($studentId);
+            }
+        } else {
+            $dtrs = [];
+            $weeklyReports = [];
+        }
         $approvedHours = $student ? $reports->totalHours((int)$student['id'], true) : 0.0;
         $finalRequirement = $student ? (new FinalRequirement($this->db))->getByStudent((int)$student['id']) : [];
         $studentEvaluation = $student ? (new StudentEvaluation($this->db))->getByStudent((int)$student['id']) : [];
@@ -1190,6 +1222,10 @@ class StudentController extends BaseController
             'finalRequirementsLockMessage' => enrollment_final_requirements_lock_message($enrollment, $approvedHours),
             'approvedHours' => $approvedHours,
             'dtrs' => $dtrs,
+            'dtrTotalCount' => $dtrTotalCount,
+            'dtrRejectedCount' => $dtrRejectedCount,
+            'todayDtr' => $todayDtr,
+            'weeklyTotalCount' => $weeklyTotalCount,
             'dtrDraft' => $student ? $reports->dtrDraftByStudent((int)$student['id']) : [],
             'weeklyReports' => $weeklyReports,
             'hours' => $student ? $reports->totalHours((int)$student['id']) : 0,

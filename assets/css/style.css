@@ -18166,6 +18166,114 @@ body.role-student .spf-v2 .spf-field--full textarea {
     resize: vertical;
 }
 
+body.role-student .spf-v2 .spf-address-legacy-card {
+    padding: 16px 18px;
+    border: 1px solid rgba(219, 228, 240, 0.95);
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+body.role-student .spf-v2 .spf-address-legacy-card p {
+    margin: 8px 0 14px;
+    color: #344054;
+    line-height: 1.55;
+}
+
+body.role-student .spf-v2 .spf-address-legacy.is-hidden {
+    display: none;
+}
+
+body.role-student .spf-v2 .spf-address-select-wrap {
+    position: relative;
+}
+
+body.role-student .spf-v2 .spf-address-block {
+    overflow: visible;
+}
+
+body.role-student .spf-v2 .spf-address-select-wrap > select {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+body.role-student .spf-v2 .spf-address-select .custom-select-trigger {
+    min-height: 52px;
+    padding: 0 16px;
+    border: 1px solid #dbe4f0 !important;
+    border-radius: 5px !important;
+    background: #fff !important;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+body.role-student .spf-v2 .spf-address-select .custom-select-value {
+    color: #172033 !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+}
+
+@media (min-width: 721px) {
+    body.role-student .spf-v2 .spf-address-select .custom-select-value {
+        font-size: 0.92rem !important;
+    }
+}
+
+body.role-student .spf-v2 .spf-address-select.is-placeholder .custom-select-value {
+    color: #98a2b3 !important;
+    font-weight: 600 !important;
+}
+
+body.role-student .spf-v2 .spf-address-select.is-disabled .custom-select-trigger {
+    background: #f8fafc !important;
+    color: #98a2b3 !important;
+    cursor: not-allowed;
+    box-shadow: none !important;
+}
+
+body.role-student .spf-v2 .spf-address-select.is-loading .custom-select-trigger {
+    background: #fff !important;
+    color: #98a2b3 !important;
+    cursor: wait;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+    transform: none !important;
+}
+
+body.role-student .spf-v2 .spf-address-select .custom-select-trigger:hover,
+body.role-student .spf-v2 .spf-address-select .custom-select-trigger:focus-visible {
+    transform: none !important;
+}
+
+body.role-student .spf-v2 .spf-address-select .custom-select-menu {
+    top: calc(100% + 6px);
+    z-index: 200;
+    max-height: 240px;
+    border-radius: 8px;
+}
+
+body.role-student .spf-v2 .spf-address-select .custom-select-option {
+    min-height: 42px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.pp-student-contact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin-top: 8px;
+    color: #475467;
+    font-size: 0.92rem;
+}
+
+.pp-student-contact span + span::before {
+    content: '·';
+    margin-right: 16px;
+    color: #98a2b3;
+}
+
 body.role-student .spf-v2 .spf-actions {
     display: flex !important;
     justify-content: flex-end !important;
@@ -19216,29 +19324,74 @@ body.is-profile-crop-open .student-bottom-nav-root {
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
-    padding-right: 34px;
+    width: 100%;
+    min-height: 52px;
+    padding: 0 44px 0 16px;
+    border: 1px solid #dbe4f0;
+    border-radius: 5px;
     background-color: #fff;
-    background-image:
-        linear-gradient(45deg, transparent 50%, #64748b 50%),
-        linear-gradient(135deg, #64748b 50%, transparent 50%),
-        linear-gradient(180deg, #ffffff, #f8fafc);
-    background-position:
-        calc(100% - 18px) 13px,
-        calc(100% - 12px) 13px,
-        0 0;
-    background-size: 6px 6px, 6px 6px, 100% 100%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 18px 18px;
+    color: #172033;
+    font-size: 0.92rem;
+    font-weight: 700;
     cursor: pointer;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.pf-native-select:hover {
+.pf-native-select:disabled {
+    background-color: #f8fafc;
+    color: #98a2b3;
+    cursor: not-allowed;
+    opacity: 1;
+}
+
+.pf-native-select:hover:not(:disabled) {
     border-color: #cbd5e1;
     box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
 }
 
 .pf-native-select:focus {
     border-color: var(--navy-800);
-    box-shadow: 0 0 0 2px rgba(139,26,26,0.1);
+    box-shadow: 0 0 0 2px rgba(139, 26, 26, 0.1);
+    outline: none;
+}
+
+body.role-student .spf-v2 .spf-form select.pf-native-select {
+    min-height: 52px !important;
+    padding: 0 44px 0 16px !important;
+    border: 1px solid #dbe4f0 !important;
+    border-radius: 5px !important;
+    background-color: #fff !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 14px center !important;
+    background-size: 18px 18px !important;
+    color: #172033 !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+    cursor: pointer;
+}
+
+@media (min-width: 721px) {
+    body.role-student .spf-v2 .spf-form select.pf-native-select {
+        font-size: 0.92rem !important;
+    }
+}
+
+body.role-student .spf-v2 .spf-form select.pf-native-select:disabled {
+    background-color: #f8fafc !important;
+    color: #98a2b3 !important;
+    cursor: not-allowed;
+}
+
+body.role-student .spf-v2 .spf-form select.pf-native-select:focus {
+    border-color: rgba(139, 26, 26, 0.45) !important;
+    box-shadow: 0 0 0 4px rgba(139, 26, 26, 0.08) !important;
+    outline: none;
 }
 
 .pf-status {

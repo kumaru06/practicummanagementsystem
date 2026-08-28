@@ -7,8 +7,8 @@
     <link rel="icon" type="image/jpeg" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">
     <link rel="apple-touch-icon" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600;1,700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260703-portal">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/login.css')) ?>?v=20260826-back-accent">
+    <link rel="stylesheet" href="<?= e(asset_url('assets/css/style.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset_url('assets/css/login.css')) ?>">
 </head>
 <body class="login-page">
     <?php
@@ -107,9 +107,9 @@
             </div>
         </div>
     </div>
-<script src="<?= e(asset('assets/js/main.js')) ?>?v=20260509-native-login"></script>
-<script src="<?= e(asset('assets/js/login-custom-select.js')) ?>?v=20260707-forgot-select"></script>
-    <script src="<?= e(asset('assets/js/login-portal.js')) ?>?v=20260826-shell-partial"></script>
+<?php release_session_lock(); ?>
+<script src="<?= e(asset_url('assets/js/login-custom-select.js')) ?>"></script>
+<script src="<?= e(asset_url('assets/js/login-portal.js')) ?>"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('.login-info-slideshow').forEach(function (slideshow) {

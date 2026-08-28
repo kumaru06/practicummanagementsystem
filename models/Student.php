@@ -2,6 +2,7 @@
 class Student
 {
     private static ?bool $genderColumnReady = null;
+    private static ?bool $addressColumnsReady = null;
 
     public function __construct(private PDO $db) {}
 
@@ -17,6 +18,29 @@ class Student
         }
 
         self::$genderColumnReady = true;
+    }
+
+    public function ensureAddressColumns(): void
+    {
+        if (self::$addressColumnsReady === true) {
+            return;
+        }
+
+        $stmt = $this->db->query("SHOW COLUMNS FROM students LIKE 'address_street'");
+        if (!$stmt->fetch()) {
+            $this->db->exec(
+                'ALTER TABLE students
+                    ADD COLUMN address_street VARCHAR(255) NULL AFTER address,
+                    ADD COLUMN address_barangay VARCHAR(150) NULL AFTER address_street,
+                    ADD COLUMN address_municipality VARCHAR(150) NULL AFTER address_barangay,
+                    ADD COLUMN address_province VARCHAR(150) NULL AFTER address_municipality,
+                    ADD COLUMN address_barangay_code VARCHAR(20) NULL AFTER address_province,
+                    ADD COLUMN address_municipality_code VARCHAR(20) NULL AFTER address_barangay_code,
+                    ADD COLUMN address_province_code VARCHAR(20) NULL AFTER address_municipality_code'
+            );
+        }
+
+        self::$addressColumnsReady = true;
     }
 
     /**
@@ -175,6 +199,7 @@ class Student
     public function findByUser(int $userId): ?array
     {
         $this->ensureGenderColumn();
+        $this->ensureAddressColumns();
 
         $stmt = $this->db->prepare('SELECT s.*, u.first_name, u.middle_name, u.last_name, u.name, u.email, c.name coordinator_name, c.email coordinator_email FROM students s JOIN users u ON u.id = s.user_id LEFT JOIN users c ON c.id = s.coordinator_id WHERE s.user_id = ?');
         $stmt->execute([$userId]);
@@ -191,10 +216,9 @@ class Student
     public function updateProfile(int $studentId, array $data, ?string $photoFile): void
     {
         $this->ensureGenderColumn();
+        $this->ensureAddressColumns();
 
-        $stmt = $this->db->prepare('UPDATE students SET address = ?, contact_number = ?, emergency_contact_name = ?, emergency_contact_number = ?, guardian_name = ?, guardian_contact = ?, year_level = ?, gender = ?, photo_file = COALESCE(?, photo_file), profile_completed = 1 WHERE id = ?');
-        $stmt->execute([
-            trim($data['address'] ?? ''),
+        $common = [
             trim($data['contact_number'] ?? ''),
             trim($data['emergency_contact_name'] ?? ''),
             trim($data['emergency_contact_number'] ?? ''),
@@ -204,7 +228,60 @@ class Student
             trim($data['gender'] ?? ''),
             $photoFile,
             $studentId,
-        ]);
+        ];
+
+        if (student_address_payload_has_structured($data)) {
+            $composedAddress = student_compose_address_from_parts($data);
+            $stmt = $this->db->prepare(
+                'UPDATE students SET
+                    address = ?,
+                    address_street = ?,
+                    address_barangay = ?,
+                    address_municipality = ?,
+                    address_province = ?,
+                    address_barangay_code = ?,
+                    address_municipality_code = ?,
+                    address_province_code = ?,
+                    contact_number = ?,
+                    emergency_contact_name = ?,
+                    emergency_contact_number = ?,
+                    guardian_name = ?,
+                    guardian_contact = ?,
+                    year_level = ?,
+                    gender = ?,
+                    photo_file = COALESCE(?, photo_file),
+                    profile_completed = 1
+                 WHERE id = ?'
+            );
+            $stmt->execute([
+                $composedAddress,
+                trim($data['address_street'] ?? ''),
+                trim($data['address_barangay'] ?? ''),
+                trim($data['address_municipality'] ?? ''),
+                trim($data['address_province'] ?? ''),
+                trim($data['address_barangay_code'] ?? ''),
+                trim($data['address_municipality_code'] ?? ''),
+                trim($data['address_province_code'] ?? ''),
+                ...$common,
+            ]);
+
+            return;
+        }
+
+        $stmt = $this->db->prepare(
+            'UPDATE students SET
+                contact_number = ?,
+                emergency_contact_name = ?,
+                emergency_contact_number = ?,
+                guardian_name = ?,
+                guardian_contact = ?,
+                year_level = ?,
+                gender = ?,
+                photo_file = COALESCE(?, photo_file),
+                profile_completed = 1
+             WHERE id = ?'
+        );
+        $stmt->execute($common);
     }
 
     /**
