@@ -9,6 +9,11 @@ $root = dirname(__DIR__);
 $failures = 0;
 $passed = 0;
 
+if (PHP_SAPI === 'cli') {
+    $_SERVER['HTTP_HOST'] = (string)($_SERVER['HTTP_HOST'] ?? 'localhost');
+    $_SERVER['SERVER_NAME'] = (string)($_SERVER['SERVER_NAME'] ?? 'localhost');
+}
+
 function smoke_pass(string $label): void
 {
     global $passed;
@@ -40,7 +45,13 @@ $touched = [
     'models/Report.php',
     'controllers/CoordinatorController.php',
     'controllers/StudentController.php',
+    'controllers/AdminController.php',
     'controllers/PartnerController.php',
+    'views/admin/users.php',
+    'views/student/documents.php',
+    'views/student/dashboard.php',
+    'views/student/partials/predeployment_requirements.php',
+    'views/emails/student_enrollment.php',
     'helpers.php',
     'index.php',
     'views/coordinator/my_students.php',
@@ -351,6 +362,58 @@ if ($sample) {
     smoke_assert(is_string($effective) && $effective !== '', 'effectivePredeploymentStatus returns value for sample student');
 } else {
     smoke_pass('Predeployment status sample skipped (no coordinator student in DB)');
+}
+
+// --- 1st / 2nd / 3rd to Comply workflow ---
+$adminSrc = file_get_contents($root . '/controllers/AdminController.php') ?: '';
+$predeploySrc = file_get_contents($root . '/views/student/partials/predeployment_requirements.php') ?: '';
+$studentDashSrc = file_get_contents($root . '/views/student/dashboard.php') ?: '';
+$studentDocsSrc = file_get_contents($root . '/views/student/documents.php') ?: '';
+$usersViewSrc = file_get_contents($root . '/views/admin/users.php') ?: '';
+$myStudentsSrc = file_get_contents($root . '/views/coordinator/my_students.php') ?: '';
+$enrollEmailSrc = file_get_contents($root . '/views/emails/student_enrollment.php') ?: '';
+
+smoke_assert(!str_contains($studentSrcFile, 'You must be enrolled in OJT before uploading'), 'Stage 1 upload no longer requires enrollment');
+smoke_assert(!str_contains($studentSrcFile, 'You must be enrolled in OJT before submitting'), 'Stage 1 submit no longer requires enrollment');
+smoke_assert(str_contains($studentSrc, 'no company/enrollment required'), 'canAccessStage documents stage 1 without company');
+smoke_assert(str_contains($studentSrc, 'return $this->hasApprovedRequirements($studentId);'), 'Stage 2 unlocks when 1st comply is approved');
+smoke_assert(!str_contains($studentSrc, "if (!\$enrollment) return 'Enrollment required'"), 'requirementUploadMessage dropped Enrollment required');
+smoke_assert(str_contains($studentSrc, 'Your coordinator will generate this letter when they forward'), 'Endorsement letter wait copy in upload message');
+smoke_assert(str_contains($studentSrcFile, 'Complete your student profile to unlock 1st to Comply'), 'Stage 1 lock copy is profile, not enroll');
+smoke_assert(str_contains($studentSrcFile, 'Unlocks once all of your 1st to Comply documents are approved'), 'Stage 2 lock copy waits for 1st approval');
+smoke_assert(!str_contains($predeploySrc, 'Enrollment required'), 'Pre-deployment UI dropped Enrollment required');
+smoke_assert(str_contains($predeploySrc, 'student_submit_requirements'), 'Submit for Review still available without enrollment gate');
+smoke_assert(str_contains($studentDashSrc, 'Complete 1st to Comply'), 'Dashboard next action points to 1st comply without company');
+smoke_assert(str_contains($studentDashSrc, 'Waiting for Company Assignment'), 'Dashboard handles approved 1st comply without enrollment');
+smoke_assert(str_contains($studentDocsSrc, 'Your coordinator will generate this letter when they forward your documents to the company'), '2nd comply endorsement pending copy');
+smoke_assert(str_contains($adminSrc, 'Your AMA Practicum Student Account'), 'Admin createStudent emails credentials on create');
+smoke_assert(str_contains($adminSrc, 'The student can log in, complete their profile, then start 1st to Comply'), 'Registration approve copy no longer waits for enroll');
+smoke_assert(str_contains($usersViewSrc, 'Login credentials are emailed now'), 'Admin create student form copy emails credentials now');
+smoke_assert(str_contains($coordSrc, '$usesExistingPassword = $isSelfRegistered || $passwordAlreadyChanged || $accountAlreadyActive'), 'enrollStudent does not reset password for active accounts');
+smoke_assert(str_contains($coordSrc, 'reconcilePredeploymentAfterRequirementDefChange'), 'enrollStudent syncs 1st comply status onto new enrollment');
+smoke_assert(str_contains($myStudentsSrc, 'data-enroll-first-box'), 'Coordinator shows enroll-first hint before Forward');
+smoke_assert(str_contains($myStudentsSrc, 'Enroll this student to a Host Training Establishment first'), 'Forward gate copy requires company enrollment');
+smoke_assert(str_contains($coordSrc, 'generatePdfBuffer'), 'Forward still auto-generates endorsement letter');
+smoke_assert(str_contains($enrollEmailSrc, 'Use your existing student portal password'), 'Enrollment email keeps existing password');
+smoke_assert(str_contains($mainJsSrc, 'data-enroll-first-box'), 'Review AJAX toggles enroll-first box');
+
+$unenrolled = $db->query(
+    "SELECT s.id
+     FROM students s
+     LEFT JOIN ojt_enrollments e ON e.student_id = s.id
+     WHERE e.id IS NULL
+     LIMIT 1"
+)->fetch(PDO::FETCH_ASSOC);
+$studentModelSmoke = new Student($db);
+if ($unenrolled) {
+    $uid = (int)$unenrolled['id'];
+    smoke_assert($studentModelSmoke->canAccessStage($uid, 1), 'Live: unenrolled student can access 1st to Comply');
+    smoke_assert(!$studentModelSmoke->canAccessStage($uid, 3), 'Live: unenrolled student cannot access 3rd to Comply');
+    $stage2 = $studentModelSmoke->canAccessStage($uid, 2);
+    $allApproved = $studentModelSmoke->hasApprovedRequirements($uid);
+    smoke_assert($stage2 === $allApproved, 'Live: stage 2 access matches 1st comply approval without enrollment');
+} else {
+    smoke_pass('Live unenrolled student stage access skipped (all students enrolled)');
 }
 
 echo "\n--- Summary: {$passed} passed, {$failures} failed ---\n";

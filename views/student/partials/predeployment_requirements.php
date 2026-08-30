@@ -1,5 +1,5 @@
 <?php
-    $predeploymentStatus = $enrollment['predeployment_status'] ?? 'not_submitted';
+    $predeploymentStatus = $enrollment['predeployment_status'] ?? ($predeploymentStatus ?? 'not_submitted');
 
     $studentRequirements = array_filter($requirements, static fn (array $req): bool => ($req['owner'] ?? 'student') === 'student');
     $allRequirementsApproved = true;
@@ -103,7 +103,7 @@
             <?php foreach ($requirements as $bulkKey => $bulkReq): ?>
                 <?php
                     $canBulkUpload = $studentModelForBulk && $studentModelForBulk->canUploadRequirement((int)$student['id'], (string)$bulkKey);
-                    $bulkMessage = $studentModelForBulk ? $studentModelForBulk->requirementUploadMessage((int)$student['id'], (string)$bulkKey) : 'Enrollment required';
+                    $bulkMessage = $studentModelForBulk ? $studentModelForBulk->requirementUploadMessage((int)$student['id'], (string)$bulkKey) : 'Ready to upload';
                 ?>
                 <label class="bulk-upload-item<?= $canBulkUpload ? '' : ' is-locked' ?>">
                     <span><?= e($bulkReq['requirement_name']) ?></span>
@@ -126,7 +126,7 @@
                 $displayStatus = $hasRequirementFile ? $requirementStatus : 'not_uploaded';
                 $iconStatus = $hasRequirementFile ? $requirementStatus : 'pending';
                 $canUploadRequirement = false;
-                $uploadStatusLabel = 'Enrollment required';
+                $uploadStatusLabel = 'Ready to upload';
                 if (!empty($student)) {
                     $studentModel = new Student(db());
                     $canUploadRequirement = $studentModel->canUploadRequirement((int)$student['id'], (string)$key);
@@ -181,9 +181,7 @@
         <?php endforeach; ?>
     </div>
 
-    <?php if (empty($enrollment)): ?>
-        <div class="status-callout info"><strong>Enrollment required</strong><p>Your coordinator must enroll you in OJT before pre-deployment submission unlocks.</p><button class="btn btn-primary" type="button" disabled>Submit for Review Locked</button></div>
-    <?php elseif ($allRequirementsApproved): ?>
+    <?php if ($allRequirementsApproved): ?>
         <div class="status-callout success"><strong>All documents approved</strong><p>You're all set — every pre-deployment requirement has been approved by your coordinator.</p><button class="btn btn-primary" type="button" disabled>Documents Already Approved</button></div>
     <?php elseif ($hasRejectedRequirements): ?>
         <div class="status-callout warning"><strong>Revision required</strong><p>Only the rejected document is unlocked. Upload a corrected file — it will automatically return to coordinator review. No need to press Submit for Review again.</p><button class="btn btn-primary" type="button" disabled>Replace Rejected File</button></div>
@@ -191,7 +189,7 @@
         <div class="status-callout warning"><strong>Revision required</strong><p>Replace the rejected document below. Once uploaded, it goes back to your coordinator automatically.</p><button class="btn btn-primary" type="button" disabled>Replace Rejected File</button></div>
     <?php elseif ($predeploymentStatus === 'submitted'): ?>
         <div class="status-callout info"><strong>Documents under review</strong><p>You already submitted your requirements. The button is locked to prevent duplicate submissions.</p><button class="btn btn-primary" type="button" disabled>Already Submitted</button></div>
-    <?php elseif ($predeploymentStatus === 'not_submitted' && $allRequirementsUploaded): ?>
+    <?php elseif ($allRequirementsUploaded): ?>
         <form method="post" class="status-callout success"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="student_submit_requirements"><strong>Ready to submit</strong><p>All required documents have been uploaded. Submit them for coordinator review.</p><button class="btn btn-primary" type="submit">Submit for Review</button></form>
     <?php else: ?>
         <div class="status-callout info"><strong>Upload all requirements first</strong><p>Submit for Review will unlock after all required documents have been uploaded.</p><button class="btn btn-primary" type="button" disabled>Submit for Review Locked</button></div>

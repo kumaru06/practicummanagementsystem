@@ -377,7 +377,7 @@ $activeCoordinators = array_values(array_filter(
                 </div>
                 <div>
                     <h2 id="asuCreateStudentTitle">Create Student from COR</h2>
-                    <p>Add a student account, upload COR, and assign an OJT coordinator.</p>
+                    <p>Add a student account, upload COR, and assign an OJT coordinator. Login credentials are emailed immediately.</p>
                 </div>
             </div>
             <button type="button" class="asu-create-modal-close" id="asuCreateStudentClose" aria-label="Close">
@@ -472,7 +472,7 @@ $activeCoordinators = array_values(array_filter(
                                 <span class="asu-create-file-name muted" data-asu-cor-filename>No file chosen</span>
                                 <button type="button" class="asu-create-file-clear" data-asu-cor-clear hidden aria-label="Remove file">&times;</button>
                             </div>
-                            <small class="muted">PDF, JPG, or PNG. Credentials are emailed when the coordinator enrolls the student.</small>
+                            <small class="muted">PDF, JPG, or PNG. Login credentials are emailed now so the student can complete their profile and 1st to Comply before a company is assigned.</small>
                         </label>
                     </div>
                 </div>

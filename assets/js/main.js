@@ -59,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initPartnerSubmissionsPopstate();
     initAppAjaxNav();
     document.querySelectorAll('.data-table').forEach(table => enhanceTable(table));
+    initAllTableDragScroll();
     initEnrollmentFilters();
     initMyStudentsDirectory();
     initAdminStudentsDirectory();
@@ -7205,6 +7206,10 @@ function initRequirementReviewModals() {
                     if (forwardBox) {
                         forwardBox.style.display = data.predeployment_status === 'approved' ? '' : 'none';
                     }
+                    const enrollFirstBox = modal.querySelector('[data-enroll-first-box]');
+                    if (enrollFirstBox) {
+                        enrollFirstBox.style.display = data.predeployment_status === 'approved' ? '' : 'none';
+                    }
                 }
                 const studentId = modal?.dataset.studentId;
                 if (studentId) {
@@ -8640,6 +8645,85 @@ function initAdminActivitiesFeed() {
     });
 }
 
+function initTableDragScroll(container) {
+    if (!container || container.dataset.dragScrollBound === '1') return;
+    container.dataset.dragScrollBound = '1';
+
+    const INTERACTIVE = 'button, input, select, textarea, summary, label, option, .admin-user-action-menu, .admin-user-action-panel';
+    const DRAG_THRESHOLD = 6;
+    let pointerId = null;
+    let startX = 0;
+    let startScrollLeft = 0;
+    let dragging = false;
+    let suppressClick = false;
+
+    const endDrag = (event) => {
+        if (pointerId === null) return;
+        if (event && event.pointerId !== pointerId) return;
+        if (container.hasPointerCapture?.(pointerId)) {
+            try { container.releasePointerCapture(pointerId); } catch (_) { /* already released */ }
+        }
+        pointerId = null;
+        dragging = false;
+        container.classList.remove('is-drag-scrolling', 'is-drag-scroll-ready');
+    };
+
+    container.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0 || event.pointerType === 'touch') return;
+        if (event.target.closest(INTERACTIVE)) return;
+        if (container.scrollWidth <= container.clientWidth) return;
+        const rect = container.getBoundingClientRect();
+        if (event.clientY > rect.top + container.clientHeight) return;
+
+        pointerId = event.pointerId;
+        startX = event.clientX;
+        startScrollLeft = container.scrollLeft;
+        dragging = false;
+        container.classList.add('is-drag-scroll-ready');
+    });
+
+    container.addEventListener('pointermove', (event) => {
+        if (pointerId !== event.pointerId) return;
+        const deltaX = event.clientX - startX;
+        if (!dragging) {
+            if (Math.abs(deltaX) < DRAG_THRESHOLD) return;
+            dragging = true;
+            suppressClick = true;
+            container.classList.add('is-drag-scrolling');
+            try { container.setPointerCapture(event.pointerId); } catch (_) { /* capture not required */ }
+        }
+        event.preventDefault();
+        container.scrollLeft = startScrollLeft - deltaX;
+    });
+
+    container.addEventListener('pointerup', endDrag);
+    container.addEventListener('pointercancel', endDrag);
+    container.addEventListener('lostpointercapture', endDrag);
+
+    container.addEventListener('click', (event) => {
+        if (!suppressClick) return;
+        suppressClick = false;
+        event.preventDefault();
+        event.stopPropagation();
+    }, true);
+
+    const syncScrollable = () => {
+        container.classList.toggle('is-h-scrollable', container.scrollWidth > container.clientWidth + 1);
+    };
+    syncScrollable();
+    container.addEventListener('pointerenter', syncScrollable);
+    if (typeof ResizeObserver !== 'undefined') {
+        const resizeObserver = new ResizeObserver(syncScrollable);
+        resizeObserver.observe(container);
+        const table = container.querySelector('table');
+        if (table) resizeObserver.observe(table);
+    }
+}
+
+function initAllTableDragScroll() {
+    document.querySelectorAll('.table-wrap').forEach(initTableDragScroll);
+}
+
 function initAdminStudentsDirectory() {
     document.querySelectorAll('[data-admin-students-directory]').forEach(directory => {
         const table = directory.querySelector('.asu-students-table');
@@ -9130,6 +9214,7 @@ function reinitAppPageContent() {
     try { initWeeklyReportUpload(); } catch (err) { console.warn('Weekly report upload init failed:', err); }
     try { initWeeklyReportResubmitDateRange(); } catch (err) { console.warn('Weekly report date range init failed:', err); }
     document.querySelectorAll('.content .data-table').forEach(table => enhanceTable(table));
+    initAllTableDragScroll();
     // Bind action menus after tables are enhanced so pagination hooks attach correctly.
     initAdminUserActions();
 

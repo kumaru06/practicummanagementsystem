@@ -310,17 +310,24 @@ class CoordinatorController extends BaseController
             }
             (new Enrollment($this->db))->create($studentId, $companyId, null, null, $requiredHours, $academicTerm, $termStartDate, $termEndDate);
             $userId = (int)$student['user_id'];
+            $userModel = new User($this->db);
             $isSelfRegistered = (new StudentRegistrationRequest($this->db))->isSelfRegisteredUser($userId);
-            (new User($this->db))->setActive($userId, 1);
+            $userRow = $userModel->find($userId);
+            $userModel->setActive($userId, 1);
 
+            $passwordAlreadyChanged = (int)($userRow['password_changed'] ?? 1) === 1;
+            $accountAlreadyActive = (int)($userRow['is_active'] ?? 0) === 1;
             $tempPassword = null;
-            if (!$isSelfRegistered) {
+            $usesExistingPassword = $isSelfRegistered || $passwordAlreadyChanged || $accountAlreadyActive;
+            if (!$usesExistingPassword) {
                 $tempPassword = random_password();
-                (new User($this->db))->updatePassword($userId, $tempPassword, 0);
-            } elseif ((int)((new User($this->db))->find($userId)['password_changed'] ?? 1) === 0) {
+                $userModel->updatePassword($userId, $tempPassword, 0);
+            } elseif ($isSelfRegistered && (int)($userRow['password_changed'] ?? 1) === 0) {
                 $stmt = $this->db->prepare('UPDATE users SET password_changed = 1 WHERE id = ?');
                 $stmt->execute([$userId]);
             }
+
+            (new Student($this->db))->reconcilePredeploymentAfterRequirementDefChange($studentId);
 
             $email = new Email($this->db);
             $emailSent = $email->send($student['email'], 'You are now enrolled in OJT - AMA Computer College', 'student_enrollment', 'student_enrollment', [
@@ -331,14 +338,14 @@ class CoordinatorController extends BaseController
                 'termEndDate' => $termEndDate,
                 'requiredHours' => $requiredHours,
                 'password' => $tempPassword,
-                'usesExistingPassword' => $isSelfRegistered,
+                'usesExistingPassword' => $usesExistingPassword,
                 'coordinator' => current_user(),
                 'loginUrl' => absolute_route_url('student.login'),
             ]);
             (new Notification($this->db))->create((int)$student['user_id'], 'OJT enrollment created', 'You have been enrolled for OJT deployment at ' . ($company['name'] ?? 'your Host Training Establishment') . '.', route_url('student.documents', ['stage' => 1]));
             $successMessage = $emailSent
-                ? 'Student enrolled and credentials email was processed. Host Training Establishment deployment email will be sent after approved documents are forwarded.'
-                : 'Student enrolled, but the credentials email failed to send. Check Email Logs. Host Training Establishment deployment email will be sent after approved documents are forwarded.';
+                ? 'Student enrolled with the Host Training Establishment. The endorsement letter will be generated automatically when you forward approved 1st to Comply documents.'
+                : 'Student enrolled, but the enrollment email failed to send. Check Email Logs. Forward approved documents after the Host Training Establishment email is working.';
             if ($isAjax) {
                 header('Content-Type: application/json');
                 echo json_encode([
@@ -384,7 +391,9 @@ class CoordinatorController extends BaseController
             $reviewedStage = $studentModel->requirementStage($requirementKey);
             // Raw DB status for write decisions; detailsByStudent overlays effective status.
             $rawEnrollment = $enrollmentModel->byStudent($studentId);
-            $newPredeploymentStatus = $studentModel->normalizePredeploymentStatus($rawEnrollment['predeployment_status'] ?? 'not_submitted');
+            $newPredeploymentStatus = $studentModel->normalizePredeploymentStatus(
+                is_array($rawEnrollment) ? ($rawEnrollment['predeployment_status'] ?? 'not_submitted') : 'not_submitted'
+            );
             if ($reviewedStage !== 1) {
                 // Stage 2/3 reviews do NOT touch the pre-deployment pipeline status.
                 $stageLabel = Student::STAGE_LABELS[$reviewedStage] ?? 'Document';
@@ -394,11 +403,11 @@ class CoordinatorController extends BaseController
                 (new Notification($this->db))->create((int)$student['user_id'], 'Document review update', $noticeMessage, route_url('student.documents', ['stage' => $reviewedStage]));
             } elseif ($reviewedStage === 1) {
                 $currentPredeployment = $newPredeploymentStatus;
-                $isLatePipelineReview = $studentModel->isPredeploymentPipelineAdvanced($currentPredeployment);
+                $isLatePipelineReview = $rawEnrollment && $studentModel->isPredeploymentPipelineAdvanced($currentPredeployment);
                 $newPredeploymentStatus = $studentModel->predeploymentStatusAfterStage1Review($studentId, $status);
                 if ($isLatePipelineReview) {
                     $newPredeploymentStatus = $currentPredeployment;
-                } elseif ($newPredeploymentStatus !== $currentPredeployment) {
+                } elseif ($rawEnrollment && $newPredeploymentStatus !== $currentPredeployment) {
                     $enrollmentModel->setPredeploymentStatus($studentId, $newPredeploymentStatus);
                 }
                 if ($status === 'rejected') {
@@ -409,8 +418,10 @@ class CoordinatorController extends BaseController
                 } elseif ($studentModel->hasApprovedRequirements($studentId)) {
                     if ($isLatePipelineReview) {
                         (new Notification($this->db))->create((int)$student['user_id'], 'Document approved', 'Your uploaded pre-deployment document was approved by your coordinator.', route_url('student.documents', ['stage' => 1]));
-                    } else {
+                    } elseif ($rawEnrollment) {
                         (new Notification($this->db))->create((int)$student['user_id'], 'Requirements approved', 'All of your pre-deployment requirements have been approved by your coordinator.', route_url('student.dashboard'));
+                    } else {
+                        (new Notification($this->db))->create((int)$student['user_id'], 'Requirements approved', 'All of your 1st to Comply documents are approved. Your coordinator will assign a company and generate your endorsement letter when they forward your documents.', route_url('student.documents', ['stage' => 2]));
                     }
                 }
             }

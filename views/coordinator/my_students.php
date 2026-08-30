@@ -428,6 +428,14 @@ ksort($termOptions);
                                 </form>
                             </div>
                         </div>
+                    <?php else: ?>
+                        <div class="requirement-forward-box" data-enroll-first-box<?= ($s['predeployment_status'] ?? '') !== 'approved' ? ' style="display:none"' : '' ?>>
+                            <div>
+                                <strong>Enroll this student first</strong>
+                                <small>Enroll this student to a Host Training Establishment first, then forward. The endorsement letter is generated automatically on forward.</small>
+                            </div>
+                            <a class="btn btn-small" href="<?= e(route_url('coordinator.manage')) ?>">Open enrollment</a>
+                        </div>
                     <?php endif; ?>
                 </div>
             </div>

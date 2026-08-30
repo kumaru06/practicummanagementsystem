@@ -10577,6 +10577,27 @@ body.is-confirm-open .app-confirm-overlay {
     background: linear-gradient(180deg, rgba(255,248,248,0.75), rgba(255,255,255,0.95));
 }
 
+.table-wrap.is-h-scrollable {
+    cursor: grab;
+}
+
+.table-wrap.is-drag-scroll-ready,
+.table-wrap.is-drag-scrolling {
+    cursor: grabbing;
+    user-select: none;
+}
+
+.table-wrap.is-drag-scrolling * {
+    cursor: grabbing;
+    pointer-events: none;
+}
+
+.table-wrap.is-h-scrollable a,
+.table-wrap.is-h-scrollable button,
+.table-wrap.is-h-scrollable summary {
+    cursor: pointer;
+}
+
 .data-table {
     width: 100%;
     border-collapse: separate;

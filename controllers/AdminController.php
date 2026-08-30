@@ -681,7 +681,7 @@ class AdminController extends BaseController
                 (int)current_user()['id'],
                 0,
                 $middleName !== '' ? $middleName : null,
-                0
+                1
             );
             (new Student($this->db))->create(
                 $userId,
@@ -697,7 +697,17 @@ class AdminController extends BaseController
             $this->db->commit();
 
             $coordName = full_name($coordinator) ?: (string)($coordinator['name'] ?? 'coordinator');
-            $successMessage = 'Student profile created and assigned to ' . $coordName . '. Login credentials will be emailed when the coordinator enrolls the student.';
+            $emailSent = (new Email($this->db))->send($email, 'Your AMA Practicum Student Account', 'account_credentials', 'account_credentials', [
+                'name' => $fullName,
+                'email' => $email,
+                'password' => $password,
+                'usn' => $studentNo,
+                'roleLabel' => 'Student',
+                'loginUrl' => absolute_route_url('student.login'),
+            ]);
+            $successMessage = $emailSent
+                ? 'Student profile created and assigned to ' . $coordName . '. Login credentials were emailed. The student can log in, complete their profile, then start 1st to Comply.'
+                : 'Student profile created and assigned to ' . $coordName . ', but the credentials email failed to send. Check Email Logs.';
             if ($isAjax) {
                 flash('success', $successMessage);
                 header('Content-Type: application/json');
@@ -1477,7 +1487,7 @@ class AdminController extends BaseController
             );
             $model->markApproved($requestId, $coordinatorId, (int)current_user()['id']);
             $this->db->commit();
-            flash('success', 'Registration approved. The student can log in after their coordinator enrolls them in OJT.');
+            flash('success', 'Registration approved and assigned to a coordinator. The student can log in, complete their profile, then start 1st to Comply.');
         } catch (Throwable $e) {
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();

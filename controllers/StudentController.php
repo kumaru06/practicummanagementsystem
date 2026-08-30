@@ -405,8 +405,8 @@ class StudentController extends BaseController
 
     private function stageLockMessage(int $stage, ?array $enrollment): string
     {
-        if (!$enrollment) {
-            return 'Your coordinator must enroll you in OJT first.';
+        if ($stage === 1) {
+            return 'Complete your student profile to unlock 1st to Comply.';
         }
         if ($stage === 2) {
             return 'Unlocks once all of your 1st to Comply documents are approved.';
@@ -737,9 +737,6 @@ class StudentController extends BaseController
             redirect('index.php?r=student');
         }
         try {
-            if (!(new Enrollment($this->db))->detailsByStudent((int)$student['id'])) {
-                throw new RuntimeException('You must be enrolled in OJT before uploading pre-deployment requirements.');
-            }
             $requirementKey = trim($p['requirement_key'] ?? '');
             $studentModel = new Student($this->db);
             if ((Student::REQUIREMENTS[$requirementKey]['kind'] ?? 'upload') === 'form') {
@@ -768,10 +765,6 @@ class StudentController extends BaseController
             redirect('index.php?r=student');
         }
         try {
-            if (!(new Enrollment($this->db))->detailsByStudent((int)$student['id'])) {
-                throw new RuntimeException('You must be enrolled in OJT before uploading pre-deployment requirements.');
-            }
-
             $studentModel = new Student($this->db);
             $selectedFiles = [];
             foreach ($studentModel->requirementDefinitions() as $requirementKey => $definition) {
@@ -823,15 +816,20 @@ class StudentController extends BaseController
             $this->redirectToStudentDocuments(null, 1);
         }
         $enrollment = (new Enrollment($this->db))->detailsByStudent((int)$student['id']);
-        if (!$enrollment) {
-            flash('error', 'You must be enrolled in OJT before submitting pre-deployment requirements.');
-            $this->redirectToStudentDocuments(null, 1);
-        }
-        $predeploymentStatus = $enrollment['predeployment_status'] ?? 'not_submitted';
         if ($studentModel->hasApprovedRequirements((int)$student['id'])) {
             flash('success', 'All documents have already been approved. No need to submit again.');
             $this->redirectToStudentDocuments(null, 1);
         }
+        if ($studentModel->hasRejectedRequirements((int)$student['id'])) {
+            flash('error', 'Replace the rejected document first. Only rejected documents are unlocked.');
+            $this->redirectToStudentDocuments(null, 1);
+        }
+        if (!$enrollment) {
+            (new Notification($this->db))->create((int)$student['coordinator_id'], 'Pre-deployment review requested', $student['name'] . ' submitted all pre-deployment requirements for review.', route_url('coordinator.students', ['focus_student' => (int)$student['id']]));
+            flash('success', 'Pre-deployment requirements submitted for coordinator review.');
+            $this->redirectToStudentDocuments(null, 1);
+        }
+        $predeploymentStatus = $enrollment['predeployment_status'] ?? 'not_submitted';
         if ($predeploymentStatus === 'submitted') {
             flash('error', 'Your documents are already under coordinator review.');
             $this->redirectToStudentDocuments(null, 1);
@@ -1206,7 +1204,9 @@ class StudentController extends BaseController
             'requirements' => $requirements,
             'dtrs' => $dtrs,
             'weeklyReports' => $weeklyReports,
-            'predeploymentStatus' => $enrollment ? ($enrollment['predeployment_status'] ?? 'not_submitted') : 'not_submitted',
+            'predeploymentStatus' => $enrollment
+                ? ($enrollment['predeployment_status'] ?? 'not_submitted')
+                : ($student ? $studentModel->stageAggregateStatus((int)$student['id'], 1) : 'not_submitted'),
             'canSubmitReports' => $canSubmitReports,
             'canAccessFinalRequirements' => $canAccessFinalRequirements,
             'ojtCompletion' => $ojtCompletion,
@@ -1264,7 +1264,19 @@ class StudentController extends BaseController
 
         if ($stage === 1) {
             $enrollment = (new Enrollment($this->db))->byStudent((int)$student['id']);
-            if (!$enrollment || !$studentModel->isPredeploymentPipelineAdvanced($enrollment['predeployment_status'] ?? null)) {
+            if (!$enrollment) {
+                if (!$studentModel->hasCompleteRequirements((int)$student['id'])) {
+                    return false;
+                }
+                (new Notification($this->db))->create(
+                    $coordinatorId,
+                    'Pre-deployment review requested',
+                    $studentName . ' submitted all pre-deployment requirements for review.',
+                    route_url('coordinator.students', ['focus_student' => (int)$student['id']])
+                );
+                return true;
+            }
+            if (!$studentModel->isPredeploymentPipelineAdvanced($enrollment['predeployment_status'] ?? null)) {
                 return false;
             }
             (new Notification($this->db))->create(

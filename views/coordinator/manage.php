@@ -145,7 +145,7 @@ $totalStudents = count($students);
                 </div>
                 <div>
                     <h2 id="enrWizardTitle">Enroll Student in OJT</h2>
-                    <p>Assign a host training establishment and send enrollment emails.</p>
+                    <p>Assign a host training establishment. Enrollment email is sent to the student. The endorsement letter is generated automatically when you forward approved 1st to Comply documents.</p>
                 </div>
             </div>
             <button type="button" class="enr-wizard-modal-close" id="enrWizardClose" aria-label="Close">
@@ -154,7 +154,7 @@ $totalStudents = count($students);
         </div>
 
         <div class="enr-wizard-modal-body" id="enrollment-wizard-panel">
-            <form method="post" class="form js-validate wizard-form enrollment-wizard-form" data-wizard data-confirm-submit="Enroll this student and send the enrollment/deployment emails now? Please verify the student, company, dates, and required hours before continuing." data-confirm-title="Confirm OJT enrollment" data-confirm-ok="Enroll & send emails" data-confirm-cancel="Review details" data-confirm-async="1" data-confirm-processing-title="Enrolling student..." data-confirm-processing-message="Sending enrollment emails and preparing deployment details. This may take a moment." data-confirm-success-title="Enrollment complete" data-confirm-success-ok="Done">
+            <form method="post" class="form js-validate wizard-form enrollment-wizard-form" data-wizard data-confirm-submit="Enroll this student and send the company assignment email now? Please verify the student, company, dates, and required hours before continuing." data-confirm-title="Confirm OJT enrollment" data-confirm-ok="Enroll & send email" data-confirm-cancel="Review details" data-confirm-async="1" data-confirm-processing-title="Enrolling student..." data-confirm-processing-message="Saving the company assignment and sending the enrollment email. This may take a moment." data-confirm-success-title="Enrollment complete" data-confirm-success-ok="Done">
                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="action" value="coordinator_enroll_student">
 

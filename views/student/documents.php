@@ -164,7 +164,7 @@
                                             View file
                                         </a>
                                     <?php elseif ($owner === 'coordinator'): ?>
-                                        <span class="requirement-empty-chip">Waiting for coordinator</span>
+                                        <span class="requirement-empty-chip">Your coordinator will generate this letter when they forward your documents to the company.</span>
                                     <?php else: ?>
                                         <span class="requirement-empty-chip">Not uploaded yet</span>
                                     <?php endif; ?>

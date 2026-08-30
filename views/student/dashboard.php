@@ -8,7 +8,7 @@ $percent = $required > 0 ? min(100, round(($rendered / $required) * 100, 1)) : 0
 $progressRingRadius = 54;
 $progressRingCircumference = 2 * M_PI * $progressRingRadius;
 $ringOffset = $progressRingCircumference * (1 - ($percent / 100));
-$predeployment = $enrollment['predeployment_status'] ?? 'not_submitted';
+$predeployment = $predeploymentStatus ?? ($enrollment['predeployment_status'] ?? 'not_submitted');
 $uploadedRequirements = count(array_filter($requirements ?? [], static fn ($req) => !empty($req['file_path'])));
 $approvedRequirements = count(array_filter($requirements ?? [], static fn ($req) => ($req['status'] ?? '') === 'approved'));
 $totalRequirements = max(6, count($requirements ?? []));
@@ -59,11 +59,12 @@ $orientationFormatted = $orientationDateTime && strtotime((string)$orientationDa
     : null;
 $certificateFile = $hteEvaluation['certificate_file'] ?? null;
 $nextAction = match (true) {
-    !$enrollment => ['title' => 'Awaiting Enrollment', 'message' => 'Your coordinator has not enrolled you in OJT yet.', 'route' => route_url('student.documents', ['stage' => 1]), 'label' => 'View documents', 'icon' => 'enrollment'],
     $rejectedRequirementCount > 0 || $predeployment === 'needs_revision' => ['title' => 'Fix Rejected Documents', 'message' => 'One or more pre-deployment documents were rejected. Upload corrected files to continue.', 'route' => route_url('student.documents', ['stage' => 1]), 'label' => 'Fix documents', 'icon' => 'requirements'],
     $rejectedDtrCount > 0 => ['title' => 'Correct Rejected DTR', 'message' => 'Your Host Training Establishment rejected ' . $rejectedDtrCount . ' daily time record(s). Update and resubmit them.', 'route' => route_url('student.records'), 'label' => 'Fix DTR', 'icon' => 'records'],
     $rejectedWeeklyCount > 0 => ['title' => 'Correct Rejected Weekly Report', 'message' => 'Your Host Training Establishment rejected ' . $rejectedWeeklyCount . ' weekly report(s). Update and resubmit them.', 'route' => route_url('student.records'), 'label' => 'Fix weekly report', 'icon' => 'records'],
-    in_array($predeployment, ['not_submitted', 'needs_revision'], true) => ['title' => 'Prepare Requirements', 'message' => 'Upload all required pre-deployment documents and submit them for review.', 'route' => route_url('student.documents', ['stage' => 1]), 'label' => 'Go to Documents', 'icon' => 'requirements'],
+    !$enrollment && in_array($predeployment, ['submitted', 'in_progress'], true) && $uploadedRequirements > 0 && $approvedRequirements < $totalRequirements => ['title' => '1st to Comply In Progress', 'message' => $predeployment === 'submitted' ? 'Your coordinator is reviewing your pre-deployment documents.' : 'Upload and submit all 1st to Comply documents. A company is assigned after these are approved.', 'route' => route_url('student.documents', ['stage' => 1]), 'label' => $predeployment === 'submitted' ? 'Check Status' : 'Go to Documents', 'icon' => $predeployment === 'submitted' ? 'review' : 'requirements'],
+    !$enrollment && $predeployment === 'approved' => ['title' => 'Waiting for Company Assignment', 'message' => 'Your 1st to Comply documents are approved. Your coordinator will enroll you with a Host Training Establishment and forward your endorsement letter.', 'route' => route_url('student.documents', ['stage' => 2]), 'label' => 'View 2nd to Comply', 'icon' => 'deployment'],
+    !$enrollment || in_array($predeployment, ['not_submitted', 'needs_revision', 'in_progress'], true) => ['title' => 'Complete 1st to Comply', 'message' => 'Upload all required pre-deployment documents and submit them for review. You do not need a company assignment yet.', 'route' => route_url('student.documents', ['stage' => 1]), 'label' => 'Go to Documents', 'icon' => 'requirements'],
     $predeployment === 'submitted' => ['title' => 'Under Review', 'message' => 'Your coordinator is reviewing your submitted requirements.', 'route' => route_url('student.documents', ['stage' => 1]), 'label' => 'Check Status', 'icon' => 'review'],
     in_array($predeployment, ['approved', 'forwarded', 'accepted', 'orientation_scheduled'], true) => ['title' => 'Deployment Processing', 'message' => 'Wait for company acceptance and orientation completion before submitting reports.', 'route' => route_url('student.documents', ['stage' => 2]), 'label' => 'View Deployment', 'icon' => 'deployment'],
     $ojtCleared => ['title' => 'OJT Cleared', 'message' => 'Congratulations. Your OJT requirements and evaluations are complete.', 'route' => route_url('student.evaluation'), 'label' => 'View evaluation', 'icon' => 'review'],
