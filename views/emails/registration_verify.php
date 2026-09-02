@@ -9,8 +9,8 @@
             <a href="<?= e($verifyUrl ?? '') ?>" style="background:#8B1A1A;color:white;text-decoration:none;padding:12px 18px;border-radius:8px;display:inline-block">Verify Email Address</a>
         </p>
         <p style="word-break:break-all"><strong>Verification link:</strong><br><?= e($verifyUrl ?? '') ?></p>
-        <p>This link expires in <?= (int)($expiresHours ?? 12) ?> hours. If it expires, your registration will be removed and you may register again using the same email.</p>
-        <p>After verifying your email, you can sign in to the student portal. Full dashboard access will be granted once an administrator approves your registration.</p>
+        <p>This link expires in <?= (int)($expiresHours ?? 12) ?> hours. If it expires, sign in to the student portal with your registration password to open the verification page and resend a new link.</p>
+        <p>After verifying your email, you can sign in while waiting for administrator approval. Full dashboard access is granted only after an administrator approves your registration.</p>
         <p style="margin-bottom:0">If you did not request this registration, you can safely ignore this email.</p>
     </div>
 </body>

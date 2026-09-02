@@ -8,6 +8,8 @@ class AuthController extends BaseController
 
     private const LOGIN_ATTEMPT_WINDOW_MINUTES = 15;
 
+    private const RESEND_COOLDOWN_SECONDS = 60;
+
     public function login(?string $portalRole = null): void
 
     {
@@ -121,9 +123,13 @@ class AuthController extends BaseController
 
                 $_SESSION['role'] = (string)$user['role'];
 
+                unset($_SESSION['unverified_registration_id'], $_SESSION['unverified_resend_at']);
+
                 redirect(route_for_role($user['role']));
 
             }
+
+            $this->continueUnverifiedStudentRegistration($identifier, $password, $portalRole, $loginIp);
 
             $this->recordLoginAttempt($loginIp, false);
 
@@ -236,8 +242,6 @@ class AuthController extends BaseController
             redirect(route_for_role(current_user()['role'] ?? null));
 
         }
-
-
 
         $registrationModel = new StudentRegistrationRequest($this->db);
 
@@ -373,39 +377,7 @@ class AuthController extends BaseController
 
 
 
-                $verifyUrl = absolute_route_url('student.register.verify', [
-
-                    'token' => $request['verification_token'],
-
-                ]);
-
-                $sent = (new Email($this->db))->send(
-
-                    $email,
-
-                    'Verify your AMA OJT student registration',
-
-                    'registration_verify',
-
-                    'registration_verify',
-
-                    [
-
-                        'firstName' => $firstName,
-
-                        'verifyUrl' => $verifyUrl,
-
-                        'expiresHours' => StudentRegistrationRequest::VERIFICATION_HOURS,
-
-                    ],
-
-                    [],
-
-                    'registration'
-
-                );
-
-                if (!$sent) {
+                if (!$this->sendRegistrationVerificationEmail($request)) {
 
                     throw new RuntimeException('Could not send the verification email. Please try again later.');
 
@@ -413,19 +385,9 @@ class AuthController extends BaseController
 
 
 
-                flash(
+                $this->startUnverifiedRegistrationSession($requestId, true);
 
-                    'success',
-
-                    'Registration submitted. Please check your email and verify your address within '
-
-                    . StudentRegistrationRequest::VERIFICATION_HOURS
-
-                    . ' hours to activate your account.'
-
-                );
-
-                redirect('register.php?submitted=1');
+                redirect(route_url('student.register.pending'));
 
             } catch (Throwable $e) {
 
@@ -452,6 +414,7 @@ class AuthController extends BaseController
         $submitted = isset($_GET['submitted']);
         $verified = isset($_GET['verified']);
         $verifiedAlready = isset($_GET['already']);
+        $verificationPending = false;
 
         $programs = (new Program($this->db))->all(true);
 
@@ -462,14 +425,8 @@ class AuthController extends BaseController
 
 
     public function verifyRegistrationEmail(): void
-
     {
-
         $registrationModel = new StudentRegistrationRequest($this->db);
-
-        $registrationModel->purgeExpiredUnverified();
-
-
 
         $token = trim((string)($_GET['token'] ?? $_GET['amp;token'] ?? ''));
         if ($token === '' && preg_match('/(?:^|[&;])token=([a-f0-9]{32,})/i', (string)($_SERVER['QUERY_STRING'] ?? ''), $matches)) {
@@ -477,94 +434,239 @@ class AuthController extends BaseController
         }
 
         if ($token === '') {
-
             flash('error', 'Invalid verification link.');
-
             redirect('register.php');
-
         }
-
-
 
         $request = $registrationModel->findByVerificationToken($token);
-
         if (!$request) {
-
+            $superseded = $registrationModel->findByPreviousVerificationToken($token);
+            if ($superseded && ($superseded['status'] ?? '') === 'pending_verification') {
+                $this->startUnverifiedRegistrationSession((int)$superseded['id']);
+                flash('error', 'This verification link was replaced. Open the latest email, or use Resend to get a new link.');
+                redirect(route_url('student.register.pending'));
+            }
+            $registrationModel->purgeExpiredUnverified();
             flash('error', 'This verification link is invalid or has already been used.');
-
-            redirect('register.php');
-
+            redirect(route_url('student.login'));
         }
 
-
+        $registrationModel->purgeExpiredUnverified((int)$request['id']);
 
         if (in_array($request['status'] ?? '', ['pending_approval', 'pending'], true)) {
             $userId = (int)($request['user_id'] ?? 0);
             if ($userId > 0) {
                 (new User($this->db))->setActive($userId, 1);
+                $this->establishStudentSession($userId);
+                flash('success', 'Your email is already verified. Your dashboard stays locked until an administrator approves your registration.');
+                redirect(route_url('student.pending'));
             }
-
-            flash('success', 'Your email is already verified. You can sign in while waiting for administrator approval.');
-
-            redirect('register.php?verified=1&already=1');
-
+            flash('error', 'This verification link is no longer valid.');
+            redirect(route_url('student.login'));
         }
-
-
 
         if (($request['status'] ?? '') !== 'pending_verification') {
-
             flash('error', 'This verification link is no longer valid.');
-
-            redirect('register.php');
-
+            redirect(route_url('student.login'));
         }
 
-
-
-        if (
-
-            !empty($request['verification_expires_at'])
-
-            && strtotime((string)$request['verification_expires_at']) < time()
-
-        ) {
-
-            $registrationModel->deleteRequest((int)$request['id']);
-
-            flash('error', 'This verification link has expired. Please register again.');
-
-            redirect('register.php');
-
+        if ($registrationModel->isVerificationExpired($request)) {
+            $this->startUnverifiedRegistrationSession((int)$request['id']);
+            flash('error', 'This verification link has expired. Use Resend to get a new link.');
+            redirect(route_url('student.register.pending'));
         }
-
-
 
         try {
-
-            $registrationModel->completeEmailVerification((int)$request['id']);
-
-            flash(
-
-                'success',
-
-                'Email verified successfully. You can now sign in. Your account is pending administrator approval.'
-
-            );
-
-            redirect('register.php?verified=1');
-
+            $userId = $registrationModel->completeEmailVerification((int)$request['id']);
+            $this->establishStudentSession($userId);
+            flash('success', 'Email verified successfully. Your dashboard stays locked until an administrator approves your registration.');
+            redirect(route_url('student.pending'));
         } catch (Throwable $e) {
-
+            $this->startUnverifiedRegistrationSession((int)$request['id']);
             flash('error', $e->getMessage());
-
-            redirect('register.php');
-
+            redirect(route_url('student.register.pending'));
         }
-
     }
 
+    public function showPendingVerification(): void
+    {
+        if (current_user()) {
+            redirect(route_for_role(current_user()['role'] ?? null));
+        }
 
+        $registrationModel = new StudentRegistrationRequest($this->db);
+        $requestId = (int)($_SESSION['unverified_registration_id'] ?? 0);
+        $registrationModel->purgeExpiredUnverified($requestId > 0 ? $requestId : null);
+
+        $request = $requestId > 0 ? $registrationModel->find($requestId) : null;
+        if (!$request || ($request['status'] ?? '') !== 'pending_verification') {
+            unset($_SESSION['unverified_registration_id'], $_SESSION['unverified_resend_at']);
+            flash('error', 'Please sign in with your registration email or USN to continue email verification.');
+            redirect(route_url('student.login'));
+        }
+
+        $this->renderVerificationPendingView($request);
+    }
+
+    public function resendRegistrationVerification(): void
+    {
+        if (current_user()) {
+            redirect(route_for_role(current_user()['role'] ?? null));
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect(route_url('student.register.pending'));
+        }
+
+        verify_csrf();
+
+        $registrationModel = new StudentRegistrationRequest($this->db);
+        $requestId = (int)($_SESSION['unverified_registration_id'] ?? 0);
+        $request = $requestId > 0 ? $registrationModel->find($requestId) : null;
+        if (!$request || ($request['status'] ?? '') !== 'pending_verification') {
+            unset($_SESSION['unverified_registration_id'], $_SESSION['unverified_resend_at']);
+            flash('error', 'Please sign in with your registration email or USN to continue email verification.');
+            redirect(route_url('student.login'));
+        }
+
+        $wait = $this->remainingResendWait();
+        if ($wait > 0) {
+            redirect(route_url('student.register.pending'));
+        }
+
+        try {
+            $request = $registrationModel->refreshVerificationToken($requestId);
+            if (!$this->sendRegistrationVerificationEmail($request)) {
+                throw new RuntimeException('Could not send the verification email. Please try again later.');
+            }
+            $this->markVerificationEmailSent();
+            flash('success', 'A new verification email was sent to ' . mask_email((string)$request['email']) . '.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+
+        redirect(route_url('student.register.pending'));
+    }
+
+    private function continueUnverifiedStudentRegistration(
+        string $identifier,
+        string $password,
+        ?string $portalRole,
+        string $loginIp
+    ): void {
+        if ($portalRole !== 'student' || $identifier === '' || $password === '') {
+            return;
+        }
+
+        $registrationModel = new StudentRegistrationRequest($this->db);
+        $request = $registrationModel->findUnverifiedForLogin($identifier);
+        if (!$request || !password_verify($password, (string)($request['password_hash'] ?? ''))) {
+            return;
+        }
+
+        $this->recordLoginAttempt($loginIp, true);
+
+        $emailJustSent = false;
+        if ($registrationModel->isVerificationExpired($request) || empty($request['verification_token'])) {
+            try {
+                $request = $registrationModel->refreshVerificationToken((int)$request['id']);
+                if ($this->sendRegistrationVerificationEmail($request)) {
+                    $emailJustSent = true;
+                } else {
+                    flash('error', 'Could not send a new verification email. Use Resend on the next page.');
+                }
+            } catch (Throwable $e) {
+                flash('error', $e->getMessage());
+            }
+        }
+
+        $this->startUnverifiedRegistrationSession((int)$request['id'], $emailJustSent);
+        redirect(route_url('student.register.pending'));
+    }
+
+    private function startUnverifiedRegistrationSession(int $requestId, bool $emailJustSent = false): void
+    {
+        session_regenerate_id(true);
+        $_SESSION['unverified_registration_id'] = $requestId;
+        unset($_SESSION['user'], $_SESSION['user_id'], $_SESSION['role']);
+        if ($emailJustSent) {
+            $this->markVerificationEmailSent();
+        }
+    }
+
+    private function markVerificationEmailSent(): void
+    {
+        $_SESSION['unverified_resend_at'] = time();
+    }
+
+    private function remainingResendWait(): int
+    {
+        $last = (int)($_SESSION['unverified_resend_at'] ?? 0);
+        if ($last <= 0) {
+            return 0;
+        }
+        return max(0, self::RESEND_COOLDOWN_SECONDS - (time() - $last));
+    }
+
+    private function establishStudentSession(int $userId): void
+    {
+        $user = (new User($this->db))->find($userId);
+        if (!$user || ($user['role'] ?? '') !== 'student') {
+            throw new RuntimeException('Unable to sign you in after verification.');
+        }
+
+        unset($_SESSION['unverified_registration_id'], $_SESSION['unverified_resend_at']);
+        session_regenerate_id(true);
+        (new User($this->db))->recordLogin($userId);
+
+        $_SESSION['user'] = [
+            'id' => (int)$user['id'],
+            'name' => $user['name'],
+            'email' => $user['email'],
+            'role' => $user['role'],
+            'password_changed' => (int)($user['password_changed'] ?? 1),
+        ];
+        $_SESSION['user_id'] = (int)$user['id'];
+        $_SESSION['role'] = 'student';
+    }
+
+    private function sendRegistrationVerificationEmail(array $request): bool
+    {
+        $token = trim((string)($request['verification_token'] ?? ''));
+        $email = strtolower(trim((string)($request['email'] ?? '')));
+        if ($token === '' || $email === '') {
+            return false;
+        }
+
+        return (new Email($this->db))->send(
+            $email,
+            'Verify your AMA OJT student registration',
+            'registration_verify',
+            'registration_verify',
+            [
+                'firstName' => (string)($request['first_name'] ?? 'Student'),
+                'verifyUrl' => absolute_route_url('student.register.verify', ['token' => $token]),
+                'expiresHours' => StudentRegistrationRequest::VERIFICATION_HOURS,
+            ],
+            [],
+            'registration'
+        );
+    }
+
+    private function renderVerificationPendingView(array $request): void
+    {
+        $verificationPending = true;
+        $verificationEmail = (string)($request['email'] ?? '');
+        $verificationEmailMasked = mask_email($verificationEmail);
+        $verificationFirstName = (string)($request['first_name'] ?? '');
+        $resendWaitSeconds = $this->remainingResendWait();
+        $resendCooldownSeconds = self::RESEND_COOLDOWN_SECONDS;
+        $submitted = false;
+        $verified = false;
+        $verifiedAlready = false;
+        $programs = [];
+        require __DIR__ . '/../views/shared/register.php';
+    }
 
     public function checkRegistrationEmail(): void
 

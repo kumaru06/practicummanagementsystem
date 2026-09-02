@@ -13,5 +13,7 @@ match ($action) {
     'check_email' => $controller->checkRegistrationEmail(),
     'check_student_no' => $controller->checkRegistrationStudentNo(),
     'verify' => $controller->verifyRegistrationEmail(),
+    'pending_verification' => $controller->showPendingVerification(),
+    'resend' => $controller->resendRegistrationVerification(),
     default => $controller->registerStudent(),
 };

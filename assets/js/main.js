@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initRegistrationBackLink();
     initRegistrationSuccessCountdown();
     initRegisterSubmitAnimation();
+    initVerifyResendForm();
     initCoordinatorAvailability();
     initCoordinatorDirectory();
     initPartnerAvailability();
@@ -4389,6 +4390,56 @@ function initRegistrationSuccessCountdown() {
     window.setTimeout(tick, 900);
 }
 
+function initVerifyResendForm() {
+    const form = document.querySelector('[data-verify-resend]');
+    if (!form || form.dataset.verifyResendBound === '1') return;
+    form.dataset.verifyResendBound = '1';
+
+    const btn = form.querySelector('button[type="submit"]');
+    const timerEl = form.querySelector('[data-resend-timer]');
+    const cooldownEl = form.querySelector('[data-resend-cooldown]');
+    const barEl = form.querySelector('[data-resend-bar]');
+    const total = Math.max(1, parseInt(form.dataset.resendTotal || '60', 10) || 60);
+    let remaining = Math.max(0, parseInt(form.dataset.resendWait || '0', 10) || 0);
+
+    const formatWait = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = String(seconds % 60).padStart(2, '0');
+        return `${mins}:${secs}`;
+    };
+
+    const applyWait = () => {
+        const cooling = remaining > 0;
+        form.classList.toggle('is-cooling', cooling);
+        if (btn) btn.disabled = cooling;
+        if (timerEl) timerEl.textContent = formatWait(remaining);
+        if (barEl) {
+            barEl.style.setProperty('--left', String(remaining));
+            barEl.style.setProperty('--total', String(total));
+        }
+        if (cooldownEl) cooldownEl.hidden = !cooling;
+    };
+
+    applyWait();
+    if (remaining > 0) {
+        const tick = window.setInterval(() => {
+            remaining = Math.max(0, remaining - 1);
+            applyWait();
+            if (remaining <= 0) window.clearInterval(tick);
+        }, 1000);
+    }
+
+    form.addEventListener('submit', (event) => {
+        if (remaining > 0) {
+            event.preventDefault();
+            return;
+        }
+        if (!btn) return;
+        btn.disabled = true;
+        btn.textContent = 'Sending…';
+    });
+}
+
 function initRegisterSubmitAnimation() {
     const form = document.getElementById('studentRegisterForm');
     if (!form || form.dataset.registerSubmitBound === '1') return;
@@ -4446,6 +4497,7 @@ function initRegisterSubmitAnimation() {
 
         initRegistrationSuccessCountdown();
         initRegistrationBackLink();
+        initVerifyResendForm();
         return true;
     };
 
@@ -4482,8 +4534,8 @@ function initRegisterSubmitAnimation() {
 
             const doc = new DOMParser().parseFromString(html, 'text/html');
             const success = doc.querySelector('[data-register-success]');
-            if (success && response.ok) {
-                mountSuccessPanel(success, response.url || 'register.php?submitted=1');
+        if (success && response.ok) {
+                mountSuccessPanel(success, response.url || 'register.php?action=pending_verification');
                 return;
             }
 

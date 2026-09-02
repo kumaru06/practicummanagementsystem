@@ -1,6 +1,5 @@
 <?php
 $pendingCount = count($requests ?? []);
-$incompleteCount = count($incompleteRequests ?? []);
 ?>
 <div class="reg-req-v2">
     <nav class="reg-req-breadcrumb" aria-label="Breadcrumb">
@@ -110,81 +109,6 @@ $incompleteCount = count($incompleteRequests ?? []);
                                             Review
                                         </button>
                                     </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php endif; ?>
-    </section>
-
-    <section class="card reg-req-incomplete-card">
-        <div class="reg-req-card-head">
-            <div class="reg-req-card-copy">
-                <span class="reg-req-eyebrow">Cleanup</span>
-                <h2>Expired Registration</h2>
-            </div>
-            <?php if ($incompleteCount > 0): ?>
-                <div class="reg-req-pending-badge reg-req-pending-badge--muted" aria-live="polite">
-                    <strong><?= $incompleteCount ?></strong>
-                    <span>Expired</span>
-                </div>
-            <?php endif; ?>
-        </div>
-
-        <?php if ($incompleteCount === 0): ?>
-            <div class="reg-req-empty reg-req-empty--compact">
-                <p class="reg-req-empty-title">No expired registrations</p>
-                <p class="reg-req-empty-sub">Expired verifications and orphaned records will appear here.</p>
-            </div>
-        <?php else: ?>
-            <div class="table-wrap reg-req-table-wrap">
-                <table class="data-table reg-req-table reg-req-incomplete-table no-row-details" data-no-tools data-no-enhance>
-                    <thead>
-                        <tr>
-                            <th data-sort class="reg-req-col-student">Student</th>
-                            <th data-sort>Status</th>
-                            <th data-sort class="reg-req-col-submitted">Submitted</th>
-                            <th class="reg-req-col-action">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($incompleteRequests as $request): ?>
-                            <?php
-                            $submittedAt = date('M d, Y g:i A', strtotime((string)$request['created_at']));
-                            $firstName = trim((string)($request['first_name'] ?? ''));
-                            $lastName = trim((string)($request['last_name'] ?? ''));
-                            $fullName = trim($lastName . ', ' . $firstName);
-                            $initials = strtoupper(substr($firstName !== '' ? $firstName : 'S', 0, 1) . substr($lastName !== '' ? $lastName : 'T', 0, 1));
-                            $reqStatus = (string)($request['status'] ?? '');
-                            if ($reqStatus === 'pending_verification') {
-                                $statusLabel = 'Verification expired';
-                                $statusClass = 'is-unverified';
-                            } else {
-                                $statusLabel = 'Orphaned request';
-                                $statusClass = 'is-orphaned';
-                            }
-                            ?>
-                            <tr class="reg-req-row reg-req-row--incomplete">
-                                <td class="reg-req-student reg-req-col-student">
-                                    <div class="reg-req-name-cell">
-                                        <span class="reg-req-avatar reg-req-avatar--muted" aria-hidden="true"><?= e($initials) ?></span>
-                                        <strong class="reg-req-name"><?= e($fullName) ?></strong>
-                                    </div>
-                                </td>
-                                <td><span class="reg-req-status-badge <?= e($statusClass) ?>"><?= e($statusLabel) ?></span></td>
-                                <td class="reg-req-submitted"><?= e($submittedAt) ?></td>
-                                <td class="reg-req-col-action">
-                                    <form method="post" class="reg-req-delete-form" data-reg-incomplete-delete>
-                                        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                        <input type="hidden" name="action" value="admin_delete_registration_request">
-                                        <input type="hidden" name="request_id" value="<?= (int)$request['id'] ?>">
-                                        <button class="reg-req-delete-btn" type="submit">
-                                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12l-1 14H7L6 7Zm3-3h6l1 2H8l1-2Z"/></svg>
-                                            Delete
-                                        </button>
-                                    </form>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

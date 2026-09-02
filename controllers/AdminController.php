@@ -1374,7 +1374,6 @@ class AdminController extends BaseController
         $this->renderAppPage('admin/registration_requests', [
             'title' => 'Student Account Requests',
             'requests' => $model->allPendingApproval(),
-            'incompleteRequests' => $model->allIncomplete(),
             'coordinators' => (new User($this->db))->byRole('coordinator'),
         ]);
     }

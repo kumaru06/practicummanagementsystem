@@ -68,7 +68,8 @@ class StudentRegistrationRequest
             'program_id' => 'INT NULL AFTER student_no',
             'year_level' => "VARCHAR(40) NULL AFTER program_id",
             'verification_token' => 'VARCHAR(64) NULL AFTER cor_file',
-            'verification_expires_at' => 'DATETIME NULL AFTER verification_token',
+            'previous_verification_token' => 'VARCHAR(64) NULL AFTER verification_token',
+            'verification_expires_at' => 'DATETIME NULL AFTER previous_verification_token',
             'email_verified_at' => 'DATETIME NULL AFTER verification_expires_at',
             'user_id' => 'INT NULL AFTER email_verified_at',
         ];
@@ -80,18 +81,73 @@ class StudentRegistrationRequest
         }
     }
 
-    public function purgeExpiredUnverified(): void
+    public function purgeExpiredUnverified(?int $exceptId = null): void
     {
         $this->ensureTable();
-        $stmt = $this->db->query(
-            "SELECT * FROM student_registration_requests
+        $sql = "SELECT * FROM student_registration_requests
              WHERE status = 'pending_verification'
                AND verification_expires_at IS NOT NULL
-               AND verification_expires_at < NOW()"
-        );
+               AND verification_expires_at < NOW()";
+        $params = [];
+        if ($exceptId !== null && $exceptId > 0) {
+            $sql .= ' AND id <> ?';
+            $params[] = $exceptId;
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
         foreach ($stmt->fetchAll() as $row) {
             $this->deleteRequestData($row);
         }
+    }
+
+    public function findUnverifiedForLogin(string $identifier): ?array
+    {
+        $this->ensureTable();
+        $identifier = trim($identifier);
+        if ($identifier === '') {
+            return null;
+        }
+        $stmt = $this->db->prepare(
+            "SELECT * FROM student_registration_requests
+             WHERE status = 'pending_verification'
+               AND (email = ? OR student_no = ?)
+             ORDER BY id DESC
+             LIMIT 1"
+        );
+        $stmt->execute([strtolower($identifier), $identifier]);
+        return $stmt->fetch() ?: null;
+    }
+
+    public function refreshVerificationToken(int $id): array
+    {
+        $this->ensureTable();
+        $request = $this->find($id);
+        if (!$request || ($request['status'] ?? '') !== 'pending_verification') {
+            throw new RuntimeException('This registration can no longer be verified.');
+        }
+        $previousToken = trim((string)($request['verification_token'] ?? ''));
+        $token = bin2hex(random_bytes(32));
+        $expiresAt = date('Y-m-d H:i:s', time() + (self::VERIFICATION_HOURS * 3600));
+        $stmt = $this->db->prepare(
+            "UPDATE student_registration_requests
+             SET previous_verification_token = ?, verification_token = ?, verification_expires_at = ?
+             WHERE id = ? AND status = 'pending_verification'"
+        );
+        $stmt->execute([$previousToken !== '' ? $previousToken : null, $token, $expiresAt, $id]);
+        if ($stmt->rowCount() === 0) {
+            throw new RuntimeException('Unable to refresh this verification link. Please try again.');
+        }
+        $request['verification_token'] = $token;
+        $request['verification_expires_at'] = $expiresAt;
+        return $request;
+    }
+
+    public function isVerificationExpired(array $request): bool
+    {
+        if (empty($request['verification_expires_at'])) {
+            return true;
+        }
+        return strtotime((string)$request['verification_expires_at']) < time();
     }
 
     public function emailTaken(string $email): bool
@@ -220,6 +276,20 @@ class StudentRegistrationRequest
         return $stmt->fetch() ?: null;
     }
 
+    public function findByPreviousVerificationToken(string $token): ?array
+    {
+        $this->ensureTable();
+        $token = trim($token);
+        if ($token === '') {
+            return null;
+        }
+        $stmt = $this->db->prepare(
+            'SELECT * FROM student_registration_requests WHERE previous_verification_token = ? LIMIT 1'
+        );
+        $stmt->execute([$token]);
+        return $stmt->fetch() ?: null;
+    }
+
     public function completeEmailVerification(int $id): int
     {
         $this->ensureTable();
@@ -263,6 +333,7 @@ class StudentRegistrationRequest
                      user_id = ?,
                      email_verified_at = NOW(),
                      verification_token = NULL,
+                     previous_verification_token = NULL,
                      verification_expires_at = NULL
                  WHERE id = ? AND status = 'pending_verification'"
             );

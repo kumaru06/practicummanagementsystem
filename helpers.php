@@ -4,6 +4,19 @@ function e(?string $value): string
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+function mask_email(string $email): string
+{
+    $email = strtolower(trim($email));
+    $at = strrpos($email, '@');
+    if ($at === false || $at === 0) {
+        return $email;
+    }
+    $local = substr($email, 0, $at);
+    $domain = substr($email, $at);
+    $keep = min(2, strlen($local));
+    return substr($local, 0, $keep) . str_repeat('*', max(1, strlen($local) - $keep)) . $domain;
+}
+
 function client_ip(): string
 {
     $candidates = [
@@ -174,6 +187,8 @@ function route_url(string $route, array $params = []): string
         'admin.password_reset_requests' => 'index.php?r=admin_password_reset_requests',
         'student.register' => 'register.php',
         'student.register.verify' => 'register.php',
+        'student.register.pending' => 'register.php?action=pending_verification',
+        'student.register.resend' => 'register.php?action=resend',
         'student.pending' => 'index.php?r=student_pending',
         'admin.coordinators' => 'index.php?r=admin_coordinators',
         'admin.partners' => 'index.php?r=admin_partners',

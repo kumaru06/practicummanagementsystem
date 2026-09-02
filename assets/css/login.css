@@ -2432,6 +2432,7 @@
 }
 
 .student-pending-page {
+    --login-radius: 5px;
     --pending-blue: #0a3d8f;
     --pending-blue-dark: #072d6b;
     --pending-text: #0f172a;
@@ -2446,6 +2447,7 @@
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     color: var(--pending-text);
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
 }
 
 .student-pending-bg {
@@ -2461,15 +2463,49 @@
     height: 100%;
     object-fit: cover;
     object-position: center;
-    transform: scale(1.04);
+    transform: scale(1.06);
+    filter: saturate(1.08);
+    animation: pending-bg-ken 22s ease-in-out infinite alternate;
 }
 
 .student-pending-bg-overlay {
     position: absolute;
     inset: 0;
     background:
-        linear-gradient(135deg, rgba(7, 45, 107, 0.92) 0%, rgba(10, 61, 143, 0.8) 50%, rgba(7, 45, 107, 0.9) 100%),
-        radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.07), transparent 36%);
+        linear-gradient(145deg, rgba(4, 28, 69, 0.94) 0%, rgba(10, 61, 143, 0.78) 46%, rgba(7, 45, 107, 0.9) 100%),
+        radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.08), transparent 34%),
+        radial-gradient(circle at 82% 86%, rgba(22, 163, 74, 0.16), transparent 42%);
+}
+
+.student-pending-page.is-just-verified .student-pending-bg-overlay {
+    background:
+        linear-gradient(145deg, rgba(4, 28, 69, 0.92) 0%, rgba(10, 61, 143, 0.72) 42%, rgba(6, 78, 59, 0.55) 100%),
+        radial-gradient(circle at 50% 28%, rgba(74, 222, 128, 0.22), transparent 42%);
+}
+
+.student-pending-bg-glow {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.42;
+    animation: pending-glow-drift 16s ease-in-out infinite alternate;
+}
+
+.student-pending-bg-glow--one {
+    width: 420px;
+    height: 420px;
+    top: -140px;
+    right: -90px;
+    background: rgba(26, 86, 184, 0.55);
+}
+
+.student-pending-bg-glow--two {
+    width: 340px;
+    height: 340px;
+    bottom: -110px;
+    left: -70px;
+    background: rgba(22, 163, 74, 0.28);
+    animation-delay: -7s;
 }
 
 .student-pending-shell {
@@ -2485,86 +2521,141 @@
 
 .student-pending-card {
     width: min(100%, 460px);
-    padding: 32px 28px 28px;
+    padding: 0;
     border-radius: var(--login-radius);
-    border: 1px solid rgba(255, 255, 255, 0.72);
-    background: #fff;
-    box-shadow: 0 24px 64px rgba(7, 45, 107, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.9) inset,
+        0 28px 80px rgba(4, 28, 69, 0.34);
     text-align: center;
+    animation: pending-card-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+    overflow: hidden;
+}
+
+.student-pending-card.has-celebrate {
+    display: grid;
+}
+
+.student-pending-card.has-celebrate > * {
+    grid-area: 1 / 1;
 }
 
 .student-pending-logo {
-    width: 64px;
+    width: 58px;
     height: auto;
-    margin: 0 auto 16px;
+    margin: 0 auto 14px;
     display: block;
 }
 
 .student-pending-pill {
     display: inline-flex;
     align-items: center;
+    gap: 8px;
     min-height: 28px;
     padding: 0 12px;
-    margin-bottom: 14px;
-    border-radius: var(--login-radius);
+    margin-bottom: 16px;
+    border-radius: 999px;
     background: #fffbeb;
     border: 1px solid #fde68a;
     color: var(--pending-amber);
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 800;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 
-.student-pending-card h1 {
+.student-pending-pill-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--pending-amber);
+    box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.45);
+    animation: pending-pill-pulse 1.8s ease-out infinite;
+}
+
+.student-pending-hello {
+    margin: 0 0 4px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--pending-blue);
+}
+
+.pending-status h1,
+.student-pending-card > h1 {
     margin: 0 0 8px;
-    font-size: clamp(1.35rem, 3vw, 1.55rem);
+    font-size: clamp(1.32rem, 3vw, 1.55rem);
     font-weight: 800;
     color: var(--pending-text);
-    letter-spacing: -0.03em;
+    letter-spacing: -0.035em;
     line-height: 1.2;
 }
 
 .student-pending-lead {
     margin: 0 0 22px;
-    font-size: 0.95rem;
+    font-size: 0.94rem;
     font-weight: 600;
-    color: #334155;
+    color: #475569;
     line-height: 1.5;
 }
 
+.pending-status {
+    padding: 32px 28px 26px;
+}
+
+.student-pending-card.has-celebrate .pending-status {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.student-pending-card.has-celebrate .pending-status.is-in {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    animation: pending-fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pending-status.is-in .student-pending-step {
+    animation: pending-step-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pending-status.is-in .student-pending-step:nth-child(1) { animation-delay: 0.08s; }
+.pending-status.is-in .student-pending-step:nth-child(2) { animation-delay: 0.18s; }
+.pending-status.is-in .student-pending-step:nth-child(3) { animation-delay: 0.28s; }
+
 .student-pending-steps {
     list-style: none;
-    margin: 0 0 20px;
-    padding: 0;
+    margin: 0 0 18px;
+    padding: 8px;
     display: grid;
-    gap: 0;
+    gap: 6px;
     text-align: left;
     border: 1px solid var(--pending-border);
-    border-radius: var(--login-radius);
-    overflow: hidden;
-    background: #fafbfc;
+    border-radius: 12px;
+    background: #f8fafc;
 }
 
 .student-pending-step {
+    position: relative;
     display: grid;
-    grid-template-columns: 36px minmax(0, 1fr);
+    grid-template-columns: 40px minmax(0, 1fr);
     gap: 12px;
-    align-items: start;
-    padding: 14px 16px;
+    align-items: center;
+    padding: 12px 12px;
+    border-radius: 9px;
     background: #fff;
-}
-
-.student-pending-step + .student-pending-step {
-    border-top: 1px solid var(--pending-border);
+    border: 1px solid transparent;
 }
 
 .student-pending-step-icon {
     display: grid;
     place-items: center;
-    width: 36px;
-    height: 36px;
-    border-radius: var(--login-radius);
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
     background: #f1f5f9;
     color: #94a3b8;
 }
@@ -2577,24 +2668,30 @@
 .student-pending-step-copy {
     display: grid;
     gap: 2px;
-    padding-top: 2px;
 }
 
 .student-pending-step-copy strong {
-    font-size: 0.88rem;
-    font-weight: 700;
+    font-size: 0.9rem;
+    font-weight: 800;
     color: #334155;
     line-height: 1.3;
+    letter-spacing: -0.02em;
 }
 
 .student-pending-step-copy span {
     font-size: 0.8rem;
     color: var(--pending-muted);
     line-height: 1.4;
+    font-weight: 500;
+}
+
+.student-pending-step.is-done {
+    background: linear-gradient(180deg, #f0fdf4 0%, #fff 70%);
+    border-color: #bbf7d0;
 }
 
 .student-pending-step.is-done .student-pending-step-icon {
-    background: #ecfdf5;
+    background: #dcfce7;
     color: var(--pending-green);
 }
 
@@ -2603,56 +2700,26 @@
 }
 
 .student-pending-step.is-current {
-    background: #fffbeb;
+    background: linear-gradient(180deg, #fffbeb 0%, #fff 78%);
+    border-color: #fde68a;
 }
 
 .student-pending-step.is-current .student-pending-step-icon {
     background: #fef3c7;
     color: var(--pending-amber);
+    animation: pending-current-glow 2s ease-in-out infinite;
 }
 
 .student-pending-step.is-current .student-pending-step-copy strong {
     color: #92400e;
 }
 
-.student-pending-alert {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    margin: 0 0 16px;
-    padding: 14px 16px;
-    border-radius: var(--login-radius);
-    border: 1px solid #bbf7d0;
-    background: #f0fdf4;
-    text-align: left;
-}
-
-.student-pending-alert-icon {
-    flex-shrink: 0;
-    width: 22px;
-    height: 22px;
-    color: var(--pending-green);
-}
-
-.student-pending-alert-icon svg {
-    display: block;
-    width: 100%;
-    height: 100%;
-}
-
-.student-pending-alert p {
-    margin: 0;
-    color: #166534;
-    font-size: 0.86rem;
-    font-weight: 600;
-    line-height: 1.5;
-}
-
 .student-pending-note {
-    margin: 0 0 20px;
+    margin: 0 0 18px;
     color: var(--pending-muted);
     font-size: 0.84rem;
     line-height: 1.55;
+    font-weight: 500;
 }
 
 .student-pending-logout {
@@ -2669,28 +2736,325 @@
     font-size: 0.9rem;
     font-weight: 700;
     text-decoration: none;
-    transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+    transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
 }
 
 .student-pending-logout:hover {
     background: #f8fafc;
     border-color: #cbd5e1;
     color: #1e293b;
+    transform: translateY(-1px);
+}
+
+.pending-celebrate {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    justify-items: center;
+    gap: 18px;
+    padding: 42px 28px 32px;
+    background:
+        radial-gradient(circle at 50% 18%, rgba(74, 222, 128, 0.16), transparent 46%),
+        #fff;
+}
+
+.pending-celebrate.is-leaving {
+    animation: pending-celebrate-out 0.4s ease both;
+    pointer-events: none;
+}
+
+.pending-celebrate[hidden] {
+    display: none !important;
+}
+
+.pending-celebrate-burst {
+    position: relative;
+    width: 112px;
+    height: 112px;
+    display: grid;
+    place-items: center;
+}
+
+.pending-celebrate-ring {
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    border: 2px solid rgba(34, 197, 94, 0.28);
+    opacity: 0;
+}
+
+.pending-celebrate.is-revealed .pending-celebrate-ring {
+    animation: pending-ring-burst 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.42s both;
+}
+
+.pending-celebrate.is-revealed .pending-celebrate-ring--two {
+    animation-delay: 0.62s;
+    border-color: rgba(10, 61, 143, 0.2);
+}
+
+.pending-celebrate-mark {
+    position: relative;
+    z-index: 1;
+    width: 96px;
+    height: 96px;
+    filter: drop-shadow(0 12px 24px rgba(22, 163, 74, 0.28));
+    opacity: 0;
+    transform: scale(0.82);
+}
+
+.pending-celebrate.is-revealed .pending-celebrate-mark {
+    animation: pending-mark-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pending-celebrate-svg {
+    width: 96px;
+    height: 96px;
+    display: block;
+    overflow: visible;
+}
+
+.pending-celebrate-track {
+    stroke: rgba(15, 23, 42, 0.08);
+    stroke-width: 2.4;
+    fill: none;
+}
+
+.pending-celebrate-circle {
+    stroke: #22c55e;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    fill: none;
+    stroke-dasharray: 138.2;
+    stroke-dashoffset: 138.2;
+    transform-origin: 26px 26px;
+    transform: rotate(-90deg);
+}
+
+.pending-celebrate.is-revealed .pending-celebrate-circle {
+    animation: pending-circle-draw 0.58s cubic-bezier(0.4, 0, 0.2, 1) 0.1s forwards;
+}
+
+.pending-celebrate-check {
+    stroke: #16a34a;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+    stroke-dasharray: 36;
+    stroke-dashoffset: 36;
+}
+
+.pending-celebrate.is-revealed .pending-celebrate-check {
+    animation: pending-check-draw 0.42s cubic-bezier(0.4, 0, 0.2, 1) 0.52s forwards;
+}
+
+.pending-confetti {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 8px;
+    height: 14px;
+    margin: -7px 0 0 -4px;
+    border-radius: 2px;
+    background: var(--c, #22c55e);
+    transform: rotate(var(--r, 0deg)) scale(0);
+    opacity: 0;
+}
+
+.pending-celebrate.is-revealed .pending-confetti {
+    animation: pending-confetti-burst 0.95s cubic-bezier(0.22, 1, 0.36, 1) calc(0.38s + var(--i) * 0.018s) both;
+}
+
+.pending-celebrate-copy {
+    display: grid;
+    gap: 8px;
+    max-width: 34ch;
+    opacity: 0;
+    transform: translateY(12px);
+}
+
+.pending-celebrate.is-revealed .pending-celebrate-copy {
+    animation: pending-fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.72s both;
+}
+
+.pending-celebrate-eyebrow {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #15803d;
+}
+
+.pending-celebrate-copy h1 {
+    margin: 0;
+    font-size: clamp(1.55rem, 4vw, 1.85rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.15;
+    background: linear-gradient(180deg, #052e16 0%, #166534 55%, #0a3d8f 140%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+
+.pending-celebrate-copy p {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--pending-muted);
+    font-weight: 500;
+}
+
+.pending-celebrate-continue {
+    appearance: none;
+    width: min(100%, 280px);
+    min-height: 48px;
+    margin-top: 4px;
+    border: 0;
+    border-radius: var(--login-radius);
+    background: linear-gradient(180deg, #1a56b8 0%, var(--pending-blue) 100%);
+    color: #fff;
+    font: inherit;
+    font-size: 0.92rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    box-shadow: 0 10px 22px rgba(10, 61, 143, 0.28);
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+.pending-celebrate.is-revealed .pending-celebrate-continue {
+    animation: pending-fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) 1.05s both;
+}
+
+.pending-celebrate-continue:hover {
+    filter: brightness(1.06);
+}
+
+.pending-celebrate-continue:focus-visible {
+    outline: 2px solid #22c55e;
+    outline-offset: 3px;
+}
+
+@keyframes pending-bg-ken {
+    from { transform: scale(1.04); }
+    to { transform: scale(1.1); }
+}
+
+@keyframes pending-glow-drift {
+    from { transform: translate(0, 0) scale(1); }
+    to { transform: translate(22px, -16px) scale(1.08); }
+}
+
+@keyframes pending-card-in {
+    from { opacity: 0; transform: translateY(18px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pending-pill-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.5); }
+    80%, 100% { box-shadow: 0 0 0 8px rgba(217, 119, 6, 0); }
+}
+
+@keyframes pending-current-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.28); }
+    50% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+}
+
+@keyframes pending-step-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pending-mark-in {
+    from { opacity: 0; transform: scale(0.72); }
+    70% { transform: scale(1.08); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pending-circle-draw {
+    to { stroke-dashoffset: 0; }
+}
+
+@keyframes pending-check-draw {
+    to { stroke-dashoffset: 0; }
+}
+
+@keyframes pending-ring-burst {
+    from { opacity: 0.7; transform: scale(0.7); }
+    to { opacity: 0; transform: scale(1.55); }
+}
+
+@keyframes pending-confetti-burst {
+    0% { opacity: 0; transform: translate(0, 0) rotate(var(--r, 0deg)) scale(0.2); }
+    18% { opacity: 1; }
+    100% { opacity: 0; transform: translate(var(--x), var(--y)) rotate(calc(var(--r) + 48deg)) scale(1); }
+}
+
+@keyframes pending-fade-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pending-celebrate-out {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(0.97); }
 }
 
 @media (max-width: 420px) {
-    .student-pending-card {
+    .pending-status,
+    .pending-celebrate {
         padding: 26px 20px 22px;
     }
 
     .student-pending-step {
-        padding: 12px 14px;
+        padding: 11px 10px;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .student-pending-bg-img,
+    .student-pending-bg-glow,
+    .student-pending-card,
+    .student-pending-pill-dot,
+    .student-pending-step.is-current .student-pending-step-icon,
+    .pending-celebrate-mark,
+    .pending-celebrate-ring,
+    .pending-confetti,
+    .pending-celebrate-copy,
+    .pending-celebrate-continue,
+    .pending-celebrate.is-leaving,
+    .pending-status.is-in .student-pending-step {
+        animation: none !important;
+    }
+
+    .pending-celebrate-mark,
+    .pending-celebrate-copy,
+    .pending-celebrate-continue,
+    .pending-confetti {
+        opacity: 1 !important;
+        transform: none !important;
+        filter: none;
+    }
+
+    .pending-celebrate-circle,
+    .pending-celebrate-check {
+        stroke-dashoffset: 0 !important;
+    }
+
+    .pending-confetti,
+    .pending-celebrate-ring {
+        display: none;
+    }
+
     .student-pending-logout {
         transition: none;
+    }
+
+    .student-pending-logout:hover {
+        transform: none;
     }
 }
 

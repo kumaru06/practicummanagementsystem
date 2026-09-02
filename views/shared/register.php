@@ -6,8 +6,8 @@
     <title>Student Registration - AMA Practicum System</title>
     <link rel="icon" type="image/jpeg" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600;1,700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260703-register">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/register.css')) ?>?v=20260826-reg-ios">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260902-verify-circle">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/register.css')) ?>?v=20260902-register-scroll">
 </head>
 <body class="register-page" data-app-base="<?= e(app_base_path()) ?>">
     <div class="register-bg" aria-hidden="true">
@@ -45,7 +45,11 @@
                     </div>
 
                     <ol class="register-steps" aria-label="Registration process">
-                        <li class="register-step is-active">
+                        <?php
+                        $verifyPending = !empty($verificationPending);
+                        $isVerifiedView = !empty($verified);
+                        ?>
+                        <li class="register-step<?= $verifyPending || $isVerifiedView ? ' is-done' : ' is-active' ?>">
                             <span class="register-step-num" aria-hidden="true">
                                 <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg>
                             </span>
@@ -54,13 +58,13 @@
                                 <span>Fill in your profile and upload COR</span>
                             </span>
                         </li>
-                        <li class="register-step">
+                        <li class="register-step<?= $isVerifiedView ? ' is-done' : ($verifyPending ? ' is-active' : '') ?>">
                             <span class="register-step-num" aria-hidden="true">
                                 <svg viewBox="0 0 24 24"><path d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"/></svg>
                             </span>
                             <span class="register-step-copy">
                                 <strong>Email verification</strong>
-                                <span>Confirm within 12 hours</span>
+                                <span>Confirm your email, or sign in to resend</span>
                             </span>
                         </li>
                         <li class="register-step">
@@ -69,7 +73,7 @@
                             </span>
                             <span class="register-step-copy">
                                 <strong>Admin approval</strong>
-                                <span>Sign in once approved</span>
+                                <span>Dashboard unlocks after approval</span>
                             </span>
                         </li>
                     </ol>
@@ -85,24 +89,77 @@
                 <div class="register-body">
                     <?php
                     $successMessage = flash('success');
-                    $isSuccess = !empty($submitted) || !empty($verified) || $successMessage;
-                    if ($isSuccess):
-                        $isVerifiedView = !empty($verified);
+                    $verifyPending = !empty($verificationPending);
+                    $isVerifiedView = !empty($verified);
+                    $isSuccess = !$verifyPending && (!empty($submitted) || $isVerifiedView || $successMessage);
+                    if ($verifyPending):
+                        $verifyError = flash('error');
+                        $resendWaitSeconds = (int)($resendWaitSeconds ?? 0);
+                        $resendCooldownSeconds = (int)($resendCooldownSeconds ?? 60);
+                    ?>
+                        <div
+                            class="register-success-panel register-success-panel--pending"
+                            data-register-success
+                            data-verify-pending
+                            data-redirect-url="<?= e(route_url('student.login')) ?>"
+                            data-countdown-seconds="0"
+                        >
+                            <div class="register-verify-mark" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"/>
+                                </svg>
+                            </div>
+                            <div class="register-success-copy">
+                                <span class="register-success-eyebrow">Account verification</span>
+                                <h2 class="register-success-heading">Verify your email</h2>
+                                <p class="register-success-text">We sent a verification link to</p>
+                                <p class="register-verify-chip"><?= e($verificationEmailMasked ?? mask_email((string)($verificationEmail ?? ''))) ?></p>
+                                <p class="register-success-text">Open the latest email to finish registration. Check spam if you do not see it. Your dashboard stays locked until an administrator approves your account.</p>
+                            </div>
+                            <?php if ($successMessage): ?>
+                                <p class="register-verify-flash register-verify-flash--ok" role="status"><?= e($successMessage) ?></p>
+                            <?php endif; ?>
+                            <?php if (!empty($verifyError)): ?>
+                                <p class="register-verify-flash register-verify-flash--err" role="alert"><?= e($verifyError) ?></p>
+                            <?php endif; ?>
+                            <form
+                                method="post"
+                                action="<?= e(route_url('student.register.resend')) ?>"
+                                class="register-resend-form<?= $resendWaitSeconds > 0 ? ' is-cooling' : '' ?>"
+                                data-verify-resend
+                                data-resend-wait="<?= $resendWaitSeconds ?>"
+                                data-resend-total="<?= $resendCooldownSeconds ?>"
+                            >
+                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                <button class="btn btn-primary register-success-btn" type="submit"<?= $resendWaitSeconds > 0 ? ' disabled' : '' ?>>
+                                    Resend verification email
+                                </button>
+                                <div class="register-verify-cooldown" data-resend-cooldown<?= $resendWaitSeconds > 0 ? '' : ' hidden' ?>>
+                                    <div class="register-verify-cooldown-bar" aria-hidden="true">
+                                        <span data-resend-bar style="--left: <?= $resendWaitSeconds ?>; --total: <?= $resendCooldownSeconds ?>;"></span>
+                                    </div>
+                                    <p class="register-verify-cooldown-copy">
+                                        You can resend in <strong data-resend-timer><?= sprintf('%d:%02d', intdiv($resendWaitSeconds, 60), $resendWaitSeconds % 60) ?></strong>
+                                    </p>
+                                </div>
+                            </form>
+                            <a class="register-verify-login" href="<?= e(route_url('student.login')) ?>" data-register-close-login data-login-url="<?= e(route_url('student.login')) ?>">Back to Student Login</a>
+                        </div>
+                    <?php elseif ($isSuccess):
                         $successHeading = $isVerifiedView
                             ? 'Email Verified'
                             : 'Check Your Email';
                         $successText = $successMessage ?: (
                             $isVerifiedView
                                 ? 'Your email address has been verified. You can sign in to the student portal while waiting for administrator approval.'
-                                : 'Your registration has been submitted. Please verify your email within 12 hours to activate your account. After verification, you can sign in while waiting for administrator approval.'
+                                : 'Your registration has been submitted. Please verify your email to continue. After verification, you can sign in while waiting for administrator approval.'
                         );
-                        $showCountdown = !$isVerifiedView;
                     ?>
                         <div
                             class="register-success-panel<?= $isVerifiedView ? ' register-success-panel--verified' : '' ?>"
                             data-register-success
                             data-redirect-url="<?= e(route_url('student.login')) ?>"
-                            data-countdown-seconds="<?= $showCountdown ? '10' : '0' ?>"
+                            data-countdown-seconds="0"
                         >
                             <div class="register-ios-status" aria-hidden="true">
                                 <svg class="register-ios-status-svg" viewBox="0 0 52 52" fill="none">
@@ -116,11 +173,6 @@
                                 <h2 class="register-success-heading"><?= e($successHeading) ?></h2>
                                 <p class="register-success-text"><?= e($successText) ?></p>
                             </div>
-                            <?php if ($showCountdown): ?>
-                            <p class="register-countdown" data-register-countdown aria-live="polite">
-                                Closing this page in <strong data-register-countdown-value>10</strong> seconds&hellip;
-                            </p>
-                            <?php endif; ?>
                             <a class="btn btn-primary register-success-btn" href="<?= e(route_url('student.login')) ?>" data-register-close-login data-login-url="<?= e(route_url('student.login')) ?>">Go to Student Login Now</a>
                         </div>
                     <?php else: ?>
@@ -312,6 +364,6 @@
             </div>
         </main>
     </div>
-<script src="<?= e(asset('assets/js/main.js')) ?>?v=20260826-reg-ios"></script>
+<script src="<?= e(asset('assets/js/main.js')) ?>?v=20260902-verify-ui"></script>
 </body>
 </html>

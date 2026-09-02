@@ -47,7 +47,8 @@
 /* Loading spinners must stay circular (global 5px cap squares them otherwise). */
 .spinner,
 [class*="-spinner"],
-.app-confirm-dots span {
+.app-confirm-dots span,
+.register-verify-mark {
     border-radius: 50% !important;
 }
 
@@ -32025,7 +32026,7 @@ button.ms-predeploy-badge--completed:hover {
 
 .reg-req-split {
     display: grid;
-    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 20px;
     align-items: stretch;
 }
