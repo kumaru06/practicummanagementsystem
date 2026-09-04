@@ -16,7 +16,7 @@ class ChatPageController extends BaseController
             $partnerGroups = $chat->getPartnerGroups();
         } catch (Throwable $e) {
             error_log('Chat page failed to load: ' . $e->getMessage());
-            flash('error', 'Live Chat could not load. Please import the chat migration SQL files in phpMyAdmin on InfinityFree.');
+            flash('error', 'Live Chat could not load. Please try again in a moment.');
             redirect('index.php?r=' . current_user()['role']);
         }
 
@@ -38,14 +38,21 @@ class ChatPageController extends BaseController
             $selectedPartnerRole = (string)$selectedPartner['role'];
         }
 
-        $initialMessages = [];
+        $initialPage = [
+            'messages' => [],
+            'has_more' => false,
+            'can_send' => false,
+            'send_block_reason' => '',
+        ];
         if ($selectedPartner) {
             try {
-                $initialMessages = $chat->getMessages($selectedPartnerId, $selectedPartnerRole);
+                $initialPage = $chat->getMessages($selectedPartnerId, $selectedPartnerRole);
             } catch (Throwable) {
-                $initialMessages = [];
             }
         }
+
+        $allPartners = $chat->getChatPartners();
+        $partnerGroups = $chat->getPartnerGroups();
 
         $this->renderAppPage('chat/interface', [
             'title' => 'Live Chat',
@@ -55,10 +62,14 @@ class ChatPageController extends BaseController
             'selectedPartner' => $selectedPartner,
             'selectedPartnerId' => $selectedPartnerId,
             'selectedPartnerRole' => $selectedPartnerRole,
-            'initialMessages' => $initialMessages,
+            'initialMessages' => $initialPage['messages'],
+            'initialHasMore' => !empty($initialPage['has_more']),
+            'canSend' => !empty($initialPage['can_send']),
+            'sendBlockReason' => (string)($initialPage['send_block_reason'] ?? ''),
+            'unreadTotal' => $chat->getUnreadTotal(),
             'chatEndpoint' => 'index.php?r=chat_api',
-            'chatJsPath' => asset('assets/js/chat.js') . '?v=20260617-chat-switch-fix',
             'csrfToken' => csrf_token(),
+            'topbarHint' => $chat->contactHint(),
         ]);
     }
 }

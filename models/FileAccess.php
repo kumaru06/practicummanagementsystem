@@ -4,11 +4,12 @@
  * Central authorization for serving uploaded files through serve.php.
  *
  * Access model (mirrors the controllers):
- *  - admin      : every uploaded file
- *  - student    : only files belonging to their own student record
- *  - coordinator: only files of students assigned to them (+ scoped MOA/MOU, own signature)
- *  - partner    : only files of students deployed to their company (+ own MOA/MOU)
- *  - profiles/  : any authenticated user (avatars are shown throughout the app)
+ *  - uploads/chat/ : only the two participants of that message (admin is not global here)
+ *  - admin         : every other uploaded file
+ *  - student       : only files belonging to their own student record
+ *  - coordinator   : only files of students assigned to them (+ scoped MOA/MOU, own signature)
+ *  - partner       : only files of students deployed to their company (+ own MOA/MOU)
+ *  - profiles/     : any authenticated user (avatars are shown throughout the app)
  * Anything not explicitly matched is denied.
  */
 class FileAccess
@@ -24,12 +25,20 @@ class FileAccess
             return false;
         }
 
-        // Admin can view every uploaded file.
+        $rel = str_replace('\\', '/', $relPath);
+        if (!str_starts_with($rel, 'uploads/')) {
+            $rel = 'uploads/' . ltrim($rel, '/');
+        }
+
+        // Chat images: participants of that message only (admin included only if in-thread).
+        if (str_starts_with($rel, 'uploads/chat/')) {
+            return self::userCanAccessChatFile(db(), $rel, $role, $uid);
+        }
+
+        // Admin can view every non-chat uploaded file.
         if ($role === 'admin') {
             return true;
         }
-
-        $rel = str_replace('\\', '/', $relPath);
 
         // Avatars/profile photos are rendered across the app for any signed-in user.
         if (str_starts_with($rel, 'uploads/profiles/')) {
@@ -68,6 +77,33 @@ class FileAccess
 
         // Default deny.
         return false;
+    }
+
+    private static function userCanAccessChatFile(PDO $db, string $rel, string $role, int $uid): bool
+    {
+        $row = null;
+        try {
+            $stmt = $db->prepare(
+                'SELECT m.sender_id, m.sender_role, m.receiver_id, m.receiver_role
+                 FROM chat_attachments ca
+                 JOIN messages m ON m.id = ca.message_id
+                 WHERE ca.file_path = ? OR ca.file_path = ?
+                 LIMIT 1'
+            );
+            $stmt->execute([$rel, ltrim(substr($rel, strlen('uploads/')), '/')]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        } catch (Throwable) {
+            return false;
+        }
+
+        if (!$row) {
+            return false;
+        }
+
+        $isSender = (int)$row['sender_id'] === $uid && (string)$row['sender_role'] === $role;
+        $isReceiver = (int)$row['receiver_id'] === $uid && (string)$row['receiver_role'] === $role;
+
+        return $isSender || $isReceiver;
     }
 
     private static function userCanAccessStudent(PDO $db, int $studentId, string $role, int $uid): bool

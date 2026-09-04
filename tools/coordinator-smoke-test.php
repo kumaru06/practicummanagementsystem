@@ -268,6 +268,22 @@ smoke_assert(str_contains($companySrc, 'findByUserWithPrograms'), 'Company findB
 
 $chatSrc = file_get_contents($root . '/controllers/ChatController.php') ?: '';
 smoke_assert(str_contains($chatSrc, 'dedupeChatPartners'), 'Chat contact deduplication exists');
+smoke_assert(str_contains($chatSrc, 'u.role IN ("coordinator", "partner")'), 'Admin chat contacts are coordinators and HTEs only');
+smoke_assert(!str_contains($chatSrc, 'u.role IN ("coordinator", "student", "partner")'), 'Admin chat no longer lists students');
+smoke_assert(substr_count($chatSrc, 'au.role = "admin"') >= 2, 'Coordinator and HTE chat lists include admin');
+smoke_assert(str_contains($chatSrc, 'function getUnreadBadges'), 'Chat unread badge refresh exists');
+smoke_assert(str_contains($chatSrc, 'function getUnreadTotal'), 'Chat unread total exists');
+smoke_assert(str_contains($chatSrc, 'function canSendTo'), 'Chat enrollment send ACL exists');
+smoke_assert(str_contains($chatSrc, 'hideLockedStudentHtes'), 'Students do not see HTE contacts before forwarded');
+smoke_assert(str_contains($chatSrc, 'HTE_LOOP_STATUSES'), 'Student-HTE send uses predeployment statuses');
+smoke_assert(str_contains($chatSrc, 'client_message_id'), 'Chat send is idempotent');
+smoke_assert(str_contains($chatSrc, 'function contactHint'), 'Chat role contact hint exists');
+
+$fileAccessSrc = file_get_contents($root . '/models/FileAccess.php') ?: '';
+smoke_assert(str_contains($fileAccessSrc, 'userCanAccessChatFile'), 'Chat uploads are participant-only');
+smoke_assert(is_file($root . '/assets/js/chat-live.js'), 'Live Chat client script exists');
+smoke_assert(is_file($root . '/uploads/chat/.htaccess'), 'Chat upload folder blocks script execution');
+smoke_assert(str_contains($headerSrc, 'data-chat-unread'), 'Live Chat nav has unread hook');
 
 smoke_assert(str_contains($studentSrcFile, "route_url('partner.student_evaluation'"), 'Student eval notifies HTE partner');
 smoke_assert(str_contains($studentSrcFile, "route_url('coordinator.student_final'"), 'Student eval coordinator link uses route_url');
