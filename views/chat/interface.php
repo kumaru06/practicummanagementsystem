@@ -36,6 +36,16 @@ $initialsFor = static function (string $name): string {
 
     return strtoupper(substr($name !== '' ? $name : 'C', 0, 2));
 };
+$chatAvatarHtml = static function (string $class, string $roleClass, string $initial, string $photoUrl, string $id = ''): string {
+    $roleClass = preg_replace('/[^a-z]/', '', strtolower($roleClass)) ?: 'user';
+    $idAttr = $id !== '' ? ' id="' . e($id) . '"' : '';
+    if ($photoUrl !== '') {
+        return '<span' . $idAttr . ' class="' . e($class) . ' ' . e($class) . '--photo is-' . e($roleClass) . '" aria-hidden="true"><img src="' . e($photoUrl) . '" alt=""></span>';
+    }
+
+    return '<span' . $idAttr . ' class="' . e($class) . ' is-' . e($roleClass) . '" aria-hidden="true">' . e($initial) . '</span>';
+};
+$chatEmptyIcon = '<svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M8 12h.01"/><path d="M12 12h.01"/><path d="M16 12h.01"/></svg>';
 ?>
 <div class="chat-app" id="chatApp"
      data-endpoint="<?= e($chatEndpoint) ?>"
@@ -44,6 +54,7 @@ $initialsFor = static function (string $name): string {
      data-user-role="<?= e($chat->currentRole()) ?>"
      data-partner-id="<?= (int)$selectedPartnerId ?>"
      data-partner-role="<?= e($selectedPartnerRole) ?>"
+     data-partner-photo="<?= e((string)($selectedPartner['photo_url'] ?? '')) ?>"
      data-can-send="<?= !empty($canSend) ? '1' : '0' ?>"
      data-has-more="<?= !empty($initialHasMore) ? '1' : '0' ?>"
      data-unread-total="<?= (int)($unreadTotal ?? 0) ?>">
@@ -80,7 +91,7 @@ $initialsFor = static function (string $name): string {
                 <?php if (!$partnerGroups): ?>
                     <div class="chat-empty-state">
                         <div class="chat-empty-state__icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16v10H7l-3 3V5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+                            <?= $chatEmptyIcon ?>
                         </div>
                         <p>No chat contacts available for your role yet.</p>
                     </div>
@@ -100,17 +111,20 @@ $initialsFor = static function (string $name): string {
                                 ? 'Photo'
                                 : (string)($partner['last_message'] ?? '');
                             $when = $formatWhen($partner['last_message_at'] ?? null);
+                            $photoUrl = (string)($partner['photo_url'] ?? '');
                             ?>
                             <button type="button"
                                     class="chat-partner<?= $isActive ? ' is-active' : '' ?><?= $unread > 0 ? ' has-unread' : '' ?>"
+                                    title="<?= e((string)$partner['name']) ?>"
                                     data-partner-id="<?= (int)$partner['user_id'] ?>"
                                     data-partner-role="<?= e((string)$partner['role']) ?>"
                                     data-partner-name="<?= e((string)$partner['name']) ?>"
                                     data-partner-email="<?= e((string)$partner['email']) ?>"
                                     data-partner-subtitle="<?= e((string)($partner['subtitle'] ?? '')) ?>"
+                                    data-partner-photo="<?= e($photoUrl) ?>"
                                     data-can-send="<?= !empty($partner['can_send']) ? '1' : '0' ?>"
                                     data-send-block="<?= e((string)($partner['send_block_reason'] ?? '')) ?>">
-                                <span class="chat-partner__avatar is-<?= e($avatarRole) ?>" aria-hidden="true"><?= e($initial) ?></span>
+                                <?= $chatAvatarHtml('chat-partner__avatar', $avatarRole, $initial, $photoUrl) ?>
                                 <span class="chat-partner__copy">
                                     <span class="chat-partner__row">
                                         <strong><?= e((string)$partner['name']) ?></strong>
@@ -135,6 +149,7 @@ $initialsFor = static function (string $name): string {
                 $activeSubtitle = (string)($selectedPartner['subtitle'] ?? $roleLabelFor($activeRole));
                 $activeInitial = $initialsFor((string)$selectedPartner['name']);
                 $activeAvatarRole = preg_replace('/[^a-z]/', '', strtolower($activeRole)) ?: 'user';
+                $activePhotoUrl = (string)($selectedPartner['photo_url'] ?? '');
                 ?>
                 <header class="chat-window__head">
                     <button type="button" class="chat-window__back" id="chatBackBtn" aria-label="Back to contacts">
@@ -142,7 +157,7 @@ $initialsFor = static function (string $name): string {
                     </button>
                     <div class="chat-window__partner">
                         <span class="chat-window__avatar-wrap">
-                            <span class="chat-window__avatar is-<?= e($activeAvatarRole) ?>" id="chatActiveAvatar"><?= e($activeInitial) ?></span>
+                            <?= $chatAvatarHtml('chat-window__avatar', $activeAvatarRole, $activeInitial, $activePhotoUrl, 'chatActiveAvatar') ?>
                         </span>
                         <div class="chat-window__partner-copy">
                             <strong id="chatActiveName"><?= e((string)$selectedPartner['name']) ?></strong>
@@ -167,16 +182,13 @@ $initialsFor = static function (string $name): string {
                     <span class="chat-pin-bar__count" id="chatPinCount" hidden>1</span>
                     <button type="button" class="chat-pin-bar__view" id="chatPinJump">View</button>
                 </div>
-                <div class="chat-float" id="chatThreadSearch" hidden>
-                    <button type="button" class="chat-float__backdrop" id="chatThreadSearchBackdrop" aria-label="Close search"></button>
-                    <div class="chat-float__card chat-float__card--search" role="dialog" aria-label="Search this conversation">
-                        <label class="chat-thread-search__field">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                            <input type="search" id="chatThreadSearchInput" placeholder="Search this conversation" autocomplete="off">
-                            <button type="button" class="chat-thread-search__clear" id="chatThreadSearchClear" hidden aria-label="Clear search">×</button>
-                        </label>
-                        <div class="chat-search-hits" id="chatSearchHits" hidden></div>
-                    </div>
+                <div class="chat-thread-search" id="chatThreadSearch" hidden>
+                    <label class="chat-thread-search__field">
+                        <svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                        <input type="search" id="chatThreadSearchInput" placeholder="Search this conversation" autocomplete="off">
+                        <button type="button" class="chat-thread-search__clear" id="chatThreadSearchClear" hidden aria-label="Clear search">×</button>
+                    </label>
+                    <div class="chat-search-hits" id="chatSearchHits" hidden></div>
                 </div>
                 <div class="chat-float" id="chatPinPop" hidden>
                     <button type="button" class="chat-float__backdrop" id="chatPinPopBackdrop" aria-label="Close pinned messages"></button>
@@ -196,7 +208,7 @@ $initialsFor = static function (string $name): string {
                     <?php if (!$initialMessages): ?>
                         <div class="chat-empty-state chat-empty-state--inline" id="chatEmptyState">
                             <div class="chat-empty-state__icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16v10H7l-3 3V5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+                                <?= $chatEmptyIcon ?>
                             </div>
                             <p>No messages yet. Send a message to <strong><?= e((string)$selectedPartner['name']) ?></strong>.</p>
                         </div>
@@ -253,7 +265,7 @@ $initialsFor = static function (string $name): string {
                                      data-pinned="<?= !empty($message['is_pinned']) ? '1' : '0' ?>">
                                 <?php if (!$isMine): ?>
                                     <?php if ($showAvatar): ?>
-                                        <span class="chat-message__avatar is-<?= e($activeAvatarRole) ?>" aria-hidden="true"><?= e($activeInitial) ?></span>
+                                        <?= $chatAvatarHtml('chat-message__avatar', $activeAvatarRole, $activeInitial, $activePhotoUrl) ?>
                                     <?php else: ?>
                                         <span class="chat-message__avatar-spacer" aria-hidden="true"></span>
                                     <?php endif; ?>
@@ -398,7 +410,7 @@ $initialsFor = static function (string $name): string {
             <?php else: ?>
                 <div class="chat-empty-state chat-empty-state--window">
                     <div class="chat-empty-state__icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16v10H7l-3 3V5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+                        <?= $chatEmptyIcon ?>
                     </div>
                     <h3>Select a conversation</h3>
                     <p>Choose a contact from the sidebar to begin chatting.</p>

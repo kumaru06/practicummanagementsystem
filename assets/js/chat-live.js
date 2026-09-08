@@ -128,6 +128,7 @@
         let partnerId = Number(app.dataset.partnerId || 0);
         let partnerRole = app.dataset.partnerRole || '';
         let partnerName = document.getElementById('chatActiveName')?.textContent?.trim() || 'Contact';
+        let partnerPhotoUrl = app.dataset.partnerPhoto || '';
         let canSend = app.dataset.canSend !== '0';
         let hasMore = app.dataset.hasMore === '1';
         let thread = [];
@@ -176,6 +177,7 @@
         const threadSearchBtn = document.getElementById('chatThreadSearchBtn');
         const threadSearchClear = document.getElementById('chatThreadSearchClear');
         const threadSearchBackdrop = document.getElementById('chatThreadSearchBackdrop');
+        const threadSearchHits = document.getElementById('chatSearchHits');
         const lightbox = document.getElementById('chatLightbox');
         const lightboxImage = document.getElementById('chatLightboxImage');
         const lightboxDownload = document.getElementById('chatLightboxDownload');
@@ -325,6 +327,25 @@
             return String(role || 'user').toLowerCase().replace(/[^a-z]/g, '') || 'user';
         }
 
+        function fillAvatar(el, extraClass, role, initial, photoUrl) {
+            if (!el) return;
+            const roleClass = avatarRoleClass(role);
+            el.className = extraClass + ' is-' + roleClass + (photoUrl ? ' ' + extraClass + '--photo' : '');
+            if (photoUrl) {
+                el.innerHTML = '<img src="' + escapeHtml(photoUrl) + '" alt="">';
+            } else {
+                el.textContent = initial;
+            }
+        }
+
+        function avatarMarkup(extraClass, role, initial, photoUrl) {
+            const roleClass = avatarRoleClass(role);
+            if (photoUrl) {
+                return '<span class="' + extraClass + ' ' + extraClass + '--photo is-' + escapeHtml(roleClass) + '" aria-hidden="true"><img src="' + escapeHtml(photoUrl) + '" alt=""></span>';
+            }
+            return '<span class="' + extraClass + ' is-' + escapeHtml(roleClass) + '" aria-hidden="true">' + escapeHtml(initial) + '</span>';
+        }
+
         function partnerInitial() {
             return initialsFromName(partnerName);
         }
@@ -389,7 +410,7 @@
         function emptyStateHtml(messageHtml) {
             return '' +
                 '<div class="chat-empty-state__icon" aria-hidden="true">' +
-                '<svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16v10H7l-3 3V5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>' +
+                '<svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M8 12h.01"/><path d="M12 12h.01"/><path d="M16 12h.01"/></svg>' +
                 '</div>' +
                 '<p>' + messageHtml + '</p>';
         }
@@ -563,6 +584,16 @@
             threadSearchWrap.hidden = true;
             threadSearchBtn?.classList.remove('is-active');
             threadSearchBtn?.setAttribute('aria-expanded', 'false');
+            if (threadSearchInput) {
+                threadSearchInput.value = '';
+            }
+            if (threadSearchClear) {
+                threadSearchClear.hidden = true;
+            }
+            if (threadSearchHits) {
+                threadSearchHits.hidden = true;
+                threadSearchHits.innerHTML = '';
+            }
         }
 
         function openSearchPanel() {
@@ -571,6 +602,7 @@
             threadSearchWrap.hidden = false;
             threadSearchBtn?.classList.add('is-active');
             threadSearchBtn?.setAttribute('aria-expanded', 'true');
+            runThreadSearch(threadSearchInput?.value || '');
             threadSearchInput?.focus();
         }
 
@@ -643,9 +675,12 @@
         function jumpToMessage(id) {
             const target = messagesEl?.querySelector('[data-message-id="' + String(id) + '"]');
             if (!target) return;
-            target.scrollIntoView({ block: 'center' });
+            if (threadSearchHits) {
+                threadSearchHits.hidden = true;
+            }
+            target.scrollIntoView({ block: 'center', behavior: 'smooth' });
             target.classList.add('is-search-hit');
-            window.setTimeout(function () { target.classList.remove('is-search-hit'); }, 1600);
+            window.setTimeout(function () { target.classList.remove('is-search-hit'); }, 1800);
         }
 
         function receiptHtml(message) {
@@ -697,7 +732,7 @@
             let avatarHtml = '';
             if (!isMine) {
                 avatarHtml = options.showAvatar
-                    ? '<span class="chat-message__avatar is-' + escapeHtml(avatarRoleClass(partnerRole)) + '" aria-hidden="true">' + escapeHtml(partnerInitial()) + '</span>'
+                    ? avatarMarkup('chat-message__avatar', partnerRole, partnerInitial(), partnerPhotoUrl)
                     : '<span class="chat-message__avatar-spacer" aria-hidden="true"></span>';
             }
 
@@ -1167,20 +1202,22 @@
         function partnerButtonHtml(partner, isActive) {
             const unread = Number(partner.unread_count || 0);
             const initial = initialsFromName(partner.name || 'C');
-            const roleClass = avatarRoleClass(partner.role);
             const preview = partner.last_message_is_photo
                 ? 'Photo'
                 : String(partner.last_message || partner.subtitle || formatRoleLabel(partner.role));
             const when = formatWhen(partner.last_message_at);
+            const photoUrl = String(partner.photo_url || '');
             return '<button type="button" class="chat-partner' + (isActive ? ' is-active' : '') + (unread > 0 && !isActive ? ' has-unread' : '') + '"' +
+                ' title="' + escapeHtml(partner.name || '') + '"' +
                 ' data-partner-id="' + Number(partner.user_id) + '"' +
                 ' data-partner-role="' + escapeHtml(partner.role || '') + '"' +
                 ' data-partner-name="' + escapeHtml(partner.name || '') + '"' +
                 ' data-partner-email="' + escapeHtml(partner.email || '') + '"' +
                 ' data-partner-subtitle="' + escapeHtml(partner.subtitle || '') + '"' +
+                ' data-partner-photo="' + escapeHtml(photoUrl) + '"' +
                 ' data-can-send="' + (partner.can_send ? '1' : '0') + '"' +
                 ' data-send-block="' + escapeHtml(partner.send_block_reason || '') + '">' +
-                '<span class="chat-partner__avatar is-' + escapeHtml(roleClass) + '" aria-hidden="true">' + escapeHtml(initial) + '</span>' +
+                avatarMarkup('chat-partner__avatar', partner.role, initial, photoUrl) +
                 '<span class="chat-partner__copy"><span class="chat-partner__row"><strong>' + escapeHtml(partner.name || '') + '</strong>' +
                 (when ? '<time>' + escapeHtml(when) + '</time>' : '') +
                 '</span><small class="chat-partner__preview">' + escapeHtml(preview) + '</small></span>' +
@@ -1653,13 +1690,12 @@
 
         function updateConversationHeader(button) {
             partnerName = button.dataset.partnerName || 'Contact';
+            partnerPhotoUrl = button.dataset.partnerPhoto || '';
+            app.dataset.partnerPhoto = partnerPhotoUrl;
             const subtitle = button.dataset.partnerSubtitle || formatRoleLabel(button.dataset.partnerRole || partnerRole);
             if (activeNameEl) activeNameEl.textContent = partnerName;
             if (activeMetaEl) activeMetaEl.textContent = subtitle;
-            if (activeAvatarEl) {
-                activeAvatarEl.textContent = initialsFromName(partnerName);
-                activeAvatarEl.className = 'chat-window__avatar is-' + avatarRoleClass(button.dataset.partnerRole || partnerRole);
-            }
+            fillAvatar(activeAvatarEl, 'chat-window__avatar', button.dataset.partnerRole || partnerRole, initialsFromName(partnerName), partnerPhotoUrl);
             if (activeTagEl) activeTagEl.textContent = roleTag(button.dataset.partnerRole || partnerRole);
             if (typingLabelEl) typingLabelEl.textContent = partnerName + ' is typing...';
         }

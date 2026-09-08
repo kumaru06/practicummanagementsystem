@@ -565,6 +565,7 @@ class ChatController
             $partner['last_message'] = $preview['text'];
             $partner['last_message_at'] = $preview['created_at'];
             $partner['last_message_is_photo'] = $preview['is_photo'];
+            $partner['photo_url'] = profile_photo_url(['photo_file' => $partner['photo_file'] ?? '']);
         }
         unset($partner);
 
@@ -935,8 +936,9 @@ class ChatController
     private function partnersForAdmin(): array
     {
         $stmt = $this->db->prepare(
-            'SELECT u.id AS user_id, u.name, u.email, u.role, "" AS course, ' . $this->unreadSubquery() . '
+            'SELECT u.id AS user_id, u.name, u.email, u.role, "" AS course, COALESCE(pc.photo_file, "") AS photo_file, ' . $this->unreadSubquery() . '
              FROM users u
+             LEFT JOIN partner_companies pc ON pc.user_id = u.id AND u.role = "partner"
              WHERE u.is_active = 1
                AND u.id != ?
                AND u.role IN ("coordinator", "partner")
@@ -951,22 +953,22 @@ class ChatController
     private function partnersForCoordinator(): array
     {
         $stmt = $this->db->prepare(
-            'SELECT u.id AS user_id, u.name, u.email, u.role, u.course, ' . $this->unreadSubquery() . '
+            'SELECT u.id AS user_id, u.name, u.email, u.role, u.course, u.photo_file, ' . $this->unreadSubquery() . '
              FROM (
-                 SELECT su.id, su.name, su.email, su.role, s.course
+                 SELECT su.id, su.name, su.email, su.role, s.course, s.photo_file
                  FROM students s
                  JOIN users su ON su.id = s.user_id
                  WHERE s.coordinator_id = ? AND su.is_active = 1
 
                  UNION
 
-                 SELECT au.id, au.name, au.email, au.role, "" AS course
+                 SELECT au.id, au.name, au.email, au.role, "" AS course, NULL AS photo_file
                  FROM users au
                  WHERE au.role = "admin" AND au.is_active = 1
 
                  UNION
 
-                 SELECT pu.id, pu.name, pu.email, pu.role, "" AS course
+                 SELECT pu.id, pu.name, pu.email, pu.role, "" AS course, pc.photo_file
                  FROM students s
                  JOIN ojt_enrollments e ON e.student_id = s.id
                  JOIN partner_companies pc ON pc.id = e.company_id
@@ -983,17 +985,17 @@ class ChatController
     /** @return list<array<string, mixed>> */
     private function partnersForStudent(): array
     {
-        $stmt = $this->db->prepare(
-            'SELECT u.id AS user_id, u.name, u.email, u.role, "" AS course, ' . $this->unreadSubquery() . '
+            $stmt = $this->db->prepare(
+            'SELECT u.id AS user_id, u.name, u.email, u.role, "" AS course, u.photo_file, ' . $this->unreadSubquery() . '
              FROM (
-                 SELECT cu.id, cu.name, cu.email, cu.role
+                 SELECT cu.id, cu.name, cu.email, cu.role, NULL AS photo_file
                  FROM students s
                  JOIN users cu ON cu.id = s.coordinator_id
                  WHERE s.user_id = ? AND cu.is_active = 1
 
                  UNION
 
-                 SELECT pu.id, pu.name, pu.email, pu.role
+                 SELECT pu.id, pu.name, pu.email, pu.role, pc.photo_file
                  FROM students s
                  JOIN ojt_enrollments e ON e.student_id = s.id
                  JOIN partner_companies pc ON pc.id = e.company_id
@@ -1011,9 +1013,9 @@ class ChatController
     private function partnersForPartner(): array
     {
         $stmt = $this->db->prepare(
-            'SELECT u.id AS user_id, u.name, u.email, u.role, u.course, ' . $this->unreadSubquery() . '
+            'SELECT u.id AS user_id, u.name, u.email, u.role, u.course, u.photo_file, ' . $this->unreadSubquery() . '
              FROM (
-                 SELECT su.id, su.name, su.email, su.role, s.course
+                 SELECT su.id, su.name, su.email, su.role, s.course, s.photo_file
                  FROM partner_companies pc
                  JOIN ojt_enrollments e ON e.company_id = pc.id
                  JOIN students s ON s.id = e.student_id
@@ -1022,7 +1024,7 @@ class ChatController
 
                  UNION
 
-                 SELECT cu.id, cu.name, cu.email, cu.role, "" AS course
+                 SELECT cu.id, cu.name, cu.email, cu.role, "" AS course, NULL AS photo_file
                  FROM partner_companies pc
                  JOIN ojt_enrollments e ON e.company_id = pc.id
                  JOIN students s ON s.id = e.student_id
@@ -1031,7 +1033,7 @@ class ChatController
 
                  UNION
 
-                 SELECT au.id, au.name, au.email, au.role, "" AS course
+                 SELECT au.id, au.name, au.email, au.role, "" AS course, NULL AS photo_file
                  FROM users au
                  WHERE au.role = "admin" AND au.is_active = 1
              ) u
