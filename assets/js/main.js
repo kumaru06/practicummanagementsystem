@@ -8825,58 +8825,87 @@ function initAdminStudentsDirectory() {
 }
 
 function initWeeklyReportUpload() {
-    const form = document.getElementById('weeklyReportForm');
+    document.querySelectorAll('[data-wr-upload], #weeklyReportForm').forEach(initWeeklyReportUploadForm);
+}
+
+function initWeeklyReportUploadForm(form) {
     if (!form || form.dataset.wrUploadBound === '1') return;
     form.dataset.wrUploadBound = '1';
 
     initWeeklyReportDateRange(form);
 
-    const dropzone = document.getElementById('wrDropzone');
-    const fileInput = document.getElementById('wrFileInput');
-    const browseLink = document.getElementById('wrBrowseLink');
-    const previewRow = document.getElementById('wrPreviewRow');
+    const dropzone = form.querySelector('[data-wr-dropzone], #wrDropzone');
+    const fileInput = form.querySelector('[data-wr-file-input], #wrFileInput');
+    const browseLink = form.querySelector('[data-wr-browse], #wrBrowseLink');
+    const previewRow = form.querySelector('[data-wr-preview], #wrPreviewRow');
     if (!dropzone || !fileInput || !browseLink || !previewRow) return;
+
     const textarea = form.querySelector('textarea[name="accomplishments"]');
     const charCurrent = form.querySelector('[data-char-current]');
     const MAX_SIZE = 10 * 1024 * 1024;
-    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
+    const MAX_FILES = 12;
+    const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf', 'application/x-pdf'];
     const ALLOWED_EXTS = ['.jpg', '.jpeg', '.png', '.pdf'];
+    /** @type {(File|null)[]} */
     let proofFiles = [];
+    let syncingInput = false;
+
+    fileInput.multiple = true;
+    fileInput.setAttribute('accept', 'image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf');
+    if (!fileInput.name) {
+        fileInput.name = 'proof_files[]';
+    }
 
     if (textarea && charCurrent) {
         textarea.addEventListener('input', () => {
-            charCurrent.textContent = textarea.value.length;
+            charCurrent.textContent = String(textarea.value.length);
         });
     }
 
-    browseLink.addEventListener('click', () => fileInput.click());
-    dropzone.addEventListener('click', e => {
-        if (e.target.closest('#wrBrowseLink')) return;
+    browseLink.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        fileInput.click();
+    });
+    dropzone.addEventListener('click', event => {
+        if (event.target.closest('[data-wr-browse], #wrBrowseLink, .wr-browse-btn')) return;
         fileInput.click();
     });
 
-    dropzone.addEventListener('dragover', e => {
-        e.preventDefault();
+    dropzone.addEventListener('dragover', event => {
+        event.preventDefault();
         dropzone.classList.add('is-dragover');
     });
     dropzone.addEventListener('dragleave', () => {
         dropzone.classList.remove('is-dragover');
     });
-    dropzone.addEventListener('drop', e => {
-        e.preventDefault();
+    dropzone.addEventListener('drop', event => {
+        event.preventDefault();
         dropzone.classList.remove('is-dragover');
-        addFiles(e.dataTransfer.files);
+        addFiles(event.dataTransfer?.files);
     });
 
     fileInput.addEventListener('change', () => {
+        if (syncingInput) return;
         addFiles(fileInput.files);
-        fileInput.value = '';
     });
 
+    function fileKey(file) {
+        return `${String(file.name || '').toLowerCase()}|${file.size}|${file.lastModified || 0}`;
+    }
+
+    function isAllowed(file) {
+        const ext = '.' + String(file.name || '').split('.').pop().toLowerCase();
+        return ALLOWED_TYPES.includes(file.type) || ALLOWED_EXTS.includes(ext);
+    }
+
     function addFiles(fileList) {
+        if (!fileList || fileList.length === 0) return;
+        const existing = new Set(proofFiles.filter(Boolean).map(fileKey));
+        let activeCount = proofFiles.filter(Boolean).length;
+
         for (const file of fileList) {
-            const ext = '.' + file.name.split('.').pop().toLowerCase();
-            if (!ALLOWED_TYPES.includes(file.type) && !ALLOWED_EXTS.includes(ext)) {
+            if (!isAllowed(file)) {
                 alert(file.name + ' is not a supported file type. Please upload JPG, PNG, or PDF files.');
                 continue;
             }
@@ -8884,21 +8913,36 @@ function initWeeklyReportUpload() {
                 alert(file.name + ' exceeds the 10MB file size limit.');
                 continue;
             }
+            const key = fileKey(file);
+            if (existing.has(key)) continue;
+            if (activeCount >= MAX_FILES) {
+                alert('You can upload up to ' + MAX_FILES + ' files.');
+                break;
+            }
+            existing.add(key);
             proofFiles.push(file);
             renderPreview(file, proofFiles.length - 1);
+            activeCount += 1;
         }
+        syncFileInput();
     }
 
     function renderPreview(file, index) {
         const item = document.createElement('div');
         item.className = 'wr-preview-item';
-        item.dataset.index = index;
+        item.dataset.index = String(index);
+        item.title = file.name;
 
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
         removeBtn.className = 'wr-preview-remove';
+        removeBtn.setAttribute('aria-label', 'Remove ' + file.name);
         removeBtn.innerHTML = '&times;';
-        removeBtn.addEventListener('click', () => removeFile(index));
+        removeBtn.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            removeFile(index);
+        });
         item.appendChild(removeBtn);
 
         if (file.type.startsWith('image/')) {
@@ -8911,8 +8955,9 @@ function initWeeklyReportUpload() {
         } else {
             const icon = document.createElement('div');
             icon.className = 'wr-file-icon';
+            const shortName = file.name.length > 14 ? file.name.slice(0, 12) + '...' : file.name;
             icon.innerHTML = '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6Zm7 1.5L18.5 9H13V3.5ZM8 12h8v2H8v-2Zm0 4h5v2H8v-2Z"/></svg>'
-                + '<span>' + (file.name.length > 12 ? file.name.slice(0, 10) + '...' : file.name) + '</span>';
+                + '<span>' + shortName + '</span>';
             item.appendChild(icon);
         }
 
@@ -8923,32 +8968,49 @@ function initWeeklyReportUpload() {
         proofFiles[index] = null;
         const el = previewRow.querySelector('[data-index="' + index + '"]');
         if (el) el.remove();
+        syncFileInput();
+    }
+
+    function syncFileInput() {
+        const activeFiles = proofFiles.filter(Boolean);
+        syncingInput = true;
+        try {
+            const transfer = new DataTransfer();
+            activeFiles.forEach(file => transfer.items.add(file));
+            fileInput.files = transfer.files;
+        } catch (err) {
+            // Keep the in-memory list; submit handler will rebuild the input.
+        } finally {
+            syncingInput = false;
+        }
+        dropzone.classList.toggle('has-files', activeFiles.length > 0);
     }
 
     form.addEventListener('submit', () => {
-        // Confirm modal calls requestSubmit() again — remove any prior dynamic
-        // inputs so the same photo is not appended twice.
         form.querySelectorAll('input[data-wr-proof-input]').forEach(el => el.remove());
-
-        const activeFiles = proofFiles.filter(f => f !== null);
+        syncFileInput();
+        const activeFiles = proofFiles.filter(Boolean);
         if (activeFiles.length === 0) return;
+        if (fileInput.files && fileInput.files.length === activeFiles.length) return;
 
-        const dt = new DataTransfer();
-        activeFiles.forEach(f => dt.items.add(f));
+        const transfer = new DataTransfer();
+        activeFiles.forEach(file => transfer.items.add(file));
         const dynamicInput = document.createElement('input');
         dynamicInput.type = 'file';
         dynamicInput.name = 'proof_files[]';
         dynamicInput.multiple = true;
         dynamicInput.hidden = true;
         dynamicInput.dataset.wrProofInput = '1';
-        dynamicInput.files = dt.files;
+        dynamicInput.files = transfer.files;
         form.appendChild(dynamicInput);
     });
 }
 
 function initWeeklyReportDateRange(form) {
+    if (!form || form.dataset.wrDateRangeBound === '1') return;
     const range = form.querySelector('[data-wr-date-range]');
     if (!range) return;
+    form.dataset.wrDateRangeBound = '1';
 
     const startPicker = range.querySelector('[data-wr-date="start"]');
     const endPicker = range.querySelector('[data-wr-date="end"]');

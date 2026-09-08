@@ -12,11 +12,10 @@
     $resubmitWeeklyId = (int)($_GET['resubmit_weekly'] ?? 0);
     ?>
     <?php if (!empty($rejectedDtrs) || !empty($rejectedWeekly)): ?>
-    <section class="card records-action-card" style="grid-column: 1 / -1;">
+    <section class="card records-action-card">
         <div class="section-head">
             <div>
                 <h2>Correct Rejected Submissions</h2>
-                <p class="muted">Review the rejection reason, update your entry, and resubmit for Host Training Establishment approval.</p>
             </div>
         </div>
         <div class="records-reject-grid">
@@ -28,14 +27,22 @@
                 ?>
                 <article class="records-reject-card<?= $isOpen ? ' is-open' : '' ?>" id="resubmit-dtr-<?= $dtrId ?>">
                     <header class="records-reject-head">
-                        <div>
-                            <strong>DTR · <?= e($rejectedDtr['work_date']) ?></strong>
-                            <span class="rec-status-badge rec-badge-danger">REJECTED</span>
+                        <div class="records-reject-heading">
+                            <span class="rec-status-badge rec-badge-danger">Rejected</span>
+                            <div>
+                                <strong>Daily Time Record</strong>
+                                <span class="records-reject-sub"><?= e($rejectedDtr['work_date']) ?></span>
+                            </div>
                         </div>
-                        <a class="btn btn-small" href="index.php?r=student_records&amp;resubmit_dtr=<?= $dtrId ?>#resubmit-dtr-<?= $dtrId ?>">Correct entry</a>
+                        <?php if (!$isOpen): ?>
+                            <a class="btn btn-small" href="index.php?r=student_records&amp;resubmit_dtr=<?= $dtrId ?>#resubmit-dtr-<?= $dtrId ?>">Correct entry</a>
+                        <?php endif; ?>
                     </header>
                     <?php if (!empty($rejectedDtr['verification_notes'])): ?>
-                        <div class="rec-reject-reason"><strong>Reason:</strong> <?= e($rejectedDtr['verification_notes']) ?></div>
+                        <div class="records-reject-reason" role="status">
+                            <strong>Reason from your Host Training Establishment</strong>
+                            <p><?= e($rejectedDtr['verification_notes']) ?></p>
+                        </div>
                     <?php endif; ?>
                     <?php if ($isOpen): ?>
                         <form method="post" class="form records-resubmit-form">
@@ -74,44 +81,63 @@
                     $weeklyId = (int)$rejectedReport['id'];
                     $isOpen = $resubmitWeeklyId === $weeklyId || ($resubmitWeeklyId === 0 && empty($rejectedDtrs) && count($rejectedWeekly) === 1);
                 ?>
-                <article class="records-reject-card<?= $isOpen ? ' is-open' : '' ?>" id="resubmit-weekly-<?= $weeklyId ?>">
+                <article class="records-reject-card records-reject-card--weekly<?= $isOpen ? ' is-open' : '' ?>" id="resubmit-weekly-<?= $weeklyId ?>">
                     <header class="records-reject-head">
-                        <div>
-                            <strong>Weekly Report · Week <?= (int)$rejectedReport['week_no'] ?></strong>
-                            <span class="rec-status-badge rec-badge-danger">REJECTED</span>
+                        <div class="records-reject-heading">
+                            <span class="rec-status-badge rec-badge-danger">Rejected</span>
+                            <div>
+                                <strong>Weekly Report</strong>
+                                <span class="records-reject-sub">Week <?= (int)$rejectedReport['week_no'] ?></span>
+                            </div>
                         </div>
-                        <a class="btn btn-small" href="index.php?r=student_records&amp;resubmit_weekly=<?= $weeklyId ?>#resubmit-weekly-<?= $weeklyId ?>">Correct entry</a>
+                        <?php if (!$isOpen): ?>
+                            <a class="btn btn-small" href="index.php?r=student_records&amp;resubmit_weekly=<?= $weeklyId ?>#resubmit-weekly-<?= $weeklyId ?>">Correct entry</a>
+                        <?php endif; ?>
                     </header>
                     <?php if (!empty($rejectedReport['verification_notes'])): ?>
-                        <div class="rec-reject-reason"><strong>Reason:</strong> <?= e($rejectedReport['verification_notes']) ?></div>
+                        <div class="records-reject-reason" role="status">
+                            <strong>Reason from your Host Training Establishment</strong>
+                            <p><?= e($rejectedReport['verification_notes']) ?></p>
+                        </div>
                     <?php endif; ?>
                     <?php if ($isOpen): ?>
-                        <form method="post" enctype="multipart/form-data" class="form records-resubmit-form">
+                        <form method="post" enctype="multipart/form-data" class="form records-resubmit-form records-resubmit-form--weekly" data-wr-upload>
                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="action" value="student_resubmit_weekly">
                             <input type="hidden" name="weekly_id" value="<?= $weeklyId ?>">
-                            <div class="records-resubmit-meta">
-                                <span><strong>Week:</strong> <?= (int)$rejectedReport['week_no'] ?></span>
-                            </div>
-                            <div class="records-resubmit-times wr-date-range" data-wr-date-range>
-                                <div class="wr-date-field">
-                                    <span class="wr-date-field-label">Start date</span>
-                                    <?php render_form_date_picker('date_covered_start', (string)($rejectedReport['date_covered_start'] ?? ''), ['data-wr-date' => 'start']); ?>
+                            <div class="wr-date-covered">
+                                <span class="wr-field-label">Date covered</span>
+                                <div class="wr-date-range" data-wr-date-range>
+                                    <div class="wr-date-field">
+                                        <span class="wr-date-field-label">Start date</span>
+                                        <?php render_form_date_picker('date_covered_start', (string)($rejectedReport['date_covered_start'] ?? ''), ['data-wr-date' => 'start']); ?>
+                                    </div>
+                                    <span class="wr-date-sep" aria-hidden="true">to</span>
+                                    <div class="wr-date-field">
+                                        <span class="wr-date-field-label">End date</span>
+                                        <?php render_form_date_picker('date_covered_end', (string)($rejectedReport['date_covered_end'] ?? ''), ['data-wr-date' => 'end']); ?>
+                                    </div>
                                 </div>
-                                <span class="wr-date-sep" aria-hidden="true">to</span>
-                                <div class="wr-date-field">
-                                    <span class="wr-date-field-label">End date</span>
-                                    <?php render_form_date_picker('date_covered_end', (string)($rejectedReport['date_covered_end'] ?? ''), ['data-wr-date' => 'end']); ?>
-                                </div>
                             </div>
-                            <label>
+                            <label class="records-resubmit-field">
                                 <span>Weekly accomplishments</span>
-                                <textarea required maxlength="2000" name="accomplishments" rows="5"><?= e(trim((string)($rejectedReport['accomplishments'] ?? $rejectedReport['report_text'] ?? ''))) ?></textarea>
+                                <textarea required maxlength="2000" name="accomplishments" rows="5" placeholder="Write your weekly accomplishments here..."><?= e(trim((string)($rejectedReport['accomplishments'] ?? $rejectedReport['report_text'] ?? ''))) ?></textarea>
                             </label>
-                            <label>
-                                <span>Replace proof files (optional)</span>
-                                <input type="file" name="proof_files[]" multiple accept=".jpg,.jpeg,.png,.pdf">
-                            </label>
+                            <div class="wr-proof-block">
+                                <span class="wr-field-label">Replace proof files <em>(optional)</em></span>
+                                <div class="wr-dropzone wr-dropzone--compact" data-wr-dropzone>
+                                    <div class="wr-dropzone-inner">
+                                        <svg class="wr-dropzone-icon" viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M11 14.414V20h2v-5.586l2.293 2.293 1.414-1.414L12 10.586l-4.707 4.707 1.414 1.414L11 14.414ZM4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4v-2h4V6H4v12h4v2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg>
+                                        <p><strong>Drag &amp; drop files here</strong></p>
+                                        <p class="muted">or <button type="button" class="wr-browse-btn" data-wr-browse>click to browse</button></p>
+                                        <p class="muted small">You can upload multiple JPG, PNG, or PDF files.</p>
+                                    </div>
+                                    <input type="file" data-wr-file-input name="proof_files[]" multiple accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" hidden>
+                                </div>
+                                <div class="wr-preview-row" data-wr-preview></div>
+                                <p class="wr-file-limits"><span class="muted">JPG, PNG, PDF · multiple files allowed</span> <span class="muted">Max 10MB each</span></p>
+                                <small class="muted">Leave empty to keep your current files.</small>
+                            </div>
                             <button class="btn btn-primary" type="submit">Resubmit weekly report</button>
                         </form>
                     <?php endif; ?>
@@ -363,7 +389,7 @@
             </div>
             <span class="wr-form-badge">Weekly Report</span>
         </div>
-        <form method="post" enctype="multipart/form-data" class="form js-validate" id="weeklyReportForm"
+        <form method="post" enctype="multipart/form-data" class="form js-validate" id="weeklyReportForm" data-wr-upload
               data-confirm-submit="Submit this weekly report? Please verify all fields before submitting."
               data-confirm-title="Submit weekly report" data-confirm-ok="Submit report">
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
@@ -438,17 +464,17 @@
 
             <div class="wr-section">
                 <h3 class="wr-section-title">Upload Proof of Work</h3>
-                <div class="wr-dropzone" id="wrDropzone">
+                <div class="wr-dropzone" data-wr-dropzone>
                     <div class="wr-dropzone-inner">
                         <svg class="wr-dropzone-icon" viewBox="0 0 24 24" width="36" height="36"><path fill="currentColor" d="M11 14.414V20h2v-5.586l2.293 2.293 1.414-1.414L12 10.586l-4.707 4.707 1.414 1.414L11 14.414ZM4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4v-2h4V6H4v12h4v2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg>
                         <p><strong>Drag &amp; drop files here</strong></p>
-                        <p class="muted">or <button type="button" class="wr-browse-btn" id="wrBrowseLink">click to browse</button></p>
-                        <p class="muted small">You can upload multiple images (JPG, PNG) or PDF files.</p>
+                        <p class="muted">or <button type="button" class="wr-browse-btn" data-wr-browse>click to browse</button></p>
+                        <p class="muted small">You can upload multiple images (JPG, PNG) or PDF files at once.</p>
                     </div>
-                    <input type="file" id="wrFileInput" multiple accept=".jpg,.jpeg,.png,.pdf" hidden>
+                    <input type="file" data-wr-file-input name="proof_files[]" multiple accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" hidden>
                 </div>
-                <div class="wr-preview-row" id="wrPreviewRow"></div>
-                <p class="wr-file-limits"><span class="muted">JPG, PNG, PDF</span> <span class="muted">Max file size: 10MB each</span></p>
+                <div class="wr-preview-row" data-wr-preview></div>
+                <p class="wr-file-limits"><span class="muted">JPG, PNG, PDF · multiple files allowed</span> <span class="muted">Max file size: 10MB each</span></p>
             </div>
 
             <button class="btn btn-primary btn-weekly-submit" type="submit">

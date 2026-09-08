@@ -406,13 +406,13 @@ class ChatController
     {
         $this->requireAuth();
         $this->ensureSchema();
-        $stmt = $this->db->prepare(
-            'SELECT COUNT(*) FROM messages
-             WHERE receiver_id = ? AND receiver_role = ? AND is_read = 0 AND deleted_at IS NULL'
-        );
-        $stmt->execute([$this->userId, $this->role]);
 
-        return (int)$stmt->fetchColumn();
+        $total = 0;
+        foreach ($this->getChatPartners() as $partner) {
+            $total += max(0, (int)($partner['unread_count'] ?? 0));
+        }
+
+        return $total;
     }
 
     /** @return list<array{user_id: int, role: string, unread_count: int}> */
@@ -775,6 +775,15 @@ class ChatController
         return $clientMessageId;
     }
 
+    public function markConversationRead(int $partnerId, string $partnerRole): void
+    {
+        $this->requireAuth();
+        $this->ensureSchema();
+        $partnerRole = strtolower(trim($partnerRole));
+        $this->assertCanChatWith($partnerId, $partnerRole);
+        $this->markConversationAsRead($partnerId, $partnerRole);
+    }
+
     private function markConversationAsRead(int $partnerId, string $partnerRole): void
     {
         $stmt = $this->db->prepare(
@@ -782,9 +791,10 @@ class ChatController
              SET is_read = 1
              WHERE receiver_id = ? AND receiver_role = ?
                AND sender_id = ?
+               AND sender_role = ?
                AND is_read = 0'
         );
-        $stmt->execute([$this->userId, $this->role, $partnerId]);
+        $stmt->execute([$this->userId, $this->role, $partnerId, strtolower(trim($partnerRole))]);
         $this->chatPartnersCache = null;
     }
 

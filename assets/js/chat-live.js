@@ -61,9 +61,6 @@
     }
 
     async function fetchUnreadTotal() {
-        if (document.getElementById('chatApp')) {
-            return;
-        }
         try {
             const response = await fetch(apiUrl('index.php?r=chat_api', { action: 'unread_total' }), {
                 method: 'GET',
@@ -995,9 +992,13 @@
             applyNavUnread(remaining);
         }
 
-        function applyUnreadBadges(unreads) {
+        function applyUnreadBadges(unreads, unreadTotal) {
             if (!partnerListEl || !Array.isArray(unreads)) {
-                navUnreadFromList();
+                if (unreadTotal !== undefined && unreadTotal !== null) {
+                    applyNavUnread(unreadTotal);
+                } else {
+                    navUnreadFromList();
+                }
                 return;
             }
             const map = {};
@@ -1025,7 +1026,11 @@
                 }
             });
             applyPartnerFilter();
-            navUnreadFromList();
+            if (unreadTotal !== undefined && unreadTotal !== null) {
+                applyNavUnread(unreadTotal);
+            } else {
+                navUnreadFromList();
+            }
         }
 
         function applyPartnerFilter() {
@@ -1158,7 +1163,7 @@
                     mergeIncoming(data.messages || [], 'poll');
                     paintThread({ force: Boolean(force), stickBottom: stick });
                     updateTypingIndicator(data.typing || null);
-                    applyUnreadBadges(data.unreads || []);
+                    applyUnreadBadges(data.unreads || [], data.unread_total);
                 }
             } catch (error) {
                 if (error && error.name === 'AbortError') {
@@ -1196,7 +1201,7 @@
                 const data = await response.json();
                 if (!response.ok || !data.success) return;
                 renderPartnerGroups(data.groups || []);
-                navUnreadFromList();
+                applyNavUnread(data.unread_total);
             } catch (error) {
                 // Connection badge already updated by chatFetch.
             }
@@ -1577,7 +1582,7 @@
             const badge = button.querySelector('.chat-partner__badge');
             if (badge) badge.remove();
             button.classList.remove('has-unread');
-            navUnreadFromList();
+            markActiveConversationRead();
             if (typingIndicatorEl) typingIndicatorEl.hidden = true;
             restoreDraft();
 
@@ -1601,6 +1606,41 @@
             startTypingPulse();
             startPolling();
             syncChatUrl();
+        }
+
+        async function markActiveConversationRead() {
+            if (!partnerId || !partnerRole) {
+                return;
+            }
+            const requestPartnerId = partnerId;
+            const requestPartnerRole = partnerRole;
+            try {
+                const response = await chatFetch(apiUrl(endpoint), {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken,
+                    },
+                    body: JSON.stringify({
+                        action: 'mark_read',
+                        partner_id: requestPartnerId,
+                        partner_role: requestPartnerRole,
+                        csrf_token: csrfToken,
+                    }),
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    return;
+                }
+                if (!isCurrentConversation(requestPartnerId, requestPartnerRole)) {
+                    return;
+                }
+                applyNavUnread(data.unread_total);
+            } catch (error) {
+                // Message poll will still refresh unread state.
+            }
         }
 
         function startPolling() {

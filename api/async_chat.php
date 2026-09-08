@@ -96,6 +96,15 @@ try {
 
         $messageId = (int)($payload['message_id'] ?? 0);
 
+        if ($action === 'mark_read') {
+            $chat->markConversationRead($partnerId, $partnerRole);
+            echo json_encode([
+                'success' => true,
+                'unread_total' => $chat->getUnreadTotal(),
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
         if ($action === 'react') {
             $message = $chat->reactToMessage($partnerId, $partnerRole, $messageId, (string)($payload['emoji'] ?? ''));
             echo json_encode(['success' => true, 'message' => $message], JSON_UNESCAPED_UNICODE);

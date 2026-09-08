@@ -1009,12 +1009,35 @@ class StudentController extends BaseController
     private function uploadProofFiles(Report $report, int $reportId, int $studentId): void
     {
         $files = $_FILES['proof_files'] ?? null;
-        if (!$files || !is_array($files['name'] ?? null)) return;
+        if (!$files || !isset($files['name'])) {
+            return;
+        }
+
+        if (!is_array($files['name'])) {
+            $files = [
+                'name' => [$files['name']],
+                'type' => [$files['type'] ?? ''],
+                'tmp_name' => [$files['tmp_name'] ?? ''],
+                'error' => [$files['error'] ?? UPLOAD_ERR_NO_FILE],
+                'size' => [$files['size'] ?? 0],
+            ];
+        }
 
         $allowed = [
             'image/jpeg' => 'jpg',
+            'image/jpg' => 'jpg',
+            'image/pjpeg' => 'jpg',
             'image/png' => 'png',
+            'image/x-png' => 'png',
             'application/pdf' => 'pdf',
+            'application/x-pdf' => 'pdf',
+            'application/acrobat' => 'pdf',
+        ];
+        $extMap = [
+            'jpg' => 'jpg',
+            'jpeg' => 'jpg',
+            'png' => 'png',
+            'pdf' => 'pdf',
         ];
         $dir = __DIR__ . '/../uploads/proof/' . $studentId;
         if (!is_dir($dir)) {
@@ -1023,26 +1046,41 @@ class StudentController extends BaseController
 
         $count = count($files['name']);
         $seenInRequest = [];
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
         for ($i = 0; $i < $count; $i++) {
-            if (($files['error'][$i] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) continue;
-            if ($files['size'][$i] > 10 * 1024 * 1024) continue;
+            if (($files['error'][$i] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                continue;
+            }
+            if (($files['size'][$i] ?? 0) > 10 * 1024 * 1024) {
+                continue;
+            }
 
-            $mime = (new finfo(FILEINFO_MIME_TYPE))->file($files['tmp_name'][$i]);
-            if (!isset($allowed[$mime])) continue;
+            $tmpName = (string)($files['tmp_name'][$i] ?? '');
+            if ($tmpName === '' || !is_uploaded_file($tmpName)) {
+                continue;
+            }
 
+            $mime = (string)$finfo->file($tmpName);
             $originalName = basename((string)$files['name'][$i]);
+            $extFromName = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+            $ext = $allowed[$mime] ?? null;
+            if ($ext === null && in_array($mime, ['application/octet-stream', 'application/octetstream', ''], true)) {
+                $ext = $extMap[$extFromName] ?? null;
+            }
+            if ($ext === null) {
+                continue;
+            }
+
             $dedupeKey = strtolower($originalName) . '|' . (int)$files['size'][$i];
-            // Guard against double-append from confirm dialog re-submit.
             if (isset($seenInRequest[$dedupeKey])) {
                 continue;
             }
             $seenInRequest[$dedupeKey] = true;
 
-            $ext = $allowed[$mime];
             $safeName = bin2hex(random_bytes(12)) . '.' . $ext;
             $safeOriginal = htmlspecialchars($originalName, ENT_QUOTES, 'UTF-8');
 
-            move_uploaded_file($files['tmp_name'][$i], $dir . '/' . $safeName);
+            move_uploaded_file($tmpName, $dir . '/' . $safeName);
             $report->addWeeklyProofFile(
                 $reportId,
                 'uploads/proof/' . $studentId . '/' . $safeName,

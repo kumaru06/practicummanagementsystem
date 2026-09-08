@@ -273,6 +273,7 @@ smoke_assert(!str_contains($chatSrc, 'u.role IN ("coordinator", "student", "part
 smoke_assert(substr_count($chatSrc, 'au.role = "admin"') >= 2, 'Coordinator and HTE chat lists include admin');
 smoke_assert(str_contains($chatSrc, 'function getUnreadBadges'), 'Chat unread badge refresh exists');
 smoke_assert(str_contains($chatSrc, 'function getUnreadTotal'), 'Chat unread total exists');
+smoke_assert(str_contains($chatSrc, 'function markConversationRead'), 'Chat mark-read endpoint helper exists');
 smoke_assert(str_contains($chatSrc, 'function canSendTo'), 'Chat enrollment send ACL exists');
 smoke_assert(str_contains($chatSrc, 'hideLockedStudentHtes'), 'Students do not see HTE contacts before forwarded');
 smoke_assert(str_contains($chatSrc, 'HTE_LOOP_STATUSES'), 'Student-HTE send uses predeployment statuses');
