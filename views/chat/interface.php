@@ -151,19 +151,45 @@ $initialsFor = static function (string $name): string {
                     </div>
                     <div class="chat-window__head-actions">
                         <span class="chat-window__tag" id="chatActiveTag"><?= e(strtoupper($activeRole === 'partner' ? 'HTE' : $activeRole)) ?></span>
-                        <button type="button" class="chat-icon-btn" id="chatThreadSearchBtn" aria-label="Search this conversation">
+                        <button type="button" class="chat-icon-btn" id="chatThreadSearchBtn" aria-label="Search this conversation" aria-expanded="false">
                             <svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                         </button>
                     </div>
                 </header>
                 <div class="chat-pin-bar" id="chatPinBar" hidden>
-                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2Z"/></svg>
-                    <span id="chatPinText">Pinned message</span>
-                    <button type="button" id="chatPinJump">View</button>
+                    <span class="chat-pin-bar__icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2Z"/></svg>
+                    </span>
+                    <div class="chat-pin-bar__copy">
+                        <small id="chatPinLabel">Pinned message</small>
+                        <span id="chatPinText">Pinned message</span>
+                    </div>
+                    <span class="chat-pin-bar__count" id="chatPinCount" hidden>1</span>
+                    <button type="button" class="chat-pin-bar__view" id="chatPinJump">View</button>
                 </div>
-                <div class="chat-thread-search" id="chatThreadSearch" hidden>
-                    <input type="search" id="chatThreadSearchInput" placeholder="Search this conversation..." autocomplete="off">
-                    <div class="chat-search-hits" id="chatSearchHits" hidden></div>
+                <div class="chat-float" id="chatThreadSearch" hidden>
+                    <button type="button" class="chat-float__backdrop" id="chatThreadSearchBackdrop" aria-label="Close search"></button>
+                    <div class="chat-float__card chat-float__card--search" role="dialog" aria-label="Search this conversation">
+                        <label class="chat-thread-search__field">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                            <input type="search" id="chatThreadSearchInput" placeholder="Search this conversation" autocomplete="off">
+                            <button type="button" class="chat-thread-search__clear" id="chatThreadSearchClear" hidden aria-label="Clear search">×</button>
+                        </label>
+                        <div class="chat-search-hits" id="chatSearchHits" hidden></div>
+                    </div>
+                </div>
+                <div class="chat-float" id="chatPinPop" hidden>
+                    <button type="button" class="chat-float__backdrop" id="chatPinPopBackdrop" aria-label="Close pinned messages"></button>
+                    <div class="chat-float__card chat-float__card--pins" role="dialog" aria-labelledby="chatPinPopTitle">
+                        <header class="chat-float__head">
+                            <div>
+                                <strong id="chatPinPopTitle">Pinned messages</strong>
+                                <small id="chatPinPopMeta">All pins in this conversation</small>
+                            </div>
+                            <button type="button" class="chat-float__close" id="chatPinPopClose" aria-label="Close">×</button>
+                        </header>
+                        <div class="chat-float__list" id="chatPinPopList"></div>
+                    </div>
                 </div>
 
                 <div class="chat-window__messages" id="chatMessages" aria-live="polite">
@@ -249,10 +275,23 @@ $initialsFor = static function (string $name): string {
                                     <?php if (!empty($message['attachments'])): ?>
                                         <div class="chat-media-list">
                                             <?php foreach ($message['attachments'] as $file): ?>
-                                                <button type="button" class="chat-media" data-chat-lightbox="<?= e((string)$file['url']) ?>" data-chat-name="<?= e((string)$file['name']) ?>">
-                                                    <img src="<?= e((string)$file['url']) ?>" alt="<?= e((string)$file['name']) ?>">
-                                                    <span><?= e((string)$file['name']) ?></span>
-                                                </button>
+                                                <?php
+                                                $attachName = (string)($file['name'] ?? 'File');
+                                                $attachUrl = (string)($file['url'] ?? '');
+                                                $attachMime = strtolower((string)($file['mime'] ?? ''));
+                                                $isPdf = str_contains($attachMime, 'pdf') || str_ends_with(strtolower($attachName), '.pdf');
+                                                ?>
+                                                <?php if ($isPdf): ?>
+                                                    <a class="chat-file" href="<?= e($attachUrl) ?>" target="_blank" rel="noopener" data-chat-name="<?= e($attachName) ?>" data-chat-mime="application/pdf">
+                                                        <span class="chat-file__icon" aria-hidden="true">PDF</span>
+                                                        <span><?= e($attachName) ?></span>
+                                                    </a>
+                                                <?php else: ?>
+                                                    <button type="button" class="chat-media" data-chat-lightbox="<?= e($attachUrl) ?>" data-chat-name="<?= e($attachName) ?>" data-chat-mime="<?= e($attachMime) ?>">
+                                                        <img src="<?= e($attachUrl) ?>" alt="<?= e($attachName) ?>">
+                                                        <span><?= e($attachName) ?></span>
+                                                    </button>
+                                                <?php endif; ?>
                                             <?php endforeach; ?>
                                         </div>
                                     <?php endif; ?>
@@ -334,9 +373,9 @@ $initialsFor = static function (string $name): string {
                     <?php else: ?>
                         <p class="chat-readonly" id="chatReadonlyNote" hidden></p>
                     <?php endif; ?>
-                    <input type="file" id="chatFileInput" accept="image/jpeg,image/png,image/webp" multiple hidden>
+                    <input type="file" id="chatFileInput" multiple hidden>
                     <div class="chat-window__composer-row">
-                        <button type="button" class="chat-attach-btn" id="chatAttachBtn" aria-label="Attach image" <?= empty($canSend) ? 'disabled' : '' ?>>
+                        <button type="button" class="chat-attach-btn" id="chatAttachBtn" aria-label="Attach file" <?= empty($canSend) ? 'disabled' : '' ?>>
                             <svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                         </button>
                         <label class="chat-window__composer-field" for="chatMessageInput">

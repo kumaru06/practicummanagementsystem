@@ -108,7 +108,7 @@
                 <label class="bulk-upload-item<?= $canBulkUpload ? '' : ' is-locked' ?>">
                     <span><?= e($bulkReq['requirement_name']) ?></span>
                     <?php if ($canBulkUpload): ?>
-                        <input type="file" name="requirements[<?= e($bulkKey) ?>]" accept=".pdf,.jpg,.jpeg,.png">
+                        <input type="file" name="requirements[<?= e($bulkKey) ?>]">
                     <?php else: ?>
                         <em><?= e($bulkMessage) ?></em>
                     <?php endif; ?>
@@ -167,7 +167,7 @@
                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="action" value="student_upload_requirement">
                         <input type="hidden" name="requirement_key" value="<?= e($key) ?>">
-                        <input required type="file" name="requirement_file" accept=".pdf,.jpg,.jpeg,.png">
+                        <input required type="file" name="requirement_file">
                         <button class="btn btn-small" type="submit"><?= $requirementStatus === 'rejected' ? 'Replace File' : 'Upload' ?></button>
                     </form>
                     <?php elseif (!$hasRequirementFile): ?>

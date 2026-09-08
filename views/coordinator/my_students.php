@@ -358,7 +358,7 @@ ksort($termOptions);
                         <h2>Review Documents</h2>
                         <p><?= e($s['name']) ?> &middot; <?= e($s['student_no']) ?></p>
                     </div>
-                    <span class="badge <?= e($s['predeployment_status'] ?? 'not_submitted') ?>" data-modal-status-badge><?= e(str_replace('_', ' ', $s['predeployment_status'] ?? 'not_submitted')) ?></span>
+                    <span class="badge <?= e($predeployment['class']) ?>" data-modal-status-badge><?= e($predeployment['label']) ?></span>
                 </div>
                 <div class="requirement-review-modal-body">
                     <div class="requirement-review-modal-summary">
@@ -369,7 +369,8 @@ ksort($termOptions);
                         <?php foreach ($studentRequirements as $req): ?>
                             <?php
                                 $reqStatus = (string)($req['status'] ?? 'pending');
-                                $pipelineAdvanced = in_array((string)($s['predeployment_status'] ?? ''), ['forwarded', 'accepted', 'orientation_scheduled', 'orientation_completed'], true);
+                                $predeploymentStatus = (string)($s['predeployment_status'] ?? 'not_submitted');
+                                $pipelineAdvanced = in_array($predeploymentStatus, ['forwarded', 'accepted', 'orientation_scheduled', 'orientation_completed'], true);
                                 $canReviewReq = !empty($req['file_path']) && (
                                     $reqStatus === 'uploaded'
                                     || ($reqStatus === 'approved' && !$pipelineAdvanced)
@@ -379,7 +380,17 @@ ksort($termOptions);
                                 <div class="requirement-review-head">
                                     <div>
                                         <strong class="requirement-review-title"><?= e($req['requirement_name']) ?></strong>
-                                        <small class="muted"><?= !empty($req['file_path']) ? ($reqStatus === 'approved' ? 'Approved — you can still reject before forwarding' : 'Uploaded file ready for review') : 'No file uploaded yet' ?></small>
+                                        <small class="muted"><?php
+                                            if (empty($req['file_path'])) {
+                                                echo 'No file uploaded yet';
+                                            } elseif ($reqStatus === 'approved') {
+                                                echo $pipelineAdvanced ? 'Approved' : 'Approved — you can still reject before forwarding';
+                                            } elseif ($canReviewReq) {
+                                                echo 'Uploaded file ready for review';
+                                            } else {
+                                                echo 'Uploaded';
+                                            }
+                                        ?></small>
                                     </div>
                                     <span class="badge <?= e($req['status'] ?? 'pending') ?>" data-req-status-badge><?= e($req['status'] ?? 'pending') ?></span>
                                 </div>

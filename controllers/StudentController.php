@@ -993,8 +993,8 @@ class StudentController extends BaseController
             throw new RuntimeException('Report file must not exceed 10MB.');
         }
         $allowed = ['application/pdf' => 'pdf'];
-        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
-        if (!isset($allowed[$mime])) {
+        $ext = resolve_upload_extension((string)($file['tmp_name'] ?? ''), $allowed, (string)($file['name'] ?? ''));
+        if ($ext !== 'pdf') {
             throw new RuntimeException('Weekly report upload must be PDF.');
         }
         $dir = __DIR__ . '/../uploads/reports';
@@ -1033,12 +1033,6 @@ class StudentController extends BaseController
             'application/x-pdf' => 'pdf',
             'application/acrobat' => 'pdf',
         ];
-        $extMap = [
-            'jpg' => 'jpg',
-            'jpeg' => 'jpg',
-            'png' => 'png',
-            'pdf' => 'pdf',
-        ];
         $dir = __DIR__ . '/../uploads/proof/' . $studentId;
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
@@ -1046,7 +1040,6 @@ class StudentController extends BaseController
 
         $count = count($files['name']);
         $seenInRequest = [];
-        $finfo = new finfo(FILEINFO_MIME_TYPE);
         for ($i = 0; $i < $count; $i++) {
             if (($files['error'][$i] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
                 continue;
@@ -1060,13 +1053,8 @@ class StudentController extends BaseController
                 continue;
             }
 
-            $mime = (string)$finfo->file($tmpName);
             $originalName = basename((string)$files['name'][$i]);
-            $extFromName = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
-            $ext = $allowed[$mime] ?? null;
-            if ($ext === null && in_array($mime, ['application/octet-stream', 'application/octetstream', ''], true)) {
-                $ext = $extMap[$extFromName] ?? null;
-            }
+            $ext = resolve_upload_extension($tmpName, $allowed, $originalName);
             if ($ext === null) {
                 continue;
             }

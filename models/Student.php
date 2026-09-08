@@ -692,8 +692,7 @@ class Student
         if (($this->requirementOwner($key) ?? 'student') !== 'student') {
             throw new RuntimeException('Only student-uploaded documents can be reviewed here.');
         }
-        // Stage 1 keeps its "student must submit for review first" gate, except late uploads
-        // while the student is already in the deployment pipeline (e.g. late-added requirement).
+        // Stage 1: uploaded files are reviewable even if predeployment_status is still not_submitted.
         if ($stage === 1 && !$this->canCoordinatorReviewStage1Requirement($studentId, $key)) {
             throw new RuntimeException('This requirement is not ready for coordinator review.');
         }
@@ -1014,33 +1013,21 @@ class Student
 
     public function canCoordinatorReviewStage1Requirement(int $studentId, string $key): bool
     {
-        $requirement = $this->requirementRow($studentId, $key);
-        if ($requirement === null || empty($requirement['file_path'])) {
+        if (!$this->canCoordinatorReviewUploadedRequirement($studentId, $key)) {
             return false;
         }
-        $status = (string)($requirement['status'] ?? '');
-        if ($status === 'approved') {
-            $enrollment = (new Enrollment($this->db))->byStudent($studentId);
-            if (!$enrollment) {
-                return false;
-            }
-            $predeploymentStatus = $this->normalizePredeploymentStatus($enrollment['predeployment_status'] ?? 'not_submitted');
 
-            return !$this->isPredeploymentPipelineAdvanced($predeploymentStatus);
-        }
-        if ($status !== 'uploaded') {
-            return false;
-        }
-        $enrollment = (new Enrollment($this->db))->byStudent($studentId);
-        if (!$enrollment) {
-            return false;
-        }
-        $predeploymentStatus = $this->normalizePredeploymentStatus($enrollment['predeployment_status'] ?? 'not_submitted');
-        if (in_array($predeploymentStatus, ['submitted', 'needs_revision', 'approved'], true)) {
+        $requirement = $this->requirementRow($studentId, $key);
+        if (($requirement['status'] ?? '') !== 'approved') {
             return true;
         }
 
-        return $this->isPredeploymentPipelineAdvanced($predeploymentStatus);
+        $enrollment = (new Enrollment($this->db))->byStudent($studentId);
+        if (!$enrollment) {
+            return true;
+        }
+
+        return !$this->isPredeploymentPipelineAdvanced($enrollment['predeployment_status'] ?? null);
     }
 
     /**

@@ -180,7 +180,7 @@ $inactivePartners = $totalPartners - $activePartners;
                         <div class="partner-create-footer">
                             <label class="partner-upload-field">
                                 <span class="partner-upload-title">Upload MOA/MOU <span class="field-required">*</span></span>
-                                <input form="create-partner-form" required type="file" name="moa_mou_file" accept=".pdf,.jpg,.jpeg,.png">
+                                <input form="create-partner-form" required type="file" name="moa_mou_file">
                                 <small class="muted partner-upload-note">Required. PDF, JPG, or PNG up to 8MB.</small>
                             </label>
                             <button form="create-partner-form" class="btn partner-create-btn" type="submit">
@@ -498,7 +498,7 @@ $inactivePartners = $totalPartners - $activePartners;
                     <div class="partner-field partner-field--span-2 asu-partner-edit-moa">
                         <span class="partner-field-label">MOA / MOU File</span>
                         <label class="asu-partner-edit-moa-drop">
-                            <input type="file" name="moa_mou_file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                            <input type="file" name="moa_mou_file">
                             <span class="asu-partner-edit-moa-icon" aria-hidden="true">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>

@@ -132,7 +132,7 @@
                                         <p class="muted">or <button type="button" class="wr-browse-btn" data-wr-browse>click to browse</button></p>
                                         <p class="muted small">You can upload multiple JPG, PNG, or PDF files.</p>
                                     </div>
-                                    <input type="file" data-wr-file-input name="proof_files[]" multiple accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" hidden>
+                                    <input type="file" data-wr-file-input name="proof_files[]" multiple hidden>
                                 </div>
                                 <div class="wr-preview-row" data-wr-preview></div>
                                 <p class="wr-file-limits"><span class="muted">JPG, PNG, PDF · multiple files allowed</span> <span class="muted">Max 10MB each</span></p>
@@ -471,7 +471,7 @@
                         <p class="muted">or <button type="button" class="wr-browse-btn" data-wr-browse>click to browse</button></p>
                         <p class="muted small">You can upload multiple images (JPG, PNG) or PDF files at once.</p>
                     </div>
-                    <input type="file" data-wr-file-input name="proof_files[]" multiple accept="image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf" hidden>
+                    <input type="file" data-wr-file-input name="proof_files[]" multiple hidden>
                 </div>
                 <div class="wr-preview-row" data-wr-preview></div>
                 <p class="wr-file-limits"><span class="muted">JPG, PNG, PDF · multiple files allowed</span> <span class="muted">Max file size: 10MB each</span></p>

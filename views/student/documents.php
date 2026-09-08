@@ -174,7 +174,7 @@
                                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                                             <input type="hidden" name="action" value="student_upload_requirement">
                                             <input type="hidden" name="requirement_key" value="<?= e($key) ?>">
-                                            <input required type="file" name="requirement_file" accept=".pdf,.jpg,.jpeg,.png">
+                                            <input required type="file" name="requirement_file">
                                             <button class="btn btn-small" type="submit"><?= $reqStatus === 'rejected' ? 'Replace File' : 'Upload' ?></button>
                                         </form>
                                     <?php elseif ($owner === 'student' && !$canUpload && $uploadMessage !== ''): ?>

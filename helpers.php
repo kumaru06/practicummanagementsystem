@@ -1108,6 +1108,58 @@ function random_password(int $length = 12): string
     return $password;
 }
 
+/**
+ * Resolve a safe upload extension from MIME, file magic, then generic iOS types.
+ * iPhone Files often sends PDFs as application/octet-stream with an empty browser type.
+ *
+ * @param array<string, string> $allowedMimeToExt
+ */
+function resolve_upload_extension(string $tmpPath, array $allowedMimeToExt, string $originalName = ''): ?string
+{
+    if ($tmpPath === '' || !is_file($tmpPath)) {
+        return null;
+    }
+
+    $mime = (string)((new finfo(FILEINFO_MIME_TYPE))->file($tmpPath) ?: '');
+    if (isset($allowedMimeToExt[$mime])) {
+        return $allowedMimeToExt[$mime];
+    }
+
+    $header = (string)file_get_contents($tmpPath, false, null, 0, 8);
+    $sniffed = null;
+    if (str_starts_with($header, '%PDF')) {
+        $sniffed = 'pdf';
+    } elseif (strlen($header) >= 3 && str_starts_with($header, "\xFF\xD8\xFF")) {
+        $sniffed = 'jpg';
+    } elseif (str_starts_with($header, "\x89PNG")) {
+        $sniffed = 'png';
+    }
+    if ($sniffed !== null && in_array($sniffed, $allowedMimeToExt, true)) {
+        return $sniffed;
+    }
+
+    $genericMimes = [
+        'application/octet-stream',
+        'application/octetstream',
+        'binary/octet-stream',
+        'inode/x-empty',
+        '',
+    ];
+    if (!in_array($mime, $genericMimes, true)) {
+        return null;
+    }
+
+    $extFromName = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+    if ($extFromName === 'jpeg') {
+        $extFromName = 'jpg';
+    }
+    if ($extFromName !== '' && in_array($extFromName, $allowedMimeToExt, true)) {
+        return $extFromName;
+    }
+
+    return null;
+}
+
 function upload_cor(array $file): string
 {
     if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
@@ -1122,13 +1174,12 @@ function upload_cor(array $file): string
         'image/jpeg' => 'jpg',
         'image/png' => 'png',
     ];
-    $finfo = new finfo(FILEINFO_MIME_TYPE);
-    $mime = $finfo->file($file['tmp_name']);
-    if (!isset($allowed[$mime])) {
+    $ext = resolve_upload_extension((string)($file['tmp_name'] ?? ''), $allowed, (string)($file['name'] ?? ''));
+    if ($ext === null) {
         throw new RuntimeException('COR must be a PDF, JPG, or PNG file.');
     }
 
-    $name = bin2hex(random_bytes(16)) . '.' . $allowed[$mime];
+    $name = bin2hex(random_bytes(16)) . '.' . $ext;
     $targetDir = __DIR__ . '/uploads/cor';
     if (!is_dir($targetDir)) {
         mkdir($targetDir, 0755, true);
@@ -1250,8 +1301,8 @@ function upload_document(array $file, string $folder = 'documents', bool $requir
         'image/jpeg' => 'jpg',
         'image/png' => 'png',
     ];
-    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
-    if (!isset($allowed[$mime])) {
+    $ext = resolve_upload_extension((string)($file['tmp_name'] ?? ''), $allowed, (string)($file['name'] ?? ''));
+    if ($ext === null) {
         throw new RuntimeException('Upload must be a PDF, JPG, or PNG file.');
     }
 
@@ -1260,7 +1311,7 @@ function upload_document(array $file, string $folder = 'documents', bool $requir
     if (!is_dir($targetDir)) {
         mkdir($targetDir, 0755, true);
     }
-    $name = bin2hex(random_bytes(16)) . '.' . $allowed[$mime];
+    $name = bin2hex(random_bytes(16)) . '.' . $ext;
     if (!move_uploaded_file($file['tmp_name'], $targetDir . '/' . $name)) {
         throw new RuntimeException('Unable to save uploaded file.');
     }

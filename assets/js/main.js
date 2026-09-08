@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initRegistrationRequestsReview();
     initPasswordResetRequests();
     initNotifications();
+    try { initIosDocumentFilePickers(); } catch (err) { console.warn('iOS document picker init failed:', err); }
     try { initWeeklyReportUpload(); } catch (err) { console.warn('Weekly report upload init failed:', err); }
     try { initWeeklyReportResubmitDateRange(); } catch (err) { console.warn('Weekly report date range init failed:', err); }
     initMoaLibrary();
@@ -8824,6 +8825,58 @@ function initAdminStudentsDirectory() {
     });
 }
 
+function isIosTouchDevice() {
+    const ua = navigator.userAgent || '';
+    if (/iPad|iPhone|iPod/i.test(ua)) return true;
+    return navigator.platform === 'MacIntel' && Number(navigator.maxTouchPoints || 0) > 1;
+}
+
+function mixedUploadAccept() {
+    return 'application/pdf,.pdf,.jpg,.jpeg,.png,image/jpeg,image/png';
+}
+
+function isImageOnlyFileInput(input) {
+    const name = String(input.name || '').toLowerCase();
+    if (name.includes('photo') || name.includes('signature')) {
+        return true;
+    }
+    const accept = String(input.getAttribute('accept') || input.dataset.originalAccept || '').toLowerCase();
+    if (!accept) return false;
+    const hasDocument = accept.includes('pdf') || accept.includes('msword') || accept.includes('.doc');
+    const hasImage = accept.includes('image') || accept.includes('.jpg') || accept.includes('.jpeg')
+        || accept.includes('.png') || accept.includes('.webp') || accept.includes('.gif');
+    return hasImage && !hasDocument;
+}
+
+function stripIosFileAccept(input) {
+    if (!input || input.type !== 'file' || isImageOnlyFileInput(input)) return;
+    const current = String(input.getAttribute('accept') || '');
+    if (current && !input.dataset.originalAccept) {
+        input.dataset.originalAccept = current;
+    }
+    input.removeAttribute('accept');
+    try { input.accept = ''; } catch (err) { /* Safari may throw on some inputs. */ }
+    if (input.hasAttribute('hidden')) {
+        input.removeAttribute('hidden');
+        input.classList.add('file-input-visually-hidden');
+    }
+}
+
+function initIosDocumentFilePickers() {
+    if (!isIosTouchDevice()) return;
+
+    document.querySelectorAll('input[type="file"]').forEach(stripIosFileAccept);
+
+    if (document.documentElement.dataset.iosFileUnlock === '1') return;
+    document.documentElement.dataset.iosFileUnlock = '1';
+    const unlockEvent = event => {
+        const input = event.target?.closest?.('input[type="file"]');
+        if (input) stripIosFileAccept(input);
+    };
+    document.addEventListener('pointerdown', unlockEvent, true);
+    document.addEventListener('touchstart', unlockEvent, { capture: true, passive: true });
+}
+
 function initWeeklyReportUpload() {
     document.querySelectorAll('[data-wr-upload], #weeklyReportForm').forEach(initWeeklyReportUploadForm);
 }
@@ -8844,14 +8897,18 @@ function initWeeklyReportUploadForm(form) {
     const charCurrent = form.querySelector('[data-char-current]');
     const MAX_SIZE = 10 * 1024 * 1024;
     const MAX_FILES = 12;
-    const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf', 'application/x-pdf'];
+    const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf', 'application/x-pdf', 'application/octet-stream', ''];
     const ALLOWED_EXTS = ['.jpg', '.jpeg', '.png', '.pdf'];
     /** @type {(File|null)[]} */
     let proofFiles = [];
     let syncingInput = false;
 
     fileInput.multiple = true;
-    fileInput.setAttribute('accept', 'image/jpeg,image/png,application/pdf,.jpg,.jpeg,.png,.pdf');
+    if (isIosTouchDevice()) {
+        stripIosFileAccept(fileInput);
+    } else {
+        fileInput.setAttribute('accept', mixedUploadAccept());
+    }
     if (!fileInput.name) {
         fileInput.name = 'proof_files[]';
     }
@@ -9348,6 +9405,7 @@ function reinitAppPageContent() {
     initPartnerPortalRoster();
     initPartnerSubmissions();
     initStudentModal();
+    try { initIosDocumentFilePickers(); } catch (err) { console.warn('iOS document picker init failed:', err); }
     try { initWeeklyReportUpload(); } catch (err) { console.warn('Weekly report upload init failed:', err); }
     try { initWeeklyReportResubmitDateRange(); } catch (err) { console.warn('Weekly report date range init failed:', err); }
     document.querySelectorAll('.content .data-table').forEach(table => enhanceTable(table));

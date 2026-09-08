@@ -328,7 +328,7 @@
 
                                 <label class="register-field register-file-field">
                                     <div class="register-cor-dropzone" data-cor-dropzone>
-                                        <input required type="file" name="cor_file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" id="registerCorInput">
+                                        <input required type="file" name="cor_file" id="registerCorInput">
                                         <div class="register-cor-dropzone-inner">
                                             <span class="register-cor-icon" aria-hidden="true">
                                                 <svg viewBox="0 0 24 24"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/></svg>
@@ -364,6 +364,6 @@
             </div>
         </main>
     </div>
-<script src="<?= e(asset('assets/js/main.js')) ?>?v=20260902-verify-ui"></script>
+<script src="<?= e(asset_url('assets/js/main.js')) ?>"></script>
 </body>
 </html>

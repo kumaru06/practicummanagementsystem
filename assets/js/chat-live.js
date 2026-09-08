@@ -10,7 +10,22 @@
     const MAX_CHARS = 2000;
     const MAX_IMAGES = 3;
     const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+    const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+    const ALLOWED_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
+
+    function isPdfAttachment(file) {
+        const mime = String((file && (file.mime || file.type)) || '').toLowerCase();
+        const name = String((file && (file.name || (file.file && file.file.name))) || '').toLowerCase();
+        return mime.indexOf('pdf') !== -1 || name.endsWith('.pdf');
+    }
+
+    function isAllowedChatFile(file) {
+        const type = String((file && file.type) || '').toLowerCase();
+        const name = String((file && file.name) || '').toLowerCase();
+        const ext = name.indexOf('.') !== -1 ? name.split('.').pop() : '';
+        if (ALLOWED_TYPES.indexOf(type) !== -1) return true;
+        return (type === '' || type === 'application/octet-stream') && ALLOWED_EXTS.indexOf(ext) !== -1;
+    }
 
     let unreadTimer = null;
 
@@ -159,6 +174,8 @@
         const threadSearchWrap = document.getElementById('chatThreadSearch');
         const threadSearchInput = document.getElementById('chatThreadSearchInput');
         const threadSearchBtn = document.getElementById('chatThreadSearchBtn');
+        const threadSearchClear = document.getElementById('chatThreadSearchClear');
+        const threadSearchBackdrop = document.getElementById('chatThreadSearchBackdrop');
         const lightbox = document.getElementById('chatLightbox');
         const lightboxImage = document.getElementById('chatLightboxImage');
         const lightboxDownload = document.getElementById('chatLightboxDownload');
@@ -166,7 +183,14 @@
         const morePop = document.getElementById('chatMorePop');
         const pinBar = document.getElementById('chatPinBar');
         const pinTextEl = document.getElementById('chatPinText');
+        const pinLabelEl = document.getElementById('chatPinLabel');
+        const pinCountEl = document.getElementById('chatPinCount');
         const pinJumpBtn = document.getElementById('chatPinJump');
+        const pinPop = document.getElementById('chatPinPop');
+        const pinPopList = document.getElementById('chatPinPopList');
+        const pinPopMeta = document.getElementById('chatPinPopMeta');
+        const pinPopClose = document.getElementById('chatPinPopClose');
+        const pinPopBackdrop = document.getElementById('chatPinPopBackdrop');
         const morePinBtn = document.getElementById('chatMorePin');
         const moreRemoveBtn = document.getElementById('chatMoreRemove');
         let popoverMessageId = 0;
@@ -373,9 +397,17 @@
         function attachmentHtml(files) {
             const cards = (files || []).map(function (file) {
                 const url = file.url || file.previewUrl || '';
-                const name = file.name || 'Photo';
+                const name = file.name || 'File';
+                if (!url && !isPdfAttachment(file)) return '';
+                if (isPdfAttachment(file)) {
+                    const href = url || '#';
+                    return '<a class="chat-file" href="' + escapeHtml(href) + '" target="_blank" rel="noopener" data-chat-name="' + escapeHtml(name) + '" data-chat-mime="application/pdf">' +
+                        '<span class="chat-file__icon" aria-hidden="true">PDF</span>' +
+                        '<span>' + escapeHtml(name) + '</span>' +
+                        '</a>';
+                }
                 if (!url) return '';
-                return '<button type="button" class="chat-media" data-chat-lightbox="' + escapeHtml(url) + '" data-chat-name="' + escapeHtml(name) + '">' +
+                return '<button type="button" class="chat-media" data-chat-lightbox="' + escapeHtml(url) + '" data-chat-name="' + escapeHtml(name) + '" data-chat-mime="' + escapeHtml(file.mime || file.type || '') + '">' +
                     '<img src="' + escapeHtml(url) + '" alt="' + escapeHtml(name) + '">' +
                     '<span>' + escapeHtml(name) + '</span>' +
                     '</button>';
@@ -511,22 +543,100 @@
             return data.message;
         }
 
-        function updatePinBar() {
-            if (!pinBar) return;
-            const pinned = thread.filter(function (message) {
+        function pinnedMessages() {
+            return thread.filter(function (message) {
                 return message.is_pinned && !message.is_deleted && Number(message.id) > 0;
             });
+        }
+
+        function pinPreview(message) {
+            const text = String((message && message.message_text) || '').trim();
+            if (text) return text;
+            const files = (message && message.attachments) || [];
+            if (!files.length) return 'Pinned message';
+            if (files.some(isPdfAttachment)) return files[0].name || 'PDF';
+            return files[0].name || 'Photo';
+        }
+
+        function closeSearchPanel() {
+            if (!threadSearchWrap) return;
+            threadSearchWrap.hidden = true;
+            threadSearchBtn?.classList.remove('is-active');
+            threadSearchBtn?.setAttribute('aria-expanded', 'false');
+        }
+
+        function openSearchPanel() {
+            closePinPop();
+            if (!threadSearchWrap) return;
+            threadSearchWrap.hidden = false;
+            threadSearchBtn?.classList.add('is-active');
+            threadSearchBtn?.setAttribute('aria-expanded', 'true');
+            threadSearchInput?.focus();
+        }
+
+        function closePinPop() {
+            if (pinPop) pinPop.hidden = true;
+        }
+
+        function renderPinPop() {
+            if (!pinPopList) return;
+            const pinned = pinnedMessages();
+            if (pinPopMeta) {
+                pinPopMeta.textContent = pinned.length === 1
+                    ? '1 pinned message'
+                    : pinned.length + ' pinned messages';
+            }
+            if (!pinned.length) {
+                pinPopList.innerHTML = '<p class="chat-float__empty">No pinned messages yet.</p>';
+                return;
+            }
+            pinPopList.innerHTML = pinned.slice().reverse().map(function (message) {
+                const preview = pinPreview(message);
+                const name = message.sender_name || (isMineMessage(message) ? 'You' : partnerName);
+                return '<button type="button" class="chat-pin-item" data-jump-id="' + Number(message.id) + '">' +
+                    '<span class="chat-pin-item__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2Z"/></svg></span>' +
+                    '<span class="chat-pin-item__copy">' +
+                    '<strong>' + escapeHtml(name) + '</strong>' +
+                    '<span>' + escapeHtml(preview) + '</span>' +
+                    '</span></button>';
+            }).join('');
+        }
+
+        function openPinPop() {
+            closeSearchPanel();
+            if (!pinPop) return;
+            renderPinPop();
+            pinPop.hidden = false;
+        }
+
+        function updatePinBar() {
+            if (!pinBar) return;
+            const pinned = pinnedMessages();
             if (!pinned.length) {
                 pinBar.hidden = true;
                 pinBar.dataset.messageId = '';
+                closePinPop();
                 return;
             }
             const latest = pinned[pinned.length - 1];
-            const preview = String(latest.message_text || '').trim() || ((latest.attachments || []).length ? 'Photo' : 'Pinned message');
+            const preview = pinPreview(latest);
             pinBar.hidden = false;
             pinBar.dataset.messageId = String(latest.id);
+            if (pinLabelEl) {
+                pinLabelEl.textContent = pinned.length > 1 ? 'Pinned messages' : 'Pinned message';
+            }
             if (pinTextEl) {
-                pinTextEl.textContent = preview.length > 48 ? preview.slice(0, 48) + '…' : preview;
+                pinTextEl.textContent = preview.length > 72 ? preview.slice(0, 72) + '…' : preview;
+            }
+            if (pinCountEl) {
+                pinCountEl.hidden = pinned.length < 2;
+                pinCountEl.textContent = String(pinned.length);
+            }
+            if (pinJumpBtn) {
+                pinJumpBtn.textContent = pinned.length > 1 ? 'View all' : 'View';
+            }
+            if (pinPop && !pinPop.hidden) {
+                renderPinPop();
             }
         }
 
@@ -875,10 +985,11 @@
                 if (id <= 0) return;
                 const quote = article.querySelector('.chat-message__quote');
                 const attachments = [];
-                article.querySelectorAll('.chat-media, .chat-thumb').forEach(function (thumb) {
+                article.querySelectorAll('.chat-media, .chat-file, .chat-thumb').forEach(function (thumb) {
                     attachments.push({
-                        url: thumb.getAttribute('data-chat-lightbox') || '',
-                        name: thumb.getAttribute('data-chat-name') || 'Photo',
+                        url: thumb.getAttribute('data-chat-lightbox') || thumb.getAttribute('href') || '',
+                        name: thumb.getAttribute('data-chat-name') || 'File',
+                        mime: thumb.getAttribute('data-chat-mime') || '',
                     });
                 });
                 rows.push({
@@ -1229,8 +1340,12 @@
             attachListEl.hidden = false;
             const percent = uploading ? Math.max(0, Math.min(100, Number(uploadProgress.percent) || 0)) : 0;
             attachListEl.innerHTML = files.map(function (item, index) {
+                const pdf = isPdfAttachment(item.file || item);
+                const preview = pdf
+                    ? '<span class="chat-attach-chip__file" aria-hidden="true">PDF</span>'
+                    : '<img src="' + escapeHtml(item.previewUrl) + '" alt="">';
                 return '<div class="chat-attach-chip">' +
-                    '<img src="' + escapeHtml(item.previewUrl) + '" alt="">' +
+                    preview +
                     '<span class="chat-attach-chip__meta">' +
                     '<strong>' + escapeHtml(item.file.name) + '</strong>' +
                     '<small>' + escapeHtml(formatBytes(item.file.size)) + (uploading ? ' · ' + percent + '%' : '') + '</small>' +
@@ -1238,7 +1353,7 @@
                         ? '<span class="chat-attach-progress" aria-hidden="true"><span style="width:' + percent + '%"></span></span>'
                         : '') +
                     '</span>' +
-                    (uploading ? '' : '<button type="button" class="chat-icon-btn" data-remove-file="' + index + '" aria-label="Remove image">×</button>') +
+                    (uploading ? '' : '<button type="button" class="chat-icon-btn" data-remove-file="' + index + '" aria-label="Remove file">×</button>') +
                     '</div>';
             }).join('');
         }
@@ -1246,20 +1361,20 @@
         function addFiles(fileList) {
             Array.from(fileList || []).forEach(function (file) {
                 if (pendingFiles.length >= MAX_IMAGES) {
-                    window.alert('You can attach up to 3 images.');
+                    window.alert('You can attach up to 3 files.');
                     return;
                 }
-                if (!ALLOWED_TYPES.includes(file.type)) {
-                    window.alert('Only JPG, PNG, and WebP images are allowed.');
+                if (!isAllowedChatFile(file)) {
+                    window.alert('Only JPG, PNG, WebP, and PDF files are allowed.');
                     return;
                 }
                 if (file.size > MAX_IMAGE_BYTES) {
-                    window.alert('Each image must be 5 MB or smaller.');
+                    window.alert('Each file must be 5 MB or smaller.');
                     return;
                 }
                 pendingFiles.push({
                     file: file,
-                    previewUrl: URL.createObjectURL(file),
+                    previewUrl: isPdfAttachment(file) ? '' : URL.createObjectURL(file),
                 });
             });
             renderAttachList();
@@ -1445,7 +1560,7 @@
                     created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
                     is_read: 0,
                     attachments: (payload.files || []).map(function (item) {
-                        return { url: item.previewUrl, name: item.file.name };
+                        return { url: item.previewUrl, name: item.file.name, mime: item.file.type || '' };
                     }),
                     reply: payload.replyToId ? { sender_name: payload.replyName, text: payload.replyText } : null,
                     _pending: true,
@@ -1558,6 +1673,8 @@
 
             saveDraft();
             closeMessagePops();
+            closeSearchPanel();
+            closePinPop();
             partnerListEl?.querySelectorAll('.chat-partner.is-active').forEach(function (el) {
                 el.classList.remove('is-active');
             });
@@ -1716,15 +1833,12 @@
 
         let searchTimer = null;
         async function runThreadSearch(query) {
-            let hits = document.getElementById('chatSearchHits');
-            if (!hits && threadSearchWrap) {
-                hits = document.createElement('div');
-                hits.id = 'chatSearchHits';
-                hits.className = 'chat-search-hits';
-                threadSearchWrap.appendChild(hits);
-            }
+            const hits = document.getElementById('chatSearchHits');
             if (!hits) return;
             query = String(query || '').trim();
+            if (threadSearchClear) {
+                threadSearchClear.hidden = query.length === 0;
+            }
             if (query.length < 2) {
                 hits.hidden = true;
                 hits.innerHTML = '';
@@ -1745,15 +1859,16 @@
                 const results = data.results || [];
                 if (!results.length) {
                     hits.hidden = false;
-                    hits.innerHTML = '<p>No matches in this conversation.</p>';
+                    hits.innerHTML = '<p class="chat-float__empty">No matches in this conversation.</p>';
                     return;
                 }
                 hits.hidden = false;
-                hits.innerHTML = results.map(function (row) {
-                    return '<button type="button" data-jump-id="' + Number(row.id) + '">' +
-                        '<strong>' + escapeHtml(row.sender_name || '') + '</strong>' +
-                        '<span>' + escapeHtml(row.message_text || '') + '</span></button>';
-                }).join('');
+                hits.innerHTML = '<p class="chat-search-hits__meta">' + results.length + ' match' + (results.length === 1 ? '' : 'es') + '</p>' +
+                    results.map(function (row) {
+                        return '<button type="button" class="chat-search-hit" data-jump-id="' + Number(row.id) + '">' +
+                            '<strong>' + escapeHtml(row.sender_name || '') + '</strong>' +
+                            '<span>' + escapeHtml(row.message_text || '') + '</span></button>';
+                    }).join('');
             } catch (error) {
                 hits.hidden = true;
             }
@@ -1805,6 +1920,10 @@
 
         attachBtn?.addEventListener('click', function () {
             if (!canSend) return;
+            if (fileInput) {
+                fileInput.removeAttribute('accept');
+                try { fileInput.accept = ''; } catch (err) {}
+            }
             fileInput?.click();
         });
 
@@ -1879,8 +1998,23 @@
             }
         });
 
-        pinJumpBtn?.addEventListener('click', function () {
-            jumpToMessage(pinBar?.dataset.messageId || '');
+        pinJumpBtn?.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (pinPop && !pinPop.hidden) {
+                closePinPop();
+                return;
+            }
+            openPinPop();
+        });
+
+        pinPopClose?.addEventListener('click', closePinPop);
+        pinPopBackdrop?.addEventListener('click', closePinPop);
+        pinPopList?.addEventListener('click', function (event) {
+            const jump = event.target.closest('[data-jump-id]');
+            if (!jump) return;
+            closePinPop();
+            jumpToMessage(jump.getAttribute('data-jump-id') || '');
         });
 
         reactPop?.addEventListener('click', function (event) {
@@ -1954,10 +2088,19 @@
 
         threadSearchBtn?.addEventListener('click', function () {
             if (!threadSearchWrap) return;
-            threadSearchWrap.hidden = !threadSearchWrap.hidden;
-            if (!threadSearchWrap.hidden) {
-                threadSearchInput?.focus();
+            if (threadSearchWrap.hidden) {
+                openSearchPanel();
+            } else {
+                closeSearchPanel();
             }
+        });
+
+        threadSearchBackdrop?.addEventListener('click', closeSearchPanel);
+        threadSearchClear?.addEventListener('click', function () {
+            if (!threadSearchInput) return;
+            threadSearchInput.value = '';
+            threadSearchInput.focus();
+            runThreadSearch('');
         });
 
         threadSearchInput?.addEventListener('input', function () {
@@ -1970,13 +2113,7 @@
         threadSearchWrap?.addEventListener('click', function (event) {
             const jump = event.target.closest('[data-jump-id]');
             if (!jump) return;
-            const id = jump.getAttribute('data-jump-id');
-            const target = messagesEl?.querySelector('[data-message-id="' + id + '"]');
-            if (target) {
-                target.scrollIntoView({ block: 'center' });
-                target.classList.add('is-search-hit');
-                window.setTimeout(function () { target.classList.remove('is-search-hit'); }, 1600);
-            }
+            jumpToMessage(jump.getAttribute('data-jump-id') || '');
         });
 
         document.getElementById('chatLightboxClose')?.addEventListener('click', closeLightbox);
@@ -1991,6 +2128,8 @@
             if (event.key === 'Escape') {
                 closeLightbox();
                 closeMessagePops();
+                closeSearchPanel();
+                closePinPop();
             }
         }
         window.addEventListener('keydown', onKeydown);
@@ -1998,6 +2137,8 @@
         window.__liveChatCleanup = function () {
             stopPolling();
             closeMessagePops();
+            closeSearchPanel();
+            closePinPop();
             clearPendingFiles();
             window.removeEventListener('beforeunload', stopPolling);
             window.removeEventListener('keydown', onKeydown);

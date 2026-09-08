@@ -467,7 +467,7 @@ $activeCoordinators = array_values(array_filter(
                         <label class="asu-create-field asu-create-field--full asu-create-file-field">
                             <span>COR PDF/JPG/PNG <em>*</em></span>
                             <div class="asu-create-file-row" data-asu-cor-dropzone>
-                                <input required type="file" name="cor_file" accept=".pdf,.jpg,.jpeg,.png" id="asuCorFileInput">
+                                <input required type="file" name="cor_file" id="asuCorFileInput">
                                 <button type="button" class="asu-create-file-choose" data-asu-cor-browse>Choose file</button>
                                 <span class="asu-create-file-name muted" data-asu-cor-filename>No file chosen</span>
                                 <button type="button" class="asu-create-file-clear" data-asu-cor-clear hidden aria-label="Remove file">&times;</button>

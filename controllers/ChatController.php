@@ -5,10 +5,9 @@ class ChatController
     private const MAX_MESSAGE_LENGTH = 2000;
     private const TYPING_TTL_SECONDS = 5;
     private const PAGE_SIZE = 30;
-    private const MAX_IMAGES = 3;
-    private const MAX_IMAGE_BYTES = 5242880;
+    private const MAX_FILES = 3;
+    private const MAX_FILE_BYTES = 5242880;
     private const HTE_LOOP_STATUSES = ['forwarded', 'accepted', 'orientation_scheduled', 'orientation_completed', 'approved'];
-    private const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'webp'];
     private const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
     private PDO $db;
@@ -1266,13 +1265,13 @@ class ChatController
         if ($uploadedFiles === []) {
             return;
         }
-        if (count($uploadedFiles) > self::MAX_IMAGES) {
-            throw new InvalidArgumentException('Maximum of 3 images per message.');
+        if (count($uploadedFiles) > self::MAX_FILES) {
+            throw new InvalidArgumentException('Maximum of 3 files per message.');
         }
 
         $dir = dirname(__DIR__) . '/uploads/chat/' . date('Y');
         if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
-            throw new RuntimeException('Unable to store the image.');
+            throw new RuntimeException('Unable to store the file.');
         }
 
         $insert = $this->db->prepare(
@@ -1281,12 +1280,12 @@ class ChatController
         );
 
         foreach ($uploadedFiles as $file) {
-            $validated = $this->validateImageUpload($file);
+            $validated = $this->validateChatUpload($file);
             $name = bin2hex(random_bytes(16)) . '.' . $validated['ext'];
             $absolute = $dir . '/' . $name;
             if (!move_uploaded_file($validated['tmp'], $absolute) && !rename($validated['tmp'], $absolute)) {
                 if (!copy($validated['tmp'], $absolute)) {
-                    throw new RuntimeException('Unable to store the image.');
+                    throw new RuntimeException('Unable to store the file.');
                 }
             }
             $insert->execute([
@@ -1300,50 +1299,38 @@ class ChatController
     }
 
     /** @param array<string, mixed> $file */
-    private function validateImageUpload(array $file): array
+    private function validateChatUpload(array $file): array
     {
         $error = (int)($file['error'] ?? UPLOAD_ERR_NO_FILE);
         if ($error !== UPLOAD_ERR_OK) {
-            throw new InvalidArgumentException('Image upload failed.');
+            throw new InvalidArgumentException('File upload failed.');
         }
         $tmp = (string)($file['tmp_name'] ?? '');
         $size = (int)($file['size'] ?? 0);
-        $original = basename((string)($file['name'] ?? 'image'));
+        $original = basename((string)($file['name'] ?? 'file'));
         if ($tmp === '' || !is_file($tmp)) {
-            throw new InvalidArgumentException('Image upload failed.');
+            throw new InvalidArgumentException('File upload failed.');
         }
-        if ($size <= 0 || $size > self::MAX_IMAGE_BYTES) {
-            throw new InvalidArgumentException('Each image must be 5 MB or smaller.');
-        }
-
-        $ext = strtolower(pathinfo($original, PATHINFO_EXTENSION));
-        if ($ext === 'jpeg') {
-            $ext = 'jpg';
-        }
-        if (!in_array($ext, self::IMAGE_EXTS, true)) {
-            throw new InvalidArgumentException('Only JPG, PNG, and WebP images are allowed.');
+        if ($size <= 0 || $size > self::MAX_FILE_BYTES) {
+            throw new InvalidArgumentException('Each file must be 5 MB or smaller.');
         }
 
-        $mime = (string)(mime_content_type($tmp) ?: '');
-        $allowedMimes = [
-            'jpg' => ['image/jpeg'],
-            'png' => ['image/png'],
-            'webp' => ['image/webp'],
+        $allowed = [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            'application/pdf' => 'pdf',
         ];
-        if (!in_array($mime, $allowedMimes[$ext] ?? [], true)) {
-            throw new InvalidArgumentException('The uploaded file is not a valid image.');
+        $ext = resolve_upload_extension($tmp, $allowed, $original);
+        if ($ext === null) {
+            throw new InvalidArgumentException('Only JPG, PNG, WebP, and PDF files are allowed.');
         }
-
-        $header = (string)file_get_contents($tmp, false, null, 0, 16);
-        $validMagic = match ($ext) {
-            'jpg' => str_starts_with($header, "\xFF\xD8\xFF"),
-            'png' => str_starts_with($header, "\x89PNG\r\n\x1A\n"),
-            'webp' => str_starts_with($header, 'RIFF') && str_contains($header, 'WEBP'),
-            default => false,
+        $mime = match ($ext) {
+            'jpg' => 'image/jpeg',
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            default => 'application/pdf',
         };
-        if (!$validMagic) {
-            throw new InvalidArgumentException('The uploaded file is not a valid image.');
-        }
 
         return [
             'tmp' => $tmp,

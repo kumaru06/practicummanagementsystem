@@ -80,7 +80,7 @@ $rowIndex = 0;
                     </div>
                     <label class="btn btn-small eval-upload-btn">
                         <span>Upload File</span>
-                        <input type="file" name="certificate_file" accept="application/pdf,image/jpeg,image/png" <?= empty($evaluation['certificate_file']) ? 'required' : '' ?> hidden id="evalCertInput">
+                        <input type="file" name="certificate_file" <?= empty($evaluation['certificate_file']) ? 'required' : '' ?> hidden id="evalCertInput">
                     </label>
                 </div>
                 <span class="eval-cert-name muted" id="evalCertName"></span>
