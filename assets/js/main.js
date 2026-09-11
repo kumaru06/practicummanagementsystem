@@ -1851,18 +1851,8 @@ function refreshTextMarquees() {
 
 function refreshTextMarquee(el) {
     if (!el) return;
-    const track = el.querySelector('.text-marquee__track');
-    const primary = track?.querySelector('.text-marquee__text:not(.text-marquee__clone)');
-    if (!track || !primary) return;
-
-    const overflowing = el.clientWidth > 0 && primary.scrollWidth > el.clientWidth + 1;
-    el.classList.toggle('is-active', overflowing);
-    if (overflowing) {
-        const seconds = Math.max(5, Math.min(18, primary.scrollWidth / 35));
-        el.style.setProperty('--marquee-duration', `${seconds}s`);
-    } else {
-        el.style.removeProperty('--marquee-duration');
-    }
+    el.classList.remove('is-active', 'text-marquee');
+    el.style.removeProperty('--marquee-duration');
 }
 
 function isSidebarLabelMarquee(el) {
@@ -1872,40 +1862,16 @@ function isSidebarLabelMarquee(el) {
 
 function setupTextMarquee(el) {
     if (!el) return;
-    if (el.dataset.marqueeReady === '1') {
-        refreshTextMarquee(el);
-        return;
-    }
 
     if (document.body.classList.contains('sidebar-collapsed') && isSidebarLabelMarquee(el)) {
         return;
     }
 
     const text = el.textContent.trim();
-    if (!text || el.clientWidth === 0 || getComputedStyle(el).display === 'none') return;
-
-    el.classList.add('text-marquee');
-    el.setAttribute('title', text);
-
-    const track = document.createElement('span');
-    track.className = 'text-marquee__track';
-
-    const primary = document.createElement('span');
-    primary.className = 'text-marquee__text';
-    primary.textContent = text;
-
-    const clone = document.createElement('span');
-    clone.className = 'text-marquee__text text-marquee__clone';
-    clone.setAttribute('aria-hidden', 'true');
-    clone.textContent = text;
-
-    track.append(primary, clone);
-    el.textContent = '';
-    el.append(track);
-    el.dataset.marqueeReady = '1';
-
+    if (text) {
+        el.setAttribute('title', text);
+    }
     refreshTextMarquee(el);
-    new ResizeObserver(() => refreshTextMarquee(el)).observe(el);
 }
 
 function isDesktopSidebarMode() {
@@ -2843,24 +2809,13 @@ function initPartnerSubmissions() {
     const setupMetaMarquees = () => {
         root.querySelectorAll('[data-ps-meta-marquee]').forEach(marquee => {
             const track = marquee.querySelector('.ps-v2-student-meta-track');
-            const first = track?.querySelector('small:first-child');
-            if (!track || !first) return;
-
+            if (!track) return;
             marquee.classList.remove('is-overflow');
             track.style.removeProperty('--ps-marquee-distance');
             track.style.removeProperty('--ps-marquee-duration');
-
-            if (first.scrollWidth > marquee.clientWidth + 2) {
-                const gap = 32;
-                const distance = first.scrollWidth + gap;
-                marquee.classList.add('is-overflow');
-                track.style.setProperty('--ps-marquee-distance', `-${distance}px`);
-                track.style.setProperty('--ps-marquee-duration', `${Math.max(7, distance / 24)}s`);
-            }
         });
     };
     setupMetaMarquees();
-    window.addEventListener('resize', setupMetaMarquees);
 
     const setSelectedStudent = studentId => {
         root.querySelectorAll('[data-student-id]').forEach(card => {

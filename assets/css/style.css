@@ -1041,7 +1041,7 @@ body.sidebar-collapsed {
 }
 
 body:not(.sidebar-collapsed) {
-    --sidebar-width: 260px;
+    --sidebar-width: 296px;
 }
 
 a {
@@ -1186,7 +1186,7 @@ small,
     position: relative;
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     min-height: 58px;
     overflow: hidden;
     padding-bottom: 14px;
@@ -1242,66 +1242,41 @@ small,
     white-space: nowrap;
 }
 
-/* Auto-scroll marquee for truncated labels */
-.text-marquee {
+/* Truncated labels stay still — no looping marquee */
+.text-marquee,
+.text-marquee.is-active {
     display: block;
     overflow: hidden;
     max-width: 100%;
     min-width: 0;
-}
-
-.text-marquee__track {
-    display: inline-flex;
-    align-items: center;
-    gap: 2.5rem;
+    text-overflow: ellipsis;
     white-space: nowrap;
-    will-change: transform;
+    -webkit-mask-image: none;
+    mask-image: none;
 }
 
-.text-marquee:not(.is-active) .text-marquee__clone {
+.text-marquee__track,
+.text-marquee.is-active .text-marquee__track {
+    display: block;
+    overflow: hidden;
+    max-width: 100%;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    animation: none;
+    will-change: auto;
+}
+
+.text-marquee__clone,
+.text-marquee.is-active .text-marquee__clone {
     display: none;
 }
 
-.text-marquee.is-active {
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
-    mask-image: linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
-}
-
-.text-marquee.is-active .text-marquee__track {
-    animation: text-marquee-scroll var(--marquee-duration, 10s) linear infinite;
-}
-
-.text-marquee.is-active:hover .text-marquee__track,
-.text-marquee.is-active:focus-visible .text-marquee__track {
-    animation-play-state: paused;
-}
-
-@keyframes text-marquee-scroll {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(calc(-50% - 1.25rem)); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .text-marquee.is-active .text-marquee__track {
-        animation: none;
-    }
-
-    .text-marquee.is-active {
-        -webkit-mask-image: none;
-        mask-image: none;
-        text-overflow: ellipsis;
-    }
-
-    .text-marquee.is-active .text-marquee__text:not(.text-marquee__clone) {
-        display: block;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 100%;
-    }
-
-    .text-marquee.is-active .text-marquee__clone {
-        display: none;
-    }
+.text-marquee.is-active .text-marquee__text:not(.text-marquee__clone) {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    white-space: nowrap;
 }
 
 
@@ -1557,7 +1532,7 @@ small,
     flex-direction: column;
     gap: 6px;
     margin-top: auto;
-    padding: 12px 10px 4px;
+    padding: 12px 8px 4px;
     border-top: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 5px;
     /* keep footer panel maroon/purple (avoid orange cast) */
@@ -11085,6 +11060,9 @@ body.is-confirm-open .app-confirm-overlay {
     line-height: 1.25;
     min-width: 0;
     max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .app-user-identity__meta small {
@@ -11109,6 +11087,9 @@ body.is-confirm-open .app-confirm-overlay {
 .app-user-identity--sidebar .app-user-identity__meta strong {
     color: #fff;
     font-size: 0.88rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .app-user-identity--sidebar .app-user-identity__meta small {
@@ -11117,6 +11098,7 @@ body.is-confirm-open .app-confirm-overlay {
     word-break: normal;
     white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .app-user-identity--sidebar .app-user-identity__avatar {
@@ -20598,57 +20580,40 @@ body.role-student .spf-v2 .spf-form select.pf-native-select:focus {
     white-space: nowrap;
 }
 .ps-v2-student-meta-track small {
-    display: inline-block;
+    display: block;
     margin: 0;
     font-size: 0.74rem;
     color: #64748b;
-    flex-shrink: 0;
-    vertical-align: top;
+    overflow: hidden;
+    max-width: 100%;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .ps-v2-student-meta-track small + small {
     display: none;
 }
 .ps-v2-student-meta-marquee.is-overflow .ps-v2-student-meta-track small + small {
-    display: inline-block;
+    display: none;
 }
-.ps-v2-student-meta-marquee {
+.ps-v2-student-meta-marquee,
+.ps-v2-student-meta-marquee.is-overflow {
     display: block;
     margin-top: 2px;
     max-width: 100%;
     min-width: 0;
     overflow: hidden;
-    -webkit-mask-image: linear-gradient(90deg, #000 92%, transparent);
-    mask-image: linear-gradient(90deg, #000 92%, transparent);
+    -webkit-mask-image: none;
+    mask-image: none;
 }
-.ps-v2-student-meta-marquee.is-overflow {
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-}
-.ps-v2-student-meta-track {
-    display: inline-flex;
-    gap: 2rem;
-    white-space: nowrap;
-    will-change: transform;
-}
+.ps-v2-student-meta-track,
 .ps-v2-student-meta-marquee.is-overflow .ps-v2-student-meta-track {
-    animation: ps-v2-student-meta-marquee var(--ps-marquee-duration, 10s) linear infinite;
-}
-.ps-v2-student-meta-marquee.is-overflow:hover .ps-v2-student-meta-track {
-    animation-play-state: paused;
-}
-@keyframes ps-v2-student-meta-marquee {
-    0%, 14% { transform: translateX(0); }
-    86%, 100% { transform: translateX(var(--ps-marquee-distance, -50%)); }
-}
-@media (prefers-reduced-motion: reduce) {
-    .ps-v2-student-meta-marquee.is-overflow .ps-v2-student-meta-track {
-        animation: none;
-    }
-    .ps-v2-student-meta-marquee.is-overflow {
-        overflow-x: auto;
-        -webkit-mask-image: none;
-        mask-image: none;
-    }
+    display: block;
+    overflow: hidden;
+    max-width: 100%;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    animation: none;
+    will-change: auto;
 }
 .ps-v2-student-pending {
     min-width: 24px;
