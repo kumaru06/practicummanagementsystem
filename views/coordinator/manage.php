@@ -54,7 +54,7 @@ $totalStudents = count($students);
             </div>
             <button class="btn btn-primary enr-enroll-btn" type="button" data-enr-open-wizard<?= $unenrolledCount === 0 ? ' disabled' : '' ?>>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-                Enroll Student
+                Assign OJT Placement
             </button>
         </div>
 
@@ -144,8 +144,7 @@ $totalStudents = count($students);
                     <svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </div>
                 <div>
-                    <h2 id="enrWizardTitle">Enroll Student in OJT</h2>
-                    <p>Assign a host training establishment. Enrollment email is sent to the student. The endorsement letter is generated automatically when you forward approved 1st to Comply documents.</p>
+                    <h2 id="enrWizardTitle">Assign OJT Placement</h2>
                 </div>
             </div>
             <button type="button" class="enr-wizard-modal-close" id="enrWizardClose" aria-label="Close">
@@ -154,7 +153,7 @@ $totalStudents = count($students);
         </div>
 
         <div class="enr-wizard-modal-body" id="enrollment-wizard-panel">
-            <form method="post" class="form js-validate wizard-form enrollment-wizard-form" data-wizard data-confirm-submit="Enroll this student and send the company assignment email now? Please verify the student, company, dates, and required hours before continuing." data-confirm-title="Confirm OJT enrollment" data-confirm-ok="Enroll & send email" data-confirm-cancel="Review details" data-confirm-async="1" data-confirm-processing-title="Enrolling student..." data-confirm-processing-message="Saving the company assignment and sending the enrollment email. This may take a moment." data-confirm-success-title="Enrollment complete" data-confirm-success-ok="Done">
+            <form method="post" class="form js-validate wizard-form enrollment-wizard-form" data-wizard data-confirm-submit="Assign this OJT placement and send the company assignment email now? Please verify the student, company, dates, and required hours before continuing." data-confirm-title="Confirm OJT placement" data-confirm-ok="Assign & send email" data-confirm-cancel="Review details" data-confirm-async="1" data-confirm-processing-title="Assigning OJT placement..." data-confirm-processing-message="Saving the company assignment and sending the placement email. This may take a moment." data-confirm-success-title="OJT placement assigned" data-confirm-success-ok="Done">
                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="action" value="coordinator_enroll_student">
 
@@ -192,11 +191,18 @@ $totalStudents = count($students);
                 <div class="wizard-step">
                     <div class="enrollment-wizard-step-intro">
                         <h3>Placement details</h3>
-                        <p class="muted">Assign a host training establishment and confirm the academic term schedule.</p>
                     </div>
                     <label><span>Host Training Establishment <span class="field-required">*</span></span><select required name="company_id"><option value="">— Select Host Training Establishment —</option><?php foreach ($companies as $c): ?><option value="<?= (int)$c['id'] ?>" data-program-ids="<?= e($c['accepted_program_ids'] ?? '') ?>" data-moa-mou="<?= e($c['moa_document_url'] ?? '') ?>"><?= e($c['name'] . (!empty($c['accepted_programs']) ? ' — ' . $c['accepted_programs'] : '')) ?></option><?php endforeach; ?></select></label>
                     <div class="company-doc-preview enrollment-company-doc" data-company-doc-preview hidden>
-                        <div class="enrollment-company-doc-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 2.5L17.5 8H14V4.5Z"/></svg></div>
+                        <div class="enrollment-company-doc-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <path d="M14 2v6h6"/>
+                                <path d="M8 13h8"/>
+                                <path d="M8 17h8"/>
+                                <path d="M8 9h2"/>
+                            </svg>
+                        </div>
                         <div>
                             <span class="muted">Host Training Establishment MOA/MOU</span>
                             <a class="enrollment-company-doc-link" data-company-doc-link target="_blank" href="#">View document</a>
@@ -266,7 +272,7 @@ $totalStudents = count($students);
                         </button>
                         <button class="btn btn-primary enrollment-submit-btn" type="submit">
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 2 11 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                            <span class="btn-text">Enroll & Send Emails</span>
+                            <span class="btn-text">Assign OJT Placement</span>
                             <span class="spinner"></span>
                         </button>
                     </div>

@@ -35,3 +35,6 @@ Thumbs.db
 .vscode/
 *.swp
 .cursor/debug-*.log
+
+
+toast-v2-preview.html

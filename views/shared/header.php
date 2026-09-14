@@ -233,15 +233,20 @@ $headerRoute = (string)($_GET['r'] ?? ($user['role'] ?? 'admin'));
         </header>
         <div class="notif-panel" id="notifPanel" role="dialog" aria-label="Notifications" hidden>
             <div class="notif-panel-header">
-                <span class="notif-panel-title">Notifications</span>
+                <div class="notif-panel-heading">
+                    <span class="notif-panel-title">Notifications</span>
+                    <?php if (($unreadNotifications ?? 0) > 0): ?>
+                        <span class="notif-panel-count" data-notif-panel-count><?= (int)$unreadNotifications ?> new</span>
+                    <?php endif; ?>
+                </div>
             </div>
             <?php if (empty($notifications ?? [])): ?>
                 <div class="notif-empty">
                     <div class="notif-empty-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
                     </div>
-                    <p>You're all caught up!</p>
-                    <small>No new notifications.</small>
+                    <p>You're all caught up</p>
+                    <small>No new notifications right now.</small>
                 </div>
             <?php else: ?>
                 <div class="notif-list">
@@ -271,6 +276,5 @@ $headerRoute = (string)($_GET['r'] ?? ($user['role'] ?? 'admin'));
         </div>
         <section class="content">
             <div class="toast-stack" aria-live="polite">
-                <?php if ($m = flash('success')): ?><div class="toast success"><?= e($m) ?></div><?php endif; ?>
-                <?php if ($m = flash('error')): ?><div class="toast danger"><?= e($m) ?></div><?php endif; ?>
+                <?= render_flash_toasts() ?>
             </div>

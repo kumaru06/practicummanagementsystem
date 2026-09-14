@@ -464,16 +464,16 @@ $activeCoordinators = array_values(array_filter(
                                 <?php endforeach; ?>
                             </select>
                         </label>
-                        <label class="asu-create-field asu-create-field--full asu-create-file-field">
+                        <div class="asu-create-field asu-create-field--full asu-create-file-field">
                             <span>COR PDF/JPG/PNG <em>*</em></span>
                             <div class="asu-create-file-row" data-asu-cor-dropzone>
-                                <input required type="file" name="cor_file" id="asuCorFileInput">
+                                <input required type="file" name="cor_file" id="asuCorFileInput" tabindex="-1" aria-hidden="true">
                                 <button type="button" class="asu-create-file-choose" data-asu-cor-browse>Choose file</button>
                                 <span class="asu-create-file-name muted" data-asu-cor-filename>No file chosen</span>
                                 <button type="button" class="asu-create-file-clear" data-asu-cor-clear hidden aria-label="Remove file">&times;</button>
                             </div>
                             <small class="muted">PDF, JPG, or PNG. Login credentials are emailed now so the student can complete their profile and 1st to Comply before a company is assigned.</small>
-                        </label>
+                        </div>
                     </div>
                 </div>
             </div>

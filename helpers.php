@@ -446,6 +446,70 @@ function flash(?string $key = null, ?string $message = null): ?string
     return null;
 }
 
+/**
+ * Render a v2 toast notification card (success | danger | info | warning).
+ */
+function toast_html(string $message, string $type = 'success'): string
+{
+    $message = trim($message);
+    if ($message === '') {
+        return '';
+    }
+
+    $type = strtolower(trim($type));
+    if ($type === 'error') {
+        $type = 'danger';
+    }
+    if (!in_array($type, ['success', 'danger', 'info', 'warning'], true)) {
+        $type = 'success';
+    }
+
+    $labels = [
+        'success' => 'Success',
+        'danger' => 'Error',
+        'info' => 'Notice',
+        'warning' => 'Warning',
+    ];
+    $label = $labels[$type];
+
+    $icons = [
+        'success' => '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd"/></svg>',
+        'danger' => '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"/></svg>',
+        'info' => '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clip-rule="evenodd"/></svg>',
+        'warning' => '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 6a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 6Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd"/></svg>',
+    ];
+
+    return '<div class="toast toast-v2 ' . e($type) . '" role="status">'
+        . '<span class="toast-icon" aria-hidden="true">' . $icons[$type] . '</span>'
+        . '<div class="toast-body">'
+        . '<strong class="toast-label">' . e($label) . '</strong>'
+        . '<p class="toast-message">' . e($message) . '</p>'
+        . '</div>'
+        . '<button type="button" class="toast-close" aria-label="Dismiss notification">'
+        . '<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m6 6 8 8M14 6l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
+        . '</button>'
+        . '<span class="toast-progress" aria-hidden="true"></span>'
+        . '</div>';
+}
+
+function render_flash_toasts(): string
+{
+    $html = '';
+    if ($m = flash('success')) {
+        $html .= toast_html($m, 'success');
+    }
+    if ($m = flash('error')) {
+        $html .= toast_html($m, 'danger');
+    }
+    if ($m = flash('info')) {
+        $html .= toast_html($m, 'info');
+    }
+    if ($m = flash('warning')) {
+        $html .= toast_html($m, 'warning');
+    }
+    return $html;
+}
+
 function temporary_report_unlock_enabled(): bool
 {
     // Workflow bypass — only ever honored on local/dev. A stray

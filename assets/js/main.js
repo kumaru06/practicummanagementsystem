@@ -2286,25 +2286,99 @@ function initStudentMobileNav() {
     window.__closeStudentDocsSheet = closeDocsSheet;
 }
 
+function toastIcons() {
+    return {
+        success: '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd"/></svg>',
+        danger: '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"/></svg>',
+        info: '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clip-rule="evenodd"/></svg>',
+        warning: '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.168 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 6a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 6Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd"/></svg>',
+    };
+}
+
+function normalizeToastType(type = 'success') {
+    const value = String(type || 'success').toLowerCase();
+    if (value === 'error') return 'danger';
+    if (['success', 'danger', 'info', 'warning'].includes(value)) return value;
+    return 'success';
+}
+
+function toastLabelForType(type) {
+    return ({
+        success: 'Success',
+        danger: 'Error',
+        info: 'Notice',
+        warning: 'Warning',
+    })[normalizeToastType(type)] || 'Success';
+}
+
+function buildToastElement(message, type = 'success') {
+    const toastType = normalizeToastType(type);
+    const toast = document.createElement('div');
+    toast.className = `toast toast-v2 ${toastType}`;
+    toast.setAttribute('role', 'status');
+    toast.innerHTML = `
+        <span class="toast-icon" aria-hidden="true">${toastIcons()[toastType]}</span>
+        <div class="toast-body">
+            <strong class="toast-label">${toastLabelForType(toastType)}</strong>
+            <p class="toast-message"></p>
+        </div>
+        <button type="button" class="toast-close" aria-label="Dismiss notification">
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m6 6 8 8M14 6l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <span class="toast-progress" aria-hidden="true"></span>
+    `;
+    toast.querySelector('.toast-message').textContent = String(message || '');
+    return toast;
+}
+
+function dismissToast(toast, removeAfter = true) {
+    if (!toast || toast.dataset.dismissing === '1') return;
+    toast.dataset.dismissing = '1';
+    toast.classList.remove('show');
+    if (!removeAfter) return;
+    window.setTimeout(() => toast.remove(), 280);
+}
+
+function bindToastInteractions(toast, autoHideMs = 4200) {
+    if (!toast || toast.dataset.bound === '1') return;
+    toast.dataset.bound = '1';
+
+    const closeBtn = toast.querySelector('.toast-close');
+    let hideTimer = window.setTimeout(() => dismissToast(toast), autoHideMs);
+
+    const pause = () => {
+        toast.classList.add('is-paused');
+        window.clearTimeout(hideTimer);
+    };
+    const resume = () => {
+        toast.classList.remove('is-paused');
+        hideTimer = window.setTimeout(() => dismissToast(toast), 1600);
+    };
+
+    closeBtn?.addEventListener('click', () => {
+        window.clearTimeout(hideTimer);
+        dismissToast(toast);
+    });
+    toast.addEventListener('mouseenter', pause);
+    toast.addEventListener('mouseleave', resume);
+    toast.addEventListener('focusin', pause);
+    toast.addEventListener('focusout', resume);
+}
+
 function initToasts() {
     document.querySelectorAll('.toast').forEach((toast, i) => {
-        setTimeout(() => toast.classList.add('show'), 80 + i * 120);
-        setTimeout(() => toast.classList.remove('show'), 4200 + i * 150);
+        window.setTimeout(() => toast.classList.add('show'), 80 + i * 120);
+        bindToastInteractions(toast, 4200 + i * 150);
     });
 }
 
 function pushAppToast(message, type = 'success') {
     const stack = document.querySelector('.toast-stack');
     if (!stack || !message) return;
-    const toast = document.createElement('div');
-    toast.className = `toast ${type === 'error' ? 'danger' : 'success'}`;
-    toast.textContent = message;
+    const toast = buildToastElement(message, type);
     stack.appendChild(toast);
     requestAnimationFrame(() => toast.classList.add('show'));
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 220);
-    }, 4200);
+    bindToastInteractions(toast, 4200);
 }
 
 function setPartnerPasswordFeedback(form, message, isError = true) {
@@ -3970,6 +4044,7 @@ function initAdminCreateStudentModal() {
     };
 
     browseBtn?.addEventListener('click', () => fileInput?.click());
+
     clearBtn?.addEventListener('click', () => {
         if (!fileInput) return;
         fileInput.value = '';
@@ -4796,7 +4871,6 @@ function updateWizardSummary(form) {
             </span>
             <div>
                 <h3>Review & confirm</h3>
-                <p>Double-check the placement details before enrolling the student.</p>
             </div>
         </div>
         <div class="enr-confirm-grid">
@@ -4823,7 +4897,7 @@ function updateWizardSummary(form) {
         </div>
         <div class="enr-confirm-alert">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>This will enroll the student and email their enrollment details.</span>
+            <span>This will assign the OJT placement and email the student their details.</span>
         </div>`;
 }
 
@@ -6881,15 +6955,33 @@ function updateNotificationUnreadBadge(count) {
     let badge = trigger.querySelector('[data-notif-unread-count]');
     if (value <= 0) {
         badge?.remove();
+    } else {
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'notif-badge';
+            badge.setAttribute('data-notif-unread-count', '');
+            trigger.appendChild(badge);
+        }
+        badge.textContent = formatAdminBadgeCount(value);
+    }
+
+    const panel = document.getElementById('notifPanel');
+    const heading = panel?.querySelector('.notif-panel-heading');
+    let panelCount = panel?.querySelector('[data-notif-panel-count]');
+    if (!heading) return;
+
+    if (value <= 0) {
+        panelCount?.remove();
         return;
     }
-    if (!badge) {
-        badge = document.createElement('span');
-        badge.className = 'notif-badge';
-        badge.setAttribute('data-notif-unread-count', '');
-        trigger.appendChild(badge);
+
+    if (!panelCount) {
+        panelCount = document.createElement('span');
+        panelCount.className = 'notif-panel-count';
+        panelCount.setAttribute('data-notif-panel-count', '');
+        heading.appendChild(panelCount);
     }
-    badge.textContent = formatAdminBadgeCount(value);
+    panelCount.textContent = `${value} new`;
 }
 
 function initPasswordResetRequests() {
