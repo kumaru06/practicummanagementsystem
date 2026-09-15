@@ -46,7 +46,7 @@
     <div class="eval-detail-modal">
         <div class="eval-detail-head">
             <h2>Evaluation Breakdown</h2>
-            <button type="button" class="eval-detail-close" id="evalDetailClose">&times;</button>
+            <button type="button" class="eval-detail-close" id="evalDetailClose" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
         </div>
         <div class="eval-detail-body" id="evalDetailBody"></div>
     </div>
@@ -62,7 +62,8 @@ window.AMA_EVAL_CRITERIA = <?= json_encode(array_map(static fn ($d) => ['label' 
 .eval-detail-modal { background: #fff; border-radius: 12px; width: 95%; max-width: 640px; max-height: 90vh; overflow-y: auto; padding: 24px 26px; box-shadow: 0 12px 40px rgba(0,0,0,.18); }
 .eval-detail-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .eval-detail-head h2 { font-size: 1.15rem; font-weight: 800; }
-.eval-detail-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666; }
+.eval-detail-close { width: 36px; height: 36px; padding: 0; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 5px; cursor: pointer; color: #64748b; display: inline-flex; align-items: center; justify-content: center; line-height: 0; }
+.eval-detail-close svg { display: block; width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 .eval-detail-grade { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; }
 .eval-detail-grade strong { font-size: 1.8rem; color: #b91c1c; }
 .eval-detail-table { width: 100%; border-collapse: collapse; font-size: .88rem; }

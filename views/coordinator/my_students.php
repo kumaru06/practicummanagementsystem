@@ -5,7 +5,7 @@ $coordOjtStatus = static function (array $student): array {
         return ['key' => 'completed', 'label' => 'Completed', 'hint' => 'OJT completed', 'class' => 'completed'];
     }
     if ($status === 'active' && !empty($student['official_start_date'])) {
-        return ['key' => 'started', 'label' => 'Started', 'hint' => 'OJT in progress', 'class' => 'started'];
+        return ['key' => 'started', 'label' => 'OJT in Progress', 'hint' => '', 'class' => 'started'];
     }
     return ['key' => 'not_started', 'label' => 'Not Yet Started', 'hint' => 'No start date yet', 'class' => 'not-started'];
 };
@@ -65,7 +65,7 @@ ksort($termOptions);
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 11-2-2 1.41-1.41L10 11.17l3.59-3.59L15 9l-5 5z"/></svg>
             </div>
             <div class="ms-stat-body">
-                <span>OJT Started</span>
+                <span>OJT in Progress</span>
                 <strong data-ms-stat="started"><?= (int)($stats['started'] ?? 0) ?></strong>
             </div>
         </article>
@@ -113,7 +113,7 @@ ksort($termOptions);
                     <span class="visually-hidden">OJT Status</span>
                     <select data-ms-ojt-filter aria-label="Filter by OJT status">
                         <option value="all">OJT Status</option>
-                        <option value="started">Started</option>
+                        <option value="started">OJT in Progress</option>
                         <option value="not_started">Not Yet Started</option>
                         <option value="completed">Completed</option>
                     </select>
@@ -143,8 +143,6 @@ ksort($termOptions);
                         <th data-sort>OJT Status</th>
                         <th data-sort>OJT Start Date</th>
                         <th data-sort>OJT End Date</th>
-                        <th>Pre-Deployment</th>
-                        <th>Final &amp; Evaluations</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -173,6 +171,18 @@ ksort($termOptions);
                             $predeployment = $coordPredeploymentDisplay((string)($s['predeployment_status'] ?? 'not_submitted'), $hasPendingStage1);
                             $ojtEndDate = $s['projected_end_date'] ?? $s['end_date'] ?? null;
                             $termLabel = trim((string)($s['academic_term'] ?? ''));
+                            $profileDocs = [];
+                            foreach ($studentRequirements as $req) {
+                                $reqKey = (string)($req['requirement_key'] ?? '');
+                                if ((int)(Student::REQUIREMENTS[$reqKey]['stage'] ?? 0) !== 1) {
+                                    continue;
+                                }
+                                $profileDocs[] = [
+                                    'name' => (string)($req['requirement_name'] ?? $reqKey),
+                                    'status' => (string)($req['status'] ?? 'pending'),
+                                ];
+                            }
+                            $profileDocsJson = json_encode($profileDocs, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?: '[]';
                         ?>
                         <tr
                             data-ojt-status="<?= e($ojtStatus['key']) ?>"
@@ -196,21 +206,13 @@ ksort($termOptions);
                             <td>
                                 <div class="ms-ojt-status">
                                     <span class="ms-ojt-badge ms-ojt-badge--<?= e($ojtStatus['class']) ?>"><?= e($ojtStatus['label']) ?></span>
-                                    <small class="ms-ojt-hint"><?= e($ojtStatus['hint']) ?></small>
+                                    <?php if ($ojtStatus['hint'] !== ''): ?>
+                                        <small class="ms-ojt-hint"><?= e($ojtStatus['hint']) ?></small>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                             <td><span class="ms-date-cell"><?= e($formatOjtDate($s['official_start_date'] ?? null)) ?></span></td>
                             <td><span class="ms-date-cell"><?= e($formatOjtDate($ojtEndDate)) ?></span></td>
-                            <td>
-                                <?php if ($predeployment['reviewable']): ?>
-                                    <button class="ms-predeploy-badge ms-predeploy-badge--<?= e($predeployment['class']) ?> requirement-review-launch" type="button" data-review-modal="reviewModal-<?= (int)$s['id'] ?>"><?= e($predeployment['label']) ?></button>
-                                <?php else: ?>
-                                    <span class="ms-predeploy-badge ms-predeploy-badge--<?= e($predeployment['class']) ?>"><?= e($predeployment['label']) ?></span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <a class="ms-eval-progress <?= ($evalDone >= 2 && $pendingFinalReview === 0) ? 'is-complete' : 'is-pending' ?>" href="index.php?r=coordinator_student_final&amp;student_id=<?= (int)$s['id'] ?>"><?php if ($pendingFinalReview > 0): ?><?= (int)$pendingFinalReview ?> to review · <?php endif; ?><?= (int)$evalDone ?>/2 evals</a>
-                            </td>
                             <td class="coord-actions-cell">
                                 <button class="btn btn-small btn-ghost student-view-btn"
                                     data-name="<?= e($s['name']) ?>"
@@ -226,6 +228,11 @@ ksort($termOptions);
                                     data-company="<?= e($s['company_name'] ?? '-') ?>"
                                     data-status="<?= e($s['deployment_status'] ?? 'pending') ?>"
                                     data-predeployment-status="<?= e(str_replace('_', ' ', $s['predeployment_status'] ?? 'not_submitted')) ?>"
+                                    data-predeploy-label="<?= e($predeployment['label']) ?>"
+                                    data-predeploy-class="<?= e($predeployment['class']) ?>"
+                                    data-predeploy-reviewable="<?= $predeployment['reviewable'] ? '1' : '0' ?>"
+                                    data-review-modal-id="reviewModal-<?= (int)$s['id'] ?>"
+                                    data-pending-final-review="<?= (int)$pendingFinalReview ?>"
                                     data-orientation-datetime="<?= e($s['orientation_datetime'] ?? '') ?>"
                                     data-orientation-notes="<?= e($s['orientation_notes'] ?? '') ?>"
                                     data-official-start-date="<?= e($s['official_start_date'] ?? '') ?>"
@@ -238,6 +245,9 @@ ksort($termOptions);
                                     data-student-id="<?= (int)$s['id'] ?>"
                                     data-user-id="<?= (int)$s['user_id'] ?>"
                                     data-final-url="index.php?r=coordinator_student_final&amp;student_id=<?= (int)$s['id'] ?>"
+                                    data-eval-faculty="<?= e($coordEvalStatus) ?>"
+                                    data-eval-employer="<?= e($partnerEvalStatus) ?>"
+                                    data-documents="<?= e($profileDocsJson) ?>"
                                     data-csrf="<?= e(csrf_token()) ?>"
                                     type="button">View profile</button>
                             </td>
@@ -254,88 +264,10 @@ ksort($termOptions);
     </section>
 </div>
 
-<div class="modal" id="studentModal">
-    <div class="modal-card student-panel-modal">
-        <button class="modal-close student-panel-close" id="studentModalClose" type="button" aria-label="Close profile">&times;</button>
-        <div class="student-panel-hero">
-            <div class="student-panel-hero-content">
-                <span class="student-panel-avatar" id="sm-avatar-wrap">
-                    <img id="sm-photo" class="is-hidden" alt="">
-                    <span id="sm-initial" class="student-panel-avatar-fallback is-hidden"></span>
-                </span>
-                <div class="student-panel-hero-copy">
-                    <span class="student-panel-kicker">Student Profile</span>
-                    <h2 id="sm-name" class="student-panel-name"></h2>
-                    <p id="sm-email" class="student-panel-email"></p>
-                    <div class="student-panel-chips">
-                        <span class="student-panel-chip" id="sm-chip-id"></span>
-                        <span class="student-panel-chip" id="sm-chip-year"></span>
-                        <span class="student-panel-chip student-panel-chip-status" id="sm-chip-status"></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="student-panel-body">
-            <div class="student-panel-progress-card">
-                <div class="student-panel-progress-head">
-                    <span class="sm-label">OJT Progress</span>
-                    <strong id="sm-progress-text"></strong>
-                </div>
-                <div class="student-panel-progress-track"><span id="sm-progress-bar"></span></div>
-            </div>
-            <div class="student-panel-section">
-                <h3 class="student-panel-section-title">Academic Details</h3>
-                <div class="sm-details-grid student-panel-grid">
-                    <div class="student-panel-item student-panel-item-wide"><span class="sm-label">Course</span><strong id="sm-course"></strong></div>
-                    <div class="student-panel-item"><span class="sm-label">Birthdate</span><strong id="sm-birthdate"></strong></div>
-                    <div class="student-panel-item"><span class="sm-label">Year Level</span><strong id="sm-year-level"></strong></div>
-                </div>
-            </div>
-            <div class="student-panel-section">
-                <h3 class="student-panel-section-title">Contact &amp; Address</h3>
-                <div class="sm-details-grid student-panel-grid">
-                    <div class="student-panel-item"><span class="sm-label">Contact Number</span><strong id="sm-contact-number"></strong></div>
-                    <div class="student-panel-item student-panel-item-wide"><span class="sm-label">Home Address</span><strong id="sm-address"></strong></div>
-                </div>
-            </div>
-            <div class="student-panel-section">
-                <h3 class="student-panel-section-title">Deployment &amp; Orientation</h3>
-                <div class="sm-details-grid student-panel-grid">
-                    <div class="student-panel-item"><span class="sm-label">Company</span><strong id="sm-company"></strong></div>
-                    <div class="student-panel-item"><span class="sm-label">Pre-Deployment</span><div id="sm-predeployment"></div></div>
-                    <div class="student-panel-item"><span class="sm-label">Official OJT Start</span><strong id="sm-official-start"></strong></div>
-                    <div class="student-panel-item"><span class="sm-label">Projected End</span><strong id="sm-projected-end"></strong></div>
-                    <div class="student-panel-item student-panel-item-wide"><span class="sm-label">Orientation Date/Time</span><strong id="sm-orientation-datetime"></strong></div>
-                </div>
-            </div>
-            <div class="student-panel-section">
-                <h3 class="student-panel-section-title">Orientation Notes</h3>
-                <div class="student-panel-notes-box" id="sm-orientation-notes"></div>
-            </div>
-            <div class="student-panel-footer">
-                <div class="student-panel-doc-actions">
-                    <a id="sm-final-link" class="btn btn-small btn-primary" href="#">Open Final Section</a>
-                    <a id="sm-cor-link" class="btn btn-small btn-ghost is-hidden" target="_blank" href="#">View COR</a>
-                    <a id="sm-moa-link" class="btn btn-small btn-ghost is-hidden" target="_blank" href="#">View MOA/MOU</a>
-                </div>
-                <details class="student-panel-reset">
-                    <summary>Account Actions</summary>
-                    <div class="student-panel-reset-stack">
-                        <form method="post" class="student-panel-reset-form" id="sm-email-form">
-                            <input type="hidden" name="csrf_token" id="sm-email-csrf">
-                            <input type="hidden" name="action" value="coordinator_update_student_email">
-                            <input type="hidden" name="user_id" id="sm-email-user-id">
-                            <label class="student-panel-field-label">Update Email
-                                <input type="email" name="email" id="sm-email-input" required placeholder="Enter new email address">
-                            </label>
-                            <button class="btn btn-small" type="submit">Save Email</button>
-                        </form>
-                    </div>
-                </details>
-            </div>
-        </div>
-    </div>
-</div>
+<?php
+$studentProfileModalShowFinal = true;
+require __DIR__ . '/../shared/partials/student-profile-modal.php';
+?>
 
 <?php foreach ($students as $s): ?>
     <?php
@@ -352,7 +284,7 @@ ksort($termOptions);
     <?php if ($predeployment['reviewable']): ?>
         <div class="modal requirement-review-modal" id="reviewModal-<?= (int)$s['id'] ?>" data-student-id="<?= (int)$s['id'] ?>">
             <div class="modal-card requirement-review-modal-card">
-                <button class="modal-close requirement-review-modal-close" type="button" aria-label="Close review panel">&times;</button>
+                <button class="modal-close requirement-review-modal-close" type="button" aria-label="Close review panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
                 <div class="requirement-review-modal-header">
                     <div>
                         <h2>Review Documents</h2>

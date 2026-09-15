@@ -127,8 +127,9 @@ class CoordinatorController extends BaseController
         $enrollment = (new Enrollment($this->db))->detailsByStudent($studentId);
         $approvedHours = (new Report($this->db))->totalHours($studentId, true);
         $data = [
-            'title' => 'Final Requirements - ' . ($student['name'] ?? 'Student'),
+            'title' => 'Final Requirements',
             'student' => $student,
+            'enrollment' => $enrollment,
             'studentEvaluation' => $evalModel->getByStudent($studentId),
             'stage2Requirements' => $stage2Requirements,
             'stage3Requirements' => $stage3Requirements,
@@ -629,52 +630,5 @@ class CoordinatorController extends BaseController
             http_response_code(500);
             exit('Unable to generate the endorsement letter right now. Please try again later.');
         }
-    }
-
-    public function updateStudentEmail(): void
-    {
-        require_role('coordinator');
-        $p = $this->post();
-        $userId = (int)($p['user_id'] ?? 0);
-        $newEmail = strtolower(trim((string)($p['email'] ?? '')));
-        try {
-            if (!$userId || $newEmail === '') {
-                throw new RuntimeException('Invalid request.');
-            }
-            // Verify this student belongs to this coordinator
-            $stmt = $this->db->prepare(
-                'SELECT u.name, u.email AS current_email
-                 FROM students s
-                 JOIN users u ON u.id = s.user_id
-                 WHERE s.user_id = ? AND s.coordinator_id = ?
-                 LIMIT 1'
-            );
-            $stmt->execute([$userId, current_user()['id']]);
-            $studentUser = $stmt->fetch();
-            if (!$studentUser) {
-                throw new RuntimeException('You do not have permission to edit this student.');
-            }
-            $oldEmail = $studentUser['current_email'];
-            if ($oldEmail === $newEmail) {
-                throw new RuntimeException('The new email is the same as the current email.');
-            }
-            // Update the email in DB
-            (new User($this->db))->updateEmail($userId, $newEmail);
-            // Notify the student at their OLD email address
-            (new Email($this->db))->send(
-                $oldEmail,
-                'Your AMA OJT Portal Email Has Been Updated',
-                'email_changed',
-                'email_changed',
-                [
-                    'studentName' => $studentUser['name'],
-                    'newEmail'    => $newEmail,
-                ]
-            );
-            flash('success', 'Email updated. A notification was sent to the student\'s previous email address.');
-        } catch (Throwable $e) {
-            flash('error', $e->getMessage());
-        }
-        redirect('index.php?r=coordinator_students');
     }
 }

@@ -339,7 +339,15 @@ class AuthController extends BaseController
 
                 }
 
-
+                $birthdate = trim((string)($_POST['birthdate'] ?? ''));
+                if ($birthdate === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $birthdate)) {
+                    throw new RuntimeException('Select a valid birthdate.');
+                }
+                $birthdateObj = new DateTime($birthdate);
+                $age = (new DateTime())->diff($birthdateObj)->y;
+                if ($age < 20) {
+                    throw new RuntimeException('You must be at least 20 years old to be eligible for OJT.');
+                }
 
                 $corPath = upload_cor($_FILES['cor_file'] ?? []);
 
@@ -361,7 +369,9 @@ class AuthController extends BaseController
 
                     $yearLevel,
 
-                    $middleName !== '' ? $middleName : null
+                    $middleName !== '' ? $middleName : null,
+
+                    $birthdate
 
                 );
 

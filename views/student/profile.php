@@ -36,6 +36,14 @@ $verifiedTagSvg = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a6
 
 $hasLegacyAddressOnly = student_has_legacy_address_only($student ?? []);
 $displayAddress = student_display_address($student ?? []);
+$studentBirthdateRaw = trim((string)($student['birthdate'] ?? ''));
+$studentBirthdateDisplay = '—';
+if ($studentBirthdateRaw !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $studentBirthdateRaw)) {
+    $birthTs = strtotime($studentBirthdateRaw);
+    if ($birthTs) {
+        $studentBirthdateDisplay = date('F j, Y', $birthTs);
+    }
+}
 
 ?>
 
@@ -196,6 +204,14 @@ $displayAddress = student_display_address($student ?? []);
 
                         <div class="spf-meta-item">
 
+                            <dt><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M8 3v4M16 3v4M3 10h18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg> Birthdate</dt>
+
+                            <dd><?= e($studentBirthdateDisplay) ?></dd>
+
+                        </div>
+
+                        <div class="spf-meta-item">
+
                             <dt><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M5 20c0-3.87 3.13-7 7-7s7 3.13 7 7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg> Gender</dt>
 
                             <dd data-profile-gender-preview><?= e($currentGender !== '' ? $currentGender : '—') ?></dd>
@@ -299,6 +315,14 @@ $displayAddress = student_display_address($student ?? []);
                                     <span class="spf-field-label">Course <span class="spf-field-tag"><?= $verifiedTagSvg ?> Verified</span></span>
 
                                     <input required value="<?= e($student['course'] ?? '') ?>" disabled>
+
+                                </label>
+
+                                <label class="spf-field spf-field--readonly spf-field--full-row">
+
+                                    <span class="spf-field-label">Birthdate <span class="spf-field-tag"><?= $verifiedTagSvg ?> Verified</span></span>
+
+                                    <input value="<?= e($studentBirthdateDisplay) ?>" disabled readonly tabindex="-1" aria-readonly="true">
 
                                 </label>
 
@@ -548,7 +572,7 @@ $displayAddress = student_display_address($student ?? []);
 
             </div>
 
-            <button class="spf-crop-close" type="button" aria-label="Close crop editor" data-profile-crop-cancel>&times;</button>
+            <button class="spf-crop-close" type="button" aria-label="Close crop editor" data-profile-crop-cancel><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
 
         </div>
 

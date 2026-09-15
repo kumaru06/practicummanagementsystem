@@ -8,6 +8,8 @@ $deactivationReasons = [
 
 $students = $students ?? [];
 $programs = $programs ?? [];
+$requirementsByStudent = $requirementsByStudent ?? [];
+$studentEvaluationsByStudent = $studentEvaluationsByStudent ?? [];
 $totalStudents = count($students);
 $activeCount = count(array_filter($students, static fn($s) => !empty($s['is_active'])));
 $inactiveCount = max(0, $totalStudents - $activeCount);
@@ -158,6 +160,22 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
                             }
                             $fullName = trim($firstName . ' ' . $middleName . ' ' . $lastName);
                             $fullName = preg_replace('/\s+/', ' ', $fullName) ?: ($s['name'] ?? 'Student');
+                            $studentRequirements = $requirementsByStudent[(int)$s['id']] ?? [];
+                            $evalRow = $studentEvaluationsByStudent[(int)$s['id']] ?? [];
+                            $partnerEvalStatus = StudentEvaluation::statusFor($evalRow, 'industry_partner');
+                            $coordEvalStatus = StudentEvaluation::statusFor($evalRow, 'coordinator');
+                            $profileDocs = [];
+                            foreach ($studentRequirements as $req) {
+                                $reqKey = (string)($req['requirement_key'] ?? '');
+                                if ((int)(Student::REQUIREMENTS[$reqKey]['stage'] ?? 0) !== 1) {
+                                    continue;
+                                }
+                                $profileDocs[] = [
+                                    'name' => (string)($req['requirement_name'] ?? $reqKey),
+                                    'status' => (string)($req['status'] ?? 'pending'),
+                                ];
+                            }
+                            $profileDocsJson = json_encode($profileDocs, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?: '[]';
                         ?>
                         <tr data-program-id="<?= (int)($s['program_id'] ?? 0) ?>"
                             data-search="<?= e(strtolower(trim($lastName . ' ' . $firstName . ' ' . $middleName . ' ' . ($s['email'] ?? '') . ' ' . ($s['student_no'] ?? '') . ' ' . ($s['course'] ?? '') . ' ' . ($s['program_code'] ?? '')))) ?>">
@@ -223,7 +241,10 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
                                             data-moa-mou="<?= e($moaUrl) ?>"
                                             data-student-id="<?= (int)$s['id'] ?>"
                                             data-user-id="<?= (int)$s['user_id'] ?>"
-                                            data-coordinator="<?= e($s['coordinator_name'] ?? '—') ?>">
+                                            data-coordinator="<?= e($s['coordinator_name'] ?? '—') ?>"
+                                            data-eval-faculty="<?= e($coordEvalStatus) ?>"
+                                            data-eval-employer="<?= e($partnerEvalStatus) ?>"
+                                            data-documents="<?= e($profileDocsJson) ?>">
                                             <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg>
                                             View Profile
                                         </button>
@@ -293,73 +314,10 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
     </section>
 </div>
 
-<div class="modal" id="studentModal">
-    <div class="modal-card student-panel-modal">
-        <button class="modal-close student-panel-close" id="studentModalClose" type="button" aria-label="Close profile">&times;</button>
-        <div class="student-panel-hero">
-            <div class="student-panel-hero-content">
-                <span class="student-panel-avatar" id="sm-avatar-wrap">
-                    <img id="sm-photo" class="is-hidden" alt="">
-                    <span id="sm-initial" class="student-panel-avatar-fallback is-hidden"></span>
-                </span>
-                <div class="student-panel-hero-copy">
-                    <span class="student-panel-kicker">Student Profile</span>
-                    <h2 id="sm-name" class="student-panel-name"></h2>
-                    <p id="sm-email" class="student-panel-email"></p>
-                    <div class="student-panel-chips">
-                        <span class="student-panel-chip" id="sm-chip-id"></span>
-                        <span class="student-panel-chip" id="sm-chip-year"></span>
-                        <span class="student-panel-chip student-panel-chip-status" id="sm-chip-status"></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="student-panel-body">
-            <div class="student-panel-progress-card">
-                <div class="student-panel-progress-head">
-                    <span class="sm-label">OJT Progress</span>
-                    <strong id="sm-progress-text"></strong>
-                </div>
-                <div class="student-panel-progress-track"><span id="sm-progress-bar"></span></div>
-            </div>
-            <div class="student-panel-section">
-                <h3 class="student-panel-section-title">Academic Details</h3>
-                <div class="sm-details-grid student-panel-grid">
-                    <div class="student-panel-item student-panel-item-wide"><span class="sm-label">Course</span><strong id="sm-course"></strong></div>
-                    <div class="student-panel-item"><span class="sm-label">Birthdate</span><strong id="sm-birthdate"></strong></div>
-                    <div class="student-panel-item"><span class="sm-label">Year Level</span><strong id="sm-year-level"></strong></div>
-                    <div class="student-panel-item student-panel-item-wide admin-only-profile-field is-hidden"><span class="sm-label">Coordinator</span><strong id="sm-coordinator"></strong></div>
-                </div>
-            </div>
-            <div class="student-panel-section">
-                <h3 class="student-panel-section-title">Contact &amp; Address</h3>
-                <div class="sm-details-grid student-panel-grid">
-                    <div class="student-panel-item"><span class="sm-label">Contact Number</span><strong id="sm-contact-number"></strong></div>
-                    <div class="student-panel-item student-panel-item-wide"><span class="sm-label">Home Address</span><strong id="sm-address"></strong></div>
-                </div>
-            </div>
-            <div class="student-panel-section">
-                <h3 class="student-panel-section-title">Deployment &amp; Orientation</h3>
-                <div class="sm-details-grid student-panel-grid">
-                    <div class="student-panel-item"><span class="sm-label">Company</span><strong id="sm-company"></strong></div>
-                    <div class="student-panel-item"><span class="sm-label">Pre-Deployment</span><div id="sm-predeployment"></div></div>
-                    <div class="student-panel-item"><span class="sm-label">Official OJT Start</span><strong id="sm-official-start"></strong></div>
-                    <div class="student-panel-item"><span class="sm-label">Projected End</span><strong id="sm-projected-end"></strong></div>
-                    <div class="student-panel-item student-panel-item-wide"><span class="sm-label">Orientation Date/Time</span><strong id="sm-orientation-datetime"></strong></div>
-                </div>
-            </div>
-            <div class="student-panel-section">
-                <h3 class="student-panel-section-title">Orientation Notes</h3>
-                <div class="student-panel-notes-box" id="sm-orientation-notes"></div>
-            </div>
-            <div class="student-panel-footer admin-users-profile-footer is-hidden">
-                <div class="student-panel-doc-actions">
-                    <a id="sm-cor-link" class="btn btn-small btn-ghost is-hidden" target="_blank" href="#">View COR</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<?php
+$studentProfileModalShowFinal = false;
+require __DIR__ . '/../shared/partials/student-profile-modal.php';
+?>
 
 <?php
 $coordinators = $coordinators ?? [];
@@ -400,15 +358,15 @@ $activeCoordinators = array_values(array_filter(
                         </label>
                         <label class="asu-create-field">
                             <span>First Name <em>*</em></span>
-                            <input required name="first_name" autocomplete="given-name" pattern="[A-Za-z\s\-\.]+" title="First name must contain letters only" data-capitalize-words placeholder="Juan">
+                            <input required name="first_name" autocomplete="given-name" pattern="[A-Za-zÀ-ÖØ-öø-ÿ\s\-\.]+" title="First name must contain letters only (including ñ)" data-capitalize-words placeholder="Juan">
                         </label>
                         <label class="asu-create-field">
                             <span>Middle Name</span>
-                            <input name="middle_name" autocomplete="additional-name" pattern="[A-Za-z\s\-\.]*" title="Middle name must contain letters only" data-capitalize-words placeholder="Optional">
+                            <input name="middle_name" autocomplete="additional-name" pattern="[A-Za-zÀ-ÖØ-öø-ÿ\s\-\.]*" title="Middle name must contain letters only (including ñ)" data-capitalize-words placeholder="Optional">
                         </label>
                         <label class="asu-create-field">
                             <span>Last Name <em>*</em></span>
-                            <input required name="last_name" autocomplete="family-name" pattern="[A-Za-z\s\-\.]+" title="Last name must contain letters only" data-capitalize-words placeholder="Dela Cruz">
+                            <input required name="last_name" autocomplete="family-name" pattern="[A-Za-zÀ-ÖØ-öø-ÿ\s\-\.]+" title="Last name must contain letters only (including ñ)" data-capitalize-words placeholder="Dela Cruz">
                         </label>
                         <label class="asu-create-field asu-create-field--full">
                             <span>Email <em>*</em></span>

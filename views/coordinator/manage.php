@@ -31,7 +31,7 @@ $totalStudents = count($students);
                 <svg viewBox="0 0 24 24"><path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
             </div>
             <div class="enr-stat-body">
-                <span>Enrolled</span>
+                <span>Assigned</span>
                 <strong><?= $enrolledCount ?></strong>
             </div>
         </article>
@@ -61,7 +61,7 @@ $totalStudents = count($students);
         <div class="enr-toolbar">
             <div class="enr-filters" role="group" aria-label="Filter by status">
                 <button type="button" class="enr-filter-pill is-active" data-enrollment-filter="all">All <strong><?= $totalStudents ?></strong></button>
-                <button type="button" class="enr-filter-pill enr-filter-pill--enrolled" data-enrollment-filter="enrolled">Enrolled <strong><?= $enrolledCount ?></strong></button>
+                <button type="button" class="enr-filter-pill enr-filter-pill--enrolled" data-enrollment-filter="enrolled">Assigned <strong><?= $enrolledCount ?></strong></button>
                 <button type="button" class="enr-filter-pill enr-filter-pill--pending" data-enrollment-filter="unenrolled">Unenrolled <strong><?= $unenrolledCount ?></strong></button>
             </div>
             <div class="enr-toolbar-actions">
@@ -116,14 +116,14 @@ $totalStudents = count($students);
                                 <td>
                                     <span class="badge enrollment-status-badge <?= $isEnrolled ? 'enrolled' : 'unenrolled' ?>">
                                         <span class="enrollment-status-dot" aria-hidden="true"></span>
-                                        <?= $isEnrolled ? 'Enrolled' : 'Unenrolled' ?>
+                                        <?= $isEnrolled ? 'Assigned' : 'Unenrolled' ?>
                                     </span>
                                 </td>
                                 <td class="enr-col-action">
                                     <?php if ($isEnrolled): ?>
-                                        <span class="muted enr-action-muted">Enrolled</span>
+                                        <span class="muted enr-action-muted">Assigned</span>
                                     <?php else: ?>
-                                        <button type="button" class="btn btn-small enr-row-enroll" data-enr-enroll-student="<?= (int)$s['id'] ?>">Enroll</button>
+                                        <button type="button" class="btn btn-small enr-row-enroll" data-enr-enroll-student="<?= (int)$s['id'] ?>">Assign Placement</button>
                                     <?php endif; ?>
                                 </td>
                             </tr>

@@ -991,8 +991,9 @@ function initMoaLibrary() {
 
 function formatPersonNameValue(value) {
     return value
-        .replace(/[^A-Za-z\s\-\.]/g, '')
-        .replace(/\b[a-z]/g, char => char.toUpperCase());
+        // Allow Latin letters including ñ/Ñ and common accented chars (Filipino/Spanish names).
+        .replace(/[^A-Za-zÀ-ÖØ-öø-ÿ\s\-\.]/g, '')
+        .replace(/(^|[\s\-\.])([a-zà-öø-ÿ])/g, (_, boundary, char) => boundary + char.toUpperCase());
 }
 
 function initCapitalizeWordInputs() {
@@ -4814,8 +4815,8 @@ function initWizards() {
             const studentSelect = form.querySelector('[name="student_id"]');
             const selectedStudent = studentSelect?.selectedOptions?.[0];
             if (selectedStudent?.dataset.isEnrolled === '1') {
-                showAlertModal('This student is already enrolled. Please try again.', {
-                    title: 'Student already enrolled',
+                showAlertModal('This student is already assigned an OJT placement. Please try again.', {
+                    title: 'Student already assigned',
                     confirmText: 'OK'
                 });
                 studentSelect.value = '';
@@ -4954,8 +4955,8 @@ function initEnrollmentAutomation() {
                 resetCompanies();
                 syncCompanyDocument();
                 updateWizardSummary(form);
-                showAlertModal('This student is already enrolled. Please try again.', {
-                    title: 'Student already enrolled',
+                showAlertModal('This student is already assigned an OJT placement. Please try again.', {
+                    title: 'Student already assigned',
                     confirmText: 'OK'
                 });
                 return;
@@ -7225,16 +7226,16 @@ function initPasswordResetRequests() {
 }
 
 function initRequirementReviewModals() {
-    document.querySelectorAll('[data-review-modal]').forEach(button => {
-        button.addEventListener('click', e => {
-            e.preventDefault();
-            e.stopPropagation();
-            const modal = document.getElementById(button.dataset.reviewModal || '');
-            if (!modal) return;
-            closeStudentModal();
-            closeRequirementReviewModals(true);
-            openRequirementReviewModal(modal);
-        });
+    document.addEventListener('click', e => {
+        const button = e.target.closest('[data-review-modal]');
+        if (!button) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const modal = document.getElementById(button.dataset.reviewModal || '');
+        if (!modal) return;
+        closeStudentModal();
+        closeRequirementReviewModals(true);
+        openRequirementReviewModal(modal);
     });
 
     document.querySelectorAll('.requirement-review-modal').forEach(modal => {
@@ -7316,15 +7317,19 @@ function initRequirementReviewModals() {
                 }
                 const studentId = modal?.dataset.studentId;
                 if (studentId) {
-                    document.querySelectorAll('tr .student-predeployment-cell').forEach(cell => {
-                        const reviewBtn = cell.querySelector(`[data-review-modal="reviewModal-${studentId}"]`);
-                        if (!reviewBtn) return;
-                        const badge = cell.querySelector('.badge');
-                        if (badge) {
-                            badge.className = `badge ${data.predeployment_status}`;
-                            badge.textContent = data.predeployment_status.replace(/_/g, ' ');
-                        }
-                    });
+                    const statusKey = String(data.predeployment_status || 'not_submitted');
+                    const statusLabel = formatLabel(statusKey);
+                    const viewBtn = document.querySelector(`.student-view-btn[data-student-id="${studentId}"]`);
+                    if (viewBtn) {
+                        viewBtn.dataset.predeploymentStatus = statusLabel;
+                        viewBtn.dataset.predeployLabel = statusLabel;
+                        viewBtn.dataset.predeployClass = statusKey;
+                    }
+                    const profileBadge = document.getElementById('sm-predeploy-status');
+                    if (profileBadge) {
+                        profileBadge.className = `ms-predeploy-badge ms-predeploy-badge--${statusKey}`;
+                        profileBadge.textContent = statusLabel;
+                    }
                 }
             } catch (err) {
                 allBtns?.forEach(b => b.disabled = false);
@@ -7342,24 +7347,153 @@ function initStudentModal() {
     const modal = document.getElementById('studentModal');
     if (!modal) return;
 
+    const dash = '\u2014';
+    const displayValue = value => {
+        const text = String(value ?? '').trim();
+        return !text || text === '-' ? dash : text;
+    };
+    const setText = (id, value) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = value;
+        if (el.matches('dd')) {
+            el.classList.toggle('is-empty', value === dash);
+        }
+    };
+
     const formatDateTime = value => {
-        if (!value) return '\u2014';
+        if (!value) return dash;
         const normalized = String(value).replace(' ', 'T');
         const date = new Date(normalized);
         return Number.isNaN(date.getTime()) ? value : date.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
     };
 
     const formatDate = value => {
-        if (!value) return '\u2014';
+        if (!value) return dash;
         const date = new Date(`${value}T00:00:00`);
         return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     };
 
-    // Close handlers
-    document.getElementById('studentModalClose')?.addEventListener('click', closeStudentModal);
-    modal.addEventListener('click', e => { if (e.target === modal) closeStudentModal(); });
+    const parseDocuments = raw => {
+        try {
+            const parsed = JSON.parse(raw || '[]');
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    };
 
-    // Open handler - event delegation on table body
+    const setEvalPill = (id, status) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const submitted = String(status || '').toLowerCase() === 'submitted';
+        el.textContent = submitted ? 'Submitted' : 'Not Submitted';
+        el.classList.toggle('is-submitted', submitted);
+        el.classList.remove('is-uploaded');
+    };
+
+    let tabToken = 0;
+    const setStudentProfileTab = (tab, instant = false) => {
+        const key = tab || 'overview';
+        modal.querySelectorAll('[data-sp-tab]').forEach(btn => {
+            const on = btn.dataset.spTab === key;
+            btn.classList.toggle('is-active', on);
+            btn.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+
+        const body = modal.querySelector('.student-panel-body');
+        const panels = [...modal.querySelectorAll('[data-sp-panel]')];
+        const next = panels.find(panel => panel.dataset.spPanel === key);
+        if (!next) return;
+
+        const current = panels.find(panel => panel.classList.contains('is-active'));
+        if (current === next) {
+            next.hidden = false;
+            return;
+        }
+
+        panels.forEach(panel => {
+            if (panel !== current && panel !== next) {
+                panel.hidden = true;
+                panel.classList.remove('is-active', 'is-enter', 'is-leave');
+            }
+        });
+
+        const snap = () => {
+            panels.forEach(panel => {
+                const on = panel === next;
+                panel.hidden = !on;
+                panel.classList.toggle('is-active', on);
+                panel.classList.remove('is-enter', 'is-leave');
+            });
+            if (body) {
+                body.style.height = '';
+                body.classList.remove('is-tab-animating');
+            }
+        };
+
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (instant || reduceMotion || !current || !body) {
+            tabToken += 1;
+            snap();
+            return;
+        }
+
+        const token = ++tabToken;
+        const fromHeight = body.offsetHeight;
+        body.classList.add('is-tab-animating');
+        body.style.height = `${fromHeight}px`;
+
+        current.classList.remove('is-active', 'is-enter');
+        current.classList.add('is-leave');
+
+        next.hidden = false;
+        next.classList.add('is-active', 'is-enter');
+
+        const styles = getComputedStyle(body);
+        const toHeight = next.offsetHeight
+            + (Number.parseFloat(styles.paddingTop) || 0)
+            + (Number.parseFloat(styles.paddingBottom) || 0);
+
+        requestAnimationFrame(() => {
+            if (token !== tabToken) return;
+            body.style.height = `${Math.max(toHeight, 1)}px`;
+        });
+
+        const done = () => {
+            if (token !== tabToken) return;
+            current.hidden = true;
+            current.classList.remove('is-leave');
+            next.classList.remove('is-enter');
+            body.style.height = '';
+            body.classList.remove('is-tab-animating');
+            body.removeEventListener('transitionend', onEnd);
+        };
+        const onEnd = event => {
+            if (event.target !== body || event.propertyName !== 'height') return;
+            done();
+        };
+        body.addEventListener('transitionend', onEnd);
+        window.setTimeout(done, 420);
+    };
+
+    const docStatusClass = status => {
+        const key = String(status || '').toLowerCase().replaceAll(' ', '_');
+        if (['approved', 'available', 'on_file', 'submitted'].includes(key)) return 'is-submitted';
+        if (key === 'uploaded') return 'is-uploaded';
+        return '';
+    };
+
+    document.getElementById('studentModalClose')?.addEventListener('click', closeStudentModal);
+    modal.addEventListener('click', e => {
+        if (e.target === modal) closeStudentModal();
+        const tabBtn = e.target.closest('[data-sp-tab]');
+        if (tabBtn && modal.contains(tabBtn)) {
+            e.preventDefault();
+            setStudentProfileTab(tabBtn.dataset.spTab);
+        }
+    });
+
     document.addEventListener('click', e => {
         const btn = e.target.closest('.student-view-btn');
         if (!btn) return;
@@ -7391,43 +7525,115 @@ function initStudentModal() {
                 avatarWrap.classList.remove('has-photo');
             }
         }
-        document.getElementById('sm-name').textContent = d.name || '';
-        document.getElementById('sm-email').textContent = d.email || '';
-        document.getElementById('sm-chip-id').textContent = d.studentNo ? `ID ${d.studentNo}` : 'ID \u2014';
-        document.getElementById('sm-chip-year').textContent = d.yearLevel ? `${d.yearLevel}` : 'Year \u2014';
-        const statusChip = document.getElementById('sm-chip-status');
-        statusChip.textContent = formatLabel(d.status || 'pending');
-        statusChip.className = `student-panel-chip student-panel-chip-status is-${(d.status || 'pending').replaceAll('_', '-')}`;
 
-        document.getElementById('sm-course').textContent = d.course || '\u2014';
-        document.getElementById('sm-year-level').textContent = d.yearLevel || '\u2014';
-        const contactEl = document.getElementById('sm-contact-number');
-        if (contactEl) contactEl.textContent = d.contactNumber || '\u2014';
-        const addressEl = document.getElementById('sm-address');
-        if (addressEl) addressEl.textContent = d.address || '\u2014';
-        const bdRaw = d.birthdate || '';
-        document.getElementById('sm-birthdate').textContent = bdRaw ? new Date(bdRaw + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '\u2014';
-        document.getElementById('sm-company').textContent = d.company || '\u2014';
+        setText('sm-name', displayValue(d.name));
+        setText('sm-email', displayValue(d.email));
+        setText('sm-chip-id', d.studentNo ? `ID ${d.studentNo}` : `ID ${dash}`);
+        setText('sm-chip-year', d.yearLevel ? d.yearLevel : `Year ${dash}`);
+
+        const statusChip = document.getElementById('sm-chip-status');
+        if (statusChip) {
+            statusChip.textContent = formatLabel(d.status || 'pending');
+            statusChip.className = `student-panel-chip student-panel-chip-status is-${(d.status || 'pending').replaceAll('_', '-')}`;
+        }
+
+        setText('sm-course', displayValue(d.course));
+        setText('sm-year-level', displayValue(d.yearLevel));
+        setText('sm-contact-number', displayValue(d.contactNumber));
+        setText('sm-address', displayValue(d.address));
+        setText('sm-birthdate', formatDate(d.birthdate || ''));
+        setText('sm-company', displayValue(d.company));
 
         const percent = Math.max(0, Math.min(100, Number.parseInt(d.percent, 10) || 0));
-        document.getElementById('sm-progress-text').textContent = `${d.rendered} / ${d.required} hrs (${percent}%)`;
+        setText('sm-progress-text', `${d.rendered || '0'} / ${d.required || '0'} hrs (${percent}%)`);
         const progressBar = document.getElementById('sm-progress-bar');
         if (progressBar) progressBar.style.width = `${percent}%`;
 
-        const predeployEl = document.getElementById('sm-predeployment');
-        const predeployKey = String(d.predeploymentStatus || 'not submitted').toLowerCase().replaceAll(' ', '_');
-        predeployEl.innerHTML = `<span class="coord-status-pill ${escapeHtml(predeployKey)}">${escapeHtml(formatLabel(d.predeploymentStatus || 'Not submitted'))}</span>`;
+        const predeployKey = String(d.predeployClass || d.predeploymentStatus || 'not submitted').toLowerCase().replaceAll(' ', '_');
+        const predeployLabel = d.predeployLabel || formatLabel(d.predeploymentStatus || 'Not submitted');
+        const predeployStatus = document.getElementById('sm-predeploy-status');
+        if (predeployStatus) {
+            predeployStatus.className = `ms-predeploy-badge ms-predeploy-badge--${predeployKey}`;
+            predeployStatus.textContent = predeployLabel;
+        }
+        const predeployReview = document.getElementById('sm-predeploy-review');
+        if (predeployReview) {
+            const reviewable = d.predeployReviewable === '1';
+            const reviewModalId = (d.reviewModalId || '').trim();
+            if (reviewable && reviewModalId) {
+                predeployReview.dataset.reviewModal = reviewModalId;
+                predeployReview.classList.remove('is-hidden');
+            } else {
+                delete predeployReview.dataset.reviewModal;
+                predeployReview.classList.add('is-hidden');
+            }
+        }
 
-        document.getElementById('sm-orientation-datetime').textContent = formatDateTime(d.orientationDatetime || '');
-        document.getElementById('sm-official-start').textContent = formatDate(d.officialStartDate || '');
-        document.getElementById('sm-projected-end').textContent = formatDate(d.projectedEndDate || '');
-        document.getElementById('sm-orientation-notes').textContent = d.orientationNotes || 'No orientation instructions recorded yet.';
+        const orientationDone = predeployKey === 'orientation_completed' || Boolean(d.orientationDatetime);
+        const orientBadge = document.getElementById('sm-orientation-badge');
+        if (orientBadge) {
+            orientBadge.textContent = orientationDone ? 'Orientation Completed' : 'Pending';
+            orientBadge.classList.toggle('is-pending', !orientationDone);
+        }
+        document.getElementById('sm-orient-step')?.classList.toggle('is-done', orientationDone);
+        setText('sm-orient-title', orientationDone ? 'Orientation completed' : 'Orientation pending');
+        setText('sm-orientation-datetime', d.orientationDatetime ? formatDateTime(d.orientationDatetime) : 'Not scheduled');
+
+        const officialStart = formatDate(d.officialStartDate || '');
+        document.getElementById('sm-ojt-step')?.classList.toggle('is-done', Boolean(d.officialStartDate));
+        setText('sm-official-start', officialStart);
+        setText('sm-ojt-start-copy', officialStart);
+        setText('sm-projected-end', formatDate(d.projectedEndDate || ''));
+        setText('sm-orientation-notes', d.orientationNotes || 'No orientation instructions recorded yet.');
+
+        const facultyStatus = d.evalFaculty || 'pending';
+        const employerStatus = d.evalEmployer || 'pending';
+        const evalDone = (String(facultyStatus).toLowerCase() === 'submitted' ? 1 : 0)
+            + (String(employerStatus).toLowerCase() === 'submitted' ? 1 : 0);
+        const pendingFinalReview = Math.max(0, Number.parseInt(d.pendingFinalReview, 10) || 0);
+        const evalSummary = pendingFinalReview > 0
+            ? `${pendingFinalReview} to review · ${evalDone}/2 evals`
+            : `${evalDone}/2 evals`;
+        const evalCountLabel = `${evalDone} of 2 submitted`;
+        setText('sm-ov-eval-count', evalSummary);
+        setText('sm-eval-count', evalCountLabel);
+        const ovEvalCount = document.getElementById('sm-ov-eval-count');
+        if (ovEvalCount) {
+            ovEvalCount.classList.toggle('is-complete', evalDone >= 2 && pendingFinalReview === 0);
+            ovEvalCount.classList.toggle('is-pending', evalDone < 2 || pendingFinalReview > 0);
+        }
+        document.getElementById('sm-eval-count')?.classList.toggle('is-complete', evalDone === 2);
+        setEvalPill('sm-ov-eval-faculty', facultyStatus);
+        setEvalPill('sm-ov-eval-employer', employerStatus);
+        setEvalPill('sm-eval-faculty', facultyStatus);
+        setEvalPill('sm-eval-employer', employerStatus);
+
+        const docs = parseDocuments(d.documents);
+        const corUrl = (d.cor || '').trim();
+        const moaUrl = (d.moaMou || '').trim();
+        const hasNamedDoc = label => docs.some(doc => String(doc.name || '').toLowerCase().includes(label));
+        if (corUrl && !hasNamedDoc('cor')) docs.push({ name: 'Certificate of Registration (COR)', status: 'available' });
+        if (moaUrl && !hasNamedDoc('moa')) docs.push({ name: 'MOA/MOU', status: 'available' });
+        const docsList = document.getElementById('sm-documents-list');
+        if (docsList) {
+            if (docs.length === 0) {
+                docsList.innerHTML = '<li class="sp-doc-empty">No documents recorded yet.</li>';
+            } else {
+                docsList.innerHTML = docs.map(doc => {
+                    const name = escapeHtml(doc.name || 'Requirement');
+                    const status = String(doc.status || 'pending');
+                    const label = escapeHtml(formatLabel(status));
+                    const pillClass = docStatusClass(status);
+                    return `<li><span class="sp-doc-file"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M14 3v5h5" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg><span>${name}</span></span><strong class="sp-eval-pill ${pillClass}">${label}</strong></li>`;
+                }).join('');
+            }
+        }
 
         const finalLink = document.getElementById('sm-final-link');
         if (finalLink && d.finalUrl) finalLink.href = d.finalUrl;
 
         const coordinatorEl = document.getElementById('sm-coordinator');
-        const coordinatorField = document.querySelector('.admin-only-profile-field');
+        const coordinatorField = modal.querySelector('.admin-only-profile-field');
         if (coordinatorEl && d.coordinator) {
             coordinatorEl.textContent = d.coordinator;
             coordinatorField?.classList.remove('is-hidden');
@@ -7435,15 +7641,10 @@ function initStudentModal() {
             coordinatorField?.classList.add('is-hidden');
         }
 
-        const adminProfileFooter = document.querySelector('.admin-users-profile-footer');
-        if (adminProfileFooter) {
-            adminProfileFooter.classList.toggle('is-hidden', !document.querySelector('.admin-users-page'));
-        }
-
         const corLink = document.getElementById('sm-cor-link');
         if (corLink) {
-            if (d.cor && d.cor.trim() !== '') {
-                corLink.href = d.cor;
+            if (corUrl) {
+                corLink.href = corUrl;
                 corLink.classList.remove('is-hidden');
             } else {
                 corLink.classList.add('is-hidden');
@@ -7452,22 +7653,15 @@ function initStudentModal() {
 
         const moaLink = document.getElementById('sm-moa-link');
         if (moaLink) {
-            if (d.moaMou && d.moaMou.trim() !== '') {
-                moaLink.href = d.moaMou;
+            if (moaUrl) {
+                moaLink.href = moaUrl;
                 moaLink.classList.remove('is-hidden');
             } else {
                 moaLink.classList.add('is-hidden');
             }
         }
 
-        // Edit email form
-        const emailCsrf = document.getElementById('sm-email-csrf');
-        if (emailCsrf) emailCsrf.value = d.csrf || '';
-        const emailUserId = document.getElementById('sm-email-user-id');
-        if (emailUserId) emailUserId.value = d.userId || '';
-        const emailInput = document.getElementById('sm-email-input');
-        if (emailInput) emailInput.value = d.email || '';
-
+        setStudentProfileTab('overview', true);
         openStudentModal();
     });
 
@@ -7741,8 +7935,8 @@ function initEnrollmentDirectory() {
             row.classList.add('is-selected-row');
 
             if (isEnrolled) {
-                showAlertModal('This student is already enrolled. Please try again.', {
-                    title: 'Student already enrolled',
+                showAlertModal('This student is already assigned an OJT placement. Please try again.', {
+                    title: 'Student already assigned',
                     confirmText: 'OK'
                 });
                 return;
@@ -9471,6 +9665,38 @@ function reinitAppPageContent() {
     initTextMarquees();
 }
 
+function prefersReducedMotion() {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function waitForMs(ms) {
+    return new Promise(resolve => window.setTimeout(resolve, ms));
+}
+
+function coordinatorPageNavDirection(fromHref, toHref) {
+    const fromRoute = parseAppRoute(fromHref);
+    const toRoute = parseAppRoute(toHref);
+    if (fromRoute === 'coordinator_students' && toRoute === 'coordinator_student_final') {
+        return 'forward';
+    }
+    if (fromRoute === 'coordinator_student_final' && toRoute === 'coordinator_students') {
+        return 'back';
+    }
+    return '';
+}
+
+function clearAjaxNavMotion(content) {
+    content.classList.remove(
+        'is-ajax-loading',
+        'is-ajax-leave',
+        'is-ajax-leave-fwd',
+        'is-ajax-leave-back',
+        'is-ajax-enter',
+        'is-ajax-enter-back',
+        'is-ajax-enter-active'
+    );
+}
+
 function initAppAjaxNav() {
     const role = getAppRole();
     if (!APP_AJAX_ROLES.has(role)) return;
@@ -9479,6 +9705,7 @@ function initAppAjaxNav() {
     if (!content) return;
 
     let loading = false;
+    let currentAjaxHref = window.location.href;
 
     const loadPage = async (href, { pushState = true } = {}) => {
         if (loading) return;
@@ -9490,48 +9717,82 @@ function initAppAjaxNav() {
         }
 
         loading = true;
-        content.classList.add('is-ajax-loading');
+        const direction = coordinatorPageNavDirection(currentAjaxHref, href);
+        const useMotion = Boolean(direction) && !prefersReducedMotion();
+
+        if (useMotion) {
+            const modalOpen = document.getElementById('studentModal')?.classList.contains('open');
+            if (direction === 'back') {
+                content.classList.add('is-ajax-leave-back');
+            } else if (modalOpen) {
+                content.classList.add('is-ajax-leave');
+            } else {
+                content.classList.add('is-ajax-leave-fwd');
+            }
+        } else {
+            content.classList.add('is-ajax-loading');
+        }
 
         try {
             destroyLiveChatIfNeeded();
 
-            const response = await fetch(buildAppAjaxUrl(href), {
-                credentials: 'same-origin',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    Accept: 'text/html',
-                },
-                cache: 'no-store',
-            });
+            const leaveWait = useMotion ? waitForMs(260) : Promise.resolve();
+
+            const [response] = await Promise.all([
+                fetch(buildAppAjaxUrl(href), {
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        Accept: 'text/html',
+                    },
+                    cache: 'no-store',
+                }),
+                leaveWait,
+            ]);
 
             if (!response.ok) {
                 throw new Error('Failed to load page.');
             }
 
             const html = await response.text();
-            content.innerHTML = html;
 
-            const pageRoot = content.querySelector('[data-ajax-page]');
-            const pageTitle = pageRoot?.dataset.pageTitle || '';
-            const pageRoute = pageRoot?.dataset.route || route;
-            const pageHint = pageRoot?.dataset.pageHint || '';
+            const applyPage = () => {
+                content.innerHTML = html;
 
-            runInjectedScripts(content);
-            updateAppTopbar(pageTitle, pageHint);
-            updateAppSidebarActive(pageRoute, href);
-            reinitAppPageContent();
+                const pageRoot = content.querySelector('[data-ajax-page]');
+                const pageTitle = pageRoot?.dataset.pageTitle || '';
+                const pageRoute = pageRoot?.dataset.route || route;
+                const pageHint = pageRoot?.dataset.pageHint || '';
 
-            if (pushState) {
-                history.pushState({ appAjaxNav: true, route: pageRoute, role }, '', href);
+                runInjectedScripts(content);
+                updateAppTopbar(pageTitle, pageHint);
+                updateAppSidebarActive(pageRoute, href);
+                reinitAppPageContent();
+
+                if (pushState) {
+                    history.pushState({ appAjaxNav: true, route: pageRoute, role }, '', href);
+                }
+
+                currentAjaxHref = href;
+                content.scrollTop = 0;
+                window.scrollTo({ top: 0, behavior: 'auto' });
+            };
+
+            if (useMotion) {
+                applyPage();
+                content.classList.add(direction === 'back' ? 'is-ajax-enter-back' : 'is-ajax-enter');
+                content.classList.remove('is-ajax-leave', 'is-ajax-leave-fwd', 'is-ajax-leave-back', 'is-ajax-loading');
+                void content.offsetWidth;
+                content.classList.add('is-ajax-enter-active');
+                await waitForMs(360);
+            } else {
+                applyPage();
             }
-
-            content.scrollTop = 0;
-            window.scrollTo({ top: 0, behavior: 'auto' });
         } catch {
             window.location.assign(href);
         } finally {
             loading = false;
-            content.classList.remove('is-ajax-loading');
+            clearAjaxNavMotion(content);
         }
     };
 

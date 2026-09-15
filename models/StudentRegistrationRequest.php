@@ -67,6 +67,7 @@ class StudentRegistrationRequest
             'middle_name' => 'VARCHAR(100) NULL AFTER first_name',
             'program_id' => 'INT NULL AFTER student_no',
             'year_level' => "VARCHAR(40) NULL AFTER program_id",
+            'birthdate' => 'DATE NULL AFTER year_level',
             'verification_token' => 'VARCHAR(64) NULL AFTER cor_file',
             'previous_verification_token' => 'VARCHAR(64) NULL AFTER verification_token',
             'verification_expires_at' => 'DATETIME NULL AFTER previous_verification_token',
@@ -207,20 +208,27 @@ class StudentRegistrationRequest
         string $corFile,
         int $programId,
         string $yearLevel,
-        ?string $middleName = null
+        ?string $middleName = null,
+        ?string $birthdate = null
     ): int {
         $this->ensureTable();
         $yearLevel = trim($yearLevel);
         if (!in_array($yearLevel, ['3rd Year', '4th Year'], true)) {
             throw new RuntimeException('Select a valid year level.');
         }
+        $birthdate = trim((string)$birthdate);
+        if ($birthdate === '') {
+            $birthdate = null;
+        } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $birthdate)) {
+            throw new RuntimeException('Select a valid birthdate.');
+        }
         $token = bin2hex(random_bytes(32));
         $expiresAt = date('Y-m-d H:i:s', time() + (self::VERIFICATION_HOURS * 3600));
         $middleName = trim((string)$middleName);
         $stmt = $this->db->prepare(
             'INSERT INTO student_registration_requests
-                (first_name, middle_name, last_name, email, student_no, program_id, year_level, password_hash, cor_file, verification_token, verification_expires_at, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                (first_name, middle_name, last_name, email, student_no, program_id, year_level, birthdate, password_hash, cor_file, verification_token, verification_expires_at, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             trim($firstName),
@@ -230,6 +238,7 @@ class StudentRegistrationRequest
             trim($studentNo),
             $programId,
             $yearLevel,
+            $birthdate,
             $passwordHash,
             $corFile,
             $token,

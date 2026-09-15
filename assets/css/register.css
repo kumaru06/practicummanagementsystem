@@ -506,6 +506,42 @@
 .register-field--span-6 { grid-column: span 6; }
 .register-field--span-12 { grid-column: span 12; }
 
+.register-date-picker {
+    display: block;
+    width: 100%;
+}
+
+.register-date-picker .filter-date-trigger {
+    width: 100%;
+    min-height: 46px;
+    border-radius: var(--reg-radius);
+    border: 1.5px solid var(--reg-border);
+    background: #fff;
+    color: var(--reg-text);
+    font: inherit;
+    font-size: 0.88rem;
+    box-shadow: none;
+}
+
+.register-date-picker.is-placeholder .filter-date-value {
+    color: #cbd5e1;
+}
+
+.register-date-picker .filter-date-trigger:hover {
+    border-color: #c0c7d4;
+    box-shadow: none;
+}
+
+.register-date-picker.is-open .filter-date-trigger,
+.register-date-picker .filter-date-trigger:focus-visible {
+    border-color: var(--navy-800, #8B1A1A);
+    box-shadow: 0 0 0 3px rgba(139, 26, 26, 0.1);
+}
+
+.register-date-picker.date-required-error .filter-date-trigger {
+    border-color: #e03737;
+}
+
 .register-field,
 .register-field-inner {
     display: grid;

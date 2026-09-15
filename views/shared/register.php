@@ -7,7 +7,7 @@
     <link rel="icon" type="image/jpeg" href="<?= e(asset('assets/image/main/favicon.jpg')) ?>">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600;1,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(asset('assets/css/style.css')) ?>?v=20260902-verify-circle">
-    <link rel="stylesheet" href="<?= e(asset('assets/css/register.css')) ?>?v=20260902-register-scroll">
+    <link rel="stylesheet" href="<?= e(asset('assets/css/register.css')) ?>?v=20260915-birthdate">
 </head>
 <body class="register-page" data-app-base="<?= e(app_base_path()) ?>">
     <div class="register-bg" aria-hidden="true">
@@ -204,19 +204,19 @@
                                     <label class="register-field register-field--span-4">
                                         <span class="register-field-label">First Name <span class="register-required" aria-hidden="true">*</span></span>
                                         <span class="register-input-wrap">
-                                            <input required type="text" name="first_name" autocomplete="given-name" placeholder="Enter your first name" data-capitalize-words pattern="[A-Za-z\s\-\.]+" title="First name must contain letters only" value="<?= e($_POST['first_name'] ?? '') ?>">
+                                            <input required type="text" name="first_name" autocomplete="given-name" placeholder="Enter your first name" data-capitalize-words pattern="[A-Za-zÀ-ÖØ-öø-ÿ\s\-\.]+" title="First name must contain letters only (including ñ)" value="<?= e($_POST['first_name'] ?? '') ?>">
                                         </span>
                                     </label>
                                     <label class="register-field register-field--span-4">
                                         <span class="register-field-label">Middle Name</span>
                                         <span class="register-input-wrap">
-                                            <input type="text" name="middle_name" autocomplete="additional-name" placeholder="Enter your middle name" data-capitalize-words pattern="[A-Za-z\s\-\.]*" title="Middle name must contain letters only" value="<?= e($_POST['middle_name'] ?? '') ?>">
+                                            <input type="text" name="middle_name" autocomplete="additional-name" placeholder="Enter your middle name" data-capitalize-words pattern="[A-Za-zÀ-ÖØ-öø-ÿ\s\-\.]*" title="Middle name must contain letters only (including ñ)" value="<?= e($_POST['middle_name'] ?? '') ?>">
                                         </span>
                                     </label>
                                     <label class="register-field register-field--span-4">
                                         <span class="register-field-label">Last Name <span class="register-required" aria-hidden="true">*</span></span>
                                         <span class="register-input-wrap">
-                                            <input required type="text" name="last_name" autocomplete="family-name" placeholder="Rezep" data-capitalize-words pattern="[A-Za-z\s\-\.]+" title="Last name must contain letters only" value="<?= e($_POST['last_name'] ?? '') ?>">
+                                            <input required type="text" name="last_name" autocomplete="family-name" placeholder="Rezep" data-capitalize-words pattern="[A-Za-zÀ-ÖØ-öø-ÿ\s\-\.]+" title="Last name must contain letters only (including ñ)" value="<?= e($_POST['last_name'] ?? '') ?>">
                                         </span>
                                     </label>
 
@@ -266,6 +266,24 @@
                                                 <option value="3rd Year" <?= ($_POST['year_level'] ?? '') === '3rd Year' ? 'selected' : '' ?>>3rd Year</option>
                                                 <option value="4th Year" <?= ($_POST['year_level'] ?? '') === '4th Year' ? 'selected' : '' ?>>4th Year</option>
                                             </select>
+                                        </span>
+                                    </label>
+
+                                    <label class="register-field register-field--span-6">
+                                        <span class="register-field-label">Birthdate <span class="register-required" aria-hidden="true">*</span></span>
+                                        <?php
+                                        $postedBirthdate = trim((string)($_POST['birthdate'] ?? ''));
+                                        $birthdateDisplay = $postedBirthdate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $postedBirthdate)
+                                            ? date('m/d/Y', strtotime($postedBirthdate))
+                                            : 'mm/dd/yyyy';
+                                        ?>
+                                        <span class="filter-date-picker form-date-picker register-date-picker<?= $postedBirthdate === '' ? ' is-placeholder' : '' ?>" data-date-required="1" data-date-max="<?= date('Y-m-d', strtotime('-20 years')) ?>">
+                                            <input type="hidden" name="birthdate" value="<?= e($postedBirthdate) ?>">
+                                            <button class="filter-date-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Select birthdate">
+                                                <span class="filter-date-value"><?= e($birthdateDisplay) ?></span>
+                                                <span class="filter-date-trigger-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8ZM5 6a1 1 0 0 0-1 1v1h16V7a1 1 0 0 0-1-1H5Z"/></svg></span>
+                                            </button>
+                                            <div class="filter-date-panel" hidden></div>
                                         </span>
                                     </label>
                                 </div>

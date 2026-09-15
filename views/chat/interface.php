@@ -198,7 +198,7 @@ $chatEmptyIcon = '<svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" 
                                 <strong id="chatPinPopTitle">Pinned messages</strong>
                                 <small id="chatPinPopMeta">All pins in this conversation</small>
                             </div>
-                            <button type="button" class="chat-float__close" id="chatPinPopClose" aria-label="Close">×</button>
+                            <button type="button" class="chat-float__close" id="chatPinPopClose" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
                         </header>
                         <div class="chat-float__list" id="chatPinPopList"></div>
                     </div>

@@ -542,11 +542,16 @@ class AdminController extends BaseController
     public function manageUsers(): void
     {
         require_role('admin');
+        $studentModel = new Student($this->db);
+        $students = $studentModel->allForAdmin();
+        $studentIds = array_map(static fn ($s) => (int)$s['id'], $students);
         $this->renderAppPage('admin/users', [
             'title' => 'Manage Student',
-            'students' => (new Student($this->db))->allForAdmin(),
+            'students' => $students,
             'programs' => (new Program($this->db))->all(true),
             'coordinators' => (new User($this->db))->byRole('coordinator'),
+            'requirementsByStudent' => $studentModel->requirementsForStudents($studentIds),
+            'studentEvaluationsByStudent' => (new StudentEvaluation($this->db))->getByStudents($studentIds),
         ]);
     }
 
@@ -1482,7 +1487,9 @@ class AdminController extends BaseController
                 $yearLevel,
                 $request['cor_file'],
                 $coordinatorId,
-                (int)$program['id']
+                (int)$program['id'],
+                '',
+                !empty($request['birthdate']) ? (string)$request['birthdate'] : null
             );
             $model->markApproved($requestId, $coordinatorId, (int)current_user()['id']);
             $this->db->commit();

@@ -74,19 +74,19 @@ $inactiveCoordinators = $totalCoordinators - $activeCoordinators;
                     <label class="aco-field">
                         <span class="aco-field-label">First Name <em>*</em></span>
                         <input required name="first_name" autocomplete="given-name" placeholder="e.g. Maria"
-                            data-capitalize-words pattern="[A-Za-z\s\-\.]+" title="First name must contain letters only">
+                            data-capitalize-words pattern="[A-Za-zÀ-ÖØ-öø-ÿ\s\-\.]+" title="First name must contain letters only (including ñ)">
                         <span class="field-check-message field-check-message--slot field-check-message--reserve" aria-hidden="true"></span>
                     </label>
                     <label class="aco-field">
                         <span class="aco-field-label">Middle Name</span>
                         <input name="middle_name" autocomplete="additional-name" placeholder="Optional"
-                            data-capitalize-words pattern="[A-Za-z\s\-\.]*" title="Middle name must contain letters only">
+                            data-capitalize-words pattern="[A-Za-zÀ-ÖØ-öø-ÿ\s\-\.]*" title="Middle name must contain letters only (including ñ)">
                         <span class="field-check-message field-check-message--slot field-check-message--reserve" aria-hidden="true"></span>
                     </label>
                     <label class="aco-field">
                         <span class="aco-field-label">Last Name <em>*</em></span>
                         <input required name="last_name" autocomplete="family-name" placeholder="e.g. Santos"
-                            data-capitalize-words pattern="[A-Za-z\s\-\.]+" title="Last name must contain letters only">
+                            data-capitalize-words pattern="[A-Za-zÀ-ÖØ-öø-ÿ\s\-\.]+" title="Last name must contain letters only (including ñ)">
                         <span class="field-check-message field-check-message--slot field-check-message--reserve" aria-hidden="true"></span>
                     </label>
                     <label class="aco-field">
@@ -316,17 +316,17 @@ $inactiveCoordinators = $totalCoordinators - $activeCoordinators;
                         <label class="partner-field">
                             <span class="partner-field-label">First Name <em>*</em></span>
                             <input required name="first_name" id="editCoordFirstName" autocomplete="given-name" placeholder="e.g. Maria"
-                                data-capitalize-words pattern="[A-Za-z\s\-\.]+" title="First name must contain letters only">
+                                data-capitalize-words pattern="[A-Za-zÀ-ÖØ-öø-ÿ\s\-\.]+" title="First name must contain letters only (including ñ)">
                         </label>
                         <label class="partner-field">
                             <span class="partner-field-label">Middle Name</span>
                             <input name="middle_name" id="editCoordMiddleName" autocomplete="additional-name" placeholder="Optional"
-                                data-capitalize-words pattern="[A-Za-z\s\-\.]*" title="Middle name must contain letters only">
+                                data-capitalize-words pattern="[A-Za-zÀ-ÖØ-öø-ÿ\s\-\.]*" title="Middle name must contain letters only (including ñ)">
                         </label>
                         <label class="partner-field">
                             <span class="partner-field-label">Last Name <em>*</em></span>
                             <input required name="last_name" id="editCoordLastName" autocomplete="family-name" placeholder="e.g. Santos"
-                                data-capitalize-words pattern="[A-Za-z\s\-\.]+" title="Last name must contain letters only">
+                                data-capitalize-words pattern="[A-Za-zÀ-ÖØ-öø-ÿ\s\-\.]+" title="Last name must contain letters only (including ñ)">
                         </label>
                         <label class="partner-field partner-field--full">
                             <span class="partner-field-label">Email <em>*</em></span>

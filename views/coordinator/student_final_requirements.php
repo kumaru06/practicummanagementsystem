@@ -7,6 +7,7 @@
     $stage3FilesUnlocked = !empty($stage3FilesUnlocked);
     $studentEvaluationsUnlocked = !empty($studentEvaluationsUnlocked);
     $studentEvaluationsLockMessage = (string)($studentEvaluationsLockMessage ?? '');
+    $enrollment = $enrollment ?? [];
 
     $stage2PendingReview = 0;
     foreach ($stage2Requirements as $stage2Req) {
@@ -39,11 +40,21 @@
     $studentId = (int)($student['id'] ?? 0);
     $studentName = (string)($student['name'] ?? 'Student');
     $studentNo = (string)($student['student_no'] ?? '');
+    $studentEmail = trim((string)($student['email'] ?? ''));
+    $yearLevel = trim((string)($student['year_level'] ?? ''));
+    $photoUrl = student_profile_photo_url($student);
+    $deployStatus = strtolower(trim((string)($enrollment['status'] ?? 'pending')));
+    if ($deployStatus === '') {
+        $deployStatus = 'pending';
+    }
+    $statusLabel = ucwords(str_replace('_', ' ', $deployStatus));
+    $statusClass = str_replace('_', '-', $deployStatus);
+    $chipIdIcon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.75"/><circle cx="8.5" cy="12" r="1.75" fill="currentColor"/><path d="M13 10h5M13 14h3.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
+    $chipYearIcon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 3 8.5 12 14l9-5.5L12 3Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M6.5 11.2v4.2c0 .4.22.77.58 1.02C8.3 17.3 10.05 18 12 18s3.7-.7 4.92-1.58c.36-.25.58-.62.58-1.02v-4.2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
 
     $svgAttrs = 'class="cfp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
     $sectionDocsIcon = '<svg ' . $svgAttrs . '><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><path d="M12 11v6M9 14h6"/></svg>';
     $sectionEvalIcon = '<svg ' . $svgAttrs . '><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6M9 16h4M9 8h6"/></svg>';
-    $lockIcon = '<svg ' . $svgAttrs . '><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
     $chevronIcon = '<svg class="cfp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
 
     $docRowIcons = [
@@ -108,13 +119,22 @@
 
     <header class="cfp-hero">
         <div class="cfp-hero-profile">
-            <span class="cfp-avatar" aria-hidden="true"><?= e($initials) ?></span>
-            <div class="cfp-hero-copy">
-                <p class="cfp-eyebrow">Final Requirements Review</p>
-                <h1><?= e($studentName) ?></h1>
-                <?php if ($studentNo !== ''): ?>
-                    <p class="cfp-meta"><?= e($studentNo) ?></p>
+            <span class="cfp-avatar<?= $photoUrl !== '' ? ' has-photo' : '' ?>">
+                <?php if ($photoUrl !== ''): ?>
+                    <img src="<?= e($photoUrl) ?>" alt="<?= e($studentName) ?> profile photo">
+                <?php else: ?>
+                    <span class="cfp-avatar-fallback"><?= e($initials) ?></span>
                 <?php endif; ?>
+            </span>
+            <div class="cfp-hero-copy">
+                <p class="cfp-eyebrow">Student Profile</p>
+                <h1><?= e($studentName !== '' ? $studentName : '—') ?></h1>
+                <p class="cfp-meta"><?= $studentEmail !== '' ? e($studentEmail) : '—' ?></p>
+                <div class="cfp-idchips">
+                    <span class="cfp-idchip"><?= $chipIdIcon ?><span><?= $studentNo !== '' ? 'ID ' . e($studentNo) : 'ID —' ?></span></span>
+                    <span class="cfp-idchip"><?= $chipYearIcon ?><span><?= $yearLevel !== '' ? e($yearLevel) : 'Year —' ?></span></span>
+                    <span class="cfp-idchip cfp-idchip-status is-<?= e($statusClass) ?>"><?= e($statusLabel !== '' ? $statusLabel : '—') ?></span>
+                </div>
             </div>
         </div>
 
@@ -145,12 +165,11 @@
     <div class="cfp-grid">
         <?php if (!empty($stage2Requirements)): ?>
             <section class="cfp-panel">
-                <header class="cfp-panel-head">
+                <header class="cfp-panel-head cfp-panel-head--stage2">
                     <div class="cfp-panel-title">
                         <span class="cfp-panel-icon cfp-panel-icon--docs"><?= $sectionDocsIcon ?></span>
                         <div>
                             <h2>2nd to Comply</h2>
-                            <p>Confidentiality agreement and other Stage 2 documents uploaded by the student.</p>
                         </div>
                     </div>
                     <?php if ($stage2PendingReview > 0): ?>
@@ -179,7 +198,6 @@
                                 <span class="<?= e($rowIconMeta['class']) ?>"><?= $rowIconMeta['svg'] ?></span>
                                 <div class="cfp-item-body">
                                     <strong><?= e($requirement['requirement_name'] ?? $key) ?></strong>
-                                    <span><?= e($requirement['notes'] ?? '') ?></span>
                                 </div>
                                 <span class="cfp-item-action">
                                     <?php if ($isApproved): ?>
@@ -204,27 +222,20 @@
         <?php endif; ?>
 
         <section class="cfp-panel">
-            <header class="cfp-panel-head">
+            <header class="cfp-panel-head cfp-panel-head--stage3">
                 <div class="cfp-panel-title">
                     <span class="cfp-panel-icon cfp-panel-icon--docs"><?= $sectionDocsIcon ?></span>
-                    <div>
-                        <h2>3rd to Comply Documents</h2>
-                        <p>File uploads submitted by the student during and after OJT. Open a file to approve or reject it.</p>
-                    </div>
+                        <div>
+                            <h2>3rd to Comply Documents</h2>
+                        </div>
                 </div>
                 <div class="cfp-panel-progress" role="progressbar" aria-valuenow="<?= $docPct ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Documents progress">
                     <div class="cfp-panel-progress-track"><span style="width: <?= $docPct ?>%"></span></div>
                     <span class="cfp-panel-progress-label"><?= $docSubmitted ?>/<?= $docTotal ?></span>
                 </div>
             </header>
-            <?php if ($stage3FilesUnlocked && !$studentEvaluationsUnlocked && $studentEvaluationsLockMessage !== ''): ?>
-                <div class="cfp-callout cfp-callout--info" style="margin: 0 1rem 0.75rem;">
-                    <strong>Documents vs. evaluations</strong>
-                    <p style="margin: 0.35rem 0 0;">3rd to Comply file uploads unlock once OJT is active. Student self-evaluations stay locked until required hours or the projected end date is reached. <?= e($studentEvaluationsLockMessage) ?></p>
-                </div>
-            <?php endif; ?>
             <?php if ($stage3PendingReview > 0): ?>
-                <p class="muted" style="margin: 0 1rem 0.75rem;"><?= (int)$stage3PendingReview ?> document<?= $stage3PendingReview === 1 ? '' : 's' ?> waiting for review.</p>
+                <p class="cfp-note"><?= (int)$stage3PendingReview ?> document<?= $stage3PendingReview === 1 ? '' : 's' ?> waiting for review.</p>
             <?php endif; ?>
 
             <ul class="cfp-checklist">
@@ -248,7 +259,6 @@
                             <span class="<?= e($rowIconMeta['class']) ?>"><?= $rowIconMeta['svg'] ?></span>
                             <div class="cfp-item-body">
                                 <strong><?= e($requirement['requirement_name'] ?? $key) ?></strong>
-                                <span><?= e($requirement['notes'] ?? '') ?></span>
                             </div>
                             <span class="cfp-item-action">
                                 <?php if ($isApproved): ?>
@@ -272,24 +282,18 @@
         </section>
 
         <section class="cfp-panel">
-            <header class="cfp-panel-head">
+            <header class="cfp-panel-head cfp-panel-head--eval">
                 <div class="cfp-panel-title">
                     <span class="cfp-panel-icon cfp-panel-icon--eval"><?= $sectionEvalIcon ?></span>
-                    <div>
-                        <h2>Student Evaluations</h2>
-                        <p>Coordinator-only - not shared with host training establishments.</p>
-                    </div>
+                        <div>
+                            <h2>Student Evaluations</h2>
+                        </div>
                 </div>
                 <div class="cfp-panel-progress" role="progressbar" aria-valuenow="<?= $evalPct ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Evaluations progress">
                     <div class="cfp-panel-progress-track cfp-panel-progress-track--eval"><span style="width: <?= $evalPct ?>%"></span></div>
                     <span class="cfp-panel-progress-label"><?= $evalSubmitted ?>/<?= $evalTotal ?></span>
                 </div>
             </header>
-
-            <div class="cfp-privacy">
-                <span class="cfp-privacy-icon"><?= $lockIcon ?></span>
-                <p>Visible to OJT coordinators only.<?php if (!$studentEvaluationsUnlocked && $studentEvaluationsLockMessage !== ''): ?> Student evaluations unlock separately: <?= e($studentEvaluationsLockMessage) ?><?php endif; ?></p>
-            </div>
 
             <ul class="cfp-checklist">
                 <?php foreach ($evaluationSections as $evalKey => $evalSection): ?>
@@ -308,7 +312,6 @@
                             <span class="<?= e($rowIconMeta['class']) ?>"><?= $rowIconMeta['svg'] ?></span>
                             <div class="cfp-item-body">
                                 <strong><?= e($evalSection['name']) ?></strong>
-                                <span><?= e($evalSection['description']) ?></span>
                             </div>
                             <span class="cfp-item-action">
                                 <?php if ($isSubmitted): ?>
