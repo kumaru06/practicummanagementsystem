@@ -31,9 +31,15 @@ CREATE TABLE users (
   created_by INT NULL,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   password_changed TINYINT(1) NOT NULL DEFAULT 1,
+  deactivation_reason VARCHAR(40) NULL,
+  deactivation_notes TEXT NULL,
+  deactivated_at DATETIME NULL,
   last_login_at DATETIME NULL,
   last_login_ip VARCHAR(45) NULL,
   last_login_device VARCHAR(190) NULL,
+  last_logout_at DATETIME NULL,
+  last_logout_ip VARCHAR(45) NULL,
+  last_logout_device VARCHAR(190) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_users_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;

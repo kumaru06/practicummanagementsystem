@@ -1,0 +1,9 @@
+# Developer / operator CLI utilities. NEVER expose these over HTTP.
+# They are meant to be run only from the command line (php tools/<script>.php).
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

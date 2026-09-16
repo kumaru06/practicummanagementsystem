@@ -16,7 +16,7 @@ $changeDescription = $isFirstLogin
 $pageTitle = $isFirstLogin ? 'Change Temporary Password' : 'Change Password';
 $pageSubtitle = $isFirstLogin
     ? 'Replace your temporary password to unlock the Host Training Establishment portal.'
-    : 'Use a strong password with at least 8 characters to keep your account secure.';
+    : 'Use a strong password with uppercase, lowercase, and a number.';
 ?>
 <div class="hte-settings hte-password" data-partner-password-flow data-is-first-login="<?= $isFirstLogin ? '1' : '0' ?>" data-success-redirect="<?= e(route_url('partner.settings')) ?>">
     <header class="hte-settings-page-head">
@@ -94,7 +94,7 @@ $pageSubtitle = $isFirstLogin
 
                 <ul class="hte-password-tips">
                     <li>At least 8 characters long</li>
-                    <li>Mix letters, numbers, and symbols for stronger security</li>
+                    <li>Include uppercase, lowercase, and a number</li>
                 </ul>
 
                 <p class="hte-password-feedback" data-password-feedback hidden></p>

@@ -1703,6 +1703,21 @@ small,
     color: rgba(255, 244, 214, 0.78);
 }
 
+.sidebar-logout-form {
+    margin: 0;
+    width: 100%;
+}
+
+button.nav-link {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    cursor: pointer;
+    border: 0;
+    width: 100%;
+    text-align: left;
+}
+
 .sidebar-logout {
     color: rgba(255, 244, 214, 0.86);
     font-size: 0.9rem;

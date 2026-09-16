@@ -180,10 +180,13 @@ $headerRoute = (string)($_GET['r'] ?? ($user['role'] ?? 'admin'));
             <?php else: ?>
                 </div>
             <?php endif; ?>
-            <a class="nav-link sidebar-logout" href="logout.php" data-confirm="Are you sure you want to log out?" data-confirm-title="Log out of your account" data-confirm-ok="Yes, log out" data-confirm-cancel="Stay signed in">
-                <svg viewBox="0 0 24 24"><path d="M16 13v-2H7V8l-5 4 5 4v-3h9Zm1-9H9a2 2 0 0 0-2 2v3h2V6h8v12H9v-3H7v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z"/></svg>
-                <span>Logout</span>
-            </a>
+            <form method="post" action="<?= e(asset('logout.php')) ?>" class="sidebar-logout-form">
+                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                <button type="submit" class="nav-link sidebar-logout" data-confirm="You will need to sign in again to continue." data-confirm-title="Log out of your account?" data-confirm-ok="Yes, log out" data-confirm-cancel="Stay signed in">
+                    <svg viewBox="0 0 24 24"><path d="M16 13v-2H7V8l-5 4 5 4v-3h9Zm1-9H9a2 2 0 0 0-2 2v3h2V6h8v12H9v-3H7v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z"/></svg>
+                    <span>Logout</span>
+                </button>
+            </form>
         </div>
     </aside>
     <main class="main">

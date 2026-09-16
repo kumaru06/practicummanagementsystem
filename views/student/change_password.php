@@ -43,6 +43,7 @@ $changeDescription = $isFirstLogin
         </div>
         <h2><?= e($changeTitle) ?></h2>
         <p class="muted"><?= e($changeDescription) ?></p>
+        <p class="muted"><?= e(password_policy_hint()) ?></p>
         <form class="form narrow-form" data-student-change-password novalidate>
             <input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>">
             <input type="hidden" name="action" value="student_change_password">

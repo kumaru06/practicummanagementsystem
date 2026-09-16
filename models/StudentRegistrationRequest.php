@@ -11,6 +11,10 @@ class StudentRegistrationRequest
         if ($ready) {
             return;
         }
+        if (!APP_IS_LOCAL) {
+            $ready = true;
+            return;
+        }
         $this->db->exec(
             "CREATE TABLE IF NOT EXISTS student_registration_requests (
                 id INT AUTO_INCREMENT PRIMARY KEY,

@@ -296,7 +296,7 @@
                                     </span>
                                     <div>
                                         <h3 id="regSectionSecurity" class="register-section-title">Account Security</h3>
-                                        <p class="register-section-desc">Minimum 8 characters for your password</p>
+                                        <p class="register-section-desc"><?= e(password_policy_hint()) ?></p>
                                     </div>
                                 </div>
 
@@ -308,7 +308,7 @@
                                                 <span class="register-input-icon" aria-hidden="true">
                                                     <svg viewBox="0 0 24 24"><path d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.098-1.169.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.528-1 .43-1.563A6 6 0 1 1 21.75 8.25Z"/></svg>
                                                 </span>
-                                                <input required minlength="8" type="password" name="password" autocomplete="new-password" placeholder="Min. 8 characters" data-register-password>
+                                                <input required minlength="8" type="password" name="password" autocomplete="new-password" placeholder="8+ chars, mixed case + number" data-register-password>
                                             </span>
                                         </label>
                                         <div class="password-gate-strength register-password-strength" data-register-password-strength aria-live="polite" hidden>

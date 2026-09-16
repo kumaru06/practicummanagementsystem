@@ -236,6 +236,9 @@ class FinalRequirement
      */
     private function ensureColumns(): void
     {
+        if (!APP_IS_LOCAL) {
+            return;
+        }
         try {
             $stmt = $this->db->query('SHOW COLUMNS FROM student_final_requirements');
             $existing = array_column($stmt->fetchAll(), 'Field');

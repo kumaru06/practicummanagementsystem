@@ -41,8 +41,12 @@ class EndorsementLetter
         }
 
         $options = new \Dompdf\Options();
-        $options->set('isPhpEnabled', true);
-        $options->set('isRemoteEnabled', true);
+        // Hardening: the template interpolates only htmlspecialchars()-escaped DB values
+        // and embeds the logo/signature as base64 data URIs, so neither inline PHP nor
+        // remote resource loading is needed. Disabling both removes any latent
+        // SSRF / local-file / RCE surface in the PDF renderer.
+        $options->set('isPhpEnabled', false);
+        $options->set('isRemoteEnabled', false);
         $options->set('isHtml5ParserEnabled', true);
         $options->set('chroot', $projectRoot);
         if (is_dir($tempDir) && is_writable($tempDir)) {

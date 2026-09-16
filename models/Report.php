@@ -576,6 +576,9 @@ class Report
 
     private function ensureDtrDraftTable(): void
     {
+        if (!APP_IS_LOCAL) {
+            return;
+        }
         $this->db->exec('CREATE TABLE IF NOT EXISTS dtr_drafts (
             student_id INT NOT NULL PRIMARY KEY,
             work_date DATE NULL,
@@ -592,6 +595,9 @@ class Report
 
     private function ensureDtrSessionColumns(): void
     {
+        if (!APP_IS_LOCAL) {
+            return;
+        }
         $columns = [
             'morning_time_in' => 'TIME NULL AFTER time_out',
             'morning_time_out' => 'TIME NULL AFTER morning_time_in',
@@ -608,6 +614,9 @@ class Report
 
     private function ensureDtrDraftSessionColumns(): void
     {
+        if (!APP_IS_LOCAL) {
+            return;
+        }
         $columns = [
             'morning_time_in' => 'VARCHAR(5) NULL',
             'morning_time_out' => 'VARCHAR(5) NULL',
@@ -638,6 +647,9 @@ class Report
 
     private function ensureDtrDayTypeColumn(): void
     {
+        if (!APP_IS_LOCAL) {
+            return;
+        }
         if (!$this->columnExists('daily_time_records', 'day_type')) {
             $this->db->exec(
                 "ALTER TABLE daily_time_records ADD COLUMN day_type ENUM('full','half_am','half_pm','sick','absent') NOT NULL DEFAULT 'full' AFTER work_date"
@@ -647,6 +659,9 @@ class Report
 
     private function ensureDtrDraftDayTypeColumn(): void
     {
+        if (!APP_IS_LOCAL) {
+            return;
+        }
         if (!$this->columnExists('dtr_drafts', 'day_type')) {
             $this->db->exec(
                 "ALTER TABLE dtr_drafts ADD COLUMN day_type VARCHAR(20) NOT NULL DEFAULT 'full' AFTER work_date"

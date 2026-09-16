@@ -2551,8 +2551,8 @@ function initPartnerPasswordChange() {
             setPartnerPasswordFeedback(verifyForm, `Please verify your ${passwordLabel} first.`);
             return;
         }
-        if (password.length < 8) {
-            setPartnerPasswordFeedback(changeForm, 'Password must be at least 8 characters.');
+        if (passwordPolicyError(password)) {
+            setPartnerPasswordFeedback(changeForm, passwordPolicyError(password));
             return;
         }
         if (password !== confirmPassword) {
@@ -2620,6 +2620,16 @@ function getPasswordStrength(password) {
         return { level: 3, label: 'Good' };
     }
     return { level: 4, label: 'Strong' };
+}
+
+function passwordPolicyError(password) {
+    if (!password || password.length < 8) {
+        return 'Password must be at least 8 characters.';
+    }
+    if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) {
+        return 'Password must include uppercase, lowercase, and a number.';
+    }
+    return '';
 }
 
 function initStudentPasswordChange() {
@@ -2763,8 +2773,8 @@ function initStudentPasswordChange() {
             setPartnerPasswordFeedback(changeForm, 'New password is required.');
             return;
         }
-        if (password.length < 8) {
-            setPartnerPasswordFeedback(changeForm, 'Password must be at least 8 characters.');
+        if (passwordPolicyError(password)) {
+            setPartnerPasswordFeedback(changeForm, passwordPolicyError(password));
             return;
         }
         if (!confirmPassword) {
@@ -4327,6 +4337,7 @@ function initStudentRegistrationPasswordIndicators() {
     const updatePasswordStrength = () => {
         const password = passwordInput?.value || '';
         const { level, label } = getPasswordStrength(password);
+        passwordInput?.setCustomValidity(passwordPolicyError(password));
         if (!password) {
             strengthIndicator?.setAttribute('hidden', '');
             strengthIndicator?.removeAttribute('data-level');

@@ -9,11 +9,35 @@ session_set_cookie_params([
     'samesite' => 'Lax',
 ]);
 session_start();
+
+// Security response headers (defense-in-depth) on every web response.
+// frame-ancestors is the modern clickjacking control; the policy stays
+// resource-agnostic so it does not break existing inline styles/scripts.
+// A stricter script-src/style-src can be layered later after UI testing.
+if (!headers_sent()) {
+    header('X-Frame-Options: SAMEORIGIN');
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+    header("Content-Security-Policy: frame-ancestors 'self'; base-uri 'self'; object-src 'none'");
+    if ($__cookieSecure) {
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+    }
+}
+
 require_once __DIR__ . '/bootstrap/env.php';
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/config/mail.php';
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/helpers/address.php';
+
+if (!defined('SESSION_IDLE_SECONDS')) {
+    define('SESSION_IDLE_SECONDS', max(60, (int)(env('SESSION_IDLE_SECONDS', '1800') ?? '1800')));
+}
+if (!defined('SESSION_ABSOLUTE_SECONDS')) {
+    define('SESSION_ABSOLUTE_SECONDS', max(300, (int)(env('SESSION_ABSOLUTE_SECONDS', '28800') ?? '28800')));
+}
+enforce_session_timeout();
 
 date_default_timezone_set('Asia/Manila');
 

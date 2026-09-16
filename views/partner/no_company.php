@@ -11,7 +11,10 @@
         </p>
         <div style="margin-top: 1.25rem;">
             <a class="btn btn-primary" href="<?= e(route_url('partner.password.edit')) ?>">Change Password</a>
-            <a class="btn" href="<?= e(asset('logout.php')) ?>">Sign out</a>
+            <form method="post" action="<?= e(asset('logout.php')) ?>" style="display:inline;margin:0">
+                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                <button type="submit" class="btn">Sign out</button>
+            </form>
         </div>
     </section>
 </div>

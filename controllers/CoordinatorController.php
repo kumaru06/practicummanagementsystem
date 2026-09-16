@@ -28,11 +28,13 @@ class CoordinatorController extends BaseController
         require_role('coordinator');
         $coordId = current_user()['id'];
         $companyModel = new Company($this->db);
-        $companies = array_map(static function (array $company) use ($companyModel, $coordId): array {
+        // Resolve MOA-accessible companies once instead of one query per company (N+1).
+        $accessibleCompanyIds = array_flip($companyModel->coordinatorAccessibleCompanyIds((int)$coordId));
+        $companies = array_map(static function (array $company) use ($accessibleCompanyIds): array {
             $companyId = (int)($company['id'] ?? 0);
             $company['moa_document_url'] = ($companyId > 0
                 && !empty($company['moa_mou_file'])
-                && $companyModel->coordinatorCanAccessMoa((int)$coordId, $companyId))
+                && isset($accessibleCompanyIds[$companyId]))
                 ? route_url('coordinator.partner_document', ['company_id' => $companyId])
                 : '';
 
@@ -63,15 +65,20 @@ class CoordinatorController extends BaseController
         $studentEvaluationsByStudent = $studentEvalModel->getByStudents($studentIds);
         $pendingFinalReviewByStudent = $studentModel->countPendingFinalReviewsByStudents($studentIds);
         $companyModel = new Company($this->db);
+        // Batch reads to avoid N+1: enrollments for all students + accessible MOA companies.
+        $rawEnrollments = $enrollModel->byStudents($studentIds);
+        $accessibleCompanyIds = array_flip($companyModel->coordinatorAccessibleCompanyIds((int)$coordId));
 
         foreach ($students as &$student) {
             $studentId = (int)$student['id'];
             $requirementsByStudent[$studentId] ??= $studentModel->requirements($studentId);
             $finalRequirementsByStudent[$studentId] ??= [];
             $studentEvaluationsByStudent[$studentId] ??= [];
-            $studentModel->syncPredeploymentStatusIfComplete($studentId);
-            // Re-read raw status after sync so the effective overlay sees the persisted value.
-            $rawEnrollment = $enrollModel->byStudent($studentId);
+            // sync may persist a new status; only re-read that one row when it actually changed.
+            $enrollmentChanged = $studentModel->syncPredeploymentStatusIfComplete($studentId);
+            $rawEnrollment = $enrollmentChanged
+                ? $enrollModel->byStudent($studentId)
+                : ($rawEnrollments[$studentId] ?? null);
             $student['predeployment_status'] = $studentModel->effectivePredeploymentStatus(
                 $studentId,
                 $rawEnrollment['predeployment_status'] ?? ($student['predeployment_status'] ?? null),
@@ -80,7 +87,7 @@ class CoordinatorController extends BaseController
             $companyId = (int)($student['company_id'] ?? 0);
             $student['moa_document_url'] = ($companyId > 0
                 && !empty($student['company_moa_mou_file'])
-                && $companyModel->coordinatorCanAccessMoa($coordId, $companyId))
+                && isset($accessibleCompanyIds[$companyId]))
                 ? route_url('coordinator.partner_document', ['company_id' => $companyId])
                 : '';
         }

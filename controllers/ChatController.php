@@ -812,6 +812,11 @@ class ChatController
             return;
         }
 
+        if (!APP_IS_LOCAL) {
+            $this->schemaReady = true;
+            return;
+        }
+
         $this->db->exec(
             'CREATE TABLE IF NOT EXISTS messages (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

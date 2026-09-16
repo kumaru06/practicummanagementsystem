@@ -1,0 +1,11 @@
+# Configuration files (including secrets like database.production.php and
+# mail.local*.php) are included by the application server-side only. They must
+# NEVER be requested directly over HTTP. Deny all direct web access as
+# defence-in-depth in case PHP execution is ever disabled on the host.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

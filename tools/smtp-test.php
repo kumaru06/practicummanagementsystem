@@ -1,6 +1,13 @@
 <?php
 declare(strict_types=1);
 
+// CLI-only utility. Refuse to run over HTTP even if the web server ever
+// serves this file directly (defense-in-depth alongside tools/.htaccess).
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit('Not found.');
+}
+
 require dirname(__DIR__) . '/bootstrap/env.php';
 require dirname(__DIR__) . '/vendor/autoload.php';
 require dirname(__DIR__) . '/config/mail.php';

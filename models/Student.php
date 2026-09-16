@@ -12,6 +12,11 @@ class Student
             return;
         }
 
+        if (!APP_IS_LOCAL) {
+            self::$genderColumnReady = true;
+            return;
+        }
+
         $stmt = $this->db->query("SHOW COLUMNS FROM students LIKE 'gender'");
         if (!$stmt->fetch()) {
             $this->db->exec('ALTER TABLE students ADD COLUMN gender VARCHAR(20) NULL AFTER year_level');
@@ -23,6 +28,11 @@ class Student
     public function ensureAddressColumns(): void
     {
         if (self::$addressColumnsReady === true) {
+            return;
+        }
+
+        if (!APP_IS_LOCAL) {
+            self::$addressColumnsReady = true;
             return;
         }
 
@@ -494,6 +504,49 @@ class Student
     public function requirements(int $studentId): array
     {
         return $this->stageRequirements($studentId, 1);
+    }
+
+    /**
+     * Stage requirements for many students in ONE query (avoids N+1 on list screens).
+     * Keyed requirement_key with synthesized 'pending' rows for missing definitions.
+     * Carries file_path/status which is what effectivePredeploymentStatus() consumes.
+     *
+     * @param list<int> $studentIds
+     * @return array<int, array<string, array<string, mixed>>> studentId => [key => row]
+     */
+    public function stageRequirementsForStudents(array $studentIds, int $stage): array
+    {
+        $ids = array_values(array_unique(array_map('intval', $studentIds)));
+        $result = [];
+        if (!$ids) {
+            return $result;
+        }
+        $defs = $this->requirementDefinitionsByStage($stage);
+        if (!$defs) {
+            foreach ($ids as $sid) {
+                $result[$sid] = [];
+            }
+            return $result;
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $this->db->prepare("SELECT * FROM student_requirements WHERE student_id IN ($placeholders)");
+        $stmt->execute($ids);
+        $stored = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $stored[(int)$row['student_id']][$row['requirement_key']] = $row;
+        }
+        foreach ($ids as $sid) {
+            $rows = [];
+            foreach ($defs as $key => $def) {
+                if (!isset($stored[$sid][$key])) {
+                    $rows[$key] = ['requirement_key' => $key, 'requirement_name' => $def['name'], 'notes' => $def['notes'], 'file_path' => null, 'status' => 'pending'];
+                } else {
+                    $rows[$key] = $stored[$sid][$key];
+                }
+            }
+            $result[$sid] = $rows;
+        }
+        return $result;
     }
 
     /**

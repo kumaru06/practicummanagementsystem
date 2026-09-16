@@ -239,8 +239,16 @@ class Enrollment
         $stmt->execute([$companyId]);
         $rows = $stmt->fetchAll();
         $studentModel = new Student($this->db);
+        // Batch stage-1 requirements once instead of one query per student (N+1).
+        $studentIds = array_map(static fn ($r) => (int)$r['student_id'], $rows);
+        $stage1ByStudent = $studentModel->stageRequirementsForStudents($studentIds, 1);
         foreach ($rows as &$row) {
-            $row['predeployment_status'] = $studentModel->effectivePredeploymentStatus((int)$row['student_id'], $row['predeployment_status'] ?? null);
+            $sid = (int)$row['student_id'];
+            $row['predeployment_status'] = $studentModel->effectivePredeploymentStatus(
+                $sid,
+                $row['predeployment_status'] ?? null,
+                $stage1ByStudent[$sid] ?? null
+            );
         }
         unset($row);
 
@@ -334,6 +342,28 @@ class Enrollment
         $stmt = $this->db->prepare('SELECT * FROM ojt_enrollments WHERE student_id = ? LIMIT 1');
         $stmt->execute([$studentId]);
         return $stmt->fetch() ?: null;
+    }
+
+    /**
+     * Raw enrollment rows for many students in one query (avoids N+1 on list screens).
+     *
+     * @param list<int> $studentIds
+     * @return array<int, array<string, mixed>> studentId => enrollment row
+     */
+    public function byStudents(array $studentIds): array
+    {
+        $ids = array_values(array_unique(array_map('intval', $studentIds)));
+        if (!$ids) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $this->db->prepare("SELECT * FROM ojt_enrollments WHERE student_id IN ($placeholders)");
+        $stmt->execute($ids);
+        $map = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $map[(int)$row['student_id']] = $row;
+        }
+        return $map;
     }
 
     public function allPlacements(): array

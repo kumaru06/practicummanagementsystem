@@ -1,10 +1,13 @@
 -- Import this file into the same database where schema.sql was imported.
 
--- SECURITY: the default admin password hash below is public in this repo, so the account
--- is seeded with password_changed = 0. The system forces a new password on first login.
--- Change it immediately after deployment and never reuse the shipped default.
+-- SECURITY: no usable admin password ships in source control. The admin row is seeded
+-- with a LOCKED placeholder hash, so password_verify() always fails and there is NO
+-- known/default admin password to guess. Set a real password on the target database with:
+--     php tools/set-admin-password.php admin@ama.edu.ph --yes
+-- Run it WITHOUT --yes first to audit an existing DB (it reports whether the old public
+-- hash is still in use). password_changed = 0 still forces a change on first login.
 INSERT INTO users (id, name, email, password_hash, role, created_by, is_active, password_changed) VALUES
-(1, 'System Administrator', 'admin@ama.edu.ph', '$2y$10$9CHq.Pz4X5vuhbXpv5DE6O6FOtawSqC7eoj/kXj6UBJ3jgHH8Rp/O', 'admin', NULL, 1, 0);
+(1, 'System Administrator', 'admin@ama.edu.ph', 'LOCKED-NO-LOGIN:set-with-tools/set-admin-password.php', 'admin', NULL, 1, 0);
 
 -- ─── Default Degree Program ──────────────────────────────────────────────
 INSERT INTO programs (id, code, name, required_hours, is_active) VALUES

@@ -124,7 +124,10 @@ $justVerified = (bool)$success || (defined('APP_IS_LOCAL') && APP_IS_LOCAL && is
 
                 <p class="student-pending-note">You&rsquo;ll get full portal access once an administrator approves your registration. Questions? Contact the OJT office.</p>
 
-                <a class="student-pending-logout" href="logout.php">Log out</a>
+                <form method="post" action="<?= e(asset('logout.php')) ?>" class="student-pending-logout-form">
+                    <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                    <button type="submit" class="student-pending-logout">Log out</button>
+                </form>
             </section>
         </div>
     </main>

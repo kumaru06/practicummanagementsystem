@@ -62,6 +62,12 @@ class User
             return;
         }
 
+        // Production is migrated via database/migration_*.sql; skip runtime DDL there.
+        if (!APP_IS_LOCAL) {
+            self::$coordinatorSignatureReady = true;
+            return;
+        }
+
         $columnStmt = $this->db->prepare("SHOW COLUMNS FROM coordinators LIKE 'signature_file'");
         $columnStmt->execute();
         $hasColumn = (bool)$columnStmt->fetch();
@@ -76,6 +82,12 @@ class User
     public function ensureCoordinatorIdNumberSupport(): void
     {
         if (self::$coordinatorIdNumberReady === true) {
+            return;
+        }
+
+        // Production is migrated via database/migration_*.sql; skip runtime DDL there.
+        if (!APP_IS_LOCAL) {
+            self::$coordinatorIdNumberReady = true;
             return;
         }
 
@@ -302,16 +314,21 @@ class User
     public function setActive(int $id, int $active): void
     {
         $this->ensureDeactivationSupport();
-        if ($active) {
-            $stmt = $this->db->prepare(
-                'UPDATE users SET is_active = 1, deactivation_reason = NULL, deactivation_notes = NULL, deactivated_at = NULL WHERE id = ?'
-            );
+        try {
+            if ($active) {
+                $stmt = $this->db->prepare(
+                    'UPDATE users SET is_active = 1, deactivation_reason = NULL, deactivation_notes = NULL, deactivated_at = NULL WHERE id = ?'
+                );
+                $stmt->execute([$id]);
+                return;
+            }
+            $stmt = $this->db->prepare('UPDATE users SET is_active = 0 WHERE id = ?');
             $stmt->execute([$id]);
-            return;
+        } catch (Throwable) {
+            // Fallback for a database that has not yet run the deactivation-columns migration.
+            $stmt = $this->db->prepare('UPDATE users SET is_active = ? WHERE id = ?');
+            $stmt->execute([$active ? 1 : 0, $id]);
         }
-
-        $stmt = $this->db->prepare('UPDATE users SET is_active = 0 WHERE id = ?');
-        $stmt->execute([$id]);
     }
 
     public function deactivate(int $id, string $reason, ?string $notes = null): void
@@ -338,6 +355,12 @@ class User
     public function ensureDeactivationSupport(): void
     {
         if (self::$deactivationReady === true) {
+            return;
+        }
+
+        // Production is migrated via database/migration_*.sql; skip runtime DDL there.
+        if (!APP_IS_LOCAL) {
+            self::$deactivationReady = true;
             return;
         }
 
@@ -392,6 +415,12 @@ class User
     public function ensureLastLogoutSupport(): void
     {
         if (self::$lastLogoutReady === true) {
+            return;
+        }
+
+        // Production is migrated via database/migration_*.sql; skip runtime DDL there.
+        if (!APP_IS_LOCAL) {
+            self::$lastLogoutReady = true;
             return;
         }
 
@@ -479,6 +508,14 @@ class User
     {
         $stmt = $this->db->prepare('SELECT COUNT(*) FROM users WHERE role = ? AND is_active = 1');
         $stmt->execute([$role]);
+        return (int)$stmt->fetchColumn();
+    }
+
+    /** Active administrators other than $exceptId (guards against locking out all admins). */
+    public function countActiveAdminsExcept(int $exceptId): int
+    {
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM users WHERE role = 'admin' AND is_active = 1 AND id <> ?");
+        $stmt->execute([$exceptId]);
         return (int)$stmt->fetchColumn();
     }
 

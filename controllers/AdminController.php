@@ -1303,9 +1303,32 @@ class AdminController extends BaseController
     {
         require_role('admin');
         $p = $this->post();
-        (new User($this->db))->setActive((int)$p['user_id'], (int)$p['active']);
-        flash('success', 'User status updated.');
+        $targetId = (int)($p['user_id'] ?? 0);
+        $makeActive = (int)($p['active'] ?? 0);
         $back = $p['redirect'] ?? 'admin_users';
+        try {
+            if ($targetId <= 0) {
+                throw new RuntimeException('Invalid user.');
+            }
+            if ($targetId === (int)current_user()['id']) {
+                throw new RuntimeException('You cannot change your own account status.');
+            }
+            $userModel = new User($this->db);
+            $target = $userModel->find($targetId);
+            if (!$target) {
+                throw new RuntimeException('User not found.');
+            }
+            // Never allow deactivating the last remaining active administrator.
+            if ($makeActive === 0
+                && ($target['role'] ?? '') === 'admin'
+                && $userModel->countActiveAdminsExcept($targetId) === 0) {
+                throw new RuntimeException('You cannot deactivate the last active administrator.');
+            }
+            $userModel->setActive($targetId, $makeActive);
+            flash('success', 'User status updated.');
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+        }
         redirect('index.php?r=' . $back);
     }
 

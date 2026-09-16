@@ -1132,8 +1132,8 @@ class PartnerController extends BaseController
                 http_response_code(401);
                 throw new RuntimeException('Please verify your ' . $passwordLabel . ' again before changing it.');
             }
-            if (strlen($password) < 8) {
-                throw new RuntimeException('Password must be at least 8 characters.');
+            if ($strengthError = password_strength_error($password)) {
+                throw new RuntimeException($strengthError);
             }
             if ($password !== $confirm) {
                 throw new RuntimeException('Passwords do not match.');

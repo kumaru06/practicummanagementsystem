@@ -77,6 +77,11 @@ class Evaluation
             return;
         }
 
+        if (!APP_IS_LOCAL) {
+            $this->tableReady = true;
+            return;
+        }
+
         $this->db->exec('CREATE TABLE IF NOT EXISTS evaluations (
             id INT AUTO_INCREMENT PRIMARY KEY,
             enrollment_id INT NOT NULL UNIQUE,
@@ -101,6 +106,11 @@ class Evaluation
     public function ensureDetailSupport(): void
     {
         if ($this->detailReady === true) {
+            return;
+        }
+
+        if (!APP_IS_LOCAL) {
+            $this->detailReady = true;
             return;
         }
 

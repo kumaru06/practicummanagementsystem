@@ -11,6 +11,11 @@ class Term
             return;
         }
 
+        if (!APP_IS_LOCAL) {
+            $this->storageReady = true;
+            return;
+        }
+
         $this->db->exec(
             'CREATE TABLE IF NOT EXISTS program_terms (
                 id INT AUTO_INCREMENT PRIMARY KEY,

@@ -13,16 +13,18 @@ class Company
             return;
         }
 
-        $columnStmt = $this->db->prepare("SHOW COLUMNS FROM partner_companies LIKE 'partner_id'");
-        $columnStmt->execute();
-        if (!$columnStmt->fetch()) {
-            $this->db->exec('ALTER TABLE partner_companies ADD COLUMN partner_id VARCHAR(20) NULL AFTER id');
-        }
+        if (APP_IS_LOCAL) {
+            $columnStmt = $this->db->prepare("SHOW COLUMNS FROM partner_companies LIKE 'partner_id'");
+            $columnStmt->execute();
+            if (!$columnStmt->fetch()) {
+                $this->db->exec('ALTER TABLE partner_companies ADD COLUMN partner_id VARCHAR(20) NULL AFTER id');
+            }
 
-        $indexStmt = $this->db->prepare("SHOW INDEX FROM partner_companies WHERE Key_name = 'uq_partner_companies_partner_id'");
-        $indexStmt->execute();
-        if (!$indexStmt->fetch()) {
-            $this->db->exec('ALTER TABLE partner_companies ADD UNIQUE KEY uq_partner_companies_partner_id (partner_id)');
+            $indexStmt = $this->db->prepare("SHOW INDEX FROM partner_companies WHERE Key_name = 'uq_partner_companies_partner_id'");
+            $indexStmt->execute();
+            if (!$indexStmt->fetch()) {
+                $this->db->exec('ALTER TABLE partner_companies ADD UNIQUE KEY uq_partner_companies_partner_id (partner_id)');
+            }
         }
 
         $this->migrateLegacyPartnerIdPrefix();
@@ -82,6 +84,11 @@ class Company
             return;
         }
 
+        if (!APP_IS_LOCAL) {
+            $this->moaMouSupportReady = true;
+            return;
+        }
+
         $columnStmt = $this->db->prepare("SHOW COLUMNS FROM partner_companies LIKE 'moa_mou_file'");
         $columnStmt->execute();
         $hasColumn = (bool)$columnStmt->fetch();
@@ -96,6 +103,11 @@ class Company
     public function ensurePhotoSupport(): void
     {
         if ($this->photoSupportReady === true) {
+            return;
+        }
+
+        if (!APP_IS_LOCAL) {
+            $this->photoSupportReady = true;
             return;
         }
 
@@ -286,6 +298,39 @@ class Company
         $stmt->execute([$companyId, $coordinatorUserId, $coordinatorUserId]);
 
         return (bool)$stmt->fetchColumn();
+    }
+
+    /**
+     * All company ids this coordinator may view MOA/MOU for, resolved in ONE query
+     * (batch form of coordinatorCanAccessMoa to avoid N+1 on list screens).
+     *
+     * @return list<int>
+     */
+    public function coordinatorAccessibleCompanyIds(int $coordinatorUserId): array
+    {
+        if ($coordinatorUserId <= 0) {
+            return [];
+        }
+        $stmt = $this->db->prepare(
+            'SELECT DISTINCT pc.id
+             FROM partner_companies pc
+             WHERE pc.moa_mou_file IS NOT NULL
+               AND pc.moa_mou_file != ""
+               AND (
+                 EXISTS (
+                   SELECT 1 FROM ojt_enrollments e
+                   JOIN students s ON s.id = e.student_id
+                   WHERE s.coordinator_id = ? AND e.company_id = pc.id
+                 )
+                 OR EXISTS (
+                   SELECT 1 FROM students s
+                   JOIN company_programs cp ON cp.program_id = s.program_id
+                   WHERE s.coordinator_id = ? AND cp.company_id = pc.id AND s.program_id IS NOT NULL
+                 )
+               )'
+        );
+        $stmt->execute([$coordinatorUserId, $coordinatorUserId]);
+        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
     }
 
     /**

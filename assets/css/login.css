@@ -2734,6 +2734,18 @@
     font-weight: 500;
 }
 
+.student-pending-logout-form {
+    margin: 0;
+    width: 100%;
+}
+
+button.student-pending-logout {
+    font-family: inherit;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
 .student-pending-logout {
     display: inline-flex;
     align-items: center;

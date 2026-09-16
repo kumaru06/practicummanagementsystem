@@ -5,6 +5,13 @@
  */
 declare(strict_types=1);
 
+// CLI-only utility. Refuse to run over HTTP even if the web server ever
+// serves this file directly (defense-in-depth alongside tools/.htaccess).
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit('Not found.');
+}
+
 $root = dirname(__DIR__);
 $failures = 0;
 $passed = 0;

@@ -34,7 +34,7 @@ amaccmanagementsystem/
 ├── api/                    # Async JSON endpoints (e.g. live chat)
 ├── assets/
 │   ├── css/                # Global, login, and chat styles
-│   ├── js/                 # main.js, chat.js, login-portal.js, ...
+│   ├── js/                 # main.js, chat-live.js, login-portal.js, ...
 │   └── image/              # Logos and static images
 ├── bootstrap/              # Env loader, mailer bootstrap
 ├── config/                 # database.php, mail.php (+ local *.example files)

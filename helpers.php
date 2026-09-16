@@ -17,29 +17,118 @@ function mask_email(string $email): string
     return substr($local, 0, $keep) . str_repeat('*', max(1, strlen($local) - $keep)) . $domain;
 }
 
+/**
+ * Does $ip fall inside $cidr? Supports a bare IP (exact match) or CIDR, IPv4 or IPv6.
+ */
+function ip_matches_cidr(string $ip, string $cidr): bool
+{
+    $ip = trim($ip);
+    $cidr = trim($cidr);
+    if ($ip === '' || $cidr === '') {
+        return false;
+    }
+    if (!str_contains($cidr, '/')) {
+        $a = @inet_pton($ip);
+        $b = @inet_pton($cidr);
+        return $a !== false && $b !== false && $a === $b;
+    }
+    [$subnet, $maskLen] = explode('/', $cidr, 2);
+    $maskLen = (int)$maskLen;
+    $ipBin = @inet_pton($ip);
+    $subnetBin = @inet_pton($subnet);
+    if ($ipBin === false || $subnetBin === false || strlen($ipBin) !== strlen($subnetBin)) {
+        return false; // empty or IPv4/IPv6 family mismatch
+    }
+    $maxBits = strlen($ipBin) * 8;
+    if ($maskLen < 0 || $maskLen > $maxBits) {
+        return false;
+    }
+    $fullBytes = intdiv($maskLen, 8);
+    $remainderBits = $maskLen % 8;
+    if ($fullBytes > 0 && strncmp($ipBin, $subnetBin, $fullBytes) !== 0) {
+        return false;
+    }
+    if ($remainderBits === 0) {
+        return true;
+    }
+    $maskByte = ~(0xFF >> $remainderBits) & 0xFF;
+    return (ord($ipBin[$fullBytes]) & $maskByte) === (ord($subnetBin[$fullBytes]) & $maskByte);
+}
+
+/**
+ * Comma-separated CIDR/IP allow-list of reverse proxies whose forwarding
+ * headers we may trust. Configure TRUSTED_PROXIES in .env (e.g. Cloudflare ranges).
+ *
+ * @return list<string>
+ */
+function trusted_proxy_ranges(): array
+{
+    static $list = null;
+    if ($list !== null) {
+        return $list;
+    }
+    $raw = (string)(env('TRUSTED_PROXIES', '') ?? '');
+    $list = array_values(array_filter(array_map('trim', explode(',', $raw)), static fn ($v) => $v !== ''));
+    return $list;
+}
+
+function ip_is_trusted_proxy(string $ip): bool
+{
+    if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+        return false;
+    }
+    foreach (trusted_proxy_ranges() as $cidr) {
+        if (ip_matches_cidr($ip, $cidr)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Best-effort real client IP.
+ *
+ * SECURITY: client-supplied forwarding headers (X-Forwarded-For, X-Real-IP,
+ * CF-Connecting-IP) are only honored when the request actually arrives from a
+ * proxy we trust. By default (no TRUSTED_PROXIES / TRUST_CLOUDFLARE) we return
+ * REMOTE_ADDR so these headers cannot be spoofed to bypass rate limiting or
+ * forge audit-log IPs. Behind Cloudflare, set TRUSTED_PROXIES to the Cloudflare
+ * ranges (preferred) or TRUST_CLOUDFLARE=true with the origin locked to Cloudflare.
+ */
 function client_ip(): string
 {
-    $candidates = [
-        $_SERVER['HTTP_CF_CONNECTING_IP'] ?? null,
-        $_SERVER['HTTP_X_FORWARDED_FOR'] ?? null,
-        $_SERVER['HTTP_X_REAL_IP'] ?? null,
-        $_SERVER['REMOTE_ADDR'] ?? null,
-    ];
+    $remote = trim((string)($_SERVER['REMOTE_ADDR'] ?? ''));
+    $remoteValid = filter_var($remote, FILTER_VALIDATE_IP) ? $remote : 'Unknown';
 
-    foreach ($candidates as $candidate) {
-        if (!is_string($candidate) || trim($candidate) === '') {
-            continue;
-        }
-        // X-Forwarded-For may contain a comma-separated list; use the first public-looking hop.
-        $parts = array_map('trim', explode(',', $candidate));
-        foreach ($parts as $ip) {
-            if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                return $ip;
+    $trustCloudflare = filter_var(env('TRUST_CLOUDFLARE', 'false'), FILTER_VALIDATE_BOOLEAN);
+    $fromTrustedProxy = $remote !== '' && ip_is_trusted_proxy($remote);
+
+    if (!$fromTrustedProxy && !$trustCloudflare) {
+        return $remoteValid;
+    }
+
+    // Cloudflare sets a single, validated client IP.
+    $cf = trim((string)($_SERVER['HTTP_CF_CONNECTING_IP'] ?? ''));
+    if ($cf !== '' && filter_var($cf, FILTER_VALIDATE_IP)) {
+        return $cf;
+    }
+
+    // X-Forwarded-For: right-most hop that is not itself a trusted proxy.
+    $xff = (string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? '');
+    if ($xff !== '') {
+        foreach (array_reverse(array_map('trim', explode(',', $xff))) as $hop) {
+            if (filter_var($hop, FILTER_VALIDATE_IP) && !ip_is_trusted_proxy($hop)) {
+                return $hop;
             }
         }
     }
 
-    return 'Unknown';
+    $xr = trim((string)($_SERVER['HTTP_X_REAL_IP'] ?? ''));
+    if ($xr !== '' && filter_var($xr, FILTER_VALIDATE_IP)) {
+        return $xr;
+    }
+
+    return $remoteValid;
 }
 
 function client_device_label(?string $userAgent = null): string
@@ -413,6 +502,63 @@ function is_ajax_request(): bool
 function current_user(): ?array
 {
     return $_SESSION['user'] ?? null;
+}
+
+/**
+ * Expire idle or long-lived sessions server-side. Cookie lifetime 0 is browser-close
+ * only — without this, a stolen session cookie stays valid until the user logs out.
+ */
+function enforce_session_timeout(): void
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return;
+    }
+    if (empty($_SESSION['user'])) {
+        return;
+    }
+
+    $now = time();
+    $idleLimit = defined('SESSION_IDLE_SECONDS') ? (int)SESSION_IDLE_SECONDS : 1800;
+    $absoluteLimit = defined('SESSION_ABSOLUTE_SECONDS') ? (int)SESSION_ABSOLUTE_SECONDS : 28800;
+
+    if (!isset($_SESSION['_created_at'])) {
+        $_SESSION['_created_at'] = $now;
+        $_SESSION['_last_activity'] = $now;
+        $_SESSION['_last_regenerate'] = $now;
+        return;
+    }
+
+    $idleExpired = ($now - (int)$_SESSION['_last_activity']) > $idleLimit;
+    $absoluteExpired = ($now - (int)$_SESSION['_created_at']) > $absoluteLimit;
+    if ($idleExpired || $absoluteExpired) {
+        $_SESSION = [];
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', [
+                'expires' => time() - 42000,
+                'path' => $params['path'] ?? '/',
+                'domain' => $params['domain'] ?? '',
+                'secure' => (bool)($params['secure'] ?? false),
+                'httponly' => (bool)($params['httponly'] ?? true),
+                'samesite' => $params['samesite'] ?? 'Lax',
+            ]);
+        }
+        session_destroy();
+        session_start();
+        flash(
+            'error',
+            $idleExpired
+                ? 'Your session timed out due to inactivity. Please sign in again.'
+                : 'Your session expired. Please sign in again.'
+        );
+        return;
+    }
+
+    $_SESSION['_last_activity'] = $now;
+    if (($now - (int)($_SESSION['_last_regenerate'] ?? $now)) >= 900) {
+        session_regenerate_id(true);
+        $_SESSION['_last_regenerate'] = $now;
+    }
 }
 
 function require_login(): void
@@ -1173,6 +1319,26 @@ function random_password(int $length = 12): string
 }
 
 /**
+ * Baseline password policy for user-chosen passwords: at least 8 characters with
+ * uppercase, lowercase, and a number. Returns an error message, or null when acceptable.
+ */
+function password_strength_error(string $password): ?string
+{
+    if (strlen($password) < 8) {
+        return 'Password must be at least 8 characters.';
+    }
+    if (!preg_match('/[a-z]/', $password) || !preg_match('/[A-Z]/', $password) || !preg_match('/\d/', $password)) {
+        return 'Password must include uppercase, lowercase, and a number.';
+    }
+    return null;
+}
+
+function password_policy_hint(): string
+{
+    return 'At least 8 characters, including uppercase, lowercase, and a number.';
+}
+
+/**
  * Resolve a safe upload extension from MIME, file magic, then generic iOS types.
  * iPhone Files often sends PDFs as application/octet-stream with an empty browser type.
  *
@@ -1464,28 +1630,6 @@ function projected_ojt_end_date(string $startDate, int $requiredHours, int $hour
         }
     }
     return $date->format('Y-m-d');
-}
-
-function generate_endorsement_letter(array $student, array $company, array $coordinator, array $enrollment): string
-{
-    $targetDir = __DIR__ . '/uploads/endorsements';
-    if (!is_dir($targetDir)) {
-        mkdir($targetDir, 0755, true);
-    }
-
-    $safe = static fn ($value): string => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
-    $fileName = 'endorsement_' . (int)($student['id'] ?? 0) . '_' . date('YmdHis') . '.html';
-    $content = '<!doctype html><html><head><meta charset="utf-8"><title>Endorsement Letter</title><style>body{font-family:Arial,sans-serif;line-height:1.6;color:#111827;padding:42px;max-width:820px;margin:auto}.head{text-align:center;margin-bottom:34px}.date{text-align:right}.signature{margin-top:54px}</style></head><body>'
-        . '<div class="head"><h2>AMA Computer College</h2><h3>Recommendation / Endorsement Letter</h3></div>'
-        . '<p class="date">' . date('F d, Y') . '</p>'
-        . '<p>Dear ' . $safe($company['contact_person'] ?? 'Host Training Establishment') . ',</p>'
-        . '<p>This is to formally endorse <strong>' . $safe($student['name'] ?? $student['student_name'] ?? 'Student') . '</strong>, Student ID <strong>' . $safe($student['student_no'] ?? '') . '</strong>, from <strong>' . $safe($student['course'] ?? '') . '</strong>, for On-the-Job Training deployment at <strong>' . $safe($company['name'] ?? '') . '</strong>.</p>'
-        . '<p>The student is enrolled for <strong>' . $safe($enrollment['academic_term'] ?? '') . '</strong> and is required to complete <strong>' . $safe($enrollment['required_hours'] ?? '') . ' hours</strong>. The official OJT start date and projected end date will be confirmed by your company after orientation.</p>'
-        . '<p>Attached with this endorsement are the student pre-deployment requirements for your review and acceptance.</p>'
-        . '<div class="signature"><p>Respectfully,</p><p><strong>' . $safe($coordinator['name'] ?? 'OJT Coordinator') . '</strong><br>OJT Coordinator<br>' . $safe($coordinator['email'] ?? '') . '</p></div>'
-        . '</body></html>';
-    file_put_contents($targetDir . DIRECTORY_SEPARATOR . $fileName, $content);
-    return 'uploads/endorsements/' . $fileName;
 }
 
 function dtr_day_types(): array

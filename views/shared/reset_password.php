@@ -66,7 +66,7 @@ $forgotUrl = in_array($forgotRole, ['student', 'coordinator', 'partner'], true)
                             <div class="portal-copy">
                                 <span class="portal-eyebrow">Secure reset</span>
                                 <h1 class="portal-heading">Create New Password</h1>
-                                <p class="portal-sub">Choose a strong password with at least 8 characters.</p>
+                                <p class="portal-sub">Choose a strong password: <?= e(password_policy_hint()) ?></p>
                             </div>
 
                             <div class="alert danger<?= $flashError ? '' : ' is-hidden' ?>"><?= e($flashError ?: '') ?></div>

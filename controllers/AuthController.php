@@ -6,9 +6,19 @@ class AuthController extends BaseController
 
     private const MAX_LOGIN_ATTEMPTS_PER_IP = 10;
 
+    // Per-account cap catches targeted brute force even when the source IP is
+    // rotated/unknown (defence-in-depth alongside the per-IP cap).
+    private const MAX_LOGIN_ATTEMPTS_PER_ACCOUNT = 8;
+
     private const LOGIN_ATTEMPT_WINDOW_MINUTES = 15;
 
     private const RESEND_COOLDOWN_SECONDS = 60;
+
+    // Throttle the public "is this email/USN taken?" endpoints to curb enumeration
+    // while still allowing normal live form validation.
+    private const SIGNUP_CHECK_MAX = 40;
+
+    private const SIGNUP_CHECK_WINDOW_MIN = 10;
 
     public function login(?string $portalRole = null): void
 
@@ -58,7 +68,7 @@ class AuthController extends BaseController
 
             $loginIp = client_ip();
 
-            if ($this->loginIsRateLimited($loginIp)) {
+            if ($this->loginIsRateLimited($loginIp, $identifier)) {
 
                 flash('error', 'Too many failed login attempts. Please wait a few minutes before trying again.');
 
@@ -70,7 +80,7 @@ class AuthController extends BaseController
 
             if ($user && password_verify($password, $user['password_hash'])) {
                 if ((int)$user['is_active'] !== 1) {
-                    $this->recordLoginAttempt($loginIp, false);
+                    $this->recordLoginAttempt($loginIp, false, $identifier);
                     $inactiveMessage = match ($portalRole) {
                         'partner' => 'Your Host Training Establishment account is inactive. Please contact the system administrator.',
                         'coordinator' => 'Your coordinator account is inactive. Please contact the system administrator.',
@@ -81,7 +91,7 @@ class AuthController extends BaseController
                     redirect($portalRole ? 'auth.php?portal=' . urlencode($portalRole) : 'auth.php');
                 }
 
-                $this->recordLoginAttempt($loginIp, true);
+                $this->recordLoginAttempt($loginIp, true, $identifier);
 
                 if (($user['role'] ?? '') !== $portalRole) {
 
@@ -131,7 +141,7 @@ class AuthController extends BaseController
 
             $this->continueUnverifiedStudentRegistration($identifier, $password, $portalRole, $loginIp);
 
-            $this->recordLoginAttempt($loginIp, false);
+            $this->recordLoginAttempt($loginIp, false, $identifier);
 
             flash('error', 'Invalid email/USN or password.');
 
@@ -311,9 +321,9 @@ class AuthController extends BaseController
 
                 }
 
-                if (strlen($password) < 8) {
+                if ($strengthError = password_strength_error($password)) {
 
-                    throw new RuntimeException('Password must be at least 8 characters.');
+                    throw new RuntimeException($strengthError);
 
                 }
 
@@ -574,7 +584,7 @@ class AuthController extends BaseController
             return;
         }
 
-        $this->recordLoginAttempt($loginIp, true);
+        $this->recordLoginAttempt($loginIp, true, $identifier);
 
         $emailJustSent = false;
         if ($registrationModel->isVerificationExpired($request) || empty($request['verification_token'])) {
@@ -694,6 +704,8 @@ class AuthController extends BaseController
 
 
 
+        $this->assertSignupCheckWithinRate();
+
         $email = strtolower(trim((string)($_GET['email'] ?? '')));
 
         if ($email === '') {
@@ -743,6 +755,8 @@ class AuthController extends BaseController
         $registrationModel->purgeExpiredUnverified();
 
 
+
+        $this->assertSignupCheckWithinRate();
 
         $studentNo = trim((string)($_GET['student_no'] ?? ''));
 
@@ -915,8 +929,8 @@ class AuthController extends BaseController
                 if (!$request) {
                     throw new RuntimeException($resolved['error'] ?: 'This password reset link is invalid or has already been used.');
                 }
-                if (strlen($password) < 8) {
-                    throw new RuntimeException('Password must be at least 8 characters.');
+                if ($strengthError = password_strength_error($password)) {
+                    throw new RuntimeException($strengthError);
                 }
                 if ($password !== $confirmPassword) {
                     throw new RuntimeException('Password confirmation does not match.');
@@ -958,35 +972,70 @@ class AuthController extends BaseController
         }
     }
 
-    private function loginIsRateLimited(string $ip): bool
+    private function normalizeLoginIdentifier(string $identifier): string
     {
-        if ($ip === '' || $ip === 'Unknown') {
-            return false;
-        }
-        $this->ensureLoginAttemptsTable();
-        $stmt = $this->db->prepare(
-            'SELECT COUNT(*) FROM login_attempts
-             WHERE successful = 0
-               AND ip_address = ?
-               AND attempted_at >= (NOW() - INTERVAL ' . self::LOGIN_ATTEMPT_WINDOW_MINUTES . ' MINUTE)'
-        );
-        $stmt->execute([$ip]);
-        return (int)$stmt->fetchColumn() >= self::MAX_LOGIN_ATTEMPTS_PER_IP;
+        return mb_strtolower(trim($identifier));
     }
 
-    private function recordLoginAttempt(string $ip, bool $successful): void
+    private function loginIsRateLimited(string $ip, string $identifier = ''): bool
     {
-        if ($ip === '' || $ip === 'Unknown') {
-            return;
-        }
         $this->ensureLoginAttemptsTable();
+        $window = self::LOGIN_ATTEMPT_WINDOW_MINUTES;
+
+        // Per-IP cap (only when we have a trustworthy IP).
+        if ($ip !== '' && $ip !== 'Unknown') {
+            $stmt = $this->db->prepare(
+                'SELECT COUNT(*) FROM login_attempts
+                 WHERE successful = 0
+                   AND ip_address = ?
+                   AND attempted_at >= (NOW() - INTERVAL ' . $window . ' MINUTE)'
+            );
+            $stmt->execute([$ip]);
+            if ((int)$stmt->fetchColumn() >= self::MAX_LOGIN_ATTEMPTS_PER_IP) {
+                return true;
+            }
+        }
+
+        // Per-account cap catches targeted brute force regardless of source IP.
+        $identifier = $this->normalizeLoginIdentifier($identifier);
+        if ($identifier !== '') {
+            $stmt = $this->db->prepare(
+                'SELECT COUNT(*) FROM login_attempts
+                 WHERE successful = 0
+                   AND identifier = ?
+                   AND attempted_at >= (NOW() - INTERVAL ' . $window . ' MINUTE)'
+            );
+            $stmt->execute([$identifier]);
+            if ((int)$stmt->fetchColumn() >= self::MAX_LOGIN_ATTEMPTS_PER_ACCOUNT) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function recordLoginAttempt(string $ip, bool $successful, string $identifier = ''): void
+    {
+        $this->ensureLoginAttemptsTable();
+        $identifier = $this->normalizeLoginIdentifier($identifier);
+        $ipValue = ($ip === '' || $ip === 'Unknown') ? null : $ip;
+
         if ($successful) {
-            $reset = $this->db->prepare('DELETE FROM login_attempts WHERE ip_address = ?');
-            $reset->execute([$ip]);
+            // Clear failures for this IP and/or this account after a good login.
+            if ($ipValue !== null) {
+                $this->db->prepare('DELETE FROM login_attempts WHERE ip_address = ?')->execute([$ipValue]);
+            }
+            if ($identifier !== '') {
+                $this->db->prepare('DELETE FROM login_attempts WHERE identifier = ?')->execute([$identifier]);
+            }
             return;
         }
-        $stmt = $this->db->prepare('INSERT INTO login_attempts (ip_address, successful) VALUES (?, 0)');
-        $stmt->execute([$ip]);
+
+        if ($ipValue === null && $identifier === '') {
+            return; // nothing we can attribute this failure to
+        }
+        $stmt = $this->db->prepare('INSERT INTO login_attempts (ip_address, identifier, successful) VALUES (?, ?, 0)');
+        $stmt->execute([$ipValue ?? '', $identifier !== '' ? $identifier : null]);
     }
 
     private function ensureLoginAttemptsTable(): void
@@ -999,12 +1048,78 @@ class AuthController extends BaseController
             'CREATE TABLE IF NOT EXISTS login_attempts (
                 id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 ip_address VARCHAR(45) NOT NULL,
+                identifier VARCHAR(190) NULL,
                 successful TINYINT(1) NOT NULL DEFAULT 0,
                 attempted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_login_attempts_ip (ip_address, attempted_at)
+                INDEX idx_login_attempts_ip (ip_address, attempted_at),
+                INDEX idx_login_attempts_identifier (identifier, attempted_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+        );
+        // Upgrade pre-existing tables that predate the per-account column/index (local only).
+        if (APP_IS_LOCAL) {
+            try {
+                $hasColumn = $this->db->query(
+                    "SELECT COUNT(*) FROM information_schema.COLUMNS
+                     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'login_attempts' AND COLUMN_NAME = 'identifier'"
+                )->fetchColumn();
+                if ((int)$hasColumn === 0) {
+                    $this->db->exec('ALTER TABLE login_attempts ADD COLUMN identifier VARCHAR(190) NULL AFTER ip_address');
+                    $this->db->exec('ALTER TABLE login_attempts ADD INDEX idx_login_attempts_identifier (identifier, attempted_at)');
+                }
+            } catch (Throwable) {
+                // If information_schema is unavailable, the per-IP cap still applies.
+            }
+        }
+        $ready = true;
+    }
+
+    private function ensureSignupCheckTable(): void
+    {
+        static $ready = false;
+        if ($ready) {
+            return;
+        }
+        $this->db->exec(
+            'CREATE TABLE IF NOT EXISTS signup_check_attempts (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                ip_address VARCHAR(45) NOT NULL,
+                attempted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_signup_check_ip (ip_address, attempted_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
         );
         $ready = true;
+    }
+
+    /**
+     * Per-IP throttle for the public availability-check endpoints. Emits a 429 JSON
+     * response and exits when the caller exceeds the window budget. Keeps live form
+     * validation working while curbing bulk email/USN enumeration.
+     */
+    private function assertSignupCheckWithinRate(): void
+    {
+        $ip = client_ip();
+        if ($ip === '' || $ip === 'Unknown') {
+            return; // cannot attribute the request; avoid blocking legitimate users
+        }
+        $this->ensureSignupCheckTable();
+        $window = self::SIGNUP_CHECK_WINDOW_MIN;
+        $this->db->prepare(
+            'DELETE FROM signup_check_attempts WHERE attempted_at < (NOW() - INTERVAL ' . $window . ' MINUTE)'
+        )->execute();
+        $count = $this->db->prepare(
+            'SELECT COUNT(*) FROM signup_check_attempts
+             WHERE ip_address = ? AND attempted_at >= (NOW() - INTERVAL ' . $window . ' MINUTE)'
+        );
+        $count->execute([$ip]);
+        if ((int)$count->fetchColumn() >= self::SIGNUP_CHECK_MAX) {
+            http_response_code(429);
+            echo json_encode(
+                ['ok' => false, 'message' => 'Too many checks. Please slow down and try again in a few minutes.'],
+                JSON_UNESCAPED_UNICODE
+            );
+            exit;
+        }
+        $this->db->prepare('INSERT INTO signup_check_attempts (ip_address) VALUES (?)')->execute([$ip]);
     }
 
 }
