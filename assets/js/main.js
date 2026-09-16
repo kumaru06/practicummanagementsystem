@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initStudentMobileTapProxy();
     initStudentMobileInputZoomFix();
     initStudentProfilePhotoPreview();
+    initStudentProfileStudio();
     initPartnerPasswordChange();
     initStudentPasswordChange();
     initPartnerPortalRoster();
@@ -94,6 +95,8 @@ function initStudentProfilePhotoPreview() {
     const cropEnabled = !!form?.hasAttribute('data-profile-photo-crop');
     const genderSelect = form?.querySelector('[data-profile-gender-select]');
     const genderPreview = form?.querySelector('[data-profile-gender-preview]');
+    const yearSelect = form?.querySelector('[data-profile-year-select]');
+    const yearPreview = document.querySelector('[data-profile-year-preview]');
 
     const setInlinePhoto = url => {
         if (!inlinePreview) return;
@@ -158,6 +161,12 @@ function initStudentProfilePhotoPreview() {
         if (!genderPreview) return;
         const value = (genderSelect.value || '').trim();
         genderPreview.textContent = value !== '' ? value : '—';
+    });
+
+    yearSelect?.addEventListener('change', () => {
+        if (!yearPreview) return;
+        const value = (yearSelect.value || '').trim();
+        yearPreview.textContent = value !== '' ? value : 'Year level';
     });
 
     if (!input) return;
@@ -319,6 +328,7 @@ function initProfilePhotoCropModal({ input, showPhoto, showFallback, assignInput
             });
             assignInputFile(croppedFile);
             showPhoto(URL.createObjectURL(croppedFile));
+            input.dispatchEvent(new CustomEvent('profile-photo-applied', { bubbles: true }));
             closeCropModal(false);
         }, pendingFile.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.92);
     };
@@ -392,6 +402,206 @@ function initProfilePhotoCropModal({ input, showPhoto, showFallback, assignInput
         if (event.key === 'Escape' && overlay.classList.contains('is-open')) {
             closeCropModal(true);
         }
+    });
+}
+
+function initStudentProfileStudio() {
+    const root = document.querySelector('[data-student-profile-studio]');
+    const form = root?.querySelector('[data-profile-dirty-form]') || document.querySelector('[data-profile-dirty-form]');
+    if (!root || !form || form.dataset.profileStudioReady === '1') return;
+    form.dataset.profileStudioReady = '1';
+
+    const tabs = Array.from(root.querySelectorAll('[data-profile-tab]'));
+    const panels = Array.from(root.querySelectorAll('[data-profile-panel]'));
+    const dock = root.querySelector('[data-profile-dock]');
+    const dirtyLabel = root.querySelector('[data-profile-dirty-label]');
+    const discardBtn = root.querySelector('[data-profile-discard]');
+    let tabSwitching = false;
+    let activeTabKey = '';
+
+    const syncTabs = (key, { focus = false } = {}) => {
+        tabs.forEach((tab) => {
+            const active = tab.dataset.profileTab === key;
+            tab.classList.toggle('is-active', active);
+            tab.setAttribute('aria-selected', active ? 'true' : 'false');
+            tab.tabIndex = active ? 0 : -1;
+            if (active && focus) tab.focus();
+        });
+        if (history.replaceState) {
+            const url = new URL(window.location.href);
+            url.hash = key === 'personal' ? '' : key;
+            history.replaceState(null, '', url.pathname + url.search + url.hash);
+        }
+    };
+
+    const showPanelInstant = (key) => {
+        panels.forEach((panel) => {
+            const active = panel.dataset.profilePanel === key;
+            panel.classList.remove('is-leaving', 'is-entering', 'is-enter-active');
+            panel.classList.toggle('is-active', active);
+            panel.hidden = !active;
+            panel.style.removeProperty('--spf-tab-dir');
+        });
+        activeTabKey = key;
+    };
+
+    const activateTab = async (key, { focus = false } = {}) => {
+        const nextKey = key || 'personal';
+        if (tabSwitching) return;
+        if (activeTabKey === nextKey) {
+            syncTabs(nextKey, { focus });
+            return;
+        }
+
+        const current = panels.find((panel) => panel.dataset.profilePanel === activeTabKey)
+            || panels.find((panel) => panel.classList.contains('is-active'));
+        const next = panels.find((panel) => panel.dataset.profilePanel === nextKey);
+        if (!next) return;
+
+        syncTabs(nextKey, { focus });
+
+        if (!current || prefersReducedMotion()) {
+            showPanelInstant(nextKey);
+            return;
+        }
+
+        const currentIdx = panels.indexOf(current);
+        const nextIdx = panels.indexOf(next);
+        const dir = nextIdx >= currentIdx ? 1 : -1;
+
+        tabSwitching = true;
+        current.style.setProperty('--spf-tab-dir', String(dir));
+        next.style.setProperty('--spf-tab-dir', String(dir));
+        current.classList.add('is-leaving');
+        current.classList.remove('is-active');
+
+        await waitForMs(180);
+
+        current.hidden = true;
+        current.classList.remove('is-leaving');
+        current.style.removeProperty('--spf-tab-dir');
+
+        next.hidden = false;
+        next.classList.add('is-active', 'is-entering');
+        void next.offsetWidth;
+        next.classList.add('is-enter-active');
+
+        await waitForMs(280);
+
+        next.classList.remove('is-entering', 'is-enter-active');
+        next.style.removeProperty('--spf-tab-dir');
+        activeTabKey = nextKey;
+        tabSwitching = false;
+    };
+
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+            void activateTab(tab.dataset.profileTab || 'personal');
+        });
+        tab.addEventListener('keydown', (event) => {
+            const index = tabs.indexOf(tab);
+            if (index < 0) return;
+            let next = null;
+            if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = tabs[(index + 1) % tabs.length];
+            if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = tabs[(index - 1 + tabs.length) % tabs.length];
+            if (event.key === 'Home') next = tabs[0];
+            if (event.key === 'End') next = tabs[tabs.length - 1];
+            if (!next) return;
+            event.preventDefault();
+            void activateTab(next.dataset.profileTab || 'personal', { focus: true });
+        });
+    });
+
+    const hashKey = (window.location.hash || '').replace(/^#/, '');
+    if (hashKey && panels.some((panel) => panel.dataset.profilePanel === hashKey)) {
+        showPanelInstant(hashKey);
+        syncTabs(hashKey);
+    } else {
+        showPanelInstant('personal');
+        syncTabs('personal');
+    }
+
+    const snapshotFields = () => {
+        const data = new FormData(form);
+        const entries = [];
+        data.forEach((value, key) => {
+            if (key === 'csrf_token' || key === 'action' || key === 'photo_file') return;
+            entries.push(`${key}=${String(value)}`);
+        });
+        entries.sort();
+        return entries.join('&');
+    };
+
+    let baseline = snapshotFields();
+    let photoDirty = false;
+
+    const setDirty = (dirty) => {
+        dock?.classList.toggle('is-dirty', dirty);
+        if (dirtyLabel) {
+            dirtyLabel.textContent = dirty ? 'Unsaved changes' : 'No unsaved changes';
+        }
+    };
+
+    const refreshDirty = () => {
+        setDirty(photoDirty || snapshotFields() !== baseline);
+    };
+
+    form.addEventListener('input', refreshDirty);
+    form.addEventListener('change', refreshDirty);
+
+    const photoInput = form.querySelector('[data-profile-photo-input]');
+    photoInput?.addEventListener('change', () => {
+        photoDirty = !!(photoInput.files && photoInput.files.length);
+        refreshDirty();
+    });
+    form.addEventListener('profile-photo-applied', () => {
+        photoDirty = true;
+        refreshDirty();
+    });
+
+    discardBtn?.addEventListener('click', async () => {
+        form.reset();
+        photoDirty = false;
+
+        const yearPreview = root.querySelector('[data-profile-year-preview]');
+        const yearSelect = form.querySelector('[data-profile-year-select]');
+        if (yearPreview && yearSelect) {
+            yearPreview.textContent = (yearSelect.value || '').trim() || 'Year level';
+        }
+        const genderPreview = form.querySelector('[data-profile-gender-preview]');
+        const genderSelect = form.querySelector('[data-profile-gender-select]');
+        if (genderPreview && genderSelect) {
+            genderPreview.textContent = (genderSelect.value || '').trim() || '—';
+        }
+
+        form.querySelectorAll('select').forEach((select) => {
+            if (
+                select.hasAttribute('data-address-province-select')
+                || select.hasAttribute('data-address-municipality-select')
+                || select.hasAttribute('data-address-barangay-select')
+            ) {
+                return;
+            }
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            select._syncCustomSelect?.();
+        });
+
+        if (typeof form._restoreAddressAfterDiscard === 'function') {
+            try {
+                await form._restoreAddressAfterDiscard();
+            } catch (_) {
+                /* keep discard usable even if address re-sync fails */
+            }
+        }
+
+        baseline = snapshotFields();
+        setDirty(false);
+    });
+
+    form.addEventListener('submit', () => {
+        baseline = snapshotFields();
+        photoDirty = false;
+        setDirty(false);
     });
 }
 
@@ -9652,6 +9862,7 @@ function reinitAppPageContent() {
     initCoordinatorCardAlignment();
     initCapitalizeWordInputs();
     initStudentProfilePhotoPreview();
+    initStudentProfileStudio();
     initPartnerPasswordChange();
     initStudentPasswordChange();
     initPartnerPortalRoster();
@@ -9696,14 +9907,32 @@ function coordinatorPageNavDirection(fromHref, toHref) {
     return '';
 }
 
+function studentSettingsNavDirection(fromHref, toHref) {
+    const fromRoute = parseAppRoute(fromHref);
+    const toRoute = parseAppRoute(toHref);
+    const family = new Set(['student_settings', 'student_profile', 'student_password']);
+    if (!family.has(fromRoute) || !family.has(toRoute) || fromRoute === toRoute) return '';
+    if (fromRoute === 'student_settings') return 'forward';
+    if (toRoute === 'student_settings') return 'back';
+    return 'soft';
+}
+
+function pageNavDirection(fromHref, toHref) {
+    return coordinatorPageNavDirection(fromHref, toHref)
+        || studentSettingsNavDirection(fromHref, toHref)
+        || 'soft';
+}
+
 function clearAjaxNavMotion(content) {
     content.classList.remove(
         'is-ajax-loading',
         'is-ajax-leave',
         'is-ajax-leave-fwd',
         'is-ajax-leave-back',
+        'is-ajax-leave-soft',
         'is-ajax-enter',
         'is-ajax-enter-back',
+        'is-ajax-enter-soft',
         'is-ajax-enter-active'
     );
 }
@@ -9728,17 +9957,19 @@ function initAppAjaxNav() {
         }
 
         loading = true;
-        const direction = coordinatorPageNavDirection(currentAjaxHref, href);
-        const useMotion = Boolean(direction) && !prefersReducedMotion();
+        const direction = pageNavDirection(currentAjaxHref, href);
+        const useMotion = !prefersReducedMotion();
 
         if (useMotion) {
             const modalOpen = document.getElementById('studentModal')?.classList.contains('open');
             if (direction === 'back') {
                 content.classList.add('is-ajax-leave-back');
-            } else if (modalOpen) {
+            } else if (direction === 'forward' && !modalOpen) {
+                content.classList.add('is-ajax-leave-fwd');
+            } else if (direction === 'forward' && modalOpen) {
                 content.classList.add('is-ajax-leave');
             } else {
-                content.classList.add('is-ajax-leave-fwd');
+                content.classList.add('is-ajax-leave-soft');
             }
         } else {
             content.classList.add('is-ajax-loading');
@@ -9747,7 +9978,7 @@ function initAppAjaxNav() {
         try {
             destroyLiveChatIfNeeded();
 
-            const leaveWait = useMotion ? waitForMs(260) : Promise.resolve();
+            const leaveWait = useMotion ? waitForMs(direction === 'soft' ? 220 : 260) : Promise.resolve();
 
             const [response] = await Promise.all([
                 fetch(buildAppAjaxUrl(href), {
@@ -9791,11 +10022,23 @@ function initAppAjaxNav() {
 
             if (useMotion) {
                 applyPage();
-                content.classList.add(direction === 'back' ? 'is-ajax-enter-back' : 'is-ajax-enter');
-                content.classList.remove('is-ajax-leave', 'is-ajax-leave-fwd', 'is-ajax-leave-back', 'is-ajax-loading');
+                if (direction === 'back') {
+                    content.classList.add('is-ajax-enter-back');
+                } else if (direction === 'forward') {
+                    content.classList.add('is-ajax-enter');
+                } else {
+                    content.classList.add('is-ajax-enter-soft');
+                }
+                content.classList.remove(
+                    'is-ajax-leave',
+                    'is-ajax-leave-fwd',
+                    'is-ajax-leave-back',
+                    'is-ajax-leave-soft',
+                    'is-ajax-loading'
+                );
                 void content.offsetWidth;
                 content.classList.add('is-ajax-enter-active');
-                await waitForMs(360);
+                await waitForMs(direction === 'soft' ? 320 : 360);
             } else {
                 applyPage();
             }
@@ -10028,7 +10271,10 @@ function initPhilippineAddressForm() {
         setRequired(active);
     };
 
-    updateBtn?.addEventListener('click', () => setStructuredActive(true));
+    updateBtn?.addEventListener('click', () => {
+        setStructuredActive(true);
+        initPrefill().catch(showAddressLoadError);
+    });
     if (form.dataset.legacyOnly === '1') {
         setStructuredActive(false);
     } else {
@@ -10146,6 +10392,25 @@ function initPhilippineAddressForm() {
         syncName(barangaySelect, barangayNameInput);
     }
 
+    async function clearStructuredFields() {
+        streetInput.value = '';
+        if (provinceNameInput) provinceNameInput.value = '';
+        if (municipalityNameInput) municipalityNameInput.value = '';
+        if (barangayNameInput) barangayNameInput.value = '';
+        form._addressCascading = true;
+        try {
+            fillSelect(provinceSelect, [], 'Select province', '', { sync: false });
+            provinceSelect.disabled = false;
+            fillSelect(municipalitySelect, [], 'Select municipality / city', '', { sync: false });
+            fillSelect(barangaySelect, [], 'Select barangay', '', { sync: false });
+            municipalitySelect.disabled = true;
+            barangaySelect.disabled = true;
+        } finally {
+            form._addressCascading = false;
+            flushAddressSelectSync(provinceSelect, municipalitySelect, barangaySelect);
+        }
+    }
+
     provinceSelect.addEventListener('change', async () => {
         form._addressCascading = true;
         setAddressSelectLoading(municipalitySelect, true);
@@ -10221,6 +10486,20 @@ function initPhilippineAddressForm() {
             flushAddressSelectSync(provinceSelect, municipalitySelect, barangaySelect);
         }
     }
+
+    form._restoreAddressAfterDiscard = async () => {
+        if (form.dataset.legacyOnly === '1') {
+            setStructuredActive(false);
+            await clearStructuredFields();
+            if (composedInput) {
+                const legacyText = form.querySelector('[data-address-legacy-text]');
+                composedInput.value = (legacyText?.textContent || '').trim();
+            }
+            return;
+        }
+        setStructuredActive(true);
+        await initPrefill();
+    };
 
     initPrefill().catch(showAddressLoadError);
 }
