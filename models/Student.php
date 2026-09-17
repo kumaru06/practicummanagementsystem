@@ -228,6 +228,11 @@ class Student
         $this->ensureGenderColumn();
         $this->ensureAddressColumns();
 
+        $birthdate = trim((string)($data['birthdate'] ?? ''));
+        $setBirthdate = preg_match('/^\d{4}-\d{2}-\d{2}$/', $birthdate) === 1
+            && !str_starts_with($birthdate, '0000-');
+        $birthdateSql = $setBirthdate ? 'birthdate = IF(birthdate IS NULL, ?, birthdate),' : '';
+
         $common = [
             trim($data['contact_number'] ?? ''),
             trim($data['emergency_contact_name'] ?? ''),
@@ -236,10 +241,12 @@ class Student
             trim($data['guardian_contact'] ?? ''),
             trim($data['year_level'] ?? ''),
             trim($data['gender'] ?? ''),
-            trim($data['birthdate'] ?? ''),
-            $photoFile,
-            $studentId,
         ];
+        if ($setBirthdate) {
+            $common[] = $birthdate;
+        }
+        $common[] = $photoFile;
+        $common[] = $studentId;
 
         if (student_address_payload_has_structured($data)) {
             $composedAddress = student_compose_address_from_parts($data);
@@ -260,7 +267,7 @@ class Student
                     guardian_contact = ?,
                     year_level = ?,
                     gender = ?,
-                    birthdate = COALESCE(birthdate, NULLIF(?, \'\')),
+                    ' . $birthdateSql . '
                     photo_file = COALESCE(?, photo_file),
                     profile_completed = 1
                  WHERE id = ?'
@@ -289,7 +296,7 @@ class Student
                 guardian_contact = ?,
                 year_level = ?,
                 gender = ?,
-                birthdate = COALESCE(birthdate, NULLIF(?, \'\')),
+                ' . $birthdateSql . '
                 photo_file = COALESCE(?, photo_file),
                 profile_completed = 1
              WHERE id = ?'
