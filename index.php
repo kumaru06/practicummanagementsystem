@@ -336,6 +336,7 @@ match ($route) {
     'coordinator_partner_document' => (new CoordinatorController())->viewPartnerDocument(),
     'coordinator_evaluations' => (new CoordinatorController())->evaluations(),
     'coordinator_student_final' => (new CoordinatorController())->studentFinalRequirements(),
+    'staff_view_student_doc' => (new CoordinatorController())->viewStudentDocument(),
     'student' => (new StudentController())->dashboard(),
     'student_portal' => (new StudentController())->documents(),
     'student_records' => (new StudentController())->records(),

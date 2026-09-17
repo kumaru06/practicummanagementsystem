@@ -39,6 +39,8 @@ $formatOjtDate = static function (?string $date): string {
 };
 
 $termOptions = [];
+$stage2ByStudent = $stage2ByStudent ?? [];
+$stage3ByStudent = $stage3ByStudent ?? [];
 foreach ($students as $studentRow) {
     $termLabel = trim((string)($studentRow['academic_term'] ?? ''));
     if ($termLabel !== '') {
@@ -171,17 +173,10 @@ ksort($termOptions);
                             $predeployment = $coordPredeploymentDisplay((string)($s['predeployment_status'] ?? 'not_submitted'), $hasPendingStage1);
                             $ojtEndDate = $s['projected_end_date'] ?? $s['end_date'] ?? null;
                             $termLabel = trim((string)($s['academic_term'] ?? ''));
-                            $profileDocs = [];
-                            foreach ($studentRequirements as $req) {
-                                $reqKey = (string)($req['requirement_key'] ?? '');
-                                if ((int)(Student::REQUIREMENTS[$reqKey]['stage'] ?? 0) !== 1) {
-                                    continue;
-                                }
-                                $profileDocs[] = [
-                                    'name' => (string)($req['requirement_name'] ?? $reqKey),
-                                    'status' => (string)($req['status'] ?? 'pending'),
-                                ];
-                            }
+                            $profileReqs = $studentRequirements
+                                + ($stage2ByStudent[(int)$s['id']] ?? [])
+                                + ($stage3ByStudent[(int)$s['id']] ?? []);
+                            $profileDocs = student_profile_document_entries($profileReqs, $s, $evalRow);
                             $profileDocsJson = json_encode($profileDocs, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?: '[]';
                         ?>
                         <tr
@@ -240,7 +235,7 @@ ksort($termOptions);
                                     data-rendered="<?= number_format($rendered, 2) ?>"
                                     data-required="<?= number_format($required, 2) ?>"
                                     data-percent="<?= $percent ?>"
-                                    data-cor="<?= e($s['cor_file'] ?? '') ?>"
+                                    data-cor="<?= e(!empty($s['cor_file']) ? asset($s['cor_file']) : '') ?>"
                                     data-moa-mou="<?= e($s['moa_document_url'] ?? '') ?>"
                                     data-student-id="<?= (int)$s['id'] ?>"
                                     data-user-id="<?= (int)$s['user_id'] ?>"

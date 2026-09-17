@@ -7604,6 +7604,73 @@ function initStudentModal() {
         }
     };
 
+    const docsListsEl = document.getElementById('sm-documents-lists');
+    const docsListEl = document.getElementById('sm-documents-list');
+    const docsStage2ListEl = document.getElementById('sm-documents-stage2-list');
+    const docsStage2Card = document.getElementById('sm-documents-stage2-card');
+    const docsStage3ListEl = document.getElementById('sm-documents-stage3-list');
+    const docsStage3Card = document.getElementById('sm-documents-stage3-card');
+    const docViewer = document.getElementById('sm-document-viewer');
+    const docViewerStage = document.getElementById('sm-document-viewer-stage');
+    const docViewerTitle = document.getElementById('sm-document-viewer-title');
+    const docViewerOpen = document.getElementById('sm-document-viewer-open');
+    const docViewerBack = document.getElementById('sm-document-viewer-back');
+
+    const closeDocumentViewer = () => {
+        if (docsListsEl) {
+            docsListsEl.hidden = false;
+            docsListsEl.classList.remove('is-hidden');
+        }
+        if (docViewer) {
+            docViewer.hidden = true;
+            docViewer.classList.add('is-hidden');
+        }
+        if (docViewerStage) {
+            docViewerStage.replaceChildren();
+            docViewerStage.classList.remove('is-html');
+        }
+        if (docViewerOpen) {
+            docViewerOpen.setAttribute('href', '#');
+        }
+    };
+
+    const openDocumentViewer = (url, name) => {
+        const safeUrl = String(url || '').trim();
+        if (!safeUrl) return;
+        if (!docViewer || !docViewerStage) {
+            window.open(safeUrl, '_blank', 'noopener,noreferrer');
+            return;
+        }
+        const safeName = name || 'Document';
+        if (docViewerTitle) docViewerTitle.textContent = safeName;
+        if (docViewerOpen) {
+            docViewerOpen.href = safeUrl;
+            docViewerOpen.classList.remove('is-hidden');
+        }
+        docViewerStage.replaceChildren();
+        docViewerStage.classList.remove('is-html');
+        if (/\.(jpe?g|png|gif|webp)(?:\?|$)/i.test(safeUrl)) {
+            const img = document.createElement('img');
+            img.src = safeUrl;
+            img.alt = safeName;
+            docViewerStage.append(img);
+        } else {
+            docViewerStage.classList.add('is-html');
+            const frame = document.createElement('iframe');
+            frame.title = safeName;
+            frame.src = safeUrl;
+            docViewerStage.append(frame);
+        }
+        if (docsListsEl) {
+            docsListsEl.hidden = true;
+            docsListsEl.classList.add('is-hidden');
+        }
+        docViewer.hidden = false;
+        docViewer.classList.remove('is-hidden');
+    };
+
+    docViewerBack?.addEventListener('click', closeDocumentViewer);
+
     const setEvalPill = (id, status) => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -7628,7 +7695,9 @@ function initStudentModal() {
         if (!next) return;
 
         const current = panels.find(panel => panel.classList.contains('is-active'));
+        if (key !== 'documents') closeDocumentViewer();
         if (current === next) {
+            if (key === 'documents') closeDocumentViewer();
             next.hidden = false;
             return;
         }
@@ -7712,6 +7781,12 @@ function initStudentModal() {
         if (tabBtn && modal.contains(tabBtn)) {
             e.preventDefault();
             setStudentProfileTab(tabBtn.dataset.spTab);
+            return;
+        }
+        const viewBtn = e.target.closest('[data-sm-doc-url]');
+        if (viewBtn && modal.contains(viewBtn)) {
+            e.preventDefault();
+            openDocumentViewer(viewBtn.dataset.smDocUrl, viewBtn.dataset.smDocName);
         }
     });
 
@@ -7832,22 +7907,55 @@ function initStudentModal() {
         const docs = parseDocuments(d.documents);
         const corUrl = (d.cor || '').trim();
         const moaUrl = (d.moaMou || '').trim();
-        const hasNamedDoc = label => docs.some(doc => String(doc.name || '').toLowerCase().includes(label));
-        if (corUrl && !hasNamedDoc('cor')) docs.push({ name: 'Certificate of Registration (COR)', status: 'available' });
-        if (moaUrl && !hasNamedDoc('moa')) docs.push({ name: 'MOA/MOU', status: 'available' });
-        const docsList = document.getElementById('sm-documents-list');
-        if (docsList) {
-            if (docs.length === 0) {
-                docsList.innerHTML = '<li class="sp-doc-empty">No documents recorded yet.</li>';
-            } else {
-                docsList.innerHTML = docs.map(doc => {
-                    const name = escapeHtml(doc.name || 'Requirement');
-                    const status = String(doc.status || 'pending');
-                    const label = escapeHtml(formatLabel(status));
-                    const pillClass = docStatusClass(status);
-                    return `<li><span class="sp-doc-file"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M14 3v5h5" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg><span>${name}</span></span><strong class="sp-eval-pill ${pillClass}">${label}</strong></li>`;
-                }).join('');
+        const attachDocUrl = (label, name, url) => {
+            if (!url) return;
+            const existing = docs.find(doc => String(doc.name || '').toLowerCase().includes(label));
+            if (existing) {
+                if (!existing.url) existing.url = url;
+                if (!existing.stage) existing.stage = 1;
+                return;
             }
+            docs.push({ name, status: 'available', url, stage: 1 });
+        };
+        attachDocUrl('cor', 'Certificate of Registration (COR)', corUrl);
+        attachDocUrl('moa', 'MOA/MOU', moaUrl);
+        closeDocumentViewer();
+        const docIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M14 3v5h5" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>';
+        const renderDocs = items => {
+            if (!items.length) {
+                return '<li class="sp-doc-empty">No documents recorded yet.</li>';
+            }
+            return items.map(doc => {
+                const name = escapeHtml(doc.name || 'Requirement');
+                const status = String(doc.status || 'pending');
+                const label = escapeHtml(formatLabel(status));
+                const pillClass = docStatusClass(status);
+                const url = String(doc.url || '').trim();
+                const viewBtn = url
+                    ? `<button type="button" class="sp-doc-view" data-sm-doc-url="${escapeHtml(url)}" data-sm-doc-name="${name}">View</button>`
+                    : '';
+                return `<li><span class="sp-doc-file">${docIcon}<span>${name}</span></span><span class="sp-doc-meta">${viewBtn}<strong class="sp-eval-pill ${pillClass}">${label}</strong></span></li>`;
+            }).join('');
+        };
+        const stage1Docs = docs.filter(doc => Number(doc.stage || 1) === 1);
+        const stage2Docs = docs.filter(doc => Number(doc.stage) === 2);
+        const stage3Docs = docs.filter(doc => Number(doc.stage) === 3);
+        if (docsListEl) {
+            docsListEl.innerHTML = renderDocs(stage1Docs);
+        }
+        if (docsStage2ListEl) {
+            docsStage2ListEl.innerHTML = renderDocs(stage2Docs);
+        }
+        if (docsStage3ListEl) {
+            docsStage3ListEl.innerHTML = renderDocs(stage3Docs);
+        }
+        if (docsStage2Card) {
+            docsStage2Card.hidden = false;
+            docsStage2Card.classList.remove('is-hidden');
+        }
+        if (docsStage3Card) {
+            docsStage3Card.hidden = false;
+            docsStage3Card.classList.remove('is-hidden');
         }
 
         const finalLink = document.getElementById('sm-final-link');
@@ -7860,26 +7968,6 @@ function initStudentModal() {
             coordinatorField?.classList.remove('is-hidden');
         } else {
             coordinatorField?.classList.add('is-hidden');
-        }
-
-        const corLink = document.getElementById('sm-cor-link');
-        if (corLink) {
-            if (corUrl) {
-                corLink.href = corUrl;
-                corLink.classList.remove('is-hidden');
-            } else {
-                corLink.classList.add('is-hidden');
-            }
-        }
-
-        const moaLink = document.getElementById('sm-moa-link');
-        if (moaLink) {
-            if (moaUrl) {
-                moaLink.href = moaUrl;
-                moaLink.classList.remove('is-hidden');
-            } else {
-                moaLink.classList.add('is-hidden');
-            }
         }
 
         setStudentProfileTab('overview', true);

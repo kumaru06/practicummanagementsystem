@@ -9,6 +9,8 @@ $deactivationReasons = [
 $students = $students ?? [];
 $programs = $programs ?? [];
 $requirementsByStudent = $requirementsByStudent ?? [];
+$stage2ByStudent = $stage2ByStudent ?? [];
+$stage3ByStudent = $stage3ByStudent ?? [];
 $studentEvaluationsByStudent = $studentEvaluationsByStudent ?? [];
 $totalStudents = count($students);
 $activeCount = count(array_filter($students, static fn($s) => !empty($s['is_active'])));
@@ -147,7 +149,7 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
                             $initial = strtoupper(mb_substr((string)($s['last_name'] ?? $s['name'] ?? 'S'), 0, 1));
                             $corUrl = !empty($s['cor_file']) ? asset($s['cor_file']) : '';
                             $moaUrl = !empty($s['company_moa_mou_file']) && !empty($s['company_id'])
-                                ? 'index.php?r=coordinator_partner_document&company_id=' . (int)$s['company_id']
+                                ? route_url('admin.partner_document', ['company_id' => (int)$s['company_id']])
                                 : '';
                             $isSelf = (int)($s['user_id'] ?? 0) === (int)current_user()['id'];
                             $firstName = trim((string)($s['first_name'] ?? ''));
@@ -164,17 +166,10 @@ $ojtActiveCount = count(array_filter($students, static fn($s) => ($s['deployment
                             $evalRow = $studentEvaluationsByStudent[(int)$s['id']] ?? [];
                             $partnerEvalStatus = StudentEvaluation::statusFor($evalRow, 'industry_partner');
                             $coordEvalStatus = StudentEvaluation::statusFor($evalRow, 'coordinator');
-                            $profileDocs = [];
-                            foreach ($studentRequirements as $req) {
-                                $reqKey = (string)($req['requirement_key'] ?? '');
-                                if ((int)(Student::REQUIREMENTS[$reqKey]['stage'] ?? 0) !== 1) {
-                                    continue;
-                                }
-                                $profileDocs[] = [
-                                    'name' => (string)($req['requirement_name'] ?? $reqKey),
-                                    'status' => (string)($req['status'] ?? 'pending'),
-                                ];
-                            }
+                            $profileReqs = $studentRequirements
+                                + ($stage2ByStudent[(int)$s['id']] ?? [])
+                                + ($stage3ByStudent[(int)$s['id']] ?? []);
+                            $profileDocs = student_profile_document_entries($profileReqs, $s, $evalRow);
                             $profileDocsJson = json_encode($profileDocs, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?: '[]';
                         ?>
                         <tr data-program-id="<?= (int)($s['program_id'] ?? 0) ?>"

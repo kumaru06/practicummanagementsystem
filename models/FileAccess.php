@@ -132,6 +132,15 @@ class FileAccess
 
     private static function studentIdForPath(PDO $db, string $rel): ?int
     {
+        // Pre-deployment / staged requirement uploads.
+        $id = self::scalar(
+            $db,
+            'SELECT student_id FROM student_requirements WHERE file_path = ? OR file_path = ? LIMIT 1',
+            [$rel, ltrim(substr($rel, strlen('uploads/')), '/')]
+        );
+        if ($id !== null) {
+            return $id;
+        }
         // Registration/enrollment COR stored on the student record.
         $id = self::scalar($db, 'SELECT id FROM students WHERE cor_file = ? LIMIT 1', [$rel]);
         if ($id !== null) {

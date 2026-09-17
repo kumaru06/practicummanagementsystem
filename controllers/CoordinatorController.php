@@ -99,6 +99,8 @@ class CoordinatorController extends BaseController
             'title' => 'My Students',
             'students' => $students,
             'requirementsByStudent' => $requirementsByStudent,
+            'stage2ByStudent' => $studentModel->stageRequirementsForStudents($studentIds, 2),
+            'stage3ByStudent' => $studentModel->stageRequirementsForStudents($studentIds, 3),
             'finalRequirementsByStudent' => $finalRequirementsByStudent,
             'studentEvaluationsByStudent' => $studentEvaluationsByStudent,
             'pendingFinalReviewByStudent' => $pendingFinalReviewByStudent,
@@ -221,8 +223,10 @@ class CoordinatorController extends BaseController
 
     public function viewPartnerDocument(): void
     {
-        require_role('coordinator');
+        require_role(['coordinator', 'admin']);
 
+        $role = (string)(current_user()['role'] ?? '');
+        $fallbackRoute = $role === 'admin' ? 'admin.partners' : 'coordinator.moa_mou';
         $companyId = (int)($_GET['company_id'] ?? 0);
         $company = (new Company($this->db))->find($companyId);
 
@@ -230,10 +234,10 @@ class CoordinatorController extends BaseController
             render_missing_upload_page(
                 'MOA/MOU not on file',
                 'This Host Training Establishment has no MOA/MOU document record yet.',
-                route_url('coordinator.moa_mou')
+                route_url($fallbackRoute)
             );
         }
-        if (!(new Company($this->db))->coordinatorCanAccessMoa((int)current_user()['id'], $companyId)) {
+        if ($role !== 'admin' && !(new Company($this->db))->coordinatorCanAccessMoa((int)current_user()['id'], $companyId)) {
             http_response_code(403);
             exit('You do not have access to this MOA/MOU file.');
         }
@@ -245,7 +249,7 @@ class CoordinatorController extends BaseController
             render_missing_upload_page(
                 'MOA/MOU file missing on server',
                 'A document record exists for "' . (string)($company['name'] ?? 'this establishment') . '", but the file is missing from the server uploads folder. Ask the administrator to re-upload the MOA/MOU.',
-                route_url('coordinator.moa_mou')
+                route_url($fallbackRoute)
             );
         }
 
@@ -597,7 +601,7 @@ class CoordinatorController extends BaseController
      */
     public function previewEndorsementLetter(): void
     {
-        require_role('coordinator');
+        require_role(['coordinator', 'admin']);
         $enrollmentId = (int)($_GET['enrollment'] ?? 0);
         
         if (!$enrollmentId) {
@@ -612,11 +616,15 @@ class CoordinatorController extends BaseController
             exit('Enrollment not found.');
         }
 
-        // Verify the student belongs to this coordinator
         $student = (new Student($this->db))->find((int)$enrollment['student_id']);
-        if (!$student || (int)$student['coordinator_id'] !== current_user()['id']) {
+        $role = (string)(current_user()['role'] ?? '');
+        if ($role === 'coordinator' && (!$student || (int)$student['coordinator_id'] !== current_user()['id'])) {
             http_response_code(403);
             exit('You do not have access to this enrollment.');
+        }
+        if ($role === 'admin' && !$student) {
+            http_response_code(404);
+            exit('Student not found.');
         }
 
         try {
@@ -637,5 +645,73 @@ class CoordinatorController extends BaseController
             http_response_code(500);
             exit('Unable to generate the endorsement letter right now. Please try again later.');
         }
+    }
+
+    public function viewStudentDocument(): void
+    {
+        require_role(['coordinator', 'admin']);
+
+        $studentId = (int)($_GET['student_id'] ?? 0);
+        $key = trim((string)($_GET['key'] ?? ''));
+        $role = (string)(current_user()['role'] ?? '');
+        $studentModel = new Student($this->db);
+        $student = $studentId > 0 ? $studentModel->find($studentId) : null;
+        $def = Student::REQUIREMENTS[$key] ?? null;
+
+        if (!$student || $def === null) {
+            http_response_code(404);
+            exit('Document not found.');
+        }
+        if ($role === 'coordinator' && (int)($student['coordinator_id'] ?? 0) !== (int)current_user()['id']) {
+            http_response_code(403);
+            exit('You do not have access to this document.');
+        }
+
+        $kind = (string)($def['kind'] ?? 'upload');
+        $data = [
+            'title' => (string)($def['name'] ?? 'Document'),
+            'student' => $student,
+            'kind' => $kind,
+            'requirementKey' => $key,
+            'requirement' => null,
+            'formSection' => null,
+            'finalRequirement' => [],
+            'studentEvaluation' => [],
+            'evalType' => '',
+            'emptyMessage' => '',
+        ];
+
+        if ($kind === 'evaluation') {
+            $evalKey = (string)($def['evaluation_key'] ?? '');
+            $evalRow = (new StudentEvaluation($this->db))->getByStudent($studentId) ?: [];
+            if (StudentEvaluation::statusFor($evalRow, $evalKey) !== 'submitted') {
+                $data['emptyMessage'] = 'This evaluation has not been submitted yet.';
+            } else {
+                $data['studentEvaluation'] = $evalRow;
+                $data['evalType'] = $evalKey;
+            }
+        } else {
+            $stage = (int)($def['stage'] ?? 0);
+            $requirement = $stage > 0
+                ? ($studentModel->stageRequirements($studentId, $stage)[$key] ?? null)
+                : null;
+            $filePath = trim((string)($requirement['file_path'] ?? ''));
+            if ($requirement === null || $filePath === '') {
+                $data['emptyMessage'] = 'This document has not been submitted yet.';
+            } elseif ($kind !== 'form' && !requirement_is_form_path($filePath)) {
+                header('Location: ' . asset($filePath));
+                exit;
+            } else {
+                $data['requirement'] = $requirement;
+                $data['formSection'] = requirement_form_section_key($key);
+                $data['finalRequirement'] = (new FinalRequirement($this->db))->getByStudent($studentId) ?: [];
+                $data['kind'] = 'form';
+            }
+        }
+
+        header('Content-Type: text/html; charset=utf-8');
+        header('X-Frame-Options: SAMEORIGIN');
+        $this->renderPartial('shared/student_document_embed', $data);
+        exit;
     }
 }

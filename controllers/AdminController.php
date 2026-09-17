@@ -551,6 +551,8 @@ class AdminController extends BaseController
             'programs' => (new Program($this->db))->all(true),
             'coordinators' => (new User($this->db))->byRole('coordinator'),
             'requirementsByStudent' => $studentModel->requirementsForStudents($studentIds),
+            'stage2ByStudent' => $studentModel->stageRequirementsForStudents($studentIds, 2),
+            'stage3ByStudent' => $studentModel->stageRequirementsForStudents($studentIds, 3),
             'studentEvaluationsByStudent' => (new StudentEvaluation($this->db))->getByStudents($studentIds),
         ]);
     }

@@ -281,6 +281,7 @@ function route_url(string $route, array $params = []): string
         'student.pending' => 'index.php?r=student_pending',
         'admin.coordinators' => 'index.php?r=admin_coordinators',
         'admin.partners' => 'index.php?r=admin_partners',
+        'admin.partner_document' => 'index.php?r=admin_partner_document',
         'admin.programs' => 'index.php?r=admin_programs',
         'admin.terms' => 'index.php?r=admin_terms',
         'admin.email_logs' => 'index.php?r=admin_email_logs',
@@ -297,6 +298,7 @@ function route_url(string $route, array $params = []): string
         'coordinator.student_final' => 'index.php?r=coordinator_student_final',
         'coordinator.moa_mou' => 'index.php?r=coordinator_moa_mou',
         'coordinator.partner_document' => 'index.php?r=coordinator_partner_document',
+        'staff.view_student_doc' => 'index.php?r=staff_view_student_doc',
         'student.dashboard' => 'index.php?r=student',
         'student.portal' => 'index.php?r=student_documents&stage=1',
         'student.records' => 'index.php?r=student_records',
@@ -409,6 +411,80 @@ function release_session_lock(): void
 function student_profile_photo_url(?array $student): string
 {
     return profile_photo_url($student);
+}
+
+/**
+ * Document rows for the shared student profile modal (1st, 2nd, and 3rd to Comply).
+ *
+ * @param array<int|string, array<string, mixed>> $requirements
+ * @param array<string, mixed> $evaluations StudentEvaluation row for this student
+ * @return list<array{name:string,status:string,url:string,stage:int}>
+ */
+function student_profile_document_entries(array $requirements, array $student, array $evaluations = []): array
+{
+    $studentId = (int)($student['id'] ?? 0);
+    $enrollmentId = (int)($student['enrollment_id'] ?? 0);
+    $predeployment = (string)($student['predeployment_status'] ?? '');
+    $deployment = (string)($student['deployment_status'] ?? '');
+    $endorsementFile = trim((string)($student['endorsement_file'] ?? ''));
+    $endorsementReady = $enrollmentId > 0 && (
+        in_array($predeployment, ['forwarded', 'accepted', 'orientation_scheduled', 'orientation_completed'], true)
+        || $deployment === 'completed'
+        || $endorsementFile !== ''
+    );
+    $endorsementUrl = $endorsementReady
+        ? route_url('coordinator.preview_endorsement', ['enrollment' => $enrollmentId])
+        : '';
+
+    $byKey = [];
+    foreach ($requirements as $req) {
+        $key = (string)($req['requirement_key'] ?? '');
+        if ($key !== '') {
+            $byKey[$key] = $req;
+        }
+    }
+
+    $docs = [];
+    foreach (Student::REQUIREMENTS as $reqKey => $def) {
+        $stage = (int)($def['stage'] ?? 0);
+        if ($stage < 1 || $stage > 3) {
+            continue;
+        }
+        $req = $byKey[$reqKey] ?? [];
+        $filePath = trim((string)($req['file_path'] ?? ''));
+        $usableFile = $filePath !== '' && $filePath !== '(generated-pdf)' && !requirement_is_form_path($filePath);
+        $url = $usableFile ? asset($filePath) : '';
+        $status = (string)($req['status'] ?? 'pending');
+        $kind = (string)($def['kind'] ?? 'upload');
+
+        if ($reqKey === 'endorsement_letter' && $endorsementUrl !== '') {
+            $url = $endorsementUrl;
+            if ($status === '' || $status === 'pending') {
+                $status = 'available';
+            }
+        } elseif ($kind === 'form' && $studentId > 0 && $filePath !== '') {
+            $url = route_url('staff.view_student_doc', ['student_id' => $studentId, 'key' => $reqKey]);
+            if ($status === '' || $status === 'pending') {
+                $status = 'uploaded';
+            }
+        } elseif ($kind === 'evaluation') {
+            $evalKey = (string)($def['evaluation_key'] ?? '');
+            $evalStatus = StudentEvaluation::statusFor($evaluations, $evalKey);
+            $status = $evalStatus === 'submitted' ? 'submitted' : 'pending';
+            $url = ($evalStatus === 'submitted' && $studentId > 0)
+                ? route_url('staff.view_student_doc', ['student_id' => $studentId, 'key' => $reqKey])
+                : '';
+        }
+
+        $docs[] = [
+            'name' => (string)($req['requirement_name'] ?? ($def['name'] ?? $reqKey)),
+            'status' => $status !== '' ? $status : 'pending',
+            'url' => $url,
+            'stage' => $stage,
+        ];
+    }
+
+    return $docs;
 }
 
 function partner_profile_photo_url(?array $company): string

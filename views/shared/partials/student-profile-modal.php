@@ -141,15 +141,45 @@ $iconUser = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M1
             </div>
 
             <div class="sp-panel" data-sp-panel="documents" hidden>
-                <div class="sp-card sp-card--list">
-                    <header class="sp-card-head">
-                        <span class="sp-card-icon"><?= $tabDocsIcon ?></span>
-                        <div>
-                            <h3>Pre-deployment documents</h3>
-                            <p>Requirement files submitted for this student</p>
-                        </div>
-                    </header>
-                    <ul class="sp-doc-list" id="sm-documents-list"></ul>
+                <div class="sp-documents-stack" id="sm-documents-lists">
+                    <div class="sp-card sp-card--list">
+                        <header class="sp-card-head">
+                            <span class="sp-card-icon"><?= $tabDocsIcon ?></span>
+                            <div>
+                                <h3>Pre-deployment documents</h3>
+                                <p>1st to Comply files submitted for this student</p>
+                            </div>
+                        </header>
+                        <ul class="sp-doc-list" id="sm-documents-list"></ul>
+                    </div>
+                    <div class="sp-card sp-card--list" id="sm-documents-stage2-card">
+                        <header class="sp-card-head">
+                            <span class="sp-card-icon"><?= $tabDocsIcon ?></span>
+                            <div>
+                                <h3>2nd to Comply</h3>
+                                <p>Endorsement letter and confidentiality agreement</p>
+                            </div>
+                        </header>
+                        <ul class="sp-doc-list" id="sm-documents-stage2-list"></ul>
+                    </div>
+                    <div class="sp-card sp-card--list" id="sm-documents-stage3-card">
+                        <header class="sp-card-head">
+                            <span class="sp-card-icon"><?= $tabDocsIcon ?></span>
+                            <div>
+                                <h3>3rd to Comply</h3>
+                                <p>Forms and evaluations submitted during OJT</p>
+                            </div>
+                        </header>
+                        <ul class="sp-doc-list" id="sm-documents-stage3-list"></ul>
+                    </div>
+                </div>
+                <div class="sp-card sp-doc-viewer is-hidden" id="sm-document-viewer" hidden>
+                    <div class="sp-doc-viewer-bar">
+                        <button type="button" class="btn btn-small btn-ghost" id="sm-document-viewer-back">Back to list</button>
+                        <strong class="sp-doc-viewer-title" id="sm-document-viewer-title"></strong>
+                        <a class="btn btn-small btn-ghost" id="sm-document-viewer-open" target="_blank" rel="noopener noreferrer" href="#">Open in new tab</a>
+                    </div>
+                    <div class="sp-doc-viewer-stage" id="sm-document-viewer-stage"></div>
                 </div>
             </div>
 
@@ -233,14 +263,12 @@ $iconUser = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M1
             </div>
         </div>
 
-        <div class="student-panel-footer<?= $studentProfileModalShowFinal ? '' : ' admin-users-profile-footer' ?>">
+        <?php if ($studentProfileModalShowFinal): ?>
+        <div class="student-panel-footer">
             <div class="student-panel-doc-actions">
-                <?php if ($studentProfileModalShowFinal): ?>
-                    <a id="sm-final-link" class="btn btn-small btn-primary sp-footer-primary" href="#"><?= $tabDocsIcon ?><span>Open final section</span></a>
-                <?php endif; ?>
-                <a id="sm-cor-link" class="btn btn-small btn-ghost is-hidden" target="_blank" href="#"><?= $tabDocsIcon ?><span>View COR</span></a>
-                <a id="sm-moa-link" class="btn btn-small btn-ghost is-hidden" target="_blank" href="#"><?= $tabDocsIcon ?><span>View MOA/MOU</span></a>
+                <a id="sm-final-link" class="btn btn-small btn-primary sp-footer-primary" href="#"><?= $tabDocsIcon ?><span>Open final section</span></a>
             </div>
         </div>
+        <?php endif; ?>
     </div>
 </div>
