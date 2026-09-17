@@ -20,22 +20,24 @@ class ChatPageController extends BaseController
             redirect('index.php?r=' . current_user()['role']);
         }
 
-        $firstPartner = $allPartners[0] ?? null;
-        $selectedPartnerId = (int)($_GET['partner_id'] ?? ($firstPartner['user_id'] ?? 0));
-        $selectedPartnerRole = (string)($_GET['partner_role'] ?? ($firstPartner['role'] ?? ''));
+        // Only open a conversation when explicitly requested (deep link / share URL).
+        // Mobile should land on the chat list first; desktop JS can auto-open the first contact.
+        $selectedPartnerId = (int)($_GET['partner_id'] ?? 0);
+        $selectedPartnerRole = (string)($_GET['partner_role'] ?? '');
 
         $selectedPartner = null;
-        foreach ($allPartners as $partner) {
-            if ((int)$partner['user_id'] === $selectedPartnerId && (string)$partner['role'] === $selectedPartnerRole) {
-                $selectedPartner = $partner;
-                break;
+        if ($selectedPartnerId > 0 && $selectedPartnerRole !== '') {
+            foreach ($allPartners as $partner) {
+                if ((int)$partner['user_id'] === $selectedPartnerId && (string)$partner['role'] === $selectedPartnerRole) {
+                    $selectedPartner = $partner;
+                    break;
+                }
             }
         }
 
-        if (!$selectedPartner && $allPartners) {
-            $selectedPartner = $allPartners[0];
-            $selectedPartnerId = (int)$selectedPartner['user_id'];
-            $selectedPartnerRole = (string)$selectedPartner['role'];
+        if (!$selectedPartner) {
+            $selectedPartnerId = 0;
+            $selectedPartnerRole = '';
         }
 
         $initialPage = [

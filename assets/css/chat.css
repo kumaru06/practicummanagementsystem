@@ -405,6 +405,19 @@ body.role-student .chat-app {
     background: #fff;
 }
 
+.chat-window__thread {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+}
+
+.chat-window__thread[hidden],
+.chat-empty-state--window[hidden] {
+    display: none !important;
+}
+
 .chat-window__partner {
     display: flex;
     align-items: center;

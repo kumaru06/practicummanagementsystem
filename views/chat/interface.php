@@ -176,14 +176,25 @@ $chatEmptyIcon = '<svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" 
         </aside>
 
         <section class="chat-window" aria-label="Chat window">
-            <?php if ($selectedPartner): ?>
-                <?php
-                $activeRole = (string)$selectedPartner['role'];
-                $activeSubtitle = (string)($selectedPartner['subtitle'] ?? $roleLabelFor($activeRole));
-                $activeInitial = $initialsFor((string)$selectedPartner['name']);
-                $activeAvatarRole = preg_replace('/[^a-z]/', '', strtolower($activeRole)) ?: 'user';
-                $activePhotoUrl = (string)($selectedPartner['photo_url'] ?? '');
-                ?>
+            <?php
+            $activeRole = $selectedPartner ? (string)$selectedPartner['role'] : 'user';
+            $activeSubtitle = $selectedPartner
+                ? (string)($selectedPartner['subtitle'] ?? $roleLabelFor($activeRole))
+                : 'Choose a contact to start messaging';
+            $activeInitial = $selectedPartner ? $initialsFor((string)$selectedPartner['name']) : '?';
+            $activeAvatarRole = preg_replace('/[^a-z]/', '', strtolower($activeRole)) ?: 'user';
+            $activePhotoUrl = $selectedPartner ? (string)($selectedPartner['photo_url'] ?? '') : '';
+            $activeName = $selectedPartner ? (string)$selectedPartner['name'] : 'Select a conversation';
+            $activeTag = strtoupper($activeRole === 'partner' ? 'HTE' : ($selectedPartner ? $activeRole : 'CHAT'));
+            ?>
+            <div class="chat-empty-state chat-empty-state--window" id="chatWindowEmpty"<?= $selectedPartner ? ' hidden' : '' ?>>
+                <div class="chat-empty-state__icon" aria-hidden="true">
+                    <?= $chatEmptyIcon ?>
+                </div>
+                <h3>Select a conversation</h3>
+                <p>Choose a contact from the list to begin chatting.</p>
+            </div>
+            <div class="chat-window__thread" id="chatWindowThread"<?= $selectedPartner ? '' : ' hidden' ?>>
                 <header class="chat-window__head">
                     <button type="button" class="chat-window__back" id="chatBackBtn" aria-label="Back to contacts">
                         <svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
@@ -193,12 +204,12 @@ $chatEmptyIcon = '<svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" 
                             <?= $chatAvatarHtml('chat-window__avatar', $activeAvatarRole, $activeInitial, $activePhotoUrl, 'chatActiveAvatar') ?>
                         </span>
                         <div class="chat-window__partner-copy">
-                            <strong id="chatActiveName"><?= e((string)$selectedPartner['name']) ?></strong>
+                            <strong id="chatActiveName"><?= e($activeName) ?></strong>
                             <small id="chatActiveMeta"><?= e($activeSubtitle) ?></small>
                         </div>
                     </div>
                     <div class="chat-window__head-actions">
-                        <span class="chat-window__tag" id="chatActiveTag"><?= e(strtoupper($activeRole === 'partner' ? 'HTE' : $activeRole)) ?></span>
+                        <span class="chat-window__tag" id="chatActiveTag"><?= e($activeTag) ?></span>
                         <button type="button" class="chat-icon-btn" id="chatThreadSearchBtn" aria-label="Search this conversation" aria-expanded="false">
                             <svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                         </button>
@@ -238,7 +249,14 @@ $chatEmptyIcon = '<svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" 
                 </div>
 
                 <div class="chat-window__messages" id="chatMessages" aria-live="polite">
-                    <?php if (!$initialMessages): ?>
+                    <?php if (!$selectedPartner): ?>
+                        <div class="chat-empty-state chat-empty-state--inline" id="chatEmptyState">
+                            <div class="chat-empty-state__icon" aria-hidden="true">
+                                <?= $chatEmptyIcon ?>
+                            </div>
+                            <p>Select a contact to view messages.</p>
+                        </div>
+                    <?php elseif (!$initialMessages): ?>
                         <div class="chat-empty-state chat-empty-state--inline" id="chatEmptyState">
                             <div class="chat-empty-state__icon" aria-hidden="true">
                                 <?= $chatEmptyIcon ?>
@@ -257,7 +275,9 @@ $chatEmptyIcon = '<svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" 
                                 $lastMineReceiptId = (int)$probe['id'];
                             }
                         }
-                        foreach ($initialMessages as $index => $message):
+                        ?>
+                        <?php foreach ($initialMessages as $index => $message): ?>
+                            <?php
                             $isMine = (int)$message['sender_id'] === (int)$chat->currentUserId()
                                 && (string)$message['sender_role'] === (string)$chat->currentRole();
                             $createdAt = (string)$message['created_at'];
@@ -274,7 +294,8 @@ $chatEmptyIcon = '<svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" 
                             }
                             $showAvatar = !$isMine && ($next === null || $nextMine === true || $nextDateKey !== $dateKey);
                             $isGrouped = $prevMine !== null && $prevMine === $isMine && $dateKey === $lastDateKey;
-                            if ($dateKey !== $lastDateKey):
+                            $showDayDivider = $dateKey !== $lastDateKey;
+                            if ($showDayDivider) {
                                 $lastDateKey = $dateKey;
                                 $dayLabel = 'Today';
                                 if ($ts) {
@@ -287,11 +308,13 @@ $chatEmptyIcon = '<svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" 
                                     }
                                 }
                                 $isGrouped = false;
-                        ?>
-                            <div class="chat-day-divider" role="separator">
-                                <span><?= e($dayLabel) ?></span>
-                            </div>
-                        <?php endif; ?>
+                            }
+                            ?>
+                            <?php if ($showDayDivider): ?>
+                                <div class="chat-day-divider" role="separator">
+                                    <span><?= e($dayLabel) ?></span>
+                                </div>
+                            <?php endif; ?>
                             <article class="chat-message<?= $isMine ? ' is-mine' : ' is-theirs' ?><?= $isGrouped ? ' is-grouped' : '' ?><?= $showAvatar ? ' has-avatar' : '' ?><?= !empty($message['is_pinned']) ? ' is-pinned' : '' ?><?= !empty($message['is_deleted']) ? ' is-deleted' : '' ?>"
                                      data-message-id="<?= (int)$message['id'] ?>"
                                      data-is-read="<?= (int)($message['is_read'] ?? 0) ?>"
@@ -317,6 +340,14 @@ $chatEmptyIcon = '<svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" 
                                             <span><?= e((string)$message['reply']['text']) ?></span>
                                         </div>
                                     <?php endif; ?>
+                                    <?php
+                                    $replyText = trim((string)($message['message_text'] ?? ''));
+                                    if ($replyText === '') {
+                                        $replyText = (string)($message['attachments'][0]['name'] ?? 'Attachment');
+                                    }
+                                    ?>
+                                    <div class="chat-message__row">
+                                        <div class="chat-message__body">
                                     <?php if (!empty($message['attachments'])): ?>
                                         <div class="chat-media-list">
                                             <?php foreach ($message['attachments'] as $file): ?>
@@ -328,16 +359,11 @@ $chatEmptyIcon = '<svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" 
                                                 ?>
                                                 <?php if (!empty($badge['is_image'])): ?>
                                                     <button type="button" class="chat-media" data-chat-lightbox="<?= e($attachUrl) ?>" data-chat-name="<?= e($attachName) ?>" data-chat-mime="<?= e($attachMime) ?>">
-                                                        <img src="<?= e($attachUrl) ?>" alt="<?= e($attachName) ?>">
-                                                        <span><?= e($attachName) ?></span>
-                                                    </button>
-                                                <?php elseif (!empty($badge['is_pdf'])): ?>
-                                                    <button type="button" class="chat-file" data-chat-lightbox="<?= e($attachUrl) ?>" data-chat-name="<?= e($attachName) ?>" data-chat-mime="application/pdf">
-                                                        <span class="chat-file__icon chat-file__icon--pdf" aria-hidden="true"><?= e($badge['label']) ?></span>
+                                                        <img src="<?= e($attachUrl) ?>" alt="<?= e($attachName) ?>" loading="lazy" onerror="this.closest('.chat-media')?.classList.add('is-broken')">
                                                         <span><?= e($attachName) ?></span>
                                                     </button>
                                                 <?php else: ?>
-                                                    <a class="chat-file" href="<?= e($attachUrl) ?>" download="<?= e($attachName) ?>" target="_blank" rel="noopener" data-chat-name="<?= e($attachName) ?>" data-chat-mime="<?= e($attachMime) ?>">
+                                                    <a class="chat-file" href="<?= e($attachUrl) ?>" target="_blank" rel="noopener noreferrer" data-chat-name="<?= e($attachName) ?>" data-chat-mime="<?= e($attachMime) ?>">
                                                         <span class="chat-file__icon chat-file__icon--<?= e($badge['kind']) ?>" aria-hidden="true"><?= e($badge['label']) ?></span>
                                                         <span><?= e($attachName) ?></span>
                                                     </a>
@@ -350,12 +376,7 @@ $chatEmptyIcon = '<svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" 
                                             <p><?= e((string)$message['message_text']) ?></p>
                                         </div>
                                     <?php endif; ?>
-                                    <?php
-                                    $replyText = trim((string)($message['message_text'] ?? ''));
-                                    if ($replyText === '') {
-                                        $replyText = (string)($message['attachments'][0]['name'] ?? 'Attachment');
-                                    }
-                                    ?>
+                                        </div>
                                     <div class="chat-message__tools">
                                         <button type="button" class="chat-tool-btn" data-chat-react="<?= (int)$message['id'] ?>" aria-label="Add reaction">
                                             <svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></svg>
@@ -371,6 +392,7 @@ $chatEmptyIcon = '<svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" 
                                                 aria-label="More actions">
                                             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>
                                         </button>
+                                    </div>
                                     </div>
                                     <?php endif; ?>
                                     </div>
@@ -393,10 +415,8 @@ $chatEmptyIcon = '<svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" 
                                     <?php endif; ?>
                                 </div>
                             </article>
-                        <?php
-                            $prevMine = $isMine;
-                        endforeach;
-                        ?>
+                            <?php $prevMine = $isMine; ?>
+                        <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
                 <button type="button" class="chat-jump" id="chatJumpBtn" hidden>New messages ↓</button>
@@ -405,7 +425,7 @@ $chatEmptyIcon = '<svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" 
                     <span class="chat-typing-indicator__bubble" aria-hidden="true">
                         <span class="chat-typing-indicator__dots"><span></span><span></span><span></span></span>
                     </span>
-                    <span id="chatTypingLabel"><?= e((string)$selectedPartner['name']) ?> is typing...</span>
+                    <span id="chatTypingLabel"><?= e($selectedPartner ? ((string)$selectedPartner['name'] . ' is typing...') : 'Typing...') ?></span>
                 </div>
 
                 <form class="chat-window__composer" id="chatComposer" action="#" method="post" onsubmit="return false;">
@@ -446,15 +466,7 @@ $chatEmptyIcon = '<svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" 
                         <span class="char-counter" id="chatCharCount">0 / 2000</span>
                     </div>
                 </form>
-            <?php else: ?>
-                <div class="chat-empty-state chat-empty-state--window">
-                    <div class="chat-empty-state__icon" aria-hidden="true">
-                        <?= $chatEmptyIcon ?>
-                    </div>
-                    <h3>Select a conversation</h3>
-                    <p>Choose a contact from the sidebar to begin chatting.</p>
-                </div>
-            <?php endif; ?>
+            </div>
         </section>
     </div>
 </div>

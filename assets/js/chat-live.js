@@ -58,13 +58,8 @@
         const badge = fileBadge(file);
         const icon = '<span class="chat-file__icon chat-file__icon--' + badge.kind + '" aria-hidden="true">' + escapeHtml(badge.label) + '</span>' +
             '<span>' + escapeHtml(name) + '</span>';
-        if (isPdfAttachment(file)) {
-            return '<button type="button" class="chat-file" data-chat-lightbox="' + escapeHtml(url || '') + '" data-chat-name="' + escapeHtml(name) + '" data-chat-mime="application/pdf">' +
-                icon +
-                '</button>';
-        }
         if (url) {
-            return '<a class="chat-file" href="' + escapeHtml(url) + '" download="' + escapeHtml(name) + '" target="_blank" rel="noopener" data-chat-name="' + escapeHtml(name) + '" data-chat-mime="' + escapeHtml(mime) + '">' +
+            return '<a class="chat-file" href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer" data-chat-name="' + escapeHtml(name) + '" data-chat-mime="' + escapeHtml(mime) + '">' +
                 icon +
                 '</a>';
         }
@@ -472,7 +467,7 @@
                 if (isImageAttachment(file)) {
                     if (!url) return '';
                     return '<button type="button" class="chat-media" data-chat-lightbox="' + escapeHtml(url) + '" data-chat-name="' + escapeHtml(name) + '" data-chat-mime="' + escapeHtml(file.mime || file.type || '') + '">' +
-                        '<img src="' + escapeHtml(url) + '" alt="' + escapeHtml(name) + '">' +
+                        '<img src="' + escapeHtml(url) + '" alt="' + escapeHtml(name) + '" loading="lazy" onerror="this.closest(\'.chat-media\')?.classList.add(\'is-broken\')">' +
                         '<span>' + escapeHtml(name) + '</span>' +
                         '</button>';
                 }
@@ -531,7 +526,7 @@
         }
 
         function onDocumentClick(event) {
-            if (event.target.closest('.chat-react-pop, .chat-more-pop, .chat-message__tools, [data-chat-react], [data-chat-more]')) {
+            if (event.target.closest('.chat-react-pop, .chat-more-pop, .chat-message__tools, [data-chat-react], [data-chat-more], .chat-message')) {
                 return;
             }
             closeMessagePops();
@@ -785,19 +780,25 @@
                 : '';
             const text = message.is_deleted ? '' : String(message.message_text || '').trim();
             const replyText = text !== '' ? text : ((message.attachments || []).length ? 'Photo' : '');
-            const bodyHtml = message.is_deleted
+            const contentHtml = message.is_deleted
                 ? '<div class="chat-message__removed">Message removed</div>'
+                : (attachmentHtml(message.attachments) +
+                    (text !== '' ? '<div class="chat-message__bubble"><p>' + escapeHtml(text) + '</p></div>' : ''));
+            const toolsHtml = messageToolsHtml(message, replyText);
+            const bodyHtml = message.is_deleted
+                ? contentHtml
                 : ((message.is_pinned ? '<span class="chat-message__pin-flag">Pinned</span>' : '') +
                     quote +
-                    attachmentHtml(message.attachments) +
-                    (text !== '' ? '<div class="chat-message__bubble"><p>' + escapeHtml(text) + '</p></div>' : ''));
+                    '<div class="chat-message__row">' +
+                    '<div class="chat-message__body">' + contentHtml + '</div>' +
+                    toolsHtml +
+                    '</div>');
 
             article.innerHTML =
                 avatarHtml +
                 '<div class="chat-message__stack">' +
                 '<div class="chat-message__main">' +
                 bodyHtml +
-                messageToolsHtml(message, replyText) +
                 '</div>' +
                 (message.is_deleted ? '' : reactionRowHtml(message)) +
                 '<time datetime="' + escapeHtml(message.created_at || '') + '">' +
@@ -879,7 +880,9 @@
                 }
                 if (media.tagName === 'A') {
                     media.setAttribute('href', file.url);
-                    if (file.name) media.setAttribute('download', file.name);
+                    media.setAttribute('target', '_blank');
+                    media.setAttribute('rel', 'noopener noreferrer');
+                    media.removeAttribute('download');
                 }
                 if (media.hasAttribute('data-chat-lightbox') || media.classList.contains('chat-media')) {
                     media.setAttribute('data-chat-lightbox', file.url);
@@ -1108,6 +1111,17 @@
             });
             thread = rows;
             rememberPaintKeys(thread.map(messageIdentity));
+            markBrokenMedia();
+        }
+
+        function markBrokenMedia(root) {
+            (root || messagesEl)?.querySelectorAll('.chat-media img').forEach(function (img) {
+                const card = img.closest('.chat-media');
+                if (!card) return;
+                if (img.complete && img.naturalWidth === 0) {
+                    card.classList.add('is-broken');
+                }
+            });
         }
 
         function updateTypingIndicator(typing) {
@@ -1322,6 +1336,47 @@
             url.searchParams.set('partner_id', String(partnerId));
             url.searchParams.set('partner_role', partnerRole);
             history.replaceState(history.state, '', url.toString());
+        }
+
+        function clearChatUrl() {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('partner_id');
+            url.searchParams.delete('partner_role');
+            history.replaceState(history.state, '', url.toString());
+        }
+
+        function syncConversationChrome() {
+            const open = !!shellEl?.classList.contains('has-conversation');
+            document.body.classList.toggle('chat-conversation-open', open);
+        }
+
+        function showConversationPane() {
+            const emptyEl = document.getElementById('chatWindowEmpty');
+            const threadEl = document.getElementById('chatWindowThread');
+            if (emptyEl) emptyEl.hidden = true;
+            if (threadEl) threadEl.hidden = false;
+            syncConversationChrome();
+        }
+
+        function showContactsPane() {
+            shellEl?.classList.remove('has-conversation');
+            clearChatUrl();
+            syncConversationChrome();
+            // Desktop: return to the empty "select a conversation" pane.
+            if (window.matchMedia('(min-width: 981px)').matches) {
+                const emptyEl = document.getElementById('chatWindowEmpty');
+                const threadEl = document.getElementById('chatWindowThread');
+                if (emptyEl) emptyEl.hidden = false;
+                if (threadEl) threadEl.hidden = true;
+                partnerListEl?.querySelectorAll('.chat-partner.is-active').forEach(function (el) {
+                    el.classList.remove('is-active');
+                });
+                partnerId = 0;
+                partnerRole = '';
+                app.dataset.partnerId = '0';
+                app.dataset.partnerRole = '';
+                stopPolling();
+            }
         }
 
         async function fetchMessages(force, beforeId) {
@@ -1772,6 +1827,7 @@
             });
             button.classList.add('is-active');
             shellEl?.classList.add('has-conversation');
+            showConversationPane();
 
             clearTypingStatus();
             abortPendingMessageFetch();
@@ -1936,27 +1992,21 @@
         }
 
         function openLightbox(url, name, mime) {
-            if (!lightbox || !url) return;
-            const isPdf = isPdfPreview(name, mime, url);
+            if (!url) return;
+
+            // Non-image files always open in a new tab/page (no in-app iframe).
+            if (!isImageAttachment({ name: name || '', mime: mime || '', type: mime || '' }) || isPdfPreview(name, mime, url)) {
+                window.open(url, '_blank', 'noopener,noreferrer');
+                return;
+            }
+
+            if (!lightbox) return;
             revokeLightboxBlob();
-            lightbox.classList.toggle('is-pdf', isPdf);
+            lightbox.classList.remove('is-pdf');
             if (lightboxDownload) {
                 lightboxDownload.href = url;
-                lightboxDownload.setAttribute('download', name || (isPdf ? 'document.pdf' : 'chat-image'));
-            }
-            lightbox.hidden = false;
-            if (isPdf) {
-                if (lightboxImage) {
-                    lightboxImage.hidden = true;
-                    lightboxImage.removeAttribute('src');
-                    lightboxImage.alt = '';
-                }
-                if (lightboxFrame) {
-                    lightboxFrame.hidden = false;
-                    lightboxFrame.title = name || 'PDF';
-                    loadPdfFrame(url);
-                }
-                return;
+                lightboxDownload.setAttribute('download', name || 'chat-image');
+                lightboxDownload.hidden = false;
             }
             if (lightboxFrame) {
                 lightboxFrame.hidden = true;
@@ -1964,9 +2014,20 @@
             }
             if (lightboxImage) {
                 lightboxImage.hidden = false;
+                lightboxImage.removeAttribute('hidden');
+                lightboxImage.onload = function () {
+                    lightboxImage.classList.add('is-ready');
+                };
+                lightboxImage.onerror = function () {
+                    lightboxImage.classList.remove('is-ready');
+                    closeLightbox();
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                };
+                lightboxImage.classList.remove('is-ready');
                 lightboxImage.src = url;
                 lightboxImage.alt = name || 'Photo';
             }
+            lightbox.hidden = false;
         }
 
         function closeLightbox() {
@@ -1976,6 +2037,9 @@
             revokeLightboxBlob();
             if (lightboxImage) {
                 lightboxImage.hidden = false;
+                lightboxImage.classList.remove('is-ready');
+                lightboxImage.onload = null;
+                lightboxImage.onerror = null;
                 lightboxImage.src = '';
             }
             if (lightboxFrame) {
@@ -2068,7 +2132,7 @@
         });
 
         backBtn?.addEventListener('click', function () {
-            shellEl?.classList.remove('has-conversation');
+            showContactsPane();
         });
 
         attachBtn?.addEventListener('click', function () {
@@ -2135,21 +2199,108 @@
             }
             const thumb = event.target.closest('[data-chat-lightbox]');
             if (thumb) {
+                if (thumb.classList.contains('is-broken')) {
+                    return;
+                }
                 event.preventDefault();
                 event.stopPropagation();
                 closeMessagePops();
-                openLightbox(
-                    thumb.getAttribute('data-chat-lightbox') || thumb.getAttribute('href') || '',
-                    thumb.getAttribute('data-chat-name'),
-                    thumb.getAttribute('data-chat-mime')
-                );
+                const url = thumb.getAttribute('data-chat-lightbox') || thumb.getAttribute('href') || '';
+                const name = thumb.getAttribute('data-chat-name') || '';
+                const mime = thumb.getAttribute('data-chat-mime') || '';
+                // Only images use lightbox; any file chip with lightbox attr opens in a new page.
+                if (thumb.classList.contains('chat-file') || isPdfPreview(name, mime, url)) {
+                    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+                    return;
+                }
+                openLightbox(url, name, mime);
                 return;
             }
             const fileChip = event.target.closest('a.chat-file');
             if (fileChip) {
                 event.stopPropagation();
+                // Let the browser follow target="_blank".
+                return;
+            }
+
+            // Mobile/touch: tap bubble to reveal action tools (side dock gets clipped on long messages).
+            if (isCoarseChatUi()) {
+                const article = event.target.closest('.chat-message');
+                if (article && !article.classList.contains('is-deleted') && article.querySelector('.chat-message__tools')) {
+                    const wasOpen = article.classList.contains('is-open');
+                    closeMessagePops();
+                    if (!wasOpen) {
+                        article.classList.add('is-open');
+                        ensureToolsInView(article);
+                    }
+                    return;
+                }
             }
         });
+
+        function isCoarseChatUi() {
+            return window.matchMedia('(hover: none)').matches
+                || window.matchMedia('(pointer: coarse)').matches
+                || window.matchMedia('(max-width: 980px)').matches;
+        }
+
+        function ensureToolsInView(article) {
+            const tools = article?.querySelector('.chat-message__tools');
+            if (!tools || !messagesEl) return;
+            const toolsRect = tools.getBoundingClientRect();
+            const paneRect = messagesEl.getBoundingClientRect();
+            if (toolsRect.top < paneRect.top + 8) {
+                messagesEl.scrollTop -= (paneRect.top + 8) - toolsRect.top;
+            }
+        }
+
+        let pressTimer = null;
+        let pressMoved = false;
+        let pressArticle = null;
+
+        function clearPressTimer() {
+            if (pressTimer) {
+                window.clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+            pressArticle = null;
+            pressMoved = false;
+        }
+
+        messagesEl?.addEventListener('pointerdown', function (event) {
+            if (!isCoarseChatUi()) return;
+            if (event.pointerType === 'mouse' && !window.matchMedia('(max-width: 980px)').matches) return;
+            const article = event.target.closest('.chat-message');
+            if (!article || article.classList.contains('is-deleted')) return;
+            if (event.target.closest('a, button, .chat-message__tools, [data-chat-lightbox], .chat-file')) return;
+            pressArticle = article;
+            pressMoved = false;
+            pressTimer = window.setTimeout(function () {
+                if (!pressArticle || pressMoved) return;
+                const moreBtn = pressArticle.querySelector('[data-chat-more]');
+                if (!moreBtn) return;
+                openMessageTools(Number(moreBtn.getAttribute('data-chat-more') || 0));
+                ensureToolsInView(pressArticle);
+                if (reactPop) reactPop.hidden = true;
+                if (morePinBtn) morePinBtn.textContent = moreBtn.getAttribute('data-pinned') === '1' ? 'Unpin' : 'Pin';
+                if (moreRemoveBtn) moreRemoveBtn.hidden = moreBtn.getAttribute('data-can-remove') !== '1';
+                morePop.dataset.replyName = moreBtn.getAttribute('data-reply-name') || '';
+                morePop.dataset.replyText = moreBtn.getAttribute('data-reply-text') || '';
+                morePop.dataset.replySelf = moreBtn.getAttribute('data-reply-self') || '0';
+                placePopover(morePop, moreBtn);
+            }, 420);
+        });
+
+        messagesEl?.addEventListener('pointermove', function (event) {
+            if (!pressTimer) return;
+            if (Math.abs(event.movementX) + Math.abs(event.movementY) > 6) {
+                pressMoved = true;
+                clearPressTimer();
+            }
+        });
+
+        messagesEl?.addEventListener('pointerup', clearPressTimer);
+        messagesEl?.addEventListener('pointercancel', clearPressTimer);
 
         messagesEl?.addEventListener('scroll', function () {
             closeMessagePops();
@@ -2318,10 +2469,20 @@
         updateSendEnabled();
         if (messagesEl) scrollToBottom(true);
         navUnreadFromList();
+        syncConversationChrome();
         if (partnerId && partnerRole) {
+            showConversationPane();
+            shellEl?.classList.add('has-conversation');
+            syncConversationChrome();
             fetchMessages(true).catch(function () {});
             startPolling();
             syncChatUrl();
+        } else if (window.matchMedia('(min-width: 981px)').matches) {
+            // Desktop split view: open the first contact when landing on /chat.
+            const firstPartner = partnerListEl?.querySelector('.chat-partner');
+            if (firstPartner) {
+                setActivePartner(firstPartner, true);
+            }
         }
         applyPartnerFilter();
         setConnection(navigator.onLine ? 'connected' : 'offline');
