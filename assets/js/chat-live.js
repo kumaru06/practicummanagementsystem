@@ -10,21 +10,69 @@
     const MAX_CHARS = 2000;
     const MAX_IMAGES = 3;
     const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-    const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
-    const ALLOWED_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'pdf'];
+    const ALLOWED_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'ppt', 'pptx', 'txt', 'rtf'];
+    const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'webp'];
+    const FILE_PICKER_ACCEPT = ALLOWED_EXTS.map(function (ext) { return '.' + ext; }).join(',');
+    const ALLOWED_TYPES = [
+        'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'text/csv', 'application/csv', 'text/plain', 'application/rtf', 'text/rtf',
+    ];
+
+    function fileExtension(file) {
+        const name = String((file && (file.name || (file.file && file.file.name))) || '').toLowerCase();
+        const dot = name.lastIndexOf('.');
+        return dot === -1 ? '' : name.slice(dot + 1);
+    }
 
     function isPdfAttachment(file) {
         const mime = String((file && (file.mime || file.type)) || '').toLowerCase();
-        const name = String((file && (file.name || (file.file && file.file.name))) || '').toLowerCase();
-        return mime.indexOf('pdf') !== -1 || name.endsWith('.pdf');
+        return mime.indexOf('pdf') !== -1 || fileExtension(file) === 'pdf';
+    }
+
+    function isImageAttachment(file) {
+        const mime = String((file && (file.mime || file.type)) || '').toLowerCase();
+        if (IMAGE_EXTS.indexOf(fileExtension(file)) !== -1) return true;
+        return mime.indexOf('image/') === 0 && mime.indexOf('svg') === -1;
+    }
+
+    function fileBadge(file) {
+        const ext = fileExtension(file);
+        if (ext === 'pdf' || isPdfAttachment(file)) return { label: 'PDF', kind: 'pdf' };
+        if (ext === 'doc' || ext === 'docx') return { label: 'DOC', kind: 'doc' };
+        if (ext === 'xls' || ext === 'xlsx' || ext === 'csv') return { label: 'XLS', kind: 'xls' };
+        if (ext === 'ppt' || ext === 'pptx') return { label: 'PPT', kind: 'ppt' };
+        if (ext === 'txt' || ext === 'rtf') return { label: 'TXT', kind: 'txt' };
+        if (ext) return { label: ext.toUpperCase().slice(0, 4), kind: 'file' };
+        return { label: 'FILE', kind: 'file' };
+    }
+
+    function fileChipHtml(file, url) {
+        const name = file.name || 'File';
+        const mime = file.mime || file.type || '';
+        const badge = fileBadge(file);
+        const icon = '<span class="chat-file__icon chat-file__icon--' + badge.kind + '" aria-hidden="true">' + escapeHtml(badge.label) + '</span>' +
+            '<span>' + escapeHtml(name) + '</span>';
+        if (isPdfAttachment(file)) {
+            return '<button type="button" class="chat-file" data-chat-lightbox="' + escapeHtml(url || '') + '" data-chat-name="' + escapeHtml(name) + '" data-chat-mime="application/pdf">' +
+                icon +
+                '</button>';
+        }
+        if (url) {
+            return '<a class="chat-file" href="' + escapeHtml(url) + '" download="' + escapeHtml(name) + '" target="_blank" rel="noopener" data-chat-name="' + escapeHtml(name) + '" data-chat-mime="' + escapeHtml(mime) + '">' +
+                icon +
+                '</a>';
+        }
+        return '<span class="chat-file" data-chat-name="' + escapeHtml(name) + '" data-chat-mime="' + escapeHtml(mime) + '">' + icon + '</span>';
     }
 
     function isAllowedChatFile(file) {
-        const type = String((file && file.type) || '').toLowerCase();
-        const name = String((file && file.name) || '').toLowerCase();
-        const ext = name.indexOf('.') !== -1 ? name.split('.').pop() : '';
-        if (ALLOWED_TYPES.indexOf(type) !== -1) return true;
-        return (type === '' || type === 'application/octet-stream') && ALLOWED_EXTS.indexOf(ext) !== -1;
+        return ALLOWED_EXTS.indexOf(fileExtension(file)) !== -1;
     }
 
     let unreadTimer = null;
@@ -180,7 +228,9 @@
         const threadSearchHits = document.getElementById('chatSearchHits');
         const lightbox = document.getElementById('chatLightbox');
         const lightboxImage = document.getElementById('chatLightboxImage');
+        const lightboxFrame = document.getElementById('chatLightboxFrame');
         const lightboxDownload = document.getElementById('chatLightboxDownload');
+        let lightboxBlobUrl = '';
         const reactPop = document.getElementById('chatReactPop');
         const morePop = document.getElementById('chatMorePop');
         const pinBar = document.getElementById('chatPinBar');
@@ -419,19 +469,14 @@
             const cards = (files || []).map(function (file) {
                 const url = file.url || file.previewUrl || '';
                 const name = file.name || 'File';
-                if (!url && !isPdfAttachment(file)) return '';
-                if (isPdfAttachment(file)) {
-                    const href = url || '#';
-                    return '<a class="chat-file" href="' + escapeHtml(href) + '" target="_blank" rel="noopener" data-chat-name="' + escapeHtml(name) + '" data-chat-mime="application/pdf">' +
-                        '<span class="chat-file__icon" aria-hidden="true">PDF</span>' +
+                if (isImageAttachment(file)) {
+                    if (!url) return '';
+                    return '<button type="button" class="chat-media" data-chat-lightbox="' + escapeHtml(url) + '" data-chat-name="' + escapeHtml(name) + '" data-chat-mime="' + escapeHtml(file.mime || file.type || '') + '">' +
+                        '<img src="' + escapeHtml(url) + '" alt="' + escapeHtml(name) + '">' +
                         '<span>' + escapeHtml(name) + '</span>' +
-                        '</a>';
+                        '</button>';
                 }
-                if (!url) return '';
-                return '<button type="button" class="chat-media" data-chat-lightbox="' + escapeHtml(url) + '" data-chat-name="' + escapeHtml(name) + '" data-chat-mime="' + escapeHtml(file.mime || file.type || '') + '">' +
-                    '<img src="' + escapeHtml(url) + '" alt="' + escapeHtml(name) + '">' +
-                    '<span>' + escapeHtml(name) + '</span>' +
-                    '</button>';
+                return fileChipHtml(file, url);
             }).join('');
             return cards ? '<div class="chat-media-list">' + cards + '</div>' : '';
         }
@@ -575,8 +620,7 @@
             if (text) return text;
             const files = (message && message.attachments) || [];
             if (!files.length) return 'Pinned message';
-            if (files.some(isPdfAttachment)) return files[0].name || 'PDF';
-            return files[0].name || 'Photo';
+            return files[0].name || (files.some(isImageAttachment) ? 'Photo' : 'File');
         }
 
         function closeSearchPanel() {
@@ -827,9 +871,19 @@
             }
 
             (message.attachments || []).forEach(function (file, index) {
-                const media = article.querySelectorAll('.chat-media')[index];
+                const media = article.querySelectorAll('.chat-media, .chat-file')[index];
                 if (!media || !file || !file.url) return;
-                media.setAttribute('data-chat-lightbox', file.url);
+                if (media.tagName === 'SPAN') {
+                    media.outerHTML = fileChipHtml(file, file.url);
+                    return;
+                }
+                if (media.tagName === 'A') {
+                    media.setAttribute('href', file.url);
+                    if (file.name) media.setAttribute('download', file.name);
+                }
+                if (media.hasAttribute('data-chat-lightbox') || media.classList.contains('chat-media')) {
+                    media.setAttribute('data-chat-lightbox', file.url);
+                }
                 const img = media.querySelector('img');
                 if (img) img.src = file.url;
             });
@@ -1377,10 +1431,12 @@
             attachListEl.hidden = false;
             const percent = uploading ? Math.max(0, Math.min(100, Number(uploadProgress.percent) || 0)) : 0;
             attachListEl.innerHTML = files.map(function (item, index) {
-                const pdf = isPdfAttachment(item.file || item);
-                const preview = pdf
-                    ? '<span class="chat-attach-chip__file" aria-hidden="true">PDF</span>'
-                    : '<img src="' + escapeHtml(item.previewUrl) + '" alt="">';
+                const source = item.file || item;
+                const image = isImageAttachment(source) && item.previewUrl;
+                const badge = fileBadge(source);
+                const preview = image
+                    ? '<img src="' + escapeHtml(item.previewUrl) + '" alt="">'
+                    : '<span class="chat-attach-chip__file chat-attach-chip__file--' + badge.kind + '" aria-hidden="true">' + escapeHtml(badge.label) + '</span>';
                 return '<div class="chat-attach-chip">' +
                     preview +
                     '<span class="chat-attach-chip__meta">' +
@@ -1402,7 +1458,7 @@
                     return;
                 }
                 if (!isAllowedChatFile(file)) {
-                    window.alert('Only JPG, PNG, WebP, and PDF files are allowed.');
+                    window.alert('Only images, PDF, Word, Excel, PowerPoint, CSV, and text files are allowed.');
                     return;
                 }
                 if (file.size > MAX_IMAGE_BYTES) {
@@ -1411,7 +1467,7 @@
                 }
                 pendingFiles.push({
                     file: file,
-                    previewUrl: isPdfAttachment(file) ? '' : URL.createObjectURL(file),
+                    previewUrl: isImageAttachment(file) ? URL.createObjectURL(file) : '',
                 });
             });
             renderAttachList();
@@ -1848,22 +1904,83 @@
             charCountEl.classList.add('is-visible');
         }
 
-        function openLightbox(url, name) {
-            if (!lightbox || !lightboxImage) return;
-            lightboxImage.src = url;
-            lightboxImage.alt = name || 'Photo';
+        function revokeLightboxBlob() {
+            if (lightboxBlobUrl) {
+                URL.revokeObjectURL(lightboxBlobUrl);
+                lightboxBlobUrl = '';
+            }
+        }
+
+        function isPdfPreview(name, mime, url) {
+            const type = String(mime || '').toLowerCase();
+            const fileName = String(name || '').toLowerCase();
+            const href = String(url || '').toLowerCase();
+            return type.indexOf('pdf') !== -1 || fileName.endsWith('.pdf') || href.indexOf('.pdf') !== -1;
+        }
+
+        function loadPdfFrame(url) {
+            if (!lightboxFrame) return;
+            fetch(url, { credentials: 'same-origin', cache: 'no-store' })
+                .then(function (res) {
+                    if (!res.ok) throw new Error('pdf');
+                    return res.arrayBuffer();
+                })
+                .then(function (buf) {
+                    revokeLightboxBlob();
+                    lightboxBlobUrl = URL.createObjectURL(new Blob([buf], { type: 'application/pdf' }));
+                    lightboxFrame.src = lightboxBlobUrl;
+                })
+                .catch(function () {
+                    lightboxFrame.src = url;
+                });
+        }
+
+        function openLightbox(url, name, mime) {
+            if (!lightbox || !url) return;
+            const isPdf = isPdfPreview(name, mime, url);
+            revokeLightboxBlob();
+            lightbox.classList.toggle('is-pdf', isPdf);
             if (lightboxDownload) {
                 lightboxDownload.href = url;
-                lightboxDownload.setAttribute('download', name || 'chat-image');
+                lightboxDownload.setAttribute('download', name || (isPdf ? 'document.pdf' : 'chat-image'));
             }
             lightbox.hidden = false;
+            if (isPdf) {
+                if (lightboxImage) {
+                    lightboxImage.hidden = true;
+                    lightboxImage.removeAttribute('src');
+                    lightboxImage.alt = '';
+                }
+                if (lightboxFrame) {
+                    lightboxFrame.hidden = false;
+                    lightboxFrame.title = name || 'PDF';
+                    loadPdfFrame(url);
+                }
+                return;
+            }
+            if (lightboxFrame) {
+                lightboxFrame.hidden = true;
+                lightboxFrame.removeAttribute('src');
+            }
+            if (lightboxImage) {
+                lightboxImage.hidden = false;
+                lightboxImage.src = url;
+                lightboxImage.alt = name || 'Photo';
+            }
         }
 
         function closeLightbox() {
             if (!lightbox) return;
             lightbox.hidden = true;
+            lightbox.classList.remove('is-pdf');
+            revokeLightboxBlob();
             if (lightboxImage) {
+                lightboxImage.hidden = false;
                 lightboxImage.src = '';
+            }
+            if (lightboxFrame) {
+                lightboxFrame.hidden = true;
+                lightboxFrame.removeAttribute('src');
             }
         }
 
@@ -1957,8 +2074,8 @@
         attachBtn?.addEventListener('click', function () {
             if (!canSend) return;
             if (fileInput) {
-                fileInput.removeAttribute('accept');
-                try { fileInput.accept = ''; } catch (err) {}
+                fileInput.setAttribute('accept', FILE_PICKER_ACCEPT);
+                try { fileInput.accept = FILE_PICKER_ACCEPT; } catch (err) {}
             }
             fileInput?.click();
         });
@@ -2018,8 +2135,19 @@
             }
             const thumb = event.target.closest('[data-chat-lightbox]');
             if (thumb) {
+                event.preventDefault();
+                event.stopPropagation();
                 closeMessagePops();
-                openLightbox(thumb.getAttribute('data-chat-lightbox'), thumb.getAttribute('data-chat-name'));
+                openLightbox(
+                    thumb.getAttribute('data-chat-lightbox') || thumb.getAttribute('href') || '',
+                    thumb.getAttribute('data-chat-name'),
+                    thumb.getAttribute('data-chat-mime')
+                );
+                return;
+            }
+            const fileChip = event.target.closest('a.chat-file');
+            if (fileChip) {
+                event.stopPropagation();
             }
         });
 

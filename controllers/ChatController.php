@@ -7,6 +7,22 @@ class ChatController
     private const PAGE_SIZE = 30;
     private const MAX_FILES = 3;
     private const MAX_FILE_BYTES = 5242880;
+    /** @var array<string, string> */
+    private const CHAT_MIME_BY_EXT = [
+        'jpg' => 'image/jpeg',
+        'png' => 'image/png',
+        'webp' => 'image/webp',
+        'pdf' => 'application/pdf',
+        'doc' => 'application/msword',
+        'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xls' => 'application/vnd.ms-excel',
+        'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'ppt' => 'application/vnd.ms-powerpoint',
+        'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'csv' => 'text/csv',
+        'txt' => 'text/plain',
+        'rtf' => 'application/rtf',
+    ];
     private const HTE_LOOP_STATUSES = ['forwarded', 'accepted', 'orientation_scheduled', 'orientation_completed', 'approved'];
     private const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
@@ -1322,30 +1338,55 @@ class ChatController
             throw new InvalidArgumentException('Each file must be 5 MB or smaller.');
         }
 
-        $allowed = [
-            'image/jpeg' => 'jpg',
-            'image/png' => 'png',
-            'image/webp' => 'webp',
-            'application/pdf' => 'pdf',
-        ];
-        $ext = resolve_upload_extension($tmp, $allowed, $original);
-        if ($ext === null) {
-            throw new InvalidArgumentException('Only JPG, PNG, WebP, and PDF files are allowed.');
+        $ext = strtolower(pathinfo($original, PATHINFO_EXTENSION));
+        if ($ext === 'jpeg') {
+            $ext = 'jpg';
         }
-        $mime = match ($ext) {
-            'jpg' => 'image/jpeg',
-            'png' => 'image/png',
-            'webp' => 'image/webp',
-            default => 'application/pdf',
-        };
+        if (!isset(self::CHAT_MIME_BY_EXT[$ext]) || !$this->chatUploadMatchesExt($tmp, $ext)) {
+            throw new InvalidArgumentException('Only images, PDF, Word, Excel, PowerPoint, CSV, and text files are allowed.');
+        }
 
         return [
             'tmp' => $tmp,
             'ext' => $ext,
-            'mime' => $mime,
+            'mime' => self::CHAT_MIME_BY_EXT[$ext],
             'size' => $size,
             'original' => mb_substr($original, 0, 180),
         ];
+    }
+
+    private function chatUploadMatchesExt(string $tmp, string $ext): bool
+    {
+        $header = (string)file_get_contents($tmp, false, null, 0, 64);
+        if ($header === '') {
+            return false;
+        }
+
+        return match ($ext) {
+            'pdf' => str_starts_with($header, '%PDF'),
+            'jpg' => str_starts_with($header, "\xFF\xD8\xFF"),
+            'png' => str_starts_with($header, "\x89PNG"),
+            'webp' => str_starts_with($header, 'RIFF') && substr($header, 8, 4) === 'WEBP',
+            'docx', 'xlsx', 'pptx' => str_starts_with($header, 'PK'),
+            'doc', 'xls', 'ppt' => str_starts_with($header, "\xD0\xCF\x11\xE0"),
+            'rtf' => str_starts_with(ltrim($header), '{\\rtf'),
+            'csv', 'txt' => $this->chatUploadLooksLikeText($header),
+            default => false,
+        };
+    }
+
+    private function chatUploadLooksLikeText(string $header): bool
+    {
+        if (str_contains($header, "\0")) {
+            return false;
+        }
+        $trim = ltrim($header);
+        $lower = strtolower($trim);
+
+        return !str_starts_with($trim, '<?')
+            && !str_starts_with($lower, '<script')
+            && !str_starts_with($lower, '<html')
+            && !str_starts_with($lower, '<!doctype');
     }
 
     private function isDuplicateClientKey(PDOException $exception): bool

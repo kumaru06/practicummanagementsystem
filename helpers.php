@@ -413,6 +413,46 @@ function student_profile_photo_url(?array $student): string
     return profile_photo_url($student);
 }
 
+function student_birthdate_value(?array $student): string
+{
+    $raw = trim((string)($student['birthdate'] ?? ''));
+    if ($raw === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw) || str_starts_with($raw, '0000-')) {
+        return '';
+    }
+
+    return $raw;
+}
+
+function student_birthdate_is_set(?array $student): bool
+{
+    return student_birthdate_value($student) !== '';
+}
+
+function student_format_birthdate(?array $student, string $empty = '—'): string
+{
+    $raw = student_birthdate_value($student);
+    if ($raw === '') {
+        return $empty;
+    }
+    $ts = strtotime($raw);
+
+    return $ts ? date('F j, Y', $ts) : $empty;
+}
+
+function student_assert_eligible_birthdate(string $birthdate): string
+{
+    $birthdate = trim($birthdate);
+    if ($birthdate === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $birthdate)) {
+        throw new RuntimeException('Select a valid birthdate.');
+    }
+    $age = (new DateTime())->diff(new DateTime($birthdate))->y;
+    if ($age < 20) {
+        throw new RuntimeException('You must be at least 20 years old to be eligible for OJT.');
+    }
+
+    return $birthdate;
+}
+
 /**
  * Document rows for the shared student profile modal (1st, 2nd, and 3rd to Comply).
  *

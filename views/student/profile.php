@@ -22,14 +22,9 @@ if ($studentFirstName === '' && $studentLastName === '') {
 $verifiedTagSvg = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Z" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M5.5 8 7 9.5 10.5 6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 $hasLegacyAddressOnly = student_has_legacy_address_only($student ?? []);
 $displayAddress = student_display_address($student ?? []);
-$studentBirthdateRaw = trim((string)($student['birthdate'] ?? ''));
-$studentBirthdateDisplay = '—';
-if ($studentBirthdateRaw !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $studentBirthdateRaw)) {
-    $birthTs = strtotime($studentBirthdateRaw);
-    if ($birthTs) {
-        $studentBirthdateDisplay = date('F j, Y', $birthTs);
-    }
-}
+$studentBirthdateLocked = student_birthdate_is_set($student ?? []);
+$studentBirthdateDisplay = student_format_birthdate($student ?? []);
+$studentBirthdateMax = date('Y-m-d', strtotime('-20 years'));
 
 $courseLabel = trim((string)($student['course'] ?? ''));
 ?>
@@ -224,10 +219,18 @@ $courseLabel = trim((string)($student['course'] ?? ''));
                                     <span class="spf-field-label">Student ID</span>
                                     <input required value="<?= e($student['student_no'] ?? '') ?>" disabled>
                                 </label>
-                                <label class="spf-field spf-field--readonly">
-                                    <span class="spf-field-label">Birthdate</span>
-                                    <input value="<?= e($studentBirthdateDisplay) ?>" disabled readonly tabindex="-1" aria-readonly="true">
-                                </label>
+                                <?php if ($studentBirthdateLocked): ?>
+                                    <label class="spf-field spf-field--readonly">
+                                        <span class="spf-field-label">Birthdate <span class="spf-field-tag"><?= $verifiedTagSvg ?> Saved</span></span>
+                                        <input value="<?= e($studentBirthdateDisplay) ?>" disabled readonly tabindex="-1" aria-readonly="true">
+                                    </label>
+                                <?php else: ?>
+                                    <div class="spf-field">
+                                        <span class="spf-field-label">Birthdate</span>
+                                        <?php render_form_date_picker('birthdate', '', ['data-date-max' => $studentBirthdateMax]); ?>
+                                        <span class="spf-field-hint">You can set your birthdate once. After saving, it cannot be changed.</span>
+                                    </div>
+                                <?php endif; ?>
                                 <label class="spf-field spf-field--readonly spf-field--full-row">
                                     <span class="spf-field-label">Course</span>
                                     <input required value="<?= e($student['course'] ?? '') ?>" disabled>

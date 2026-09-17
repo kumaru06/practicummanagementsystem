@@ -236,6 +236,7 @@ class Student
             trim($data['guardian_contact'] ?? ''),
             trim($data['year_level'] ?? ''),
             trim($data['gender'] ?? ''),
+            trim($data['birthdate'] ?? ''),
             $photoFile,
             $studentId,
         ];
@@ -259,6 +260,7 @@ class Student
                     guardian_contact = ?,
                     year_level = ?,
                     gender = ?,
+                    birthdate = COALESCE(birthdate, NULLIF(?, \'\')),
                     photo_file = COALESCE(?, photo_file),
                     profile_completed = 1
                  WHERE id = ?'
@@ -287,6 +289,7 @@ class Student
                 guardian_contact = ?,
                 year_level = ?,
                 gender = ?,
+                birthdate = COALESCE(birthdate, NULLIF(?, \'\')),
                 photo_file = COALESCE(?, photo_file),
                 profile_completed = 1
              WHERE id = ?'

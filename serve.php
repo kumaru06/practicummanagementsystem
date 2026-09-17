@@ -46,10 +46,16 @@ if (!$allowed) {
 }
 
 $mime = mime_content_type($absolute) ?: 'application/octet-stream';
+// init.php sends HTML CSP with object-src 'none'. Chrome's PDF viewer uses
+// an internal <embed>, so that policy leaves a cloned Live Chat tab on screen
+// until a hard refresh. File responses need a viewer-friendly policy.
+if (!headers_sent()) {
+    header("Content-Security-Policy: frame-ancestors 'self'; base-uri 'self'; object-src 'self'");
+}
 header('Content-Type: ' . $mime);
 header('Content-Length: ' . (string)filesize($absolute));
 header('Content-Disposition: inline; filename="' . rawurlencode(basename($absolute)) . '"');
 header('X-Content-Type-Options: nosniff');
-header('Cache-Control: private, max-age=300');
+header('Cache-Control: private, no-store');
 readfile($absolute);
 exit;

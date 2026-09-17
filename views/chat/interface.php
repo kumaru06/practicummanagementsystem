@@ -1,15 +1,48 @@
 <?php
+$chatFileBadge = static function (string $name, string $mime): array {
+    $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+    $mime = strtolower($mime);
+    $isPdf = $ext === 'pdf' || str_contains($mime, 'pdf');
+    $isImage = !$isPdf && (str_starts_with($mime, 'image/') || in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true));
+    $kinds = [
+        'pdf' => ['kind' => 'pdf', 'label' => 'PDF'],
+        'doc' => ['kind' => 'doc', 'label' => 'DOC'],
+        'docx' => ['kind' => 'doc', 'label' => 'DOC'],
+        'xls' => ['kind' => 'xls', 'label' => 'XLS'],
+        'xlsx' => ['kind' => 'xls', 'label' => 'XLS'],
+        'csv' => ['kind' => 'xls', 'label' => 'XLS'],
+        'ppt' => ['kind' => 'ppt', 'label' => 'PPT'],
+        'pptx' => ['kind' => 'ppt', 'label' => 'PPT'],
+        'txt' => ['kind' => 'txt', 'label' => 'TXT'],
+        'rtf' => ['kind' => 'txt', 'label' => 'TXT'],
+    ];
+    $badge = $kinds[$ext] ?? [
+        'kind' => 'file',
+        'label' => strtoupper($ext !== '' ? substr($ext, 0, 4) : 'FILE'),
+    ];
+    if ($isPdf) {
+        $badge = ['kind' => 'pdf', 'label' => 'PDF'];
+    }
+
+    return [
+        'is_image' => $isImage,
+        'is_pdf' => $isPdf,
+        'kind' => $badge['kind'],
+        'label' => $badge['label'],
+    ];
+};
 $roleLabelFor = static function (string $role, ?string $subtitle = null): string {
     if ($subtitle) {
         return $subtitle;
     }
-    return match ($role) {
+    $labels = [
         'partner' => 'Host Training Establishment',
         'admin' => 'Administrator',
         'coordinator' => 'Coordinator',
         'student' => 'Student',
-        default => ucwords(str_replace('_', ' ', $role)),
-    };
+    ];
+
+    return $labels[$role] ?? ucwords(str_replace('_', ' ', $role));
 };
 $formatWhen = static function (?string $datetime): string {
     if (!$datetime) {
@@ -291,18 +324,23 @@ $chatEmptyIcon = '<svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" 
                                                 $attachName = (string)($file['name'] ?? 'File');
                                                 $attachUrl = (string)($file['url'] ?? '');
                                                 $attachMime = strtolower((string)($file['mime'] ?? ''));
-                                                $isPdf = str_contains($attachMime, 'pdf') || str_ends_with(strtolower($attachName), '.pdf');
+                                                $badge = $chatFileBadge($attachName, $attachMime);
                                                 ?>
-                                                <?php if ($isPdf): ?>
-                                                    <a class="chat-file" href="<?= e($attachUrl) ?>" target="_blank" rel="noopener" data-chat-name="<?= e($attachName) ?>" data-chat-mime="application/pdf">
-                                                        <span class="chat-file__icon" aria-hidden="true">PDF</span>
-                                                        <span><?= e($attachName) ?></span>
-                                                    </a>
-                                                <?php else: ?>
+                                                <?php if (!empty($badge['is_image'])): ?>
                                                     <button type="button" class="chat-media" data-chat-lightbox="<?= e($attachUrl) ?>" data-chat-name="<?= e($attachName) ?>" data-chat-mime="<?= e($attachMime) ?>">
                                                         <img src="<?= e($attachUrl) ?>" alt="<?= e($attachName) ?>">
                                                         <span><?= e($attachName) ?></span>
                                                     </button>
+                                                <?php elseif (!empty($badge['is_pdf'])): ?>
+                                                    <button type="button" class="chat-file" data-chat-lightbox="<?= e($attachUrl) ?>" data-chat-name="<?= e($attachName) ?>" data-chat-mime="application/pdf">
+                                                        <span class="chat-file__icon chat-file__icon--pdf" aria-hidden="true"><?= e($badge['label']) ?></span>
+                                                        <span><?= e($attachName) ?></span>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <a class="chat-file" href="<?= e($attachUrl) ?>" download="<?= e($attachName) ?>" target="_blank" rel="noopener" data-chat-name="<?= e($attachName) ?>" data-chat-mime="<?= e($attachMime) ?>">
+                                                        <span class="chat-file__icon chat-file__icon--<?= e($badge['kind']) ?>" aria-hidden="true"><?= e($badge['label']) ?></span>
+                                                        <span><?= e($attachName) ?></span>
+                                                    </a>
                                                 <?php endif; ?>
                                             <?php endforeach; ?>
                                         </div>
@@ -313,9 +351,10 @@ $chatEmptyIcon = '<svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" 
                                         </div>
                                     <?php endif; ?>
                                     <?php
-                                    $replyText = trim((string)($message['message_text'] ?? '')) !== ''
-                                        ? (string)$message['message_text']
-                                        : 'Photo';
+                                    $replyText = trim((string)($message['message_text'] ?? ''));
+                                    if ($replyText === '') {
+                                        $replyText = (string)($message['attachments'][0]['name'] ?? 'Attachment');
+                                    }
                                     ?>
                                     <div class="chat-message__tools">
                                         <button type="button" class="chat-tool-btn" data-chat-react="<?= (int)$message['id'] ?>" aria-label="Add reaction">
@@ -422,6 +461,7 @@ $chatEmptyIcon = '<svg class="chat-stroke-icon" viewBox="0 0 24 24" fill="none" 
 <div class="chat-lightbox" id="chatLightbox" hidden>
     <button type="button" class="chat-lightbox__close" id="chatLightboxClose" aria-label="Close">×</button>
     <img id="chatLightboxImage" alt="">
+    <iframe id="chatLightboxFrame" title="Document preview" hidden></iframe>
     <a class="chat-lightbox__download" id="chatLightboxDownload" href="#" download>Download</a>
 </div>
 <div class="chat-react-pop" id="chatReactPop" hidden>

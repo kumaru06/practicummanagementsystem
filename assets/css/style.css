@@ -20705,6 +20705,30 @@ body.role-student .content:has(.spf-studio) {
     color: #475467 !important;
 }
 
+.spf-studio .spf-field-hint {
+    display: block;
+    margin-top: 6px;
+    color: #667085;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.spf-studio .spf-field .form-date-picker,
+.spf-studio .spf-field .filter-date-picker {
+    display: block;
+    width: 100%;
+}
+
+.spf-studio .spf-field .filter-date-trigger {
+    width: 100%;
+}
+
+.spf-studio .spf-field-label .spf-field-tag {
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
 .spf-verified-drawer {
     margin-top: 18px;
     border-top: 1px solid var(--border);
@@ -28399,12 +28423,16 @@ body.role-student .chat-app {
     align-items: center;
     gap: 8px;
     max-width: 260px;
+    width: min(100%, 260px);
     padding: 10px 12px;
     border: 1px solid var(--chat-line);
     border-radius: 14px;
     background: #fff;
     color: inherit;
+    font: inherit;
+    text-align: left;
     text-decoration: none;
+    cursor: pointer;
     box-shadow: 0 8px 18px rgba(23, 32, 51, 0.06);
 }
 
@@ -28417,6 +28445,28 @@ body.role-student .chat-app {
     font-size: 0.62rem;
     font-weight: 800;
     letter-spacing: 0.04em;
+}
+
+.chat-file__icon--doc,
+.chat-attach-chip__file--doc {
+    background: #2b579a;
+}
+
+.chat-file__icon--xls,
+.chat-attach-chip__file--xls {
+    background: #217346;
+}
+
+.chat-file__icon--ppt,
+.chat-attach-chip__file--ppt {
+    background: #c43e1c;
+}
+
+.chat-file__icon--txt,
+.chat-attach-chip__file--txt,
+.chat-file__icon--file,
+.chat-attach-chip__file--file {
+    background: #475569;
 }
 
 .chat-file span:last-child {
@@ -28698,10 +28748,27 @@ body.role-student .chat-app {
     display: none !important;
 }
 
-.chat-lightbox img {
+.chat-lightbox img,
+.chat-lightbox iframe {
     max-width: min(92vw, 960px);
     max-height: 80vh;
     border-radius: 12px;
+}
+
+.chat-lightbox iframe {
+    width: min(92vw, 1100px);
+    height: min(80vh, 900px);
+    border: 0;
+    background: #fff;
+}
+
+.chat-lightbox iframe[hidden],
+.chat-lightbox img[hidden] {
+    display: none !important;
+}
+
+.chat-lightbox.is-pdf {
+    padding: 64px 24px 24px;
 }
 
 .chat-lightbox__close,

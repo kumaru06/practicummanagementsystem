@@ -132,7 +132,10 @@ $currentPipeline = $selected ? partner_enrollment_pipeline_step($selected, $eval
                                 <h2><?= e($selected['student_name']) ?></h2>
                                 <span class="pp-chip <?= e($selMeta['chip']) ?> pp-chip--lg"><?= e($selMeta['label']) ?></span>
                             </div>
-                            <p><?= e($selected['course'] . ' ' . $selected['year_level']) ?> · <?= e($selected['student_no']) ?> · <?= e($selected['student_email']) ?></p>
+                            <p><?= e($selected['course'] . ' ' . $selected['year_level']) ?> · <?= e($selected['student_no']) ?> · <?= e($selected['student_email']) ?><?php
+                                $partnerBirthdate = student_format_birthdate($selected, '');
+                                echo $partnerBirthdate !== '' ? ' · Born ' . e($partnerBirthdate) : '';
+                            ?></p>
                             <?php $partnerStudentAddress = student_display_address($selected); ?>
                             <?php if (!empty($selected['contact_number']) || $partnerStudentAddress !== ''): ?>
                                 <p class="pp-student-contact">

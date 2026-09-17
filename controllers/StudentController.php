@@ -707,6 +707,11 @@ class StudentController extends BaseController
             if (!in_array(trim((string)($p['gender'] ?? '')), ['Male', 'Female', 'Other'], true)) {
                 throw new RuntimeException('Please select a valid gender.');
             }
+            if (!student_birthdate_is_set($student)) {
+                $p['birthdate'] = student_assert_eligible_birthdate((string)($p['birthdate'] ?? ''));
+            } else {
+                unset($p['birthdate']);
+            }
             if (empty($student['photo_file']) && empty($_FILES['photo_file']['name'])) {
                 throw new RuntimeException('Profile photo is required.');
             }

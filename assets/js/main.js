@@ -9768,9 +9768,10 @@ function parseAppStage(href) {
 
 function isAppAjaxNavLink(link) {
     if (!link || link.target === '_blank' || link.hasAttribute('download')) return false;
+    if (link.classList.contains('chat-file')) return false;
     const href = link.getAttribute('href');
     if (!href || href.startsWith('#') || href.startsWith('javascript:')) return false;
-    if (href.includes('logout.php')) return false;
+    if (href.includes('logout.php') || /serve\.php(?:\?|$)/i.test(href)) return false;
 
     const role = getAppRole();
     if (!APP_AJAX_ROLES.has(role)) return false;
