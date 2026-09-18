@@ -9,6 +9,8 @@
                 <select data-ojt-placement-status-filter data-select-label="Status" aria-label="Filter by status">
                     <option value="active" selected>Active</option>
                     <option value="pending">Pending</option>
+                    <option value="awaiting_hte">Awaiting HTE</option>
+                    <option value="awaiting_orientation">Awaiting Orientation</option>
                     <option value="completed">Completed</option>
                     <option value="all">All Status</option>
                 </select>
@@ -31,14 +33,16 @@
         <?php
             $status = (string)($placement['status'] ?? 'pending');
             $statusClass = in_array($status, ['active', 'pending', 'completed'], true) ? $status : 'pending';
+            $predeployment = (string)($placement['predeployment_status'] ?? '');
             $searchHaystack = strtolower(trim(
                 ($placement['student_name'] ?? '') . ' ' .
                 ($placement['course'] ?? '') . ' ' .
                 ($placement['company_name'] ?? '') . ' ' .
-                $status
+                $status . ' ' .
+                $predeployment
             ));
         ?>
-        <tr data-placement-status="<?= e($statusClass) ?>" data-search="<?= e($searchHaystack) ?>">
+        <tr data-placement-status="<?= e($statusClass) ?>" data-predeployment="<?= e($predeployment) ?>" data-search="<?= e($searchHaystack) ?>">
             <td><?= e($placement['student_name']) ?></td>
             <td><?= e($placement['course']) ?></td>
             <td><?= e($placement['company_name']) ?></td>

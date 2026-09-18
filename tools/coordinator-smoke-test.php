@@ -416,7 +416,7 @@ smoke_assert(str_contains($usersViewSrc, 'Login credentials are emailed now'), '
 smoke_assert(str_contains($coordSrc, '$usesExistingPassword = $isSelfRegistered || $passwordAlreadyChanged || $accountAlreadyActive'), 'enrollStudent does not reset password for active accounts');
 smoke_assert(str_contains($coordSrc, 'reconcilePredeploymentAfterRequirementDefChange'), 'enrollStudent syncs 1st comply status onto new enrollment');
 smoke_assert(str_contains($myStudentsSrc, 'data-enroll-first-box'), 'Coordinator shows enroll-first hint before Forward');
-smoke_assert(str_contains($myStudentsSrc, 'Enroll this student to a Host Training Establishment first'), 'Forward gate copy requires company enrollment');
+smoke_assert(str_contains($myStudentsSrc, 'Assign this student to a Host Training Establishment first'), 'Forward gate copy requires company assignment');
 smoke_assert(str_contains($coordSrc, 'generatePdfBuffer'), 'Forward still auto-generates endorsement letter');
 smoke_assert(str_contains($enrollEmailSrc, 'Use your existing student portal password'), 'Enrollment email keeps existing password');
 smoke_assert(str_contains($mainJsSrc, 'data-enroll-first-box'), 'Review AJAX toggles enroll-first box');

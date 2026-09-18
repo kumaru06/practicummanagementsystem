@@ -103,17 +103,57 @@ $pendingIcons = [
         <?php else: ?>
             <ul class="admin-pending-list">
                 <?php foreach ($pendingActions as $action): ?>
+                    <?php
+                        $people = $action['people'] ?? [];
+                        $hasPeople = is_array($people) && $people !== [];
+                    ?>
                     <li>
-                        <a class="admin-pending-item admin-pending-item--<?= e((string)$action['tone']) ?>" href="<?= e((string)$action['link']) ?>">
-                            <span class="admin-pending-item-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24"><?= $pendingIcons[$action['key']] ?? $pendingIcons['registration'] ?></svg>
-                            </span>
-                            <span class="admin-pending-item-copy">
-                                <strong><?= e((string)$action['title']) ?></strong>
-                                <small><?= e((string)$action['detail']) ?></small>
-                            </span>
-                            <span class="admin-pending-item-count"><?= (int)$action['count'] ?></span>
-                        </a>
+                        <?php if ($hasPeople): ?>
+                            <details class="admin-pending-details admin-pending-item--<?= e((string)$action['tone']) ?>">
+                                <summary class="admin-pending-item">
+                                    <span class="admin-pending-item-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24"><?= $pendingIcons[$action['key']] ?? $pendingIcons['registration'] ?></svg>
+                                    </span>
+                                    <span class="admin-pending-item-copy">
+                                        <strong><?= e((string)$action['title']) ?></strong>
+                                        <small><?= e((string)$action['detail']) ?></small>
+                                    </span>
+                                    <span class="admin-pending-item-count"><?= (int)$action['count'] ?></span>
+                                    <span class="admin-pending-chevron" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+                                    </span>
+                                </summary>
+                                <ul class="admin-pending-people">
+                                    <?php foreach ($people as $person): ?>
+                                        <li class="admin-pending-person">
+                                            <strong><?= e((string)($person['name'] ?? 'Student')) ?></strong>
+                                            <small><?php
+                                                $meta = array_filter([
+                                                    (string)($person['student_no'] ?? ''),
+                                                    (string)($person['company'] ?? ''),
+                                                    (string)($person['coordinator'] ?? '') !== '' ? 'Coord: ' . (string)$person['coordinator'] : '',
+                                                ]);
+                                                echo e(implode(' · ', $meta));
+                                            ?></small>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                                <?php if (!empty($action['link'])): ?>
+                                    <a class="admin-pending-people-link" href="<?= e((string)$action['link']) ?>">View on OJT Placement</a>
+                                <?php endif; ?>
+                            </details>
+                        <?php else: ?>
+                            <a class="admin-pending-item admin-pending-item--<?= e((string)$action['tone']) ?>" href="<?= e((string)$action['link']) ?>">
+                                <span class="admin-pending-item-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24"><?= $pendingIcons[$action['key']] ?? $pendingIcons['registration'] ?></svg>
+                                </span>
+                                <span class="admin-pending-item-copy">
+                                    <strong><?= e((string)$action['title']) ?></strong>
+                                    <small><?= e((string)$action['detail']) ?></small>
+                                </span>
+                                <span class="admin-pending-item-count"><?= (int)$action['count'] ?></span>
+                            </a>
+                        <?php endif; ?>
                     </li>
                 <?php endforeach; ?>
             </ul>

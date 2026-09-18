@@ -41,7 +41,7 @@ class CoordinatorController extends BaseController
             return $company;
         }, $companyModel->all());
         $this->renderAppPage('coordinator/manage', [
-            'title' => 'Student Enrollment',
+            'title' => 'Assign Student',
             'students'  => (new Student($this->db))->allByCoordinator($coordId),
             'companies' => $companies,
             'programs'  => (new Program($this->db))->all(true),

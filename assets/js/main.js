@@ -5503,7 +5503,7 @@ function applyHiddenColumns(table) {
 
 function exportCsv(table) {
     const rows = [table.tHead.rows[0], ...table.tBodies[0].rows];
-    const csv = rows.map(row => [...row.cells].filter(cell => cell.style.display !== 'none').map(cell => `"${cell.innerText.replace(/"/g, '""').trim()}"`).join(',')).join('\n');
+            const csv = rows.map(row => [...row.cells].filter(cell => cell.style.display !== 'none' && !cell.hasAttribute('data-skip-export')).map(cell => `"${cell.innerText.replace(/"/g, '""').trim()}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -8770,10 +8770,22 @@ function initAdminOjtPlacementDirectory() {
         if (!table || !statusFilter) return;
 
         let statusValue = statusFilter.value || 'active';
+        const predeploymentParam = new URLSearchParams(window.location.search).get('predeployment');
+        if (predeploymentParam === 'forwarded') {
+            statusValue = 'awaiting_hte';
+        } else if (predeploymentParam === 'accepted') {
+            statusValue = 'awaiting_orientation';
+        }
+        if (statusFilter.querySelector(`option[value="${statusValue}"]`)) {
+            statusFilter.value = statusValue;
+            statusFilter._syncCustomSelect?.();
+        }
 
         const applyFilters = () => {
             table._applyRowFilter = row => {
                 if (statusValue === 'all') return true;
+                if (statusValue === 'awaiting_hte') return row.dataset.predeployment === 'forwarded';
+                if (statusValue === 'awaiting_orientation') return row.dataset.predeployment === 'accepted';
                 return row.dataset.placementStatus === statusValue;
             };
             search?.dispatchEvent(new Event('input'));
@@ -10086,14 +10098,20 @@ function initAppAjaxNav() {
             }
 
             const html = await response.text();
+            if (response.redirected || !html.includes('data-ajax-page')) {
+                throw new Error('Invalid page response.');
+            }
 
             const applyPage = () => {
                 content.innerHTML = html;
 
                 const pageRoot = content.querySelector('[data-ajax-page]');
-                const pageTitle = pageRoot?.dataset.pageTitle || '';
-                const pageRoute = pageRoot?.dataset.route || route;
-                const pageHint = pageRoot?.dataset.pageHint || '';
+                if (!pageRoot) {
+                    throw new Error('Invalid page response.');
+                }
+                const pageTitle = pageRoot.dataset.pageTitle || '';
+                const pageRoute = pageRoot.dataset.route || route;
+                const pageHint = pageRoot.dataset.pageHint || '';
 
                 runInjectedScripts(content);
                 updateAppTopbar(pageTitle, pageHint);

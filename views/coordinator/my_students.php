@@ -140,7 +140,11 @@ ksort($termOptions);
             <table class="data-table coord-students-table ms-students-table no-row-details" data-no-tools data-per-page="10" data-ms-students-table>
                 <thead>
                     <tr>
-                        <th data-sort>Student</th>
+                        <th class="ms-avatar-cell" data-skip-export><span class="visually-hidden">Photo</span></th>
+                        <th data-sort>Last Name</th>
+                        <th data-sort>First Name</th>
+                        <th data-sort>Middle Name</th>
+                        <th data-sort>Email</th>
                         <th data-sort>Student ID</th>
                         <th data-sort>OJT Status</th>
                         <th data-sort>OJT Start Date</th>
@@ -154,7 +158,17 @@ ksort($termOptions);
                             $required = (float)($s['required_hours'] ?? 0);
                             $rendered = (float)($s['rendered_hours'] ?? 0);
                             $percent = $required > 0 ? min(100, round(($rendered / $required) * 100)) : 0;
-                            $initial = strtoupper(substr((string)($s['name'] ?? 'S'), 0, 1));
+                            $firstName = trim((string)($s['first_name'] ?? ''));
+                            $middleName = trim((string)($s['middle_name'] ?? ''));
+                            $lastName = trim((string)($s['last_name'] ?? ''));
+                            if ($firstName === '' && $lastName === '' && !empty($s['name'])) {
+                                $nameParts = split_person_name((string)$s['name']);
+                                $firstName = $nameParts['first_name'];
+                                $middleName = $nameParts['middle_name'];
+                                $lastName = $nameParts['last_name'];
+                            }
+                            $fullName = trim(preg_replace('/\s+/', ' ', $firstName . ' ' . $middleName . ' ' . $lastName) ?? '') ?: (string)($s['name'] ?? 'Student');
+                            $initial = strtoupper(mb_substr($lastName !== '' ? $lastName : $fullName, 0, 1));
                             $studentPhotoUrl = student_profile_photo_url($s);
                             $studentRequirements = $requirementsByStudent[(int)$s['id']] ?? [];
                             $evalRow = $studentEvaluationsByStudent[(int)$s['id']] ?? [];
@@ -182,20 +196,24 @@ ksort($termOptions);
                         <tr
                             data-ojt-status="<?= e($ojtStatus['key']) ?>"
                             data-academic-term="<?= e($termLabel) ?>"
-                            data-search="<?= e(strtolower($s['name'] . ' ' . $s['student_no'] . ' ' . $s['email'])) ?>"
+                            data-search="<?= e(strtolower(trim($lastName . ' ' . $firstName . ' ' . $middleName . ' ' . $fullName . ' ' . ($s['student_no'] ?? '') . ' ' . ($s['email'] ?? '')))) ?>"
                         >
-                            <td>
-                                <div class="coord-student-identity">
-                                    <?php if ($studentPhotoUrl !== ''): ?>
-                                        <span class="coord-student-avatar coord-student-avatar--photo"><img src="<?= e($studentPhotoUrl) ?>" alt="<?= e($s['name']) ?> profile photo"></span>
-                                    <?php else: ?>
-                                        <span class="coord-student-avatar"><?= e($initial) ?></span>
-                                    <?php endif; ?>
-                                    <div class="coord-student-meta">
-                                        <strong><?= e($s['name']) ?></strong>
-                                        <small><?= e($s['email']) ?></small>
-                                    </div>
-                                </div>
+                            <td class="ms-avatar-cell" data-skip-export>
+                                <?php if ($studentPhotoUrl !== ''): ?>
+                                    <span class="coord-student-avatar coord-student-avatar--photo"><img src="<?= e($studentPhotoUrl) ?>" alt=""></span>
+                                <?php else: ?>
+                                    <span class="coord-student-avatar" aria-hidden="true"><?= e($initial) ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="ms-name-cell"><?= $lastName !== '' ? e($lastName) : '<span class="muted">—</span>' ?></td>
+                            <td class="ms-name-cell"><?= $firstName !== '' ? e($firstName) : '<span class="muted">—</span>' ?></td>
+                            <td class="ms-name-cell"><?= $middleName !== '' ? e($middleName) : '<span class="muted">—</span>' ?></td>
+                            <td class="ms-email-cell">
+                                <?php if (!empty($s['email'])): ?>
+                                    <a class="ms-email-link" href="mailto:<?= e($s['email']) ?>"><?= e($s['email']) ?></a>
+                                <?php else: ?>
+                                    <span class="muted">—</span>
+                                <?php endif; ?>
                             </td>
                             <td><span class="coord-student-id"><?= e($s['student_no']) ?></span></td>
                             <td>
@@ -210,7 +228,7 @@ ksort($termOptions);
                             <td><span class="ms-date-cell"><?= e($formatOjtDate($ojtEndDate)) ?></span></td>
                             <td class="coord-actions-cell">
                                 <button class="btn btn-small btn-ghost student-view-btn"
-                                    data-name="<?= e($s['name']) ?>"
+                                    data-name="<?= e($fullName) ?>"
                                     data-email="<?= e($s['email']) ?>"
                                     data-photo-url="<?= e($studentPhotoUrl) ?>"
                                     data-initial="<?= e($initial) ?>"
@@ -369,10 +387,10 @@ require __DIR__ . '/../shared/partials/student-profile-modal.php';
                     <?php else: ?>
                         <div class="requirement-forward-box" data-enroll-first-box<?= ($s['predeployment_status'] ?? '') !== 'approved' ? ' style="display:none"' : '' ?>>
                             <div>
-                                <strong>Enroll this student first</strong>
-                                <small>Enroll this student to a Host Training Establishment first, then forward. The endorsement letter is generated automatically on forward.</small>
+                                <strong>Assign this student first</strong>
+                                <small>Assign this student to a Host Training Establishment first, then forward. The endorsement letter is generated automatically on forward.</small>
                             </div>
-                            <a class="btn btn-small" href="<?= e(route_url('coordinator.manage')) ?>">Open enrollment</a>
+                            <a class="btn btn-small" href="<?= e(route_url('coordinator.manage')) ?>">Open Assign Student</a>
                         </div>
                     <?php endif; ?>
                 </div>

@@ -680,6 +680,13 @@ function enforce_session_timeout(): void
 function require_login(): void
 {
     if (!current_user()) {
+        if (is_ajax_request()) {
+            http_response_code(401);
+            header('Content-Type: application/json; charset=UTF-8');
+            header('Cache-Control: no-store, no-cache, must-revalidate');
+            echo json_encode(['success' => false, 'error' => 'Unauthorized'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
         redirect(route_url('login'));
     }
 }

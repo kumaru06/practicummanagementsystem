@@ -13,7 +13,7 @@ $totalStudents = count($students);
     <nav class="enr-breadcrumb" aria-label="Breadcrumb">
         <a href="index.php?r=coordinator">Dashboard</a>
         <span class="enr-breadcrumb-sep" aria-hidden="true">&rsaquo;</span>
-        <span aria-current="page">Student Enrollment</span>
+        <span aria-current="page">Assign Student</span>
     </nav>
 
     <div class="enr-stats-strip">
@@ -40,7 +40,7 @@ $totalStudents = count($students);
                 <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
             </div>
             <div class="enr-stat-body">
-                <span>Ready to Enroll</span>
+                <span>Ready to Assign</span>
                 <strong><?= $unenrolledCount ?></strong>
             </div>
         </article>
@@ -49,8 +49,7 @@ $totalStudents = count($students);
     <section class="card enr-directory-card" data-enrollment-directory>
         <div class="enr-directory-head">
             <div class="enr-directory-copy">
-                <span class="enr-eyebrow">Enrollment Roster</span>
-                <h2>Student Enrollment</h2>
+                <h2>Assign Student</h2>
             </div>
             <button class="btn btn-primary enr-enroll-btn" type="button" data-enr-open-wizard<?= $unenrolledCount === 0 ? ' disabled' : '' ?>>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
@@ -62,12 +61,12 @@ $totalStudents = count($students);
             <div class="enr-filters" role="group" aria-label="Filter by status">
                 <button type="button" class="enr-filter-pill is-active" data-enrollment-filter="all">All <strong><?= $totalStudents ?></strong></button>
                 <button type="button" class="enr-filter-pill enr-filter-pill--enrolled" data-enrollment-filter="enrolled">Assigned <strong><?= $enrolledCount ?></strong></button>
-                <button type="button" class="enr-filter-pill enr-filter-pill--pending" data-enrollment-filter="unenrolled">Unenrolled <strong><?= $unenrolledCount ?></strong></button>
+                <button type="button" class="enr-filter-pill enr-filter-pill--pending" data-enrollment-filter="unenrolled">Unassigned <strong><?= $unenrolledCount ?></strong></button>
             </div>
             <div class="enr-toolbar-actions">
                 <div class="enr-search-wrap">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14Z"/></svg>
-                    <input class="table-search enrollment-table-search" placeholder="Search by name or student ID..." aria-label="Search student enrollment status">
+                    <input class="table-search enrollment-table-search" placeholder="Search by name or student ID..." aria-label="Search student assignment status">
                 </div>
                 <button class="btn btn-small enr-export-btn" type="button" data-enr-export>Export CSV</button>
             </div>
@@ -116,7 +115,7 @@ $totalStudents = count($students);
                                 <td>
                                     <span class="badge enrollment-status-badge <?= $isEnrolled ? 'enrolled' : 'unenrolled' ?>">
                                         <span class="enrollment-status-dot" aria-hidden="true"></span>
-                                        <?= $isEnrolled ? 'Assigned' : 'Unenrolled' ?>
+                                        <?= $isEnrolled ? 'Assigned' : 'Unassigned' ?>
                                     </span>
                                 </td>
                                 <td class="enr-col-action">
@@ -157,7 +156,7 @@ $totalStudents = count($students);
                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="action" value="coordinator_enroll_student">
 
-                <div class="wizard-steps enrollment-wizard-steps" aria-label="Enrollment progress">
+                <div class="wizard-steps enrollment-wizard-steps" aria-label="Assignment progress">
                     <div class="enrollment-wizard-step" data-wizard-step-indicator>
                         <span class="enrollment-wizard-dot"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>
                         <em>Student</em>
@@ -177,7 +176,7 @@ $totalStudents = count($students);
                 <div class="wizard-step active">
                     <div class="enrollment-wizard-step-intro">
                         <h3>Select a student</h3>
-                        <p class="muted">Choose an unenrolled student from your roster.</p>
+                        <p class="muted">Choose an unassigned student from your roster.</p>
                     </div>
                     <label><span>Student <span class="field-required">*</span></span><select required name="student_id"><option value="">— Select student —</option><?php foreach ($students as $s): if (!empty($s['enrollment_id'])) continue; ?><option value="<?= (int)$s['id'] ?>" data-program-id="<?= (int)($s['program_id'] ?? 0) ?>" data-required-hours="<?= (int)($s['program_required_hours'] ?? 0) ?>" data-is-enrolled="0"><?= e($s['name'] . ' - ' . $s['student_no'] . ' (' . ($s['program_code'] ?? $s['course']) . ')') ?></option><?php endforeach; ?></select></label>
                     <div class="wizard-actions enrollment-wizard-actions enrollment-wizard-actions--end">

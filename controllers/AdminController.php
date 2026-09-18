@@ -58,7 +58,6 @@ class AdminController extends BaseController
     private function pendingActions(Enrollment $enroll): array
     {
         $actions = [];
-        $placementLink = route_url('admin.ojt_placement');
 
         try {
             $registrationCount = (new StudentRegistrationRequest($this->db))->pendingCount();
@@ -93,27 +92,29 @@ class AdminController extends BaseController
         }
 
         try {
-            $forwardedCount = $enroll->countByPredeploymentStatus('forwarded');
-            if ($forwardedCount > 0) {
+            $forwardedPeople = $this->pendingPeopleFromEnrollments($enroll->listByPredeploymentStatus('forwarded'));
+            if ($forwardedPeople !== []) {
                 $actions[] = [
                     'key' => 'deployment_forwarded',
                     'title' => 'Deployments awaiting HTE acceptance',
-                    'detail' => 'Forwarded documents waiting for company response',
-                    'count' => $forwardedCount,
-                    'link' => $placementLink,
+                    'detail' => 'Click to see who is waiting for company response',
+                    'count' => count($forwardedPeople),
+                    'link' => route_url('admin.ojt_placement', ['predeployment' => 'forwarded']),
                     'tone' => 'slate',
+                    'people' => $forwardedPeople,
                 ];
             }
 
-            $acceptedCount = $enroll->countByPredeploymentStatus('accepted');
-            if ($acceptedCount > 0) {
+            $acceptedPeople = $this->pendingPeopleFromEnrollments($enroll->listByPredeploymentStatus('accepted'));
+            if ($acceptedPeople !== []) {
                 $actions[] = [
                     'key' => 'orientation',
                     'title' => 'Orientations to schedule',
-                    'detail' => 'Accepted deployments needing orientation date',
-                    'count' => $acceptedCount,
-                    'link' => $placementLink,
+                    'detail' => 'Click to see who still needs an orientation date',
+                    'count' => count($acceptedPeople),
+                    'link' => route_url('admin.ojt_placement', ['predeployment' => 'accepted']),
                     'tone' => 'violet',
+                    'people' => $acceptedPeople,
                 ];
             }
         } catch (Throwable) {
@@ -121,6 +122,37 @@ class AdminController extends BaseController
         }
 
         return $actions;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<array{name:string,student_no:string,company:string,coordinator:string}>
+     */
+    private function pendingPeopleFromEnrollments(array $rows): array
+    {
+        $people = [];
+        foreach ($rows as $row) {
+            $firstName = trim((string)($row['first_name'] ?? ''));
+            $middleName = trim((string)($row['middle_name'] ?? ''));
+            $lastName = trim((string)($row['last_name'] ?? ''));
+            if ($firstName === '' && $lastName === '' && !empty($row['student_name'])) {
+                $parts = split_person_name((string)$row['student_name']);
+                $firstName = $parts['first_name'];
+                $middleName = $parts['middle_name'];
+                $lastName = $parts['last_name'];
+            }
+            $given = trim($firstName . ' ' . $middleName);
+            $name = $lastName !== ''
+                ? ($given !== '' ? $lastName . ', ' . $given : $lastName)
+                : ($given !== '' ? $given : (string)($row['student_name'] ?? 'Student'));
+            $people[] = [
+                'name' => $name,
+                'student_no' => (string)($row['student_no'] ?? ''),
+                'company' => (string)($row['company_name'] ?? ''),
+                'coordinator' => (string)($row['coordinator_name'] ?? ''),
+            ];
+        }
+        return $people;
     }
 
     /**

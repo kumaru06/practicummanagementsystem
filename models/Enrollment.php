@@ -25,6 +25,28 @@ class Enrollment
         return (int)$stmt->fetchColumn();
     }
 
+    public function listByPredeploymentStatus(string $status): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT e.id,
+                    u.first_name, u.middle_name, u.last_name, u.name AS student_name,
+                    s.student_no,
+                    COALESCE(p.code, s.course) AS course,
+                    pc.name AS company_name,
+                    coord.name AS coordinator_name
+             FROM ojt_enrollments e
+             JOIN students s ON s.id = e.student_id
+             JOIN users u ON u.id = s.user_id
+             LEFT JOIN programs p ON p.id = s.program_id
+             JOIN partner_companies pc ON pc.id = e.company_id
+             LEFT JOIN users coord ON coord.id = s.coordinator_id
+             WHERE e.predeployment_status = ?
+             ORDER BY u.last_name ASC, u.first_name ASC, e.id DESC'
+        );
+        $stmt->execute([$status]);
+        return $stmt->fetchAll();
+    }
+
     public function countActiveStartsInLastDays(int $days): int
     {
         $stmt = $this->db->prepare(
@@ -372,6 +394,7 @@ class Enrollment
             SELECT
                 e.id,
                 e.status,
+                e.predeployment_status,
                 COALESCE(e.official_start_date, e.start_date) AS placement_start,
                 COALESCE(e.projected_end_date, e.end_date) AS placement_end,
                 u.name AS student_name,
