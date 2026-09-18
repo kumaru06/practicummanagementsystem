@@ -7872,17 +7872,10 @@ body.is-coordinator-edit-open {
     gap: 14px;
     padding: 14px 16px;
     border: 1px solid #edf2f7;
-    border-radius: 5px;
+    border-radius: 10px;
     background: #fff;
     color: inherit;
     text-decoration: none;
-    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-}
-
-.admin-pending-item:hover {
-    transform: translateY(-1px);
-    border-color: #dbe4f0;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
 }
 
 .admin-pending-item-icon {
@@ -7934,59 +7927,153 @@ body.is-coordinator-edit-open {
     flex-shrink: 0;
 }
 
-.admin-pending-details {
-    border: 1px solid #edf2f7;
-    border-radius: 5px;
-    background: #fff;
+.admin-pending-view-btn {
+    flex-shrink: 0;
+    min-height: 34px;
+    padding-inline: 14px;
+    border-radius: 8px;
+    font-weight: 700;
+}
+
+.admin-pending-overlay {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 23, 42, 0.42);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.22s ease, visibility 0.22s ease;
+}
+
+.admin-pending-overlay.open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.admin-pending-overlay.is-closing {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+body.is-admin-pending-open {
     overflow: hidden;
 }
 
-.admin-pending-details > .admin-pending-item {
-    border: none;
-    border-radius: 0;
-    width: 100%;
-    box-sizing: border-box;
+.admin-pending-modal {
+    display: flex;
+    flex-direction: column;
+    width: min(560px, 100%);
+    max-height: min(82vh, 720px);
+    overflow: hidden;
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    box-shadow:
+        0 28px 72px rgba(15, 23, 42, 0.18),
+        0 8px 24px rgba(15, 23, 42, 0.08);
+    transform: translateY(16px) scale(0.97);
+    opacity: 0;
+    transition:
+        transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.22s ease;
 }
 
-.admin-pending-details > .admin-pending-item:hover {
-    transform: none;
-    box-shadow: none;
+.admin-pending-overlay.open .admin-pending-modal {
+    transform: translateY(0) scale(1);
+    opacity: 1;
 }
 
-.admin-pending-details > summary {
-    cursor: pointer;
-    list-style: none;
+.admin-pending-overlay.is-closing .admin-pending-modal {
+    transform: translateY(10px) scale(0.98);
+    opacity: 0;
 }
 
-.admin-pending-details > summary::-webkit-details-marker {
-    display: none;
+.admin-pending-modal-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 22px 16px;
+    border-bottom: 1px solid #eef2f7;
 }
 
-.admin-pending-chevron {
+.admin-pending-modal-head h2 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+}
+
+.admin-pending-modal-sub {
+    margin: 4px 0 0;
+    color: #667085;
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+
+.admin-pending-modal-close {
     display: inline-flex;
-    color: #94a3b8;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #475569;
+    cursor: pointer;
     flex-shrink: 0;
-    transition: transform 0.18s ease;
 }
 
-.admin-pending-chevron svg {
-    width: 18px;
-    height: 18px;
+.admin-pending-modal-close:hover {
+    background: #eef2f7;
+    color: #0f172a;
 }
 
-.admin-pending-details[open] > summary .admin-pending-chevron {
-    transform: rotate(90deg);
-}
-
-.admin-pending-people {
+.admin-pending-overlay .admin-pending-people {
     list-style: none;
     margin: 0;
-    padding: 0 16px 8px 72px;
+    padding: 14px 16px;
     display: grid;
-    gap: 10px;
+    gap: 8px;
+    overflow: auto;
 }
 
 .admin-pending-person {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid #f1f5f9;
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.admin-pending-person-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #fff1f2, #ffe4e6);
+    color: #be123c;
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.admin-pending-person-copy {
+    min-width: 0;
     display: grid;
     gap: 2px;
 }
@@ -8003,17 +8090,21 @@ body.is-coordinator-edit-open {
     line-height: 1.35;
 }
 
-.admin-pending-people-link {
+.admin-pending-overlay .admin-pending-people-link {
     display: inline-flex;
-    margin: 4px 16px 14px 72px;
+    margin: 0 22px 18px;
     color: #2563eb;
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     font-weight: 700;
     text-decoration: none;
 }
 
-.admin-pending-people-link:hover {
+.admin-pending-overlay .admin-pending-people-link:hover {
     text-decoration: underline;
+}
+
+.admin-pending-overlay .admin-pending-people-link[hidden] {
+    display: none;
 }
 
 .admin-pending-item--amber .admin-pending-item-icon {
@@ -44533,6 +44624,21 @@ body.is-enr-wizard-open {
 
     .admin-pending-item-count {
         margin-left: auto;
+    }
+
+    .admin-pending-view-btn {
+        width: 100%;
+    }
+
+    .admin-pending-overlay {
+        padding: 16px;
+        align-items: flex-end;
+    }
+
+    .admin-pending-modal {
+        width: 100%;
+        max-height: min(88vh, 720px);
+        border-radius: 16px 16px 10px 10px;
     }
 }
 

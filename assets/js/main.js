@@ -74,10 +74,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initAdminCreateStudentModal();
     initAdminTermsPage();
     initAdminActivitiesFeed();
+    initAdminPendingPeopleModal();
     initEmailLogsFeed();
     document.querySelector('#modal .modal-close')?.addEventListener('click', closeSlidePanel);
     document.addEventListener('click', handleOutsideMenus);
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeSlidePanel(); closeAdminActionMenus(); closeNotifications(); closeRequirementReviewModals(); closeRegistrationRequestsReview(); closeCustomSelects(); closeCustomDatePickers(); closeDtrTimePicker(); } });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeSlidePanel(); closeAdminActionMenus(); closeNotifications(); closeRequirementReviewModals(); closeRegistrationRequestsReview(); closeCustomSelects(); closeCustomDatePickers(); closeDtrTimePicker(); closeAdminPendingPeopleModal(); } });
     initStudentModal();
     initAdminUserActions();
     renderDashboardCharts();
@@ -9917,6 +9918,97 @@ function destroyLiveChatIfNeeded() {
     }
 }
 
+function closeAdminPendingPeopleModal() {
+    const overlay = document.getElementById('adminPendingOverlay');
+    if (!overlay || !overlay.classList.contains('open') || overlay.classList.contains('is-closing')) {
+        document.body.classList.remove('is-admin-pending-open');
+        return;
+    }
+    overlay.classList.add('is-closing');
+    overlay.classList.remove('open');
+    window.setTimeout(() => {
+        overlay.classList.remove('is-closing');
+        overlay.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('is-admin-pending-open');
+    }, 220);
+}
+
+function openAdminPendingPeopleModal(button) {
+    const overlay = document.getElementById('adminPendingOverlay');
+    if (!overlay || !button) return;
+
+    const titleEl = overlay.querySelector('#adminPendingModalTitle');
+    const subEl = overlay.querySelector('[data-pending-modal-sub]');
+    const listEl = overlay.querySelector('[data-pending-modal-list]');
+    const linkEl = overlay.querySelector('[data-pending-modal-link]');
+
+    let people = [];
+    try {
+        people = JSON.parse(button.dataset.pendingPeople || '[]');
+    } catch (err) {
+        people = [];
+    }
+
+    if (titleEl) titleEl.textContent = button.dataset.pendingTitle || 'Pending students';
+    if (subEl) subEl.textContent = button.dataset.pendingDetail || '';
+
+    if (listEl) {
+        if (!Array.isArray(people) || people.length === 0) {
+            listEl.innerHTML = '<li class="admin-pending-person"><span class="admin-pending-person-copy"><strong>No students listed</strong></span></li>';
+        } else {
+            listEl.innerHTML = people.map(person => {
+                const name = String(person?.name || 'Student');
+                const initial = name.charAt(0).toUpperCase();
+                const meta = [person?.student_no, person?.company, person?.coordinator ? `Coord: ${person.coordinator}` : '']
+                    .map(value => String(value || '').trim())
+                    .filter(Boolean)
+                    .join(' · ');
+                return `<li class="admin-pending-person">
+                    <span class="admin-pending-person-avatar" aria-hidden="true">${escapeHtml(initial)}</span>
+                    <span class="admin-pending-person-copy">
+                        <strong>${escapeHtml(name)}</strong>
+                        ${meta ? `<small>${escapeHtml(meta)}</small>` : ''}
+                    </span>
+                </li>`;
+            }).join('');
+        }
+    }
+
+    const href = (button.dataset.pendingLink || '').trim();
+    if (linkEl) {
+        if (href) {
+            linkEl.href = href;
+            linkEl.hidden = false;
+        } else {
+            linkEl.hidden = true;
+        }
+    }
+
+    overlay.classList.remove('is-closing');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('is-admin-pending-open');
+    requestAnimationFrame(() => overlay.classList.add('open'));
+    overlay.querySelector('[data-pending-modal-close]')?.focus();
+}
+
+function initAdminPendingPeopleModal() {
+    if (window.__adminPendingModalBound) return;
+    window.__adminPendingModalBound = true;
+
+    document.addEventListener('click', event => {
+        const viewBtn = event.target.closest('[data-pending-view]');
+        if (viewBtn) {
+            event.preventDefault();
+            openAdminPendingPeopleModal(viewBtn);
+            return;
+        }
+        const overlay = document.getElementById('adminPendingOverlay');
+        if (overlay && (event.target === overlay || event.target.closest('[data-pending-modal-close]'))) {
+            closeAdminPendingPeopleModal();
+        }
+    });
+}
+
 function reinitAppPageContent() {
     initToasts();
     initFloatingLabels();
@@ -9949,6 +10041,7 @@ function reinitAppPageContent() {
     initAdminCreateStudentModal();
     initAdminTermsPage();
     initAdminActivitiesFeed();
+    initAdminPendingPeopleModal();
     initCoordinatorAvailability();
     initPartnerAvailability();
     initWizards();
@@ -10078,6 +10171,7 @@ function initAppAjaxNav() {
 
         try {
             destroyLiveChatIfNeeded();
+            closeAdminPendingPeopleModal();
 
             const leaveWait = useMotion ? waitForMs(direction === 'soft' ? 220 : 260) : Promise.resolve();
 

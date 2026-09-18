@@ -106,59 +106,52 @@ $pendingIcons = [
                     <?php
                         $people = $action['people'] ?? [];
                         $hasPeople = is_array($people) && $people !== [];
+                        $peopleJson = $hasPeople
+                            ? (json_encode($people, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?: '[]')
+                            : '[]';
                     ?>
                     <li>
-                        <?php if ($hasPeople): ?>
-                            <details class="admin-pending-details admin-pending-item--<?= e((string)$action['tone']) ?>">
-                                <summary class="admin-pending-item">
-                                    <span class="admin-pending-item-icon" aria-hidden="true">
-                                        <svg viewBox="0 0 24 24"><?= $pendingIcons[$action['key']] ?? $pendingIcons['registration'] ?></svg>
-                                    </span>
-                                    <span class="admin-pending-item-copy">
-                                        <strong><?= e((string)$action['title']) ?></strong>
-                                        <small><?= e((string)$action['detail']) ?></small>
-                                    </span>
-                                    <span class="admin-pending-item-count"><?= (int)$action['count'] ?></span>
-                                    <span class="admin-pending-chevron" aria-hidden="true">
-                                        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
-                                    </span>
-                                </summary>
-                                <ul class="admin-pending-people">
-                                    <?php foreach ($people as $person): ?>
-                                        <li class="admin-pending-person">
-                                            <strong><?= e((string)($person['name'] ?? 'Student')) ?></strong>
-                                            <small><?php
-                                                $meta = array_filter([
-                                                    (string)($person['student_no'] ?? ''),
-                                                    (string)($person['company'] ?? ''),
-                                                    (string)($person['coordinator'] ?? '') !== '' ? 'Coord: ' . (string)$person['coordinator'] : '',
-                                                ]);
-                                                echo e(implode(' · ', $meta));
-                                            ?></small>
-                                        </li>
-                                    <?php endforeach; ?>
-                                </ul>
-                                <?php if (!empty($action['link'])): ?>
-                                    <a class="admin-pending-people-link" href="<?= e((string)$action['link']) ?>">View on OJT Placement</a>
-                                <?php endif; ?>
-                            </details>
-                        <?php else: ?>
-                            <a class="admin-pending-item admin-pending-item--<?= e((string)$action['tone']) ?>" href="<?= e((string)$action['link']) ?>">
-                                <span class="admin-pending-item-icon" aria-hidden="true">
-                                    <svg viewBox="0 0 24 24"><?= $pendingIcons[$action['key']] ?? $pendingIcons['registration'] ?></svg>
-                                </span>
-                                <span class="admin-pending-item-copy">
-                                    <strong><?= e((string)$action['title']) ?></strong>
-                                    <small><?= e((string)$action['detail']) ?></small>
-                                </span>
-                                <span class="admin-pending-item-count"><?= (int)$action['count'] ?></span>
-                            </a>
-                        <?php endif; ?>
+                        <div class="admin-pending-item admin-pending-item--<?= e((string)$action['tone']) ?>">
+                            <span class="admin-pending-item-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><?= $pendingIcons[$action['key']] ?? $pendingIcons['registration'] ?></svg>
+                            </span>
+                            <span class="admin-pending-item-copy">
+                                <strong><?= e((string)$action['title']) ?></strong>
+                                <small><?= e((string)$action['detail']) ?></small>
+                            </span>
+                            <span class="admin-pending-item-count"><?= (int)$action['count'] ?></span>
+                            <?php if ($hasPeople): ?>
+                                <button class="btn btn-small admin-pending-view-btn"
+                                    type="button"
+                                    data-pending-view
+                                    data-pending-title="<?= e((string)$action['title']) ?>"
+                                    data-pending-detail="<?= e((string)$action['detail']) ?>"
+                                    data-pending-link="<?= e((string)($action['link'] ?? '')) ?>"
+                                    data-pending-people="<?= e($peopleJson) ?>">View</button>
+                            <?php elseif (!empty($action['link'])): ?>
+                                <a class="btn btn-small admin-pending-view-btn" href="<?= e((string)$action['link']) ?>">View</a>
+                            <?php endif; ?>
+                        </div>
                     </li>
                 <?php endforeach; ?>
             </ul>
         <?php endif; ?>
     </section>
+    <div class="admin-pending-overlay" id="adminPendingOverlay" aria-hidden="true">
+        <div class="admin-pending-modal" role="dialog" aria-modal="true" aria-labelledby="adminPendingModalTitle">
+            <div class="admin-pending-modal-head">
+                <div>
+                    <h2 id="adminPendingModalTitle">Pending students</h2>
+                    <p class="admin-pending-modal-sub" data-pending-modal-sub></p>
+                </div>
+                <button type="button" class="admin-pending-modal-close" data-pending-modal-close aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+            </div>
+            <ul class="admin-pending-people" data-pending-modal-list></ul>
+            <a class="admin-pending-people-link" data-pending-modal-link hidden href="#">View on OJT Placement</a>
+        </div>
+    </div>
 
     <div class="grid chart-grid">
         <section class="card chart-card recent-activity-card">
