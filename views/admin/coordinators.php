@@ -210,6 +210,14 @@ foreach ($coordinators as $coordinatorRow) {
                         $tone = coordinator_avatar_tone((int)$u['id']);
                         $statusKey = !empty($u['is_active']) ? 'active' : 'inactive';
                         $assignedCount = (int)($u['assigned_student_count'] ?? 0);
+                        $assignedRoster = $u['assigned_students'] ?? ($assignedStudentsByCoordinator[(int)$u['id']] ?? []);
+                        $assignedRosterJson = json_encode(
+                            $assignedRoster,
+                            JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE
+                        );
+                        if ($assignedRosterJson === false) {
+                            $assignedRosterJson = '[]';
+                        }
                     ?>
                     <tr data-search="<?= e(strtolower(trim($lastName . ' ' . $firstName . ' ' . $middleName . ' ' . $u['email'] . ' ' . $idNumber . ' ' . $department . ' ' . $assignedCount))) ?>"
                         data-coordinator-status="<?= e($statusKey) ?>">
@@ -235,7 +243,8 @@ foreach ($coordinators as $coordinatorRow) {
                                 <button type="button" class="aco-assigned-badge"
                                     data-assigned-students="<?= (int)$u['id'] ?>"
                                     data-coordinator-name="<?= e($fullName) ?>"
-                                    data-assigned-count="<?= $assignedCount ?>">
+                                    data-assigned-count="<?= $assignedCount ?>"
+                                    data-assigned-roster="<?= e($assignedRosterJson) ?>">
                                     <?= $assignedCount ?>
                                 </button>
                             <?php else: ?>
@@ -474,9 +483,10 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 <script type="application/json" id="acoAssignedStudentsJson"><?php
+    $assignedJsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE | JSON_FORCE_OBJECT;
     $assignedJson = $assignedStudentsByCoordinator === []
         ? '{}'
-        : (json_encode($assignedStudentsByCoordinator, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?: '{}');
+        : (json_encode($assignedStudentsByCoordinator, $assignedJsonFlags) ?: '{}');
     echo $assignedJson;
 ?></script>
 
@@ -609,10 +619,23 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     };
 
-    const renderStudents = (coordinatorId, coordinatorName, fallbackCount) => {
-        const students = Array.isArray(assignedMap[String(coordinatorId)])
+    const parseRoster = (raw) => {
+        if (Array.isArray(raw)) return raw;
+        if (!raw) return [];
+        try {
+            const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (err) {
+            return [];
+        }
+    };
+
+    const renderStudents = (coordinatorId, coordinatorName, fallbackCount, rosterRaw) => {
+        const fromButton = parseRoster(rosterRaw);
+        const fromMap = Array.isArray(assignedMap[String(coordinatorId)])
             ? assignedMap[String(coordinatorId)]
             : (Array.isArray(assignedMap[coordinatorId]) ? assignedMap[coordinatorId] : []);
+        const students = fromButton.length ? fromButton : fromMap;
         const count = students.length || Number(fallbackCount) || 0;
         const label = coordinatorName || 'Coordinator';
 
@@ -681,7 +704,8 @@ document.addEventListener('DOMContentLoaded', function () {
             renderStudents(
                 btn.dataset.assignedStudents,
                 btn.dataset.coordinatorName,
-                btn.dataset.assignedCount
+                btn.dataset.assignedCount,
+                btn.getAttribute('data-assigned-roster')
             );
             openModal();
         });

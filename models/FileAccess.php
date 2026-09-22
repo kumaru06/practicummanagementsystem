@@ -151,6 +151,19 @@ class FileAccess
         if ($id !== null) {
             return $id;
         }
+        // Weekly proof images/PDFs stored beside the report.
+        $id = self::scalar(
+            $db,
+            'SELECT wr.student_id
+             FROM weekly_report_files wrf
+             JOIN weekly_reports wr ON wr.id = wrf.weekly_report_id
+             WHERE wrf.file_path = ? OR wrf.file_path = ?
+             LIMIT 1',
+            [$rel, ltrim(substr($rel, strlen('uploads/')), '/')]
+        );
+        if ($id !== null) {
+            return $id;
+        }
         // Completion certificate attached to the final evaluation.
         $id = self::scalar(
             $db,

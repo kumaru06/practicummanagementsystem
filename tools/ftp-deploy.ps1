@@ -9,25 +9,12 @@ param(
 $LocalBase = "c:\laragon\www\amaccmanagementsystem"
 
 $Files = @(
-    "assets/css/style.css",
-    "assets/js/main.js",
-    "controllers/AdminController.php",
-    "controllers/CoordinatorController.php",
-    "controllers/PartnerController.php",
-    "controllers/StudentController.php",
+    ".htaccess",
     "helpers.php",
-    "index.php",
-    "models/Report.php",
+    "controllers/StudentController.php",
+    "models/FileAccess.php",
     "models/Student.php",
-    "models/StudentEvaluation.php",
-    "views/admin/coordinators.php",
-    "views/admin/evaluations.php",
-    "views/coordinator/evaluations/coordinator.php",
-    "views/coordinator/evaluations/industry_partner.php",
-    "views/coordinator/student_final_requirements.php",
-    "views/partner/evaluations.php",
-    "views/partner/portal.php",
-    "views/student/records.php"
+    "views/admin/coordinators.php"
 )
 
 $cred = [System.Net.NetworkCredential]::new($FtpUser, $FtpPass)

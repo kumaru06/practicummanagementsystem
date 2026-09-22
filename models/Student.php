@@ -238,6 +238,15 @@ class Student
              ORDER BY u.last_name ASC, u.first_name ASC, u.id DESC'
         )->fetchAll();
 
+        $clean = static function ($value): string {
+            $text = (string)$value;
+            if ($text === '' || mb_check_encoding($text, 'UTF-8')) {
+                return $text;
+            }
+            $converted = mb_convert_encoding($text, 'UTF-8', 'Windows-1252');
+            return is_string($converted) ? $converted : '';
+        };
+
         $grouped = [];
         foreach ($rows as $row) {
             $coordinatorId = (int)($row['coordinator_id'] ?? 0);
@@ -245,17 +254,17 @@ class Student
                 continue;
             }
 
-            $lastName = (string)($row['last_name'] ?? '');
-            $firstName = (string)($row['first_name'] ?? '');
+            $lastName = $clean($row['last_name'] ?? '');
+            $firstName = $clean($row['first_name'] ?? '');
             $initialSource = $lastName !== '' ? $lastName : ($firstName !== '' ? $firstName : 'S');
 
             $grouped[$coordinatorId][] = [
-                'student_no' => (string)($row['student_no'] ?? ''),
-                'course' => (string)($row['course'] ?? ''),
+                'student_no' => $clean($row['student_no'] ?? ''),
+                'course' => $clean($row['course'] ?? ''),
                 'first_name' => $firstName,
-                'middle_name' => (string)($row['middle_name'] ?? ''),
+                'middle_name' => $clean($row['middle_name'] ?? ''),
                 'last_name' => $lastName,
-                'email' => (string)($row['email'] ?? ''),
+                'email' => $clean($row['email'] ?? ''),
                 'is_active' => (int)($row['is_active'] ?? 0),
                 'photo_url' => student_profile_photo_url($row),
                 'initial' => strtoupper(mb_substr($initialSource, 0, 1)),

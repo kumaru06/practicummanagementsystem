@@ -28,7 +28,13 @@ RewriteRule (?:^|/)\.(?!well-known/) - [F,L]
 
 # Serve uploaded files only through the authenticated proxy (access control).
 # Existing /uploads/... links keep working; serve.php checks login + ownership.
-RewriteRule ^uploads/(.+)$ serve.php?f=$1 [L,QSA]
+# [B] keeps spaces/apostrophes encoded so Hostinger WAF does not 403 the request.
+RewriteRule ^uploads/(.+)$ serve.php?f=$1 [B,L,QSA]
+
+# Let serve.php print its own 403 body instead of the generic ErrorDocument page.
+<Files "serve.php">
+    ErrorDocument 403 default
+</Files>
 
 # Native replacements for the Laravel role-specific login portals.
 RewriteRule ^(admin|coordinator|student|partner)/login/?$ auth.php?portal=$1 [L,QSA]

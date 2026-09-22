@@ -1049,7 +1049,7 @@ class StudentController extends BaseController
             $seenInRequest[$dedupeKey] = true;
 
             $safeName = bin2hex(random_bytes(12)) . '.' . $ext;
-            $safeOriginal = htmlspecialchars($originalName, ENT_QUOTES, 'UTF-8');
+            $safeOriginal = safe_upload_display_name($originalName, $ext);
 
             move_uploaded_file($tmpName, $dir . '/' . $safeName);
             $report->addWeeklyProofFile(

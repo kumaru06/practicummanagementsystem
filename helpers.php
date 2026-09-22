@@ -386,7 +386,12 @@ function asset(string $path): string
     if (preg_match('#^(?:https?:)?//#', $path) || str_starts_with($path, '/')) {
         return $path;
     }
-    return app_base_path() . '/' . ltrim($path, '/');
+    $relative = ltrim($path, '/');
+    if (str_starts_with($relative, 'uploads/')) {
+        $parts = explode('/', $relative);
+        $relative = implode('/', array_map('rawurlencode', $parts));
+    }
+    return app_base_path() . '/' . $relative;
 }
 
 function asset_version(string $path): string
@@ -1681,6 +1686,18 @@ function resolve_upload_extension(string $tmpPath, array $allowedMimeToExt, stri
     }
 
     return null;
+}
+
+function safe_upload_display_name(string $originalName, string $ext = ''): string
+{
+    $base = pathinfo($originalName, PATHINFO_FILENAME);
+    $base = preg_replace('/[^\p{L}\p{N}._-]+/u', '_', $base) ?? '';
+    $base = trim($base, '._-');
+    if ($base === '') {
+        $base = 'file';
+    }
+    $ext = strtolower(preg_replace('/[^a-z0-9]/i', '', $ext !== '' ? $ext : (string)pathinfo($originalName, PATHINFO_EXTENSION)) ?? '');
+    return $ext !== '' ? $base . '.' . $ext : $base;
 }
 
 function upload_cor(array $file): string
