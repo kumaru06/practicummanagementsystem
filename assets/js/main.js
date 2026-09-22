@@ -9626,6 +9626,50 @@ function initWeeklyReportUploadForm(form) {
     });
 }
 
+function parseWeeklyReadyDtrDates(form) {
+    try {
+        const parsed = JSON.parse(form.getAttribute('data-wr-ready-dtr-dates') || '[]');
+        return new Set((Array.isArray(parsed) ? parsed : [])
+            .map((value) => String(value || '').slice(0, 10))
+            .filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(value)));
+    } catch {
+        return new Set();
+    }
+}
+
+function nextIsoDate(iso) {
+    const [year, month, day] = iso.split('-').map(Number);
+    const next = new Date(year, month - 1, day + 1);
+    return [
+        next.getFullYear(),
+        String(next.getMonth() + 1).padStart(2, '0'),
+        String(next.getDate()).padStart(2, '0'),
+    ].join('-');
+}
+
+function isoDateRange(start, end) {
+    const dates = [];
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end) || end < start) {
+        return dates;
+    }
+    for (let cursor = start; cursor <= end; cursor = nextIsoDate(cursor)) {
+        dates.push(cursor);
+        if (dates.length > 21) {
+            break;
+        }
+    }
+    return dates;
+}
+
+function formatWeeklyDtrDay(iso) {
+    const [year, month, day] = iso.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+    });
+}
+
 function initWeeklyReportDateRange(form) {
     if (!form || form.dataset.wrDateRangeBound === '1') return;
     const range = form.querySelector('[data-wr-date-range]');
@@ -9635,6 +9679,11 @@ function initWeeklyReportDateRange(form) {
     const startPicker = range.querySelector('[data-wr-date="start"]');
     const endPicker = range.querySelector('[data-wr-date="end"]');
     if (!startPicker || !endPicker) return;
+
+    const readyDates = parseWeeklyReadyDtrDates(form);
+    const weekPanel = form.querySelector('[data-wr-dtr-week]');
+    const weekList = form.querySelector('[data-wr-dtr-days]');
+    const submitBtn = form.querySelector('[type="submit"]');
 
     const syncConstraints = () => {
         const startVal = startPicker.querySelector('input[type="hidden"]')?.value || '';
@@ -9649,10 +9698,54 @@ function initWeeklyReportDateRange(form) {
         } else {
             delete startPicker.dataset.dateMax;
         }
+
+        if (!weekPanel || !weekList) {
+            return;
+        }
+        if (!startVal || !endVal) {
+            weekPanel.hidden = true;
+            weekList.innerHTML = '';
+            form.dataset.wrDtrComplete = '';
+            if (submitBtn) submitBtn.disabled = false;
+            return;
+        }
+        if (endVal < startVal) {
+            weekPanel.hidden = false;
+            weekList.innerHTML = '<li class="is-missing">Choose an end date on or after the start date.</li>';
+            form.dataset.wrDtrComplete = '0';
+            if (submitBtn) submitBtn.disabled = true;
+            return;
+        }
+
+        const days = isoDateRange(startVal, endVal);
+        if (days.length > 21) {
+            weekPanel.hidden = false;
+            weekList.innerHTML = '<li class="is-missing">Date covered cannot be longer than 21 days.</li>';
+            form.dataset.wrDtrComplete = '0';
+            if (submitBtn) submitBtn.disabled = true;
+            return;
+        }
+
+        const missing = days.filter((day) => !readyDates.has(day));
+        weekList.innerHTML = days.map((day) => {
+            const done = !missing.includes(day);
+            return `<li class="${done ? 'is-done' : 'is-missing'}"><span>${done ? '✓' : '•'}</span> ${formatWeeklyDtrDay(day)}${done ? '' : ' — DTR missing'}</li>`;
+        }).join('');
+        weekPanel.hidden = false;
+        form.dataset.wrDtrComplete = missing.length ? '0' : '1';
+        if (submitBtn) submitBtn.disabled = missing.length > 0;
     };
 
     startPicker.querySelector('input[type="hidden"]')?.addEventListener('change', syncConstraints);
     endPicker.querySelector('input[type="hidden"]')?.addEventListener('change', syncConstraints);
+    form.addEventListener('submit', (event) => {
+        if (form.dataset.wrDtrComplete !== '0') return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        weekPanel?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        weekPanel?.classList.add('is-attention');
+        window.setTimeout(() => weekPanel?.classList.remove('is-attention'), 1600);
+    }, true);
     syncConstraints();
 }
 
@@ -9676,6 +9769,7 @@ const ROLE_AJAX_ROUTES = {
         'admin_partners',
         'admin_email_logs',
         'admin_evaluations',
+        'admin_student_evaluation',
         'admin_ojt_placement',
         'admin_programs',
         'admin_terms',

@@ -4,16 +4,19 @@
     $criteria = StudentEvaluation::coordinatorCriteria();
     $grade = (float)($studentEvaluation['coordinator_grade'] ?? 0);
     $stars = static fn (int $n): string => str_repeat("\u{2605}", max(0, min(5, $n))) . str_repeat("\u{2606}", 5 - max(0, min(5, $n)));
+    $evalBackUrl = $evalBackUrl ?? ('index.php?r=coordinator_student_final&student_id=' . (int)($student['id'] ?? 0));
+    $evalBackLabel = $evalBackLabel ?? 'Back to Final Requirements';
+    $evalAudienceNote = $evalAudienceNote ?? 'This student evaluation of the coordinator is private and is not visible to coordinators or the Host Training Establishment.';
 ?>
-<a class="final-form-back" href="index.php?r=coordinator_student_final&amp;student_id=<?= (int)($student['id'] ?? 0) ?>">
+<a class="final-form-back" href="<?= e($evalBackUrl) ?>">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-    Back to Final Requirements
+    <?= e($evalBackLabel) ?>
 </a>
 
 <section class="card final-form-card eval-form-card final-readonly-card">
     <div class="status-callout info final-req-note" style="margin-top:0;margin-bottom:18px;">
-        <strong>Coordinator only</strong>
-        <p>This student evaluation of your coordination is not visible to the host training establishment.</p>
+        <strong>Private evaluation</strong>
+        <p><?= e($evalAudienceNote) ?></p>
     </div>
 
     <div class="final-form-head">

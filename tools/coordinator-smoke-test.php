@@ -244,11 +244,16 @@ smoke_assert(str_contains($helpersSrc, "'partner.timeline'"), 'route_url partner
 smoke_assert(str_contains($helpersSrc, "'partner.reports'"), 'route_url partner.reports registered');
 smoke_assert(str_contains($helpersSrc, "'partner.evaluations'"), 'route_url partner.evaluations registered');
 smoke_assert(str_contains($helpersSrc, "'partner.student_evaluation'"), 'route_url partner.student_evaluation registered');
+smoke_assert(str_contains($helpersSrc, "'admin.student_evaluation'"), 'route_url admin.student_evaluation registered');
+smoke_assert(str_contains($helpersSrc, 'function hte_final_evaluation_gate'), 'hte_final_evaluation_gate helper exists');
+smoke_assert(str_contains($helpersSrc, 'function assert_weekly_dtr_range_complete'), 'assert_weekly_dtr_range_complete helper exists');
+smoke_assert(str_contains($helpersSrc, 'function weekly_date_range_missing_dtrs'), 'weekly_date_range_missing_dtrs helper exists');
 
 smoke_assert(str_contains($indexSrc, "'partner_timeline'"), 'index partner_timeline route registered');
 smoke_assert(str_contains($indexSrc, "'partner_reports'"), 'index partner_reports route registered');
 smoke_assert(str_contains($indexSrc, "'partner_evaluations'"), 'index partner_evaluations route registered');
 smoke_assert(str_contains($indexSrc, "'partner_student_evaluation'"), 'index partner_student_evaluation route registered');
+smoke_assert(str_contains($indexSrc, "'admin_student_evaluation'"), 'index admin_student_evaluation route registered');
 smoke_assert(str_contains($indexSrc, "'partner_export_reports'"), 'index partner_export_reports route registered');
 
 smoke_assert(str_contains($partnerSrc, 'function timeline()'), 'PartnerController timeline action exists');
@@ -293,7 +298,12 @@ smoke_assert(is_file($root . '/assets/js/chat-live.js'), 'Live Chat client scrip
 smoke_assert(is_file($root . '/uploads/chat/.htaccess'), 'Chat upload folder blocks script execution');
 smoke_assert(str_contains($headerSrc, 'data-chat-unread'), 'Live Chat nav has unread hook');
 
-smoke_assert(str_contains($studentSrcFile, "route_url('partner.student_evaluation'"), 'Student eval notifies HTE partner');
+smoke_assert(!str_contains($studentSrcFile, "route_url('partner.student_evaluation'"), 'Student eval does not notify HTE of private feedback');
+$coordEvalFn = '';
+if (preg_match('/function saveStudentEvaluationCoordinator\(\): void\s*\{(.*?)\n    public function /s', $studentSrcFile, $coordEvalMatch)) {
+    $coordEvalFn = $coordEvalMatch[1];
+}
+smoke_assert($coordEvalFn !== '' && !str_contains($coordEvalFn, 'Notification'), 'Student eval does not notify coordinator of private feedback');
 smoke_assert(str_contains($studentSrcFile, "route_url('coordinator.student_final'"), 'Student eval coordinator link uses route_url');
 
 smoke_assert(str_contains($dashboardSrc, 'submissionStats'), 'Partner dashboard shows submission stats');
@@ -304,6 +314,24 @@ $portalSrc = file_get_contents($root . '/views/partner/portal.php') ?: '';
 smoke_assert(str_contains($portalSrc, 'partner_enrollment_pipeline_step'), 'Partner portal uses pipeline helper');
 smoke_assert(str_contains($portalSrc, 'partner_enrollment_is_active_ojt'), 'Partner portal uses active OJT helper');
 smoke_assert(str_contains($portalSrc, 'route_url(\'partner.submissions\''), 'Partner portal links to submissions review');
+smoke_assert(str_contains($portalSrc, 'pp-eval-checklist'), 'Partner portal shows final-evaluation checklist');
+smoke_assert(!str_contains($portalSrc, 'Student Feedback'), 'Partner portal hides student evaluations');
+
+$recordsSrc = file_get_contents($root . '/views/student/records.php') ?: '';
+smoke_assert(str_contains($recordsSrc, 'data-wr-ready-dtr-dates'), 'Weekly form exposes submitted DTR dates');
+smoke_assert(str_contains($recordsSrc, 'data-wr-dtr-week'), 'Weekly form shows DTR day checklist');
+
+$coordFinalSrc = file_get_contents($root . '/views/coordinator/student_final_requirements.php') ?: '';
+smoke_assert(str_contains($coordFinalSrc, 'Private'), 'Coordinator final page marks own evaluation as private');
+
+$coordCtrlSrc = file_get_contents($root . '/controllers/CoordinatorController.php') ?: '';
+smoke_assert(str_contains($coordCtrlSrc, "eval === 'coordinator'"), 'Coordinator cannot open student-to-coordinator evaluation');
+smoke_assert(str_contains($coordCtrlSrc, 'is private and is not visible to coordinators'), 'Coordinator document embed blocks own evaluation');
+
+smoke_assert(str_contains($partnerSrc, 'Student evaluations of the Host Training Establishment are not visible'), 'Partner studentEvaluation redirects away from student feedback');
+
+$adminEvalSrc = file_get_contents($root . '/views/admin/evaluations.php') ?: '';
+smoke_assert(str_contains($adminEvalSrc, 'Student Evaluations'), 'Admin evaluations page lists student evaluations');
 
 $submissionsDetailSrc = file_get_contents($root . '/views/partner/submissions_detail.php') ?: '';
 smoke_assert(str_contains($submissionsDetailSrc, 'reports_unlocked'), 'Submissions detail handles locked students');
@@ -319,6 +347,7 @@ smoke_assert(!str_contains($evaluateSrc, '<style>'), 'Partner evaluate has no in
 
 $mainJsSrc = file_get_contents($root . '/assets/js/main.js') ?: '';
 smoke_assert(str_contains($mainJsSrc, 'initPartnerSubmissionReview'), 'main.js partner submission review init exists');
+smoke_assert(str_contains($mainJsSrc, 'parseWeeklyReadyDtrDates'), 'main.js weekly DTR date lock exists');
 smoke_assert(str_contains($mainJsSrc, 'initPartnerEvaluationForm'), 'main.js partner evaluation form init exists');
 smoke_assert(str_contains($mainJsSrc, 'partnerBulkRejectConfirm'), 'main.js bulk reject confirm helper exists');
 

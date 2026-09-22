@@ -324,6 +324,7 @@ match ($route) {
     'admin_terms' => (new AdminController())->manageTerms(),
     'admin_email_logs' => (new AdminController())->emailLogs(),
     'admin_evaluations' => (new AdminController())->evaluations(),
+    'admin_student_evaluation' => (new AdminController())->studentEvaluation(),
     'admin_ojt_placement' => (new AdminController())->ojtPlacement(),
     'admin_reports' => (new AdminController())->reports(),
     'admin_report' => (new AdminController())->report(),

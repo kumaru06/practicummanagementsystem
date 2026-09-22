@@ -220,6 +220,28 @@ class Report
         return $row ?: null;
     }
 
+    /**
+     * @return list<string>
+     */
+    public function submittedWorkDatesBetween(int $studentId, string $start, string $end): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT work_date FROM daily_time_records
+             WHERE student_id = ? AND work_date BETWEEN ? AND ?
+               AND verification_status IN ("pending", "approved")
+             ORDER BY work_date ASC'
+        );
+        $stmt->execute([$studentId, $start, $end]);
+
+        return array_values(array_filter(array_map(
+            static function ($row): string {
+                $date = substr((string)($row['work_date'] ?? ''), 0, 10);
+                return preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) ? $date : '';
+            },
+            $stmt->fetchAll()
+        )));
+    }
+
     public function totalHours(int $studentId, bool $approvedOnly = false): float
     {
         $sql = 'SELECT COALESCE(SUM(hours),0) FROM daily_time_records WHERE student_id = ?';

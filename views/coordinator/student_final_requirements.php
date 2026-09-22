@@ -301,10 +301,11 @@
                         $evalStatus = StudentEvaluation::statusFor($studentEvaluation, $evalKey);
                         $isSubmitted = $evalStatus === 'submitted';
                         $rowIconMeta = $evalRowIcons[$evalKey] ?? $evalRowIcons['coordinator'];
+                        $canView = $isSubmitted && $evalKey !== 'coordinator';
                         $itemUrl = 'index.php?r=coordinator_student_final&amp;student_id=' . $studentId . '&amp;eval=' . e($evalKey);
                     ?>
                     <li class="cfp-item <?= $isSubmitted ? 'is-done' : 'is-pending' ?>">
-                        <?php if ($isSubmitted): ?>
+                        <?php if ($canView): ?>
                             <a class="cfp-item-link" href="<?= $itemUrl ?>">
                         <?php else: ?>
                             <div class="cfp-item-link">
@@ -314,14 +315,17 @@
                                 <strong><?= e($evalSection['name']) ?></strong>
                             </div>
                             <span class="cfp-item-action">
-                                <?php if ($isSubmitted): ?>
+                                <?php if ($isSubmitted && $evalKey === 'coordinator'): ?>
+                                    <span class="cfp-chip cfp-chip--done">Submitted</span>
+                                    <span class="cfp-item-cta muted">Private</span>
+                                <?php elseif ($isSubmitted): ?>
                                     <span class="cfp-chip cfp-chip--done">Completed</span>
                                     <span class="cfp-item-cta">View<?= $chevronIcon ?></span>
                                 <?php else: ?>
                                     <span class="cfp-chip cfp-chip--pending">Awaiting</span>
                                 <?php endif; ?>
                             </span>
-                        <?php if ($isSubmitted): ?>
+                        <?php if ($canView): ?>
                             </a>
                         <?php else: ?>
                             </div>

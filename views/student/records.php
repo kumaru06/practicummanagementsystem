@@ -10,6 +10,16 @@
     $rejectedWeekly = array_values(array_filter($weeklyReports ?? [], static fn ($row) => strtolower((string)($row['verification_status'] ?? '')) === 'rejected'));
     $resubmitDtrId = (int)($_GET['resubmit_dtr'] ?? 0);
     $resubmitWeeklyId = (int)($_GET['resubmit_weekly'] ?? 0);
+    $weeklyReadyDtrDates = [];
+    foreach ($dtrs ?? [] as $dtrRow) {
+        $dtrStatus = strtolower((string)($dtrRow['verification_status'] ?? ''));
+        $workDate = substr((string)($dtrRow['work_date'] ?? ''), 0, 10);
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $workDate) && in_array($dtrStatus, ['pending', 'approved'], true)) {
+            $weeklyReadyDtrDates[] = $workDate;
+        }
+    }
+    $weeklyReadyDtrDates = array_values(array_unique($weeklyReadyDtrDates));
+    $weeklyReadyDtrJson = json_encode($weeklyReadyDtrDates, JSON_UNESCAPED_SLASHES) ?: '[]';
     ?>
     <?php if (!empty($rejectedDtrs) || !empty($rejectedWeekly)): ?>
     <section class="card records-action-card">
@@ -101,7 +111,7 @@
                         </div>
                     <?php endif; ?>
                     <?php if ($isOpen): ?>
-                        <form method="post" enctype="multipart/form-data" class="form records-resubmit-form records-resubmit-form--weekly" data-wr-upload>
+                        <form method="post" enctype="multipart/form-data" class="form records-resubmit-form records-resubmit-form--weekly" data-wr-upload data-wr-ready-dtr-dates="<?= e($weeklyReadyDtrJson) ?>">
                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="action" value="student_resubmit_weekly">
                             <input type="hidden" name="weekly_id" value="<?= $weeklyId ?>">
@@ -118,6 +128,10 @@
                                         <?php render_form_date_picker('date_covered_end', (string)($rejectedReport['date_covered_end'] ?? ''), ['data-wr-date' => 'end']); ?>
                                     </div>
                                 </div>
+                            </div>
+                            <div class="wr-dtr-week" data-wr-dtr-week hidden>
+                                <p>Submit a DTR for every day in this date covered before the weekly accomplishment unlocks.</p>
+                                <ul data-wr-dtr-days></ul>
                             </div>
                             <label class="records-resubmit-field">
                                 <span>Weekly accomplishments</span>
@@ -390,6 +404,7 @@
             <span class="wr-form-badge">Weekly Report</span>
         </div>
         <form method="post" enctype="multipart/form-data" class="form js-validate" id="weeklyReportForm" data-wr-upload
+              data-wr-ready-dtr-dates="<?= e($weeklyReadyDtrJson) ?>"
               data-confirm-submit="Submit this weekly report? Please verify all fields before submitting."
               data-confirm-title="Submit weekly report" data-confirm-ok="Submit report">
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
@@ -450,6 +465,10 @@
                             <span class="wr-date-field-label">End date</span>
                             <?php render_form_date_picker('date_covered_end', '', ['data-wr-date' => 'end']); ?>
                         </div>
+                    </div>
+                    <div class="wr-dtr-week" data-wr-dtr-week hidden>
+                        <p>Submit a DTR for every day in this date covered before the weekly accomplishment unlocks.</p>
+                        <ul data-wr-dtr-days></ul>
                     </div>
                 </div>
             </div>

@@ -223,6 +223,49 @@ class Student
         return (int)$stmt->fetchColumn();
     }
 
+    /**
+     * Lightweight assigned-student directory keyed by coordinator user id.
+     *
+     * @return array<int, list<array{student_no: string, course: string, first_name: string, middle_name: string, last_name: string, email: string, is_active: int, photo_url: string, initial: string, tone: int}>>
+     */
+    public function assignedDirectoryForAdmin(): array
+    {
+        $rows = $this->db->query(
+            'SELECT s.id, s.coordinator_id, s.student_no, s.course, s.photo_file,
+                    u.id AS user_id, u.first_name, u.middle_name, u.last_name, u.email, u.is_active
+             FROM students s
+             JOIN users u ON u.id = s.user_id
+             ORDER BY u.last_name ASC, u.first_name ASC, u.id DESC'
+        )->fetchAll();
+
+        $grouped = [];
+        foreach ($rows as $row) {
+            $coordinatorId = (int)($row['coordinator_id'] ?? 0);
+            if ($coordinatorId <= 0) {
+                continue;
+            }
+
+            $lastName = (string)($row['last_name'] ?? '');
+            $firstName = (string)($row['first_name'] ?? '');
+            $initialSource = $lastName !== '' ? $lastName : ($firstName !== '' ? $firstName : 'S');
+
+            $grouped[$coordinatorId][] = [
+                'student_no' => (string)($row['student_no'] ?? ''),
+                'course' => (string)($row['course'] ?? ''),
+                'first_name' => $firstName,
+                'middle_name' => (string)($row['middle_name'] ?? ''),
+                'last_name' => $lastName,
+                'email' => (string)($row['email'] ?? ''),
+                'is_active' => (int)($row['is_active'] ?? 0),
+                'photo_url' => student_profile_photo_url($row),
+                'initial' => strtoupper(mb_substr($initialSource, 0, 1)),
+                'tone' => coordinator_avatar_tone((int)($row['user_id'] ?? $row['id'] ?? 0)),
+            ];
+        }
+
+        return $grouped;
+    }
+
     public function updateProfile(int $studentId, array $data, ?string $photoFile): void
     {
         $this->ensureGenderColumn();

@@ -286,6 +286,7 @@ function route_url(string $route, array $params = []): string
         'admin.terms' => 'index.php?r=admin_terms',
         'admin.email_logs' => 'index.php?r=admin_email_logs',
         'admin.evaluations' => 'index.php?r=admin_evaluations',
+        'admin.student_evaluation' => 'index.php?r=admin_student_evaluation',
         'admin.ojt_placement' => 'index.php?r=admin_ojt_placement',
         'admin.reports' => 'index.php?r=admin_reports',
         'admin.report' => 'index.php?r=admin_report',
@@ -511,7 +512,11 @@ function student_profile_document_entries(array $requirements, array $student, a
             $evalKey = (string)($def['evaluation_key'] ?? '');
             $evalStatus = StudentEvaluation::statusFor($evaluations, $evalKey);
             $status = $evalStatus === 'submitted' ? 'submitted' : 'pending';
-            $url = ($evalStatus === 'submitted' && $studentId > 0)
+            $viewerRole = (string)((current_user() ?? [])['role'] ?? '');
+            $canViewEval = $evalStatus === 'submitted' && $studentId > 0
+                && !($viewerRole === 'coordinator' && $evalKey === 'coordinator')
+                && $viewerRole !== 'partner';
+            $url = $canViewEval
                 ? route_url('staff.view_student_doc', ['student_id' => $studentId, 'key' => $reqKey])
                 : '';
         }
@@ -955,6 +960,171 @@ function enrollment_hours_complete(?array $enrollment, float $approvedHours): bo
     return $approvedHours >= $required;
 }
 
+function student_stage_is_approved(int $studentId, int $stage): bool
+{
+    if ($studentId <= 0) {
+        return false;
+    }
+
+    return (new Student(db()))->stageAggregateStatus($studentId, $stage) === 'approved';
+}
+
+/**
+ * Fully elapsed 7-day weeks from official start through today or the OJT end date.
+ */
+function student_elapsed_weekly_count(?array $enrollment): int
+{
+    $start = trim((string)($enrollment['official_start_date'] ?? ''));
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) || str_starts_with($start, '0000')) {
+        return 0;
+    }
+
+    $cap = date('Y-m-d');
+    foreach (['projected_end_date', 'end_date'] as $field) {
+        $candidate = trim((string)($enrollment[$field] ?? ''));
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $candidate) && $candidate < $cap) {
+            $cap = $candidate;
+        }
+    }
+
+    $startTs = strtotime($start . ' 00:00:00');
+    $endTs = strtotime($cap . ' 00:00:00');
+    if ($startTs === false || $endTs === false || $endTs < $startTs) {
+        return 0;
+    }
+
+    $days = (int)floor(($endTs - $startTs) / 86400) + 1;
+    return (int)floor($days / 7);
+}
+
+/**
+ * @param list<array<string,mixed>> $weeklies
+ */
+function student_submitted_weekly_count(array $weeklies): int
+{
+    $weeks = [];
+    foreach ($weeklies as $weekly) {
+        if (strtolower((string)($weekly['verification_status'] ?? '')) === 'rejected') {
+            continue;
+        }
+        $weekNo = (int)($weekly['week_no'] ?? 0);
+        if ($weekNo > 0) {
+            $weeks[$weekNo] = true;
+        }
+    }
+
+    return count($weeks);
+}
+
+function student_weeklies_complete(?array $enrollment, array $weeklies): bool
+{
+    $expected = student_elapsed_weekly_count($enrollment);
+    if ($expected <= 0) {
+        return true;
+    }
+
+    return student_submitted_weekly_count($weeklies) >= $expected;
+}
+
+/**
+ * @return list<string> YYYY-MM-DD dates without a pending/approved DTR
+ */
+function weekly_date_range_missing_dtrs(int $studentId, string $start, string $end): array
+{
+    if ($studentId <= 0) {
+        return [];
+    }
+
+    $startTs = strtotime($start . ' 00:00:00');
+    $endTs = strtotime($end . ' 00:00:00');
+    if ($startTs === false || $endTs === false || $endTs < $startTs) {
+        throw new RuntimeException('Choose a valid date covered range first.');
+    }
+    if (($endTs - $startTs) / 86400 > 20) {
+        throw new RuntimeException('Date covered cannot be longer than 21 days.');
+    }
+
+    $have = [];
+    foreach ((new Report(db()))->submittedWorkDatesBetween($studentId, $start, $end) as $date) {
+        $have[$date] = true;
+    }
+
+    $missing = [];
+    $cursor = date('Y-m-d', $startTs);
+    $last = date('Y-m-d', $endTs);
+    while ($cursor <= $last) {
+        if (empty($have[$cursor])) {
+            $missing[] = $cursor;
+        }
+        $cursor = date('Y-m-d', strtotime($cursor . ' +1 day'));
+    }
+
+    return $missing;
+}
+
+function assert_weekly_dtr_range_complete(int $studentId, string $start, string $end): void
+{
+    $missing = weekly_date_range_missing_dtrs($studentId, $start, $end);
+    if (!$missing) {
+        return;
+    }
+
+    $labels = array_map(static fn ($date) => date('M j', strtotime($date)), $missing);
+    throw new RuntimeException(
+        'Submit a DTR for every day in this week before the weekly accomplishment. Missing: ' . implode(', ', $labels) . '.'
+    );
+}
+
+/**
+ * @return array{unlocked:bool,message:string,items:list<array{key:string,label:string,done:bool}>}
+ */
+function hte_final_evaluation_gate(?array $enrollment, float $approvedHours = -1.0): array
+{
+    $empty = [
+        'unlocked' => false,
+        'message' => 'Final evaluation stays locked until every required item is complete.',
+        'items' => [],
+    ];
+    if (!$enrollment) {
+        return $empty;
+    }
+
+    $studentId = (int)($enrollment['student_id'] ?? 0);
+    if ($approvedHours < 0) {
+        $approvedHours = (new Report(db()))->totalHours($studentId, true);
+    }
+
+    $weeklies = $studentId > 0 ? (new Report(db()))->weeklyByStudent($studentId) : [];
+    $studentEval = $studentId > 0 ? (new StudentEvaluation(db()))->getByStudent($studentId) : [];
+    $expectedWeeks = student_elapsed_weekly_count($enrollment);
+    $submittedWeeks = student_submitted_weekly_count($weeklies);
+
+    $items = [
+        ['key' => 'hours', 'label' => 'Required rendered hours complete', 'done' => enrollment_hours_complete($enrollment, $approvedHours)],
+        ['key' => 'stage2', 'label' => '2nd to Comply complete', 'done' => student_stage_is_approved($studentId, 2)],
+        ['key' => 'stage3', 'label' => '3rd to Comply documents complete', 'done' => student_stage3_upload_documents_done($studentId)],
+        [
+            'key' => 'weeklies',
+            'label' => $expectedWeeks > 0
+                ? 'All weekly accomplishments complete (' . $submittedWeeks . ' of ' . $expectedWeeks . ')'
+                : 'All weekly accomplishments complete',
+            'done' => student_weeklies_complete($enrollment, $weeklies),
+        ],
+        ['key' => 'eval_hte', 'label' => 'Student → HTE evaluation submitted', 'done' => StudentEvaluation::statusFor($studentEval, 'industry_partner') === 'submitted'],
+        ['key' => 'eval_coor', 'label' => 'Student → Coordinator evaluation submitted', 'done' => StudentEvaluation::statusFor($studentEval, 'coordinator') === 'submitted'],
+    ];
+
+    $unlocked = !in_array(false, array_column($items, 'done'), true);
+
+    return [
+        'unlocked' => $unlocked,
+        'message' => $unlocked
+            ? 'All required items are complete. You can evaluate this student.'
+            : 'Final evaluation unlocks after hours, 2nd/3rd compliance, all weekly accomplishments, and both student evaluations are complete.',
+        'items' => $items,
+    ];
+}
+
 function student_stage3_legacy_doc_aliases(): array
 {
     return [
@@ -1075,7 +1245,7 @@ function student_stage3_upload_progress(int $studentId): array
         'total' => $total,
         'uploaded' => $uploaded,
         'approved' => $approved,
-        'done' => $total > 0 && $approved === $total,
+        'done' => $total === 0 || $approved === $total,
     ];
 }
 

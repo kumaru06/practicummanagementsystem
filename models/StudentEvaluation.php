@@ -191,6 +191,59 @@ class StudentEvaluation
         return $stmt->fetchAll();
     }
 
+    /**
+     * Flattened student-submitted evaluations for admin review.
+     *
+     * @return list<array<string,mixed>>
+     */
+    public function allSubmittedWithDetails(): array
+    {
+        $this->ensureTable();
+        $rows = $this->db->query(
+            'SELECT se.*, u.name AS student_name, s.student_no, s.course, s.year_level, pc.name AS company_name
+             FROM student_evaluations se
+             JOIN students s ON s.id = se.student_id
+             JOIN users u ON u.id = s.user_id
+             LEFT JOIN ojt_enrollments e ON e.student_id = s.id
+             LEFT JOIN partner_companies pc ON pc.id = e.company_id
+             ORDER BY se.updated_at DESC'
+        )->fetchAll();
+
+        $out = [];
+        foreach ($rows as $row) {
+            if (($row['partner_status'] ?? '') === 'submitted') {
+                $out[] = [
+                    'student_id' => (int)$row['student_id'],
+                    'student_name' => $row['student_name'] ?? '',
+                    'student_no' => $row['student_no'] ?? '',
+                    'course' => $row['course'] ?? '',
+                    'year_level' => $row['year_level'] ?? '',
+                    'company_name' => $row['company_name'] ?? '',
+                    'type' => 'industry_partner',
+                    'type_label' => 'Student → HTE',
+                    'grade' => $row['partner_grade'] ?? null,
+                    'submitted_at' => $row['updated_at'] ?? null,
+                ];
+            }
+            if (($row['coordinator_status'] ?? '') === 'submitted') {
+                $out[] = [
+                    'student_id' => (int)$row['student_id'],
+                    'student_name' => $row['student_name'] ?? '',
+                    'student_no' => $row['student_no'] ?? '',
+                    'course' => $row['course'] ?? '',
+                    'year_level' => $row['year_level'] ?? '',
+                    'company_name' => $row['company_name'] ?? '',
+                    'type' => 'coordinator',
+                    'type_label' => 'Student → Coordinator',
+                    'grade' => $row['coordinator_grade'] ?? null,
+                    'submitted_at' => $row['updated_at'] ?? null,
+                ];
+            }
+        }
+
+        return $out;
+    }
+
     private function ensureTable(): void
     {
         $this->db->exec('CREATE TABLE IF NOT EXISTS student_evaluations (

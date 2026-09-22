@@ -1,8 +1,13 @@
 <?php
 $coordinators = $coordinators ?? [];
+$assignedStudentsByCoordinator = $assignedStudentsByCoordinator ?? [];
 $totalCoordinators = count($coordinators);
 $activeCoordinators = count(array_filter($coordinators, static fn ($c) => (int)($c['is_active'] ?? 0) === 1));
 $inactiveCoordinators = $totalCoordinators - $activeCoordinators;
+$assignedStudentTotal = 0;
+foreach ($coordinators as $coordinatorRow) {
+    $assignedStudentTotal += (int)($coordinatorRow['assigned_student_count'] ?? 0);
+}
 ?>
 <div class="admin-coordinators-v2">
     <nav class="aco-breadcrumb" aria-label="Breadcrumb">
@@ -37,6 +42,15 @@ $inactiveCoordinators = $totalCoordinators - $activeCoordinators;
             <div class="aco-stat-body">
                 <span>Inactive</span>
                 <strong><?= $inactiveCoordinators ?></strong>
+            </div>
+        </article>
+        <article class="aco-stat-card aco-stat-students">
+            <div class="aco-stat-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3 1 9l11 6 9-4.91V17h2V9L12 3z"/></svg>
+            </div>
+            <div class="aco-stat-body">
+                <span>Assigned Students</span>
+                <strong><?= $assignedStudentTotal ?></strong>
             </div>
         </article>
     </div>
@@ -175,6 +189,7 @@ $inactiveCoordinators = $totalCoordinators - $activeCoordinators;
                         <th data-sort>Email</th>
                         <th data-sort>ID Number</th>
                         <th data-sort>Department</th>
+                        <th data-sort>Assigned Students</th>
                         <th>Status</th>
                         <th class="aco-col-action">Action</th>
                     </tr>
@@ -194,8 +209,9 @@ $inactiveCoordinators = $totalCoordinators - $activeCoordinators;
                         $isSelf = (int)$u['id'] === (int)current_user()['id'];
                         $tone = coordinator_avatar_tone((int)$u['id']);
                         $statusKey = !empty($u['is_active']) ? 'active' : 'inactive';
+                        $assignedCount = (int)($u['assigned_student_count'] ?? 0);
                     ?>
-                    <tr data-search="<?= e(strtolower(trim($lastName . ' ' . $firstName . ' ' . $middleName . ' ' . $u['email'] . ' ' . $idNumber . ' ' . $department))) ?>"
+                    <tr data-search="<?= e(strtolower(trim($lastName . ' ' . $firstName . ' ' . $middleName . ' ' . $u['email'] . ' ' . $idNumber . ' ' . $department . ' ' . $assignedCount))) ?>"
                         data-coordinator-status="<?= e($statusKey) ?>">
                         <td class="aco-name-cell">
                             <div class="aco-person-cell">
@@ -214,6 +230,18 @@ $inactiveCoordinators = $totalCoordinators - $activeCoordinators;
                             <?php endif; ?>
                         </td>
                         <td><div class="aco-dept-cell" title="<?= e($department) ?>"><?= e($department) ?></div></td>
+                        <td class="center-cell">
+                            <?php if ($assignedCount > 0): ?>
+                                <button type="button" class="aco-assigned-badge"
+                                    data-assigned-students="<?= (int)$u['id'] ?>"
+                                    data-coordinator-name="<?= e($fullName) ?>"
+                                    data-assigned-count="<?= $assignedCount ?>">
+                                    <?= $assignedCount ?>
+                                </button>
+                            <?php else: ?>
+                                <span class="aco-assigned-badge is-empty">0</span>
+                            <?php endif; ?>
+                        </td>
                         <td class="center-cell">
                             <span class="aco-status-pill <?= $u['is_active'] ? 'is-active' : 'is-inactive' ?>">
                                 <?= $u['is_active'] ? 'Active' : 'Inactive' ?>
@@ -439,6 +467,222 @@ document.addEventListener('DOMContentLoaded', function () {
                 sigPreview.hidden = true;
             }
 
+            openModal();
+        });
+    });
+});
+</script>
+
+<script type="application/json" id="acoAssignedStudentsJson"><?php
+    $assignedJson = $assignedStudentsByCoordinator === []
+        ? '{}'
+        : (json_encode($assignedStudentsByCoordinator, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?: '{}');
+    echo $assignedJson;
+?></script>
+
+<!-- Assigned Students Modal -->
+<div class="coordinator-edit-overlay coordinator-assigned-overlay" id="coordinatorAssignedOverlay" aria-hidden="true">
+    <div class="coordinator-edit-modal coordinator-assigned-modal" role="dialog" aria-modal="true" aria-labelledby="coordinatorAssignedTitle">
+        <div class="coordinator-edit-modal-head coordinator-assigned-modal-head">
+            <div class="coordinator-edit-modal-head-main">
+                <div class="aco-assigned-head-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <div class="coordinator-assigned-head-copy">
+                    <span class="aco-assigned-eyebrow">Assigned roster</span>
+                    <h2 id="coordinatorAssignedTitle">Assigned Students</h2>
+                    <p id="coordinatorAssignedSubtitle">Students currently assigned to this coordinator.</p>
+                </div>
+            </div>
+            <div class="coordinator-assigned-head-meta">
+                <span class="aco-assigned-count-chip" id="coordinatorAssignedCount" hidden>
+                    <strong id="coordinatorAssignedCountNum">0</strong>
+                    <span id="coordinatorAssignedCountLabel">students</span>
+                </span>
+                <button type="button" class="coordinator-edit-modal-close" id="coordinatorAssignedClose" aria-label="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="coordinator-edit-modal-body coordinator-assigned-modal-body">
+            <div class="aco-assigned-empty" id="coordinatorAssignedEmpty" hidden>
+                <div class="aco-assigned-empty-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                </div>
+                <p class="aco-empty-title">No students assigned yet</p>
+                <p class="aco-empty-sub">This coordinator has no assigned student records.</p>
+            </div>
+            <div class="table-wrap asu-table-wrap aco-assigned-table-wrap" id="coordinatorAssignedTableWrap">
+                <table class="aco-assigned-table" data-no-enhance>
+                    <colgroup>
+                        <col class="aco-assigned-col-last">
+                        <col class="aco-assigned-col-first">
+                        <col class="aco-assigned-col-middle">
+                        <col class="aco-assigned-col-usn">
+                        <col class="aco-assigned-col-program">
+                        <col class="aco-assigned-col-status">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>Last Name</th>
+                            <th>First Name</th>
+                            <th>Middle Name</th>
+                            <th>Student No</th>
+                            <th>Program</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="coordinatorAssignedTbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const overlay = document.getElementById('coordinatorAssignedOverlay');
+    const closeBtn = document.getElementById('coordinatorAssignedClose');
+    const titleEl = document.getElementById('coordinatorAssignedTitle');
+    const subtitleEl = document.getElementById('coordinatorAssignedSubtitle');
+    const countEl = document.getElementById('coordinatorAssignedCount');
+    const countNumEl = document.getElementById('coordinatorAssignedCountNum');
+    const countLabelEl = document.getElementById('coordinatorAssignedCountLabel');
+    const emptyEl = document.getElementById('coordinatorAssignedEmpty');
+    const tableWrap = document.getElementById('coordinatorAssignedTableWrap');
+    const tbody = document.getElementById('coordinatorAssignedTbody');
+    const jsonEl = document.getElementById('acoAssignedStudentsJson');
+    if (!overlay || !closeBtn || !titleEl || !subtitleEl || !emptyEl || !tableWrap || !tbody) return;
+
+    const escapeHtml = (value) => String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
+    const displayCell = (value) => {
+        const text = String(value ?? '').trim();
+        return text !== '' ? escapeHtml(text) : '<span class="muted">—</span>';
+    };
+
+    let assignedMap = {};
+    try {
+        const parsed = jsonEl ? JSON.parse(jsonEl.textContent || '{}') : {};
+        assignedMap = parsed && !Array.isArray(parsed) ? parsed : {};
+    } catch (err) {
+        assignedMap = {};
+    }
+
+    const MODAL_ANIM_MS = 300;
+    let closeTimer = null;
+
+    const finishClose = () => {
+        overlay.classList.remove('is-closing');
+        overlay.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('is-coordinator-edit-open');
+        closeTimer = null;
+    };
+
+    const closeModal = () => {
+        if (!overlay.classList.contains('open') || overlay.classList.contains('is-closing')) return;
+        if (closeTimer) clearTimeout(closeTimer);
+        overlay.classList.add('is-closing');
+        overlay.classList.remove('open');
+        closeTimer = window.setTimeout(finishClose, MODAL_ANIM_MS);
+    };
+
+    const openModal = () => {
+        if (closeTimer) {
+            clearTimeout(closeTimer);
+            closeTimer = null;
+        }
+
+        overlay.classList.remove('is-closing');
+        overlay.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('is-coordinator-edit-open');
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                overlay.classList.add('open');
+            });
+        });
+    };
+
+    const renderStudents = (coordinatorId, coordinatorName, fallbackCount) => {
+        const students = Array.isArray(assignedMap[String(coordinatorId)])
+            ? assignedMap[String(coordinatorId)]
+            : (Array.isArray(assignedMap[coordinatorId]) ? assignedMap[coordinatorId] : []);
+        const count = students.length || Number(fallbackCount) || 0;
+        const label = coordinatorName || 'Coordinator';
+
+        titleEl.textContent = label;
+        subtitleEl.textContent = count === 1
+            ? '1 student assigned to this coordinator.'
+            : count + ' students assigned to this coordinator.';
+        if (countEl) {
+            countEl.hidden = count === 0;
+            if (countNumEl) countNumEl.textContent = String(count);
+            if (countLabelEl) countLabelEl.textContent = count === 1 ? 'student' : 'students';
+        }
+
+        tbody.innerHTML = '';
+        if (count === 0 || students.length === 0) {
+            emptyEl.hidden = false;
+            tableWrap.hidden = true;
+            return;
+        }
+
+        emptyEl.hidden = true;
+        tableWrap.hidden = false;
+
+        students.forEach((student) => {
+            const active = Number(student.is_active) === 1;
+            const photoUrl = String(student.photo_url || '').trim();
+            const initial = String(student.initial || student.last_name || student.first_name || 'S').trim().charAt(0).toUpperCase() || 'S';
+            const tone = Math.max(1, Math.min(6, Number(student.tone) || 1));
+            const avatar = photoUrl !== ''
+                ? '<span class="aco-avatar aco-avatar--photo aco-avatar-tone--' + tone + '"><img src="' + escapeHtml(photoUrl) + '" alt=""></span>'
+                : '<span class="aco-avatar aco-avatar-tone--' + tone + '">' + escapeHtml(initial) + '</span>';
+            const row = document.createElement('tr');
+            row.innerHTML =
+                '<td class="aco-assigned-name-cell">' +
+                    '<div class="aco-person-cell aco-assigned-profile">' +
+                        avatar +
+                        '<span>' + displayCell(student.last_name) + '</span>' +
+                    '</div>' +
+                '</td>' +
+                '<td class="aco-assigned-text-cell">' + displayCell(student.first_name) + '</td>' +
+                '<td class="aco-assigned-text-cell">' + displayCell(student.middle_name) + '</td>' +
+                '<td class="aco-assigned-usn-cell">' + (String(student.student_no || '').trim()
+                    ? '<span class="aco-assigned-usn">' + escapeHtml(student.student_no) + '</span>'
+                    : '<span class="muted">—</span>') + '</td>' +
+                '<td class="aco-assigned-program-cell">' + (String(student.course || '').trim()
+                    ? '<span class="aco-assigned-program" title="' + escapeHtml(student.course) + '">' + escapeHtml(student.course) + '</span>'
+                    : '<span class="muted">—</span>') + '</td>' +
+                '<td class="aco-assigned-status-cell"><span class="aco-status-pill aco-assigned-status ' + (active ? 'is-active' : 'is-inactive') + '">' +
+                    '<i></i>' + (active ? 'Active' : 'Inactive') +
+                '</span></td>';
+            tbody.appendChild(row);
+        });
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
+    });
+
+    document.querySelectorAll('[data-assigned-students]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const menu = btn.closest('.admin-user-action-menu');
+            if (menu) menu.removeAttribute('open');
+
+            renderStudents(
+                btn.dataset.assignedStudents,
+                btn.dataset.coordinatorName,
+                btn.dataset.assignedCount
+            );
             openModal();
         });
     });

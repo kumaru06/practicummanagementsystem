@@ -7,9 +7,12 @@ $renderedHours = array_reduce($dtrs ?? [], static function ($total, $dtr) {
     return $total + (float)($dtr['hours'] ?? 0);
 }, 0.0);
 $requiredHours = (float)($selected['required_hours'] ?? 0);
+$evaluationGate = $evaluationGate ?? ['unlocked' => false, 'message' => '', 'items' => []];
 $evaluationUnlocked = $selected
-    && $requiredHours > 0
-    && $renderedHours >= $requiredHours
+    && (
+        !empty($evaluationGate['unlocked'])
+        || !empty($evaluation)
+    )
     && in_array((string)($selected['status'] ?? ''), ['active', 'completed'], true)
     && (
         ($selected['predeployment_status'] ?? '') === 'orientation_completed'
@@ -502,25 +505,6 @@ $currentPipeline = $selected ? partner_enrollment_pipeline_step($selected, $eval
                         <?php endif; ?>
                     </section>
 
-                    <?php if (!empty($studentEvalSubmitted)): ?>
-                        <section class="pp-panel pp-panel--feedback">
-                            <div class="pp-panel-head pp-panel-head--split">
-                                <div>
-                                    <h3>Student Feedback</h3>
-                                    <p class="muted">This student submitted an evaluation of your organization.</p>
-                                </div>
-                                <a class="pp-link-btn" href="<?= e(route_url('partner.student_evaluation', ['student_id' => (int)$selected['student_id']])) ?>">
-                                    View evaluation
-                                    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m7.5 5 5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                </a>
-                            </div>
-                            <div class="pp-feedback-summary">
-                                <strong><?= e(number_format((float)($studentEvaluation['partner_grade'] ?? 0), 2)) ?>%</strong>
-                                <span>Overall rating from student</span>
-                            </div>
-                        </section>
-                    <?php endif; ?>
-
                     <section class="pp-panel pp-panel--eval">
                         <div class="pp-panel-head">
                             <h3>Final Evaluation</h3>
@@ -539,15 +523,20 @@ $currentPipeline = $selected ? partner_enrollment_pipeline_step($selected, $eval
                                 </div>
                                 <a class="btn btn-primary" href="<?= e(route_url('partner.evaluate', ['enrollment' => (int)$selected['id']])) ?>">Edit Evaluation</a>
                             <?php else: ?>
-                                <p class="muted">The student has completed the required approved hours. Start the final evaluation.</p>
+                                <p class="muted">All required items are complete. Start the final evaluation.</p>
                                 <a class="btn btn-primary" href="<?= e(route_url('partner.evaluate', ['enrollment' => (int)$selected['id']])) ?>">Start Evaluation</a>
                             <?php endif; ?>
                         <?php else: ?>
                             <div class="pp-eval-locked">
-                                <div class="pp-eval-progress">
-                                    <span style="width: <?= $requiredHours > 0 ? min(100, round(($renderedHours / $requiredHours) * 100)) : 0 ?>%"></span>
-                                </div>
-                                <p class="muted"><?= e(number_format($renderedHours, 2)) ?> / <?= e(number_format($requiredHours, 2)) ?> approved hours</p>
+                                <p class="muted"><?= e($evaluationGate['message'] ?? 'Final evaluation stays locked until every required item is complete.') ?></p>
+                                <ul class="pp-eval-checklist">
+                                    <?php foreach (($evaluationGate['items'] ?? []) as $item): ?>
+                                        <li class="<?= !empty($item['done']) ? 'is-done' : 'is-pending' ?>">
+                                            <span><?= !empty($item['done']) ? '✓' : '•' ?></span>
+                                            <?= e($item['label'] ?? '') ?>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
                                 <button class="btn btn-primary" type="button" disabled>Evaluation Locked</button>
                             </div>
                         <?php endif; ?>

@@ -404,7 +404,6 @@ class PartnerController extends BaseController
         $dtrs = [];
         $weeklies = [];
         $evaluation = null;
-        $studentEvaluation = [];
         $reportsUnlocked = false;
         $pendingDtrCount = 0;
         $pendingWeeklyCount = 0;
@@ -413,7 +412,6 @@ class PartnerController extends BaseController
             $dtrs = $reportModel->dtrByStudent((int)$selected['student_id']);
             $weeklies = $reportModel->weeklyByStudent((int)$selected['student_id']);
             $evaluation = (new Evaluation($this->db))->byEnrollment((int)$selected['id']);
-            $studentEvaluation = (new StudentEvaluation($this->db))->getByStudent((int)$selected['student_id']);
             $reportsUnlocked = enrollment_allows_reports($selected);
             foreach ($dtrs as $dtr) {
                 if (($dtr['verification_status'] ?? '') === 'pending') {
@@ -426,6 +424,10 @@ class PartnerController extends BaseController
                 }
             }
         }
+        $evalGate = $selected
+            ? hte_final_evaluation_gate($selected, (new Report($this->db))->totalHours((int)$selected['student_id'], true))
+            : ['unlocked' => false, 'message' => '', 'items' => []];
+
         $this->renderAppPage('partner/portal', [
             'title' => 'Host Training Establishment Portal',
             'company' => $company,
@@ -434,8 +436,7 @@ class PartnerController extends BaseController
             'dtrs' => $dtrs,
             'weeklies' => $weeklies,
             'evaluation' => $evaluation,
-            'studentEvaluation' => $studentEvaluation,
-            'studentEvalSubmitted' => StudentEvaluation::statusFor($studentEvaluation, 'industry_partner') === 'submitted',
+            'evaluationGate' => $evalGate,
             'reportsUnlocked' => $reportsUnlocked,
             'pendingDtrCount' => $pendingDtrCount,
             'pendingWeeklyCount' => $pendingWeeklyCount,
@@ -446,37 +447,8 @@ class PartnerController extends BaseController
     public function studentEvaluation(): void
     {
         require_role('partner');
-        $company = $this->requireCompanyProfile();
-        $studentId = (int)($_GET['student_id'] ?? 0);
-        if ($studentId <= 0) {
-            flash('error', 'Select a student to view their evaluation.');
-            redirect(route_url('partner.portal'));
-        }
-
-        $student = null;
-        foreach ((new Enrollment($this->db))->deployedByCompany((int)$company['id']) as $row) {
-            if ((int)($row['student_id'] ?? 0) === $studentId) {
-                $student = $row;
-                break;
-            }
-        }
-        if (!$student) {
-            flash('error', 'Student not found or not assigned to your organization.');
-            redirect(route_url('partner.portal'));
-        }
-
-        $studentEvaluation = (new StudentEvaluation($this->db))->getByStudent($studentId);
-        if (StudentEvaluation::statusFor($studentEvaluation, 'industry_partner') !== 'submitted') {
-            flash('error', 'This student has not submitted an evaluation of your organization yet.');
-            redirect(route_url('partner.portal', ['enrollment' => (int)$student['id']]));
-        }
-
-        $this->renderAppPage('partner/student_evaluation', [
-            'title' => 'Student Evaluation - ' . ($student['student_name'] ?? 'Student'),
-            'company' => $company,
-            'student' => $student,
-            'studentEvaluation' => $studentEvaluation,
-        ]);
+        flash('error', 'Student evaluations of the Host Training Establishment are not visible to the company.');
+        redirect(route_url('partner.evaluations'));
     }
 
     public function timeline(): void
@@ -599,7 +571,6 @@ class PartnerController extends BaseController
             'title' => 'Evaluations History',
             'company' => $company,
             'finalEvaluations' => (new Evaluation($this->db))->byCompany($companyId),
-            'studentFeedback' => (new StudentEvaluation($this->db))->submittedPartnerEvaluationsByCompany($companyId),
         ]);
     }
 
@@ -777,14 +748,10 @@ class PartnerController extends BaseController
             exit('Forbidden');
         }
 
-        $renderedHours = (new Report($this->db))->totalHours((int)$selected['student_id'], true);
-        $requiredHours = (float)($selected['required_hours'] ?? 0);
-        if ($requiredHours <= 0 || $renderedHours < $requiredHours) {
-            flash('error', 'Final evaluation unlocks after the student completes the required approved OJT hours.');
-            redirect($this->partnerPortalUrl((int)$selected['id']));
-        }
-        if (!$this->canSubmitFinalEvaluation($selected)) {
-            flash('error', 'Final evaluation unlocks after orientation is completed and OJT is active.');
+        $evaluation = (new Evaluation($this->db))->byEnrollment((int)$selected['id']);
+        $gate = hte_final_evaluation_gate($selected);
+        if (!$this->canSubmitFinalEvaluation($selected) || (empty($gate['unlocked']) && !$evaluation)) {
+            flash('error', $gate['message'] ?: 'Final evaluation unlocks after orientation is completed and every required item is complete.');
             redirect($this->partnerPortalUrl((int)$selected['id']));
         }
 
@@ -792,7 +759,7 @@ class PartnerController extends BaseController
             'title' => 'Final Evaluation',
             'company' => $company,
             'selected' => $selected,
-            'evaluation' => (new Evaluation($this->db))->byEnrollment((int)$selected['id']),
+            'evaluation' => $evaluation,
         ]);
     }
 
@@ -807,14 +774,10 @@ class PartnerController extends BaseController
             http_response_code(403);
             exit('Forbidden');
         }
-        $renderedHours = (new Report($this->db))->totalHours((int)$enrollment['student_id'], true);
-        $requiredHours = (float)($enrollment['required_hours'] ?? 0);
-        if ($requiredHours <= 0 || $renderedHours < $requiredHours) {
-            flash('error', 'Final evaluation unlocks after the student completes the required approved OJT hours.');
-            redirect($this->partnerPortalUrl((int)$enrollment['id']));
-        }
-        if (!$this->canSubmitFinalEvaluation($enrollment)) {
-            flash('error', 'Final evaluation unlocks after orientation is completed and OJT is active.');
+        $existingEvaluation = (new Evaluation($this->db))->byEnrollment((int)$enrollment['id']);
+        $gate = hte_final_evaluation_gate($enrollment);
+        if (!$this->canSubmitFinalEvaluation($enrollment) || (empty($gate['unlocked']) && !$existingEvaluation)) {
+            flash('error', $gate['message'] ?: 'Final evaluation unlocks after orientation is completed and every required item is complete.');
             redirect($this->partnerPortalUrl((int)$enrollment['id']));
         }
 

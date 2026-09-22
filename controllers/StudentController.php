@@ -578,17 +578,6 @@ class StudentController extends BaseController
                     route_url('coordinator.student_final', ['student_id' => (int)$student['id'], 'eval' => 'industry_partner'])
                 );
             }
-            if ($enrollment && !empty($enrollment['company_id'])) {
-                $company = (new Company($this->db))->find((int)$enrollment['company_id']);
-                if ($company && !empty($company['user_id'])) {
-                    (new Notification($this->db))->create(
-                        (int)$company['user_id'],
-                        $wasSubmitted ? 'Student feedback updated' : 'New student feedback received',
-                        $studentName . ' ' . ($wasSubmitted ? 'updated' : 'submitted') . ' an evaluation of your organization and OJT supervisor.',
-                        route_url('partner.student_evaluation', ['student_id' => (int)$student['id']])
-                    );
-                }
-            }
             flash('success', 'Host Training Establishment evaluation saved.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
@@ -611,7 +600,6 @@ class StudentController extends BaseController
             $approvedHours = (new Report($this->db))->totalHours((int)$student['id'], true);
             assert_student_final_requirements($enrollment, $approvedHours);
             $evalModel = new StudentEvaluation($this->db);
-            $wasSubmitted = StudentEvaluation::statusFor($evalModel->getByStudent((int)$student['id']), 'coordinator') === 'submitted';
             $ratings = [];
             foreach (StudentEvaluation::coordinatorCriteria() as $section => $criteria) {
                 foreach (array_keys($criteria) as $key) {
@@ -623,20 +611,6 @@ class StudentController extends BaseController
                 $ratings,
                 (string)($p['coordinator_comments'] ?? '')
             );
-            $coordinatorUserId = (int)($student['coordinator_id'] ?? 0);
-            if ($coordinatorUserId > 0) {
-                $studentName = (string)($student['name'] ?? 'A student');
-                $title = $wasSubmitted ? 'Coordinator evaluation updated' : 'Coordinator evaluation received';
-                $message = $wasSubmitted
-                    ? $studentName . ' updated their evaluation of your OJT coordination.'
-                    : $studentName . ' submitted an evaluation of your OJT coordination.';
-                (new Notification($this->db))->create(
-                    $coordinatorUserId,
-                    $title,
-                    $message,
-                    'index.php?r=coordinator_student_final&student_id=' . (int)$student['id'] . '&eval=coordinator'
-                );
-            }
             flash('success', 'OJT Coordinator evaluation saved.');
         } catch (Throwable $e) {
             flash('error', $e->getMessage());
@@ -919,6 +893,10 @@ class StudentController extends BaseController
             }
             $dateStart = !empty($p['date_covered_start']) ? date('Y-m-d', strtotime($p['date_covered_start'])) : null;
             $dateEnd = !empty($p['date_covered_end']) ? date('Y-m-d', strtotime($p['date_covered_end'])) : null;
+            if (!$dateStart || !$dateEnd) {
+                throw new RuntimeException('Date covered is required.');
+            }
+            assert_weekly_dtr_range_complete((int)$student['id'], $dateStart, $dateEnd);
 
             $report = new Report($this->db);
             $reportId = $report->addWeekly(
@@ -1149,6 +1127,9 @@ class StudentController extends BaseController
                 throw new RuntimeException('Weekly report not found.');
             }
             assert_student_weekly_resubmit($enrollment, $existing);
+            $resubmitStart = !empty($p['date_covered_start']) ? date('Y-m-d', strtotime((string)$p['date_covered_start'])) : '';
+            $resubmitEnd = !empty($p['date_covered_end']) ? date('Y-m-d', strtotime((string)$p['date_covered_end'])) : '';
+            assert_weekly_dtr_range_complete((int)$student['id'], $resubmitStart, $resubmitEnd);
             $reportModel->resubmitWeekly(
                 $weeklyId,
                 (int)$student['id'],

@@ -181,17 +181,9 @@ class CoordinatorController extends BaseController
             redirect('index.php?r=coordinator_student_final&student_id=' . $studentId);
         }
         
-        // Handle evaluation sections (coordinator-only access)
         if ($eval === 'coordinator') {
-            $status = StudentEvaluation::statusFor($data['studentEvaluation'], 'coordinator');
-            if ($status !== 'submitted') {
-                flash('error', 'This evaluation has not been submitted yet.');
-                redirect('index.php?r=coordinator_student_final&student_id=' . $studentId);
-            }
-            $data['title'] = 'OJT Coordinator Evaluation - ' . ($student['name'] ?? 'Student');
-            $data['evalType'] = 'coordinator';
-            $this->renderAppPage('coordinator/evaluations/coordinator', $data);
-            return;
+            flash('error', 'The student evaluation of the coordinator is private and is not visible to coordinators.');
+            redirect('index.php?r=coordinator_student_final&student_id=' . $studentId);
         }
 
         if ($eval === 'industry_partner') {
@@ -683,12 +675,16 @@ class CoordinatorController extends BaseController
 
         if ($kind === 'evaluation') {
             $evalKey = (string)($def['evaluation_key'] ?? '');
-            $evalRow = (new StudentEvaluation($this->db))->getByStudent($studentId) ?: [];
-            if (StudentEvaluation::statusFor($evalRow, $evalKey) !== 'submitted') {
-                $data['emptyMessage'] = 'This evaluation has not been submitted yet.';
+            if ($role === 'coordinator' && $evalKey === 'coordinator') {
+                $data['emptyMessage'] = 'The student evaluation of the coordinator is private and is not visible to coordinators.';
             } else {
-                $data['studentEvaluation'] = $evalRow;
-                $data['evalType'] = $evalKey;
+                $evalRow = (new StudentEvaluation($this->db))->getByStudent($studentId) ?: [];
+                if (StudentEvaluation::statusFor($evalRow, $evalKey) !== 'submitted') {
+                    $data['emptyMessage'] = 'This evaluation has not been submitted yet.';
+                } else {
+                    $data['studentEvaluation'] = $evalRow;
+                    $data['evalType'] = $evalKey;
+                }
             }
         } else {
             $stage = (int)($def['stage'] ?? 0);

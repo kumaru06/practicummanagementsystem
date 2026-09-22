@@ -395,9 +395,20 @@ class AdminController extends BaseController
     public function manageCoordinators(): void
     {
         require_role('admin');
+        $coordinators = (new User($this->db))->byRole('coordinator');
+        $assignedStudentsByCoordinator = (new Student($this->db))->assignedDirectoryForAdmin();
+
+        foreach ($coordinators as &$coordinator) {
+            $assigned = $assignedStudentsByCoordinator[(int)$coordinator['id']] ?? [];
+            $coordinator['assigned_students'] = $assigned;
+            $coordinator['assigned_student_count'] = count($assigned);
+        }
+        unset($coordinator);
+
         $this->renderAppPage('admin/coordinators', [
             'title' => 'Manage Coordinators',
-            'coordinators' => (new User($this->db))->byRole('coordinator'),
+            'coordinators' => $coordinators,
+            'assignedStudentsByCoordinator' => $assignedStudentsByCoordinator,
         ]);
     }
 
@@ -782,7 +793,34 @@ class AdminController extends BaseController
         $this->renderAppPage('admin/evaluations', [
             'title' => 'Evaluations',
             'evaluations' => (new Evaluation($this->db))->allWithDetails(),
+            'studentEvaluations' => (new StudentEvaluation($this->db))->allSubmittedWithDetails(),
         ]);
+    }
+
+    public function studentEvaluation(): void
+    {
+        require_role('admin');
+        $studentId = (int)($_GET['student_id'] ?? 0);
+        $type = ($_GET['type'] ?? '') === 'coordinator' ? 'coordinator' : 'industry_partner';
+        $student = (new Student($this->db))->find($studentId);
+        $eval = $student ? (new StudentEvaluation($this->db))->getByStudent($studentId) : [];
+        if (!$student || StudentEvaluation::statusFor($eval, $type) !== 'submitted') {
+            flash('error', 'That student evaluation is not available.');
+            redirect(route_url('admin.evaluations'));
+        }
+
+        $this->renderAppPage(
+            $type === 'coordinator' ? 'coordinator/evaluations/coordinator' : 'coordinator/evaluations/industry_partner',
+            [
+                'title' => ($type === 'coordinator' ? 'Student → Coordinator Evaluation' : 'Student → HTE Evaluation') . ' - ' . ($student['name'] ?? 'Student'),
+                'student' => $student,
+                'studentEvaluation' => $eval,
+                'evalType' => $type,
+                'evalBackUrl' => route_url('admin.evaluations'),
+                'evalBackLabel' => 'Back to Evaluations',
+                'evalAudienceNote' => 'Visible to administrators only. Coordinators cannot see the evaluation about them, and Host Training Establishments cannot see student feedback.',
+            ]
+        );
     }
 
     public function reports(): void
