@@ -72,6 +72,8 @@ class Enrollment
 
     /**
      * Marks active enrollments completed once approved hours meet the requirement.
+     * That status does not lock DTR or weekly reports; missing weeklies can still
+     * be submitted, and partners can still review them.
      * Partner portal "Done" also considers a submitted final evaluation.
      */
     public function syncCompletion(int $studentId): void

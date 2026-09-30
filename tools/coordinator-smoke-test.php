@@ -469,5 +469,123 @@ if ($unenrolled) {
     smoke_pass('Live unenrolled student stage access skipped (all students enrolled)');
 }
 
+// --- Completed hours must not re-lock DTR / weekly reports (Cyan + Nicher case) ---
+$cyanEnrollment = [
+    'status' => 'completed',
+    'predeployment_status' => 'orientation_completed',
+    'official_start_date' => '2026-07-14',
+    'start_date' => '2026-07-14',
+    'projected_end_date' => '2026-08-03',
+    'company_id' => 9,
+];
+smoke_assert(enrollment_allows_reports($cyanEnrollment), 'Completed + oriented + past start unlocks reports');
+smoke_assert(
+    enrollment_report_lock_message($cyanEnrollment) === 'DTR and weekly reports are now unlocked.',
+    'Completed enrollment lock message says unlocked'
+);
+smoke_assert(student_elapsed_weekly_count($cyanEnrollment) === 3, 'Projected 3-week OJT expects 3 weekly reports');
+smoke_assert(!student_weeklies_complete($cyanEnrollment, []), 'Zero weeklies keeps the final-evaluation weekly item open');
+smoke_assert(
+    student_weeklies_complete($cyanEnrollment, [
+        ['week_no' => 1, 'verification_status' => 'approved'],
+        ['week_no' => 2, 'verification_status' => 'pending'],
+        ['week_no' => 3, 'verification_status' => 'approved'],
+    ]),
+    'Three non-rejected weeklies satisfy the weekly gate'
+);
+smoke_assert(
+    !student_weeklies_complete($cyanEnrollment, [
+        ['week_no' => 1, 'verification_status' => 'rejected'],
+        ['week_no' => 2, 'verification_status' => 'rejected'],
+        ['week_no' => 3, 'verification_status' => 'rejected'],
+    ]),
+    'Rejected weeklies do not satisfy the weekly gate'
+);
+
+$activeEnrollment = $cyanEnrollment;
+$activeEnrollment['status'] = 'active';
+smoke_assert(enrollment_allows_reports($activeEnrollment), 'Active oriented enrollment still unlocks reports');
+
+$pendingEnrollment = $cyanEnrollment;
+$pendingEnrollment['status'] = 'pending';
+smoke_assert(!enrollment_allows_reports($pendingEnrollment), 'Pending deployment stays locked');
+smoke_assert(
+    str_contains(enrollment_report_lock_message($pendingEnrollment), 'becomes active'),
+    'Pending deployment uses the not-yet-active lock message'
+);
+
+$futureEnrollment = $cyanEnrollment;
+$futureEnrollment['official_start_date'] = '2026-12-01';
+$futureEnrollment['start_date'] = '2026-12-01';
+smoke_assert(!enrollment_allows_reports($futureEnrollment), 'Future official start stays locked');
+smoke_assert(
+    str_contains(enrollment_report_lock_message($futureEnrollment), 'Dec 01, 2026'),
+    'Future start names the unlock date'
+);
+smoke_assert(
+    !str_contains(enrollment_report_lock_message($futureEnrollment), 'becomes active'),
+    'Future start is not described as an inactive deployment'
+);
+
+$noStart = $cyanEnrollment;
+$noStart['official_start_date'] = '';
+$noStart['start_date'] = '';
+smoke_assert(!enrollment_allows_reports($noStart), 'Missing official start stays locked');
+smoke_assert(
+    str_contains(enrollment_report_lock_message($noStart), 'official OJT start date is set'),
+    'Missing start date message matches the lock'
+);
+smoke_assert(
+    !str_contains(enrollment_report_lock_message($noStart), 'now unlocked'),
+    'Locked enrollment never says reports are unlocked'
+);
+
+$notOriented = $cyanEnrollment;
+$notOriented['predeployment_status'] = 'accepted';
+smoke_assert(!enrollment_allows_reports($notOriented), 'Completed hours without orientation stay locked');
+
+$partnerSummaryEnrollment = [
+    'company_id' => 9,
+    'status' => 'completed',
+    'predeployment_status' => 'orientation_completed',
+    'official_start_date' => '2026-07-14',
+    'start_date' => '2026-07-14',
+];
+smoke_assert(
+    enrollment_allows_reports($partnerSummaryEnrollment),
+    'Partner submission summary unlocks a completed student'
+);
+
+$submitOk = true;
+$submitDetail = '';
+try {
+    assert_student_report_submission($cyanEnrollment, '2026-07-20');
+} catch (Throwable $e) {
+    $submitOk = false;
+    $submitDetail = $e->getMessage();
+}
+smoke_assert($submitOk, 'Server gate accepts a DTR after a completed enrollment has started', $submitDetail);
+
+$earlyBlocked = false;
+try {
+    assert_student_report_submission($cyanEnrollment, '2026-07-01');
+} catch (RuntimeException $e) {
+    $earlyBlocked = str_contains($e->getMessage(), 'cannot be earlier');
+}
+smoke_assert($earlyBlocked, 'Server gate still rejects a DTR before the official start');
+
+$pendingBlocked = false;
+try {
+    assert_student_report_submission($pendingEnrollment, '2026-07-20');
+} catch (RuntimeException $e) {
+    $pendingBlocked = str_contains($e->getMessage(), 'becomes active');
+}
+smoke_assert($pendingBlocked, 'Server gate still rejects reports before deployment is active');
+
+smoke_assert(
+    str_contains($partnerSrc, "'status' => \$row['enrollment_status'] ?? ''"),
+    'Partner submissions map enrollment_status into the report gate'
+);
+
 echo "\n--- Summary: {$passed} passed, {$failures} failed ---\n";
 exit($failures > 0 ? 1 : 0);

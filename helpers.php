@@ -811,6 +811,21 @@ function temporary_official_start_past_dates_allowed(): bool
     return temporary_orientation_past_dates_allowed();
 }
 
+/**
+ * Deployment has left the pending stage.
+ * "completed" only means required hours were met. Weekly reports and partner
+ * review must stay open after that, or missing accomplishments can never be filed.
+ */
+function enrollment_report_status_open(?array $enrollment): bool
+{
+    if (!$enrollment) {
+        return false;
+    }
+    $status = strtolower(trim((string)($enrollment['status'] ?? '')));
+
+    return in_array($status, ['active', 'completed'], true);
+}
+
 /** Single source of truth: may this enrollment submit DTR / weekly reports? */
 function enrollment_allows_reports(?array $enrollment): bool
 {
@@ -820,7 +835,7 @@ function enrollment_allows_reports(?array $enrollment): bool
     if (temporary_report_unlock_enabled()) {
         return !empty($enrollment['company_id']);
     }
-    if (($enrollment['status'] ?? '') !== 'active' || ($enrollment['predeployment_status'] ?? '') !== 'orientation_completed') {
+    if (!enrollment_report_status_open($enrollment) || ($enrollment['predeployment_status'] ?? '') !== 'orientation_completed') {
         return false;
     }
     $startDate = $enrollment['official_start_date'] ?? $enrollment['start_date'] ?? null;
@@ -845,11 +860,14 @@ function enrollment_report_lock_message(?array $enrollment): string
     if (($enrollment['predeployment_status'] ?? '') !== 'orientation_completed') {
         return 'DTR and weekly reports are locked until your documents are approved, forwarded, accepted, and the company completes your orientation.';
     }
-    if (($enrollment['status'] ?? '') !== 'active') {
+    if (!enrollment_report_status_open($enrollment)) {
         return 'DTR and weekly reports are locked until your OJT deployment becomes active.';
     }
     $startDate = $enrollment['official_start_date'] ?? $enrollment['start_date'] ?? null;
-    if ($startDate && strtotime((string)$startDate) !== false && date('Y-m-d') < date('Y-m-d', strtotime((string)$startDate))) {
+    if (!$startDate || strtotime((string)$startDate) === false) {
+        return 'DTR and weekly reports are locked until your official OJT start date is set.';
+    }
+    if (date('Y-m-d') < date('Y-m-d', strtotime((string)$startDate))) {
         return 'DTR and weekly reports will unlock on your official OJT start date: ' . date('M d, Y', strtotime((string)$startDate)) . '.';
     }
 
