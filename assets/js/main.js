@@ -3519,6 +3519,19 @@ function initDtrTimeLocks() {
             confirmMessage: 'You are submitting an absence record with 0 hours. This will not count toward rendered OJT hours.',
             summaryLabel: 'Absent',
         },
+        holiday: {
+            morning: false,
+            afternoon: false,
+            needsTimes: false,
+            requiredIndices: [],
+            intro: 'No time log is required. Briefly note the holiday for partner review.',
+            tasksLabel: 'Holiday note',
+            tasksHint: 'Name the holiday or why no practicum hours were rendered.',
+            tasksPlaceholder: 'Example: Regular holiday, no OJT duty...',
+            confirmTitle: 'Confirm Holiday DTR',
+            confirmMessage: 'You are submitting a holiday record with 0 hours. This will not count toward rendered OJT hours.',
+            summaryLabel: 'Holiday',
+        },
     };
 
     document.querySelectorAll('[data-dtr-lock-flow]').forEach(form => {
@@ -3579,7 +3592,7 @@ function initDtrTimeLocks() {
             if (dayType === 'half_pm') {
                 return `Morning: not included ? Afternoon: ${formatDtrTimeDisplay(pmIn)} ? ${formatDtrTimeDisplay(pmOut)}`;
             }
-            if (dayType === 'sick' || dayType === 'absent') {
+            if (dayType === 'sick' || dayType === 'absent' || dayType === 'holiday') {
                 return 'No attendance times ? 0 hours';
             }
             return `Morning: ${formatDtrTimeDisplay(amIn)} ? ${formatDtrTimeDisplay(amOut)} ? Afternoon: ${formatDtrTimeDisplay(pmIn)} ? ${formatDtrTimeDisplay(pmOut)}`;
@@ -3684,8 +3697,8 @@ function initDtrTimeLocks() {
 
                 const isRequired = required.includes(index);
                 const reqPos = required.indexOf(index);
-                const mustWait = isRequired && reqPos > 0 && !groups[required[reqPos - 1]]?.locked;
                 const isSaved = item.locked && hasDtrTimeValue(item.input.value);
+                const mustWait = isRequired && reqPos > 0 && !groups[required[reqPos - 1]]?.locked && !isSaved;
                 const blocked = dateTaken || !isRequired;
 
                 item.group.toggleAttribute('hidden', !isRequired);
@@ -3774,26 +3787,11 @@ function initDtrTimeLocks() {
                             : 'required session times (save each one)');
                     }
                     if (!tasksReady) {
-                        missing.push(config.needsTimes ? 'tasks done' : 'reason for absence');
+                        missing.push(config.needsTimes ? 'tasks done' : (getDayType() === 'holiday' ? 'holiday note' : 'reason for absence'));
                     }
                     submitHint.textContent = `To submit: ${missing.join(', ')}.`;
                     submitHint.hidden = false;
                 }
-            }
-        };
-
-        const unlockFrom = startIndex => {
-            groups.slice(startIndex).forEach(item => {
-                item.locked = false;
-                item.group.classList.remove('is-locked');
-            });
-        };
-
-        const clearFrom = startIndex => {
-            groups.slice(startIndex).forEach(item => clearGroup(item));
-            if (startIndex <= groups.length - 1) {
-                tasks.value = '';
-                tasks.dispatchEvent(new Event('input', { bubbles: true }));
             }
         };
 
@@ -3823,8 +3821,7 @@ function initDtrTimeLocks() {
                     sync();
                     if (item.button.getAttribute('aria-disabled') === 'true') return;
                     if (item.locked) {
-                        unlockFrom(index);
-                        clearFrom(index);
+                        clearGroup(item);
                         sync();
                         await saveDraft();
                         item.trigger.focus();

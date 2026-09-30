@@ -24531,6 +24531,12 @@ body.role-student .spf-v2 .spf-form select.pf-native-select:focus {
     color: #475569;
 }
 
+.sr-day-pill--holiday {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #15803d;
+}
+
 .sr-schedule-text {
     display: block;
     max-width: 240px;

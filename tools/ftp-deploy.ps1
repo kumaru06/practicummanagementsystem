@@ -10,7 +10,13 @@ $LocalBase = "c:\laragon\www\amaccmanagementsystem"
 
 $Files = @(
     "helpers.php",
-    "models/Enrollment.php",
+    "models/Report.php",
+    "views/student/records.php",
+    "views/student/reports.php",
+    "assets/js/main.js",
+    "assets/css/style.css",
+    "database/schema.sql",
+    "database/migration_2026_09_30_dtr_holiday.sql",
     "tools/coordinator-smoke-test.php"
 )
 

@@ -1968,6 +1968,7 @@ function dtr_day_types(): array
         'half_pm' => 'Half day (Afternoon)',
         'sick' => 'Sick leave',
         'absent' => 'Absent',
+        'holiday' => 'Holiday',
     ];
 }
 
@@ -2015,6 +2016,9 @@ function format_dtr_schedule(array $dtr): string
     }
     if ($dayType === 'absent') {
         return 'Absent - no attendance';
+    }
+    if ($dayType === 'holiday') {
+        return 'Holiday - no attendance';
     }
 
     $morningIn = trim((string)($dtr['morning_time_in'] ?? ''));

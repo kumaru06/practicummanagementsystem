@@ -669,13 +669,25 @@ class Report
 
     private function ensureDtrDayTypeColumn(): void
     {
-        if (!APP_IS_LOCAL) {
+        $enum = "ENUM('full','half_am','half_pm','sick','absent','holiday') NOT NULL DEFAULT 'full'";
+        if (!$this->columnExists('daily_time_records', 'day_type')) {
+            if (!APP_IS_LOCAL) {
+                return;
+            }
+            $this->db->exec(
+                "ALTER TABLE daily_time_records ADD COLUMN day_type {$enum} AFTER work_date"
+            );
             return;
         }
-        if (!$this->columnExists('daily_time_records', 'day_type')) {
-            $this->db->exec(
-                "ALTER TABLE daily_time_records ADD COLUMN day_type ENUM('full','half_am','half_pm','sick','absent') NOT NULL DEFAULT 'full' AFTER work_date"
-            );
+
+        $stmt = $this->db->prepare(
+            'SELECT COLUMN_TYPE FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?'
+        );
+        $stmt->execute(['daily_time_records', 'day_type']);
+        $columnType = strtolower((string)$stmt->fetchColumn());
+        if ($columnType !== '' && !str_contains($columnType, 'holiday')) {
+            $this->db->exec("ALTER TABLE daily_time_records MODIFY COLUMN day_type {$enum}");
         }
     }
 
@@ -700,7 +712,7 @@ class Report
     ): array {
         $dayType = normalize_dtr_day_type($dayType);
 
-        if (in_array($dayType, ['sick', 'absent'], true)) {
+        if (in_array($dayType, ['sick', 'absent', 'holiday'], true)) {
             return [
                 'morning_in' => null,
                 'morning_out' => null,

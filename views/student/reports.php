@@ -40,6 +40,7 @@ $dayTypePill = static function (?string $dayType): string {
         'half_am', 'half_pm' => 'sr-day-pill--half',
         'sick' => 'sr-day-pill--sick',
         'absent' => 'sr-day-pill--absent',
+        'holiday' => 'sr-day-pill--holiday',
         default => 'sr-day-pill--full',
     };
     return '<span class="sr-day-pill ' . $class . '">' . e(format_dtr_day_type_label($dayType)) . '</span>';

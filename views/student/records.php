@@ -173,6 +173,7 @@
         'half_pm' => [2, 3],
         'sick' => [],
         'absent' => [],
+        'holiday' => [],
     ];
     $dtrRequiredIndices = $dtrRequiredByType[$dtrDayType] ?? $dtrRequiredByType['full'];
     $dtrFieldKeys = ['morning_time_in', 'morning_time_out', 'afternoon_time_in', 'afternoon_time_out'];
@@ -297,7 +298,7 @@
             </div>
 
             <div class="dtr-sessions" data-dtr-sessions>
-                <section class="dtr-session dtr-session--morning" data-dtr-session="morning"<?= in_array($dtrDayType, ['half_pm', 'sick', 'absent'], true) ? ' hidden' : '' ?>>
+                <section class="dtr-session dtr-session--morning" data-dtr-session="morning"<?= in_array($dtrDayType, ['half_pm', 'sick', 'absent', 'holiday'], true) ? ' hidden' : '' ?>>
                     <header class="dtr-session-head">
                         <div class="dtr-session-title-wrap">
                             <span class="dtr-session-icon" aria-hidden="true">
@@ -338,7 +339,7 @@
                     </div>
                 </section>
 
-                <section class="dtr-session dtr-session--afternoon" data-dtr-session="afternoon"<?= in_array($dtrDayType, ['half_am', 'sick', 'absent'], true) ? ' hidden' : '' ?>>
+                <section class="dtr-session dtr-session--afternoon" data-dtr-session="afternoon"<?= in_array($dtrDayType, ['half_am', 'sick', 'absent', 'holiday'], true) ? ' hidden' : '' ?>>
                     <header class="dtr-session-head">
                         <div class="dtr-session-title-wrap">
                             <span class="dtr-session-icon" aria-hidden="true">

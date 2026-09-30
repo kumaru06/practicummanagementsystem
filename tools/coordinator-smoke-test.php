@@ -587,5 +587,75 @@ smoke_assert(
     'Partner submissions map enrollment_status into the report gate'
 );
 
+// --- Holiday DTR day type ---
+smoke_assert(normalize_dtr_day_type('holiday') === 'holiday', 'Holiday day type normalizes to itself');
+smoke_assert(normalize_dtr_day_type('Holiday') === 'holiday', 'Holiday day type is case-insensitive');
+smoke_assert(format_dtr_day_type_label('holiday') === 'Holiday', 'Holiday day type label');
+smoke_assert(
+    format_dtr_schedule(['day_type' => 'holiday']) === 'Holiday - no attendance',
+    'Holiday schedule shows no attendance'
+);
+smoke_assert(normalize_dtr_day_type('not-a-type') === 'full', 'Unknown day type still falls back to whole day');
+
+$recordsHolidaySrc = file_get_contents($root . '/views/student/records.php') ?: '';
+$dtrJsSrc = file_get_contents($root . '/assets/js/main.js') ?: '';
+smoke_assert(str_contains($recordsHolidaySrc, "'holiday' => []"), 'Submit Record skips time fields for holiday');
+smoke_assert(str_contains($dtrJsSrc, 'confirmTitle: \'Confirm Holiday DTR\''), 'Holiday confirm copy exists');
+smoke_assert(str_contains($dtrJsSrc, "dayType === 'holiday'"), 'Holiday summary skips attendance times');
+
+$reportModel = new Report($db);
+$ensureDayType = new ReflectionMethod(Report::class, 'ensureDtrDayTypeColumn');
+$ensureDayType->setAccessible(true);
+$ensureDayType->invoke($reportModel);
+$dayTypeColumn = (string)$db->query(
+    "SELECT COLUMN_TYPE FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'daily_time_records' AND COLUMN_NAME = 'day_type'"
+)->fetchColumn();
+smoke_assert(str_contains(strtolower($dayTypeColumn), 'holiday'), 'day_type ENUM includes holiday', $dayTypeColumn);
+
+$holidayStudentId = (int)$db->query('SELECT id FROM students ORDER BY id ASC LIMIT 1')->fetchColumn();
+if ($holidayStudentId > 0) {
+    $holidayDate = '1999-12-31';
+    $taken = $db->prepare('SELECT id FROM daily_time_records WHERE student_id = ? AND work_date = ?');
+    $taken->execute([$holidayStudentId, $holidayDate]);
+    if ($taken->fetch()) {
+        smoke_pass('Holiday insert smoke skipped (fixture date already used)');
+    } else {
+        $db->beginTransaction();
+        $holidayInsertOk = false;
+        $holidayDetail = '';
+        try {
+            $reportModel->addDtr($holidayStudentId, $holidayDate, 'holiday', '08:00', '12:00', '13:00', '17:00', 'Regular holiday');
+            $saved = $db->prepare(
+                'SELECT day_type, hours, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out
+                 FROM daily_time_records WHERE student_id = ? AND work_date = ?'
+            );
+            $saved->execute([$holidayStudentId, $holidayDate]);
+            $savedRow = $saved->fetch(PDO::FETCH_ASSOC) ?: [];
+            $holidayInsertOk = ($savedRow['day_type'] ?? '') === 'holiday'
+                && (float)($savedRow['hours'] ?? -1) === 0.0
+                && ($savedRow['morning_time_in'] ?? null) === null
+                && ($savedRow['afternoon_time_out'] ?? null) === null;
+            if (!$holidayInsertOk) {
+                $holidayDetail = json_encode($savedRow);
+            }
+            $covered = $reportModel->submittedWorkDatesBetween($holidayStudentId, $holidayDate, $holidayDate);
+            smoke_assert($covered === [$holidayDate], 'Holiday DTR counts as a filed day for weekly reports');
+        } catch (Throwable $e) {
+            $holidayDetail = $e->getMessage();
+        } finally {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+        }
+        smoke_assert($holidayInsertOk, 'Holiday DTR stores 0 hours and no attendance times', $holidayDetail);
+        $leftover = $db->prepare('SELECT COUNT(*) FROM daily_time_records WHERE student_id = ? AND work_date = ?');
+        $leftover->execute([$holidayStudentId, $holidayDate]);
+        smoke_assert((int)$leftover->fetchColumn() === 0, 'Holiday smoke insert rolled back');
+    }
+} else {
+    smoke_pass('Holiday insert smoke skipped (no student row)');
+}
+
 echo "\n--- Summary: {$passed} passed, {$failures} failed ---\n";
 exit($failures > 0 ? 1 : 0);
