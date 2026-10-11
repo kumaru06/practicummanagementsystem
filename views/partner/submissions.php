@@ -11,11 +11,14 @@
                 <p class="muted ps-v2-empty">No students assigned to your organization yet.</p>
             <?php else: ?>
                 <div class="ps-v2-sidebar-search">
-                    <input type="search"
-                           class="ps-v2-student-search"
-                           data-ps-student-search
-                           placeholder="Search by name or student ID..."
-                           aria-label="Search students by name or student ID">
+                    <label class="ps-v2-search-field">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                        <input type="search"
+                               class="ps-v2-student-search"
+                               data-ps-student-search
+                               placeholder="Search by name or student ID..."
+                               aria-label="Search students by name or student ID">
+                    </label>
                 </div>
                 <div class="ps-v2-student-list-panel">
                     <ul class="ps-v2-student-list">
@@ -51,14 +54,7 @@
                         <?php endforeach; ?>
                     </ul>
                     <div class="ps-v2-search-not-found" data-ps-student-search-empty hidden>
-                        <div class="ps-v2-search-not-found-art" aria-hidden="true">
-                            <svg viewBox="0 0 120 120" fill="none">
-                                <circle cx="52" cy="52" r="34" stroke="#cbd5e1" stroke-width="4"/>
-                                <path d="M78 78l22 22" stroke="#cbd5e1" stroke-width="4" stroke-linecap="round"/>
-                                <path d="M40 52h24M52 40v24" stroke="#94a3b8" stroke-width="4" stroke-linecap="round" transform="rotate(45 52 52)"/>
-                            </svg>
-                        </div>
-                        <strong>No Result Found</strong>
+                        <strong>No result found</strong>
                         <p class="muted">Try a different name or student ID.</p>
                     </div>
                 </div>

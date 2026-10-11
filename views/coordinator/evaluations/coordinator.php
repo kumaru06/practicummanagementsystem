@@ -13,17 +13,12 @@
     <?= e($evalBackLabel) ?>
 </a>
 
-<section class="card final-form-card eval-form-card final-readonly-card">
-    <div class="status-callout info final-req-note" style="margin-top:0;margin-bottom:18px;">
-        <strong>Private evaluation</strong>
-        <p><?= e($evalAudienceNote) ?></p>
-    </div>
-
+<section class="card final-form-card eval-form-card final-readonly-card eval-readonly-card">
     <div class="final-form-head">
-        <span class="final-form-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/></svg>
+        <span class="final-form-icon final-form-icon--eval" aria-hidden="true">
+            <svg class="final-req-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg>
         </span>
-        <div>
+        <div class="final-form-head-copy">
             <h2>OJT Coordinator Evaluation</h2>
             <p class="muted"><?= e($student['name'] ?? 'Student') ?>  ·  <?= e($student['student_no'] ?? '') ?></p>
         </div>
@@ -31,6 +26,11 @@
             <span class="eval-result-grade-value"><?= e(number_format($grade, 2)) ?>%</span>
             <span class="eval-result-grade-label">Overall Rating</span>
         </div>
+    </div>
+
+    <div class="status-callout info final-req-note eval-readonly-note">
+        <strong>Private evaluation</strong>
+        <p><?= e($evalAudienceNote) ?></p>
     </div>
 
     <?php $rowIndex = 0; ?>
@@ -43,10 +43,9 @@
             </div>
             <?php foreach ($items as $key => $def): $rowIndex++; $r = (int)($coordinatorRatings[$key] ?? 0); ?>
                 <div class="eval-row">
-                    <span class="eval-row-num"><?= $rowIndex ?>.</span>
-                    <span class="eval-row-label"><?= e($def['label']) ?></span>
+                    <span class="eval-row-label"><span class="eval-row-num"><?= $rowIndex ?>.</span> <?= e($def['label']) ?></span>
                     <span class="eval-row-weight"><?= e($def['weight']) ?>%</span>
-                    <span class="eval-row-rating"><span class="eval-static-stars"><?= $stars($r) ?></span> <?= $r ?: '-' ?></span>
+                    <span class="eval-row-rating"><span class="eval-static-stars"><?= $stars($r) ?></span> <span class="eval-static-score"><?= $r ?: '-' ?></span></span>
                 </div>
             <?php endforeach; ?>
         </div>

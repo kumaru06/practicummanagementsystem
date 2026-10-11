@@ -202,13 +202,15 @@ class Evaluation
     {
         $this->ensureDetailSupport();
         $stmt = $this->db->query(
-            'SELECT e.*, u.name AS student_name, s.student_no, s.course, s.year_level,
-                    c.name AS company_name, en.start_date, en.end_date
+            'SELECT e.*, u.name AS student_name, s.student_no, s.course, s.year_level, s.photo_file,
+                    p.code AS program_code, c.name AS company_name, en.academic_term,
+                    en.start_date, en.end_date
              FROM evaluations e
              JOIN ojt_enrollments en ON en.id = e.enrollment_id
              JOIN students s ON s.id = en.student_id
              JOIN users u ON u.id = s.user_id
              JOIN partner_companies c ON c.id = e.company_id
+             LEFT JOIN programs p ON p.id = s.program_id
              ORDER BY e.submitted_at DESC'
         );
         return $stmt->fetchAll();

@@ -398,7 +398,13 @@ class Enrollment
                 e.status,
                 e.predeployment_status,
                 COALESCE(e.official_start_date, e.start_date) AS placement_start,
-                COALESCE(e.projected_end_date, e.end_date) AS placement_end,
+                (
+                    SELECT MAX(d.work_date)
+                    FROM daily_time_records d
+                    WHERE d.student_id = e.student_id
+                      AND d.verification_status IN (\'pending\', \'approved\')
+                      AND d.work_date >= COALESCE(e.official_start_date, e.start_date)
+                ) AS placement_end,
                 u.name AS student_name,
                 s.student_no,
                 COALESCE(p.code, s.course) AS course,

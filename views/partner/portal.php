@@ -39,7 +39,7 @@ $actionStudents = array_values(array_filter($students ?? [], $needsAction));
 $forwardedStudents = array_values(array_filter($students ?? [], static fn ($s) => ($s['predeployment_status'] ?? '') === 'forwarded'));
 $activeStudents = array_values(array_filter($students ?? [], static fn ($s) => partner_enrollment_is_active_ojt($s)));
 
-$pipelineLabels = ['Documents', 'Accept', 'Orient', 'OJT', 'Done'];
+$pipelineLabels = ['Docs', 'Accept', 'Orient', 'OJT', 'Done'];
 $currentPipeline = $selected ? partner_enrollment_pipeline_step($selected, $evaluation ?? null) : -1;
 ?>
 <div class="partner-portal-v2<?= $selected ? ' has-selection' : '' ?>">
@@ -135,17 +135,37 @@ $currentPipeline = $selected ? partner_enrollment_pipeline_step($selected, $eval
                                 <h2><?= e($selected['student_name']) ?></h2>
                                 <span class="pp-chip <?= e($selMeta['chip']) ?> pp-chip--lg"><?= e($selMeta['label']) ?></span>
                             </div>
-                            <p><?= e($selected['course'] . ' ' . $selected['year_level']) ?> · <?= e($selected['student_no']) ?> · <?= e($selected['student_email']) ?><?php
-                                $partnerBirthdate = student_format_birthdate($selected, '');
-                                echo $partnerBirthdate !== '' ? ' · Born ' . e($partnerBirthdate) : '';
-                            ?></p>
-                            <?php $partnerStudentAddress = student_display_address($selected); ?>
-                            <?php if (!empty($selected['contact_number']) || $partnerStudentAddress !== ''): ?>
-                                <p class="pp-student-contact">
-                                    <?php if (!empty($selected['contact_number'])): ?><span><?= e($selected['contact_number']) ?></span><?php endif; ?>
-                                    <?php if ($partnerStudentAddress !== ''): ?><span><?= e($partnerStudentAddress) ?></span><?php endif; ?>
-                                </p>
-                            <?php endif; ?>
+                            <p class="pp-student-program"><?= e(trim(($selected['course'] ?? '') . ' ' . ($selected['year_level'] ?? ''))) ?></p>
+                            <div class="pp-student-facts">
+                                <span class="pp-student-fact">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h6M7 13h4"/></svg>
+                                    <?= e($selected['student_no']) ?>
+                                </span>
+                                <span class="pp-student-fact">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+                                    <?= e($selected['student_email']) ?>
+                                </span>
+                                <?php if (!empty($selected['contact_number'])): ?>
+                                    <span class="pp-student-fact">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.9v2a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h2a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L7.1 9.5a16 16 0 0 0 6 6l1.1-1.1a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2Z"/></svg>
+                                        <?= e($selected['contact_number']) ?>
+                                    </span>
+                                <?php endif; ?>
+                                <?php $partnerStudentAddress = student_display_address($selected); ?>
+                                <?php if ($partnerStudentAddress !== ''): ?>
+                                    <span class="pp-student-fact">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                                        <?= e($partnerStudentAddress) ?>
+                                    </span>
+                                <?php endif; ?>
+                                <?php $partnerBirthdate = student_format_birthdate($selected, ''); ?>
+                                <?php if ($partnerBirthdate !== ''): ?>
+                                    <span class="pp-student-fact">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+                                        Born <?= e($partnerBirthdate) ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
                     <?php if ($selMeta['action']): ?>
@@ -433,10 +453,7 @@ $currentPipeline = $selected ? partner_enrollment_pipeline_step($selected, $eval
                     ?>
                     <section class="pp-panel pp-panel--records">
                         <div class="pp-panel-head pp-panel-head--split">
-                            <div>
-                                <h3>Student Submissions</h3>
-                                <p class="muted">Daily time records and weekly reports for <?= e($selected['student_name']) ?>.</p>
-                            </div>
+                            <h3>Student Submissions</h3>
                             <?php if (!empty($reportsUnlocked)): ?>
                                 <a class="pp-link-btn" href="<?= e(route_url('partner.submissions', ['student_id' => (int)$selected['student_id']])) ?>">
                                     <?= $pendingSubmissionTotal > 0 ? 'Review now (' . $pendingSubmissionTotal . ' pending)' : 'Open submissions' ?>
@@ -469,35 +486,37 @@ $currentPipeline = $selected ? partner_enrollment_pipeline_step($selected, $eval
                                     </span>
                                 </a>
                             </div>
-                            <div class="table-wrap">
-                                <table class="data-table compact-table" data-no-enhance="1">
-                                    <thead><tr><th>Date</th><th>Schedule</th><th>Hours</th><th>Status</th><th>Tasks</th></tr></thead>
-                                    <tbody>
-                                        <?php if (empty($dtrs)): ?>
-                                            <tr><td colspan="5" class="pp-muted">No time records yet.</td></tr>
-                                        <?php endif; ?>
-                                        <?php foreach (array_slice($dtrs ?? [], 0, 5) as $d): ?>
-                                            <?php
-                                            $dtrStatus = strtolower(trim((string)($d['verification_status'] ?? 'pending')));
-                                            if (!in_array($dtrStatus, ['pending', 'approved', 'rejected'], true)) {
-                                                $dtrStatus = 'pending';
-                                            }
-                                            $dtrChip = match ($dtrStatus) {
-                                                'approved' => 'pp-chip--approved',
-                                                'rejected' => 'pp-chip--default',
-                                                default => 'pp-chip--forwarded',
-                                            };
-                                            ?>
-                                            <tr>
-                                                <td><?= e($d['work_date']) ?></td>
-                                                <td><?= e(format_dtr_schedule($d)) ?></td>
-                                                <td><?= e($d['hours']) ?></td>
-                                                <td><span class="pp-chip <?= e($dtrChip) ?>"><?= e(ucfirst($dtrStatus)) ?></span></td>
-                                                <td><?= e($d['tasks_done']) ?></td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
+                            <div class="pp-recent-list">
+                                <?php if (empty($dtrs)): ?>
+                                    <p class="pp-muted">No time records yet.</p>
+                                <?php endif; ?>
+                                <?php foreach (array_slice($dtrs ?? [], 0, 5) as $d): ?>
+                                    <?php
+                                    $dtrStatus = strtolower(trim((string)($d['verification_status'] ?? 'pending')));
+                                    if (!in_array($dtrStatus, ['pending', 'approved', 'rejected'], true)) {
+                                        $dtrStatus = 'pending';
+                                    }
+                                    $dtrChip = match ($dtrStatus) {
+                                        'approved' => 'pp-chip--approved',
+                                        'rejected' => 'pp-chip--default',
+                                        default => 'pp-chip--forwarded',
+                                    };
+                                    $workDate = !empty($d['work_date']) ? date('M j, Y', strtotime((string)$d['work_date'])) : '';
+                                    ?>
+                                    <article class="pp-recent-item">
+                                        <div class="pp-recent-copy">
+                                            <strong><?= e($workDate) ?></strong>
+                                            <span><?= e(format_dtr_schedule($d)) ?></span>
+                                            <?php if (!empty($d['tasks_done'])): ?>
+                                                <p><?= e($d['tasks_done']) ?></p>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="pp-recent-side">
+                                            <em><?= e(number_format((float)($d['hours'] ?? 0), 1)) ?> hrs</em>
+                                            <span class="pp-chip <?= e($dtrChip) ?>"><?= e(ucfirst($dtrStatus)) ?></span>
+                                        </div>
+                                    </article>
+                                <?php endforeach; ?>
                             </div>
                             <?php if (count($dtrs ?? []) > 5): ?>
                                 <p class="pp-submissions-more muted">Showing latest 5 records. <a href="<?= e(route_url('partner.submissions', ['student_id' => (int)$selected['student_id']])) ?>">View all in Submissions</a></p>
@@ -528,7 +547,6 @@ $currentPipeline = $selected ? partner_enrollment_pipeline_step($selected, $eval
                             <?php endif; ?>
                         <?php else: ?>
                             <div class="pp-eval-locked">
-                                <p class="muted"><?= e($evaluationGate['message'] ?? 'Final evaluation stays locked until every required item is complete.') ?></p>
                                 <ul class="pp-eval-checklist">
                                     <?php foreach (($evaluationGate['items'] ?? []) as $item): ?>
                                         <li class="<?= !empty($item['done']) ? 'is-done' : 'is-pending' ?>">

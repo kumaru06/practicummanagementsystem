@@ -666,7 +666,12 @@
 .login-page .portal-grid {
     display: grid;
     gap: 10px;
-    padding: 2px 1px 8px;
+    padding: 2px 2px 16px;
+}
+
+.login-page .portal-login-card:has(.portal-view--select.is-active) .portal-login-card-inner,
+.login-page .portal-login-card:has(.portal-view--select.is-active) .portal-stage {
+    overflow: visible;
 }
 
 .login-page .portal-link {
@@ -716,8 +721,8 @@
 .login-page .portal-link:hover {
     border-color: var(--portal-accent, var(--login-red));
     background: var(--portal-bg, var(--login-red-soft));
-    box-shadow: 0 14px 28px var(--portal-shadow, rgba(139, 26, 26, 0.12));
-    transform: translateY(-2px);
+    box-shadow: 0 6px 14px var(--portal-shadow, rgba(139, 26, 26, 0.12));
+    transform: none;
 }
 
 .login-page .portal-link:hover::before,

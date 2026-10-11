@@ -40,6 +40,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initPartnerEvaluationForm();
     initPartnerOrientationProjectedEnd();
     initEmailLogViews();
+    initAdminEvalComments();
+    initAdminEvalRecords();
+    initAdminStudentEvalModal();
     initRequirementReviewModals();
     initRegistrationRequestsReview();
     initPasswordResetRequests();
@@ -3122,7 +3125,6 @@ function initPartnerSubmissions() {
     const loadDetail = async (url, { pushState = true, studentId = null } = {}) => {
         if (loading) return;
         loading = true;
-        detailHost.classList.add('is-loading');
         try {
             const requestUrl = new URL(url, window.location.href);
             if (!requestUrl.searchParams.get('partial')) {
@@ -3157,6 +3159,7 @@ function initPartnerSubmissions() {
         const link = event.target.closest('[data-ps-ajax]');
         if (!link || !root.contains(link)) return;
         event.preventDefault();
+        event.stopPropagation();
         link.closest('details')?.removeAttribute('open');
         const studentId = link.dataset.studentId || null;
         loadDetail(link.href, { studentId });
@@ -5936,6 +5939,262 @@ function closeAdminActionMenus() {
         panel.style.pointerEvents = '';
     });
 }
+function initAdminEvalComments() {
+    if (document.body.dataset.evalCommentBound === '1') return;
+    document.body.dataset.evalCommentBound = '1';
+    document.body.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-eval-comment-view]');
+        if (!button) return;
+        event.preventDefault();
+        const student = button.dataset.student || 'Student';
+        const company = button.dataset.company || '';
+        const comment = String(button.dataset.comment || '').trim();
+        const companyRow = company
+            ? `<div class="detail-row"><span>Company</span><strong>${escapeHtml(company)}</strong></div>`
+            : '';
+        openSlidePanel(`
+            <h2>Evaluation Comment</h2>
+            <div class="detail-row"><span>Student</span><strong>${escapeHtml(student)}</strong></div>
+            ${companyRow}
+            <div class="detail-row"><span>Comment</span><p class="eval-comment-text">${escapeHtml(comment || 'No comment was submitted.')}</p></div>
+        `);
+    });
+}
+
+function evalRecordGradeTone(grade) {
+    const value = parseFloat(String(grade || '').replace(/[^\d.]/g, ''));
+    if (!Number.isFinite(value)) return 'mid';
+    if (value >= 90) return 'high';
+    if (value >= 75) return 'mid';
+    return 'low';
+}
+
+function evalDetailIcon(name) {
+    const icons = {
+        cap: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c2 2 10 2 12 0v-5"/></svg>',
+        medal: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="5"/><path d="m8.5 13.5-2 7 5.5-3 5.5 3-2-7"/></svg>',
+        file: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>',
+        chat: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"/></svg>',
+        calendar: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+        external: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>',
+    };
+    return icons[name] || '';
+}
+
+function renderHteEvalDetail(data) {
+    const name = data.student || 'Student';
+    const initial = name.trim().charAt(0).toUpperCase() || 'S';
+    const photo = String(data.photo || '').trim();
+    const grade = data.grade || '—';
+    const program = String(data.program || '').trim() || '—';
+    const term = String(data.term || '').trim() || '—';
+    const hte = String(data.hte || '').trim() || '—';
+    const submitted = data.submitted || '—';
+    const comment = String(data.comment || '').trim() || 'No comment was submitted.';
+    const certificate = String(data.certificate || '').trim();
+    const avatar = photo
+        ? `<span class="eval-detail-avatar"><img src="${escapeHtml(photo)}" alt=""></span>`
+        : `<span class="eval-detail-avatar eval-detail-avatar--fallback">${escapeHtml(initial)}</span>`;
+    const certificateBody = certificate
+        ? `<a class="eval-detail-cert-btn" href="${escapeHtml(certificate)}" target="_blank" rel="noopener">View Certificate ${evalDetailIcon('external')}</a>`
+        : '<span class="eval-record-muted">No certificate uploaded</span>';
+    const facts = [
+        ['Student ID', data.studentNo || '—'],
+        ['Degree Program', program],
+        ['Academic Term', term],
+        ['HTE', hte],
+    ].map(([label, value]) => `
+        <div class="eval-detail-fact">
+            <dt>${escapeHtml(label)}</dt>
+            <dd>${escapeHtml(value)}</dd>
+        </div>
+    `).join('');
+
+    return `
+        <article class="eval-detail">
+            <header class="eval-detail-title">
+                <span class="eval-detail-title-icon" aria-hidden="true">${evalDetailIcon('cap')}</span>
+                <h2>HTE Final Evaluation Details</h2>
+            </header>
+            <div class="eval-detail-scroll">
+            <section class="eval-detail-person">
+                ${avatar}
+                <div class="eval-detail-person-copy">
+                    <h3>${escapeHtml(name)}</h3>
+                    <dl class="eval-detail-facts">${facts}</dl>
+                </div>
+            </section>
+            <div class="eval-detail-split">
+                <section class="eval-detail-panel eval-detail-panel--grade">
+                    <span class="eval-detail-panel-icon" aria-hidden="true">${evalDetailIcon('medal')}</span>
+                    <div>
+                        <p>Final Grade</p>
+                        <strong>${escapeHtml(grade)}</strong>
+                    </div>
+                </section>
+                <section class="eval-detail-panel eval-detail-panel--cert">
+                    <span class="eval-detail-panel-icon" aria-hidden="true">${evalDetailIcon('file')}</span>
+                    <div>
+                        <p>Certificate</p>
+                        ${certificateBody}
+                    </div>
+                </section>
+            </div>
+            <section class="eval-detail-panel eval-detail-panel--comment">
+                <span class="eval-detail-panel-icon" aria-hidden="true">${evalDetailIcon('chat')}</span>
+                <div>
+                    <p>HTE Comments</p>
+                    <strong>${escapeHtml(comment)}</strong>
+                </div>
+            </section>
+            <footer class="eval-detail-foot">
+                <div class="eval-detail-date">
+                    <span class="eval-detail-panel-icon" aria-hidden="true">${evalDetailIcon('calendar')}</span>
+                    <div>
+                        <p>Date Submitted</p>
+                        <strong>${escapeHtml(submitted)}</strong>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-small eval-detail-close" data-eval-close>Close</button>
+            </footer>
+            </div>
+        </article>
+    `;
+}
+
+function renderAdminEvalRecord(row) {
+    const data = row.dataset;
+    if ((data.evalKind || 'hte') === 'hte') {
+        return renderHteEvalDetail(data);
+    }
+    const name = data.student || 'Student';
+    const initial = name.trim().charAt(0).toUpperCase() || 'S';
+    const kind = 'student';
+    const eyebrow = 'Student Evaluation';
+    const grade = data.grade || '—';
+    const tone = evalRecordGradeTone(grade);
+    const program = String(data.program || '').trim();
+    const term = String(data.term || '').trim();
+    const type = String(data.type || '').trim();
+    const hte = String(data.hte || '').trim() || '—';
+    const submitted = data.submitted || '—';
+    const comment = String(data.comment || '').trim();
+    const certificate = String(data.certificate || '').trim();
+    const href = String(data.href || '').trim();
+
+    const cards = [];
+    if (type) {
+        cards.push(['Type', type, 'type']);
+    }
+    if (program) {
+        cards.push(['Degree Program', program, 'program']);
+    }
+    if (kind === 'hte') {
+        cards.push(['Academic Term', term || '—', 'term']);
+    }
+    cards.push(['HTE', hte, 'hte']);
+    cards.push(['Submitted', submitted, 'date']);
+
+    const cardsHtml = cards.map(([label, value, toneName]) => `
+        <div class="eval-record-card eval-record-card--${toneName}">
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(value || '—')}</strong>
+        </div>
+    `).join('');
+
+    const certificateHtml = certificate
+        ? `<a class="eval-record-link" href="${escapeHtml(certificate)}" target="_blank" rel="noopener">View certificate</a>`
+        : (kind === 'hte' ? '<span class="eval-record-muted">No certificate uploaded</span>' : '');
+    const evaluationHtml = href
+        ? `<a class="eval-record-link" href="${escapeHtml(href)}">Open full evaluation</a>`
+        : '';
+    const extra = [certificateHtml, evaluationHtml].filter(Boolean).join('');
+    const commentHtml = comment
+        ? `<section class="eval-record-comment"><h3>Comment</h3><p>${escapeHtml(comment)}</p></section>`
+        : '';
+
+    return `
+        <article class="eval-record">
+            <header class="eval-record-hero">
+                <span class="eval-record-avatar" aria-hidden="true">${escapeHtml(initial)}</span>
+                <div class="eval-record-hero-copy">
+                    <p class="eval-record-eyebrow">${escapeHtml(eyebrow)}</p>
+                    <h2>${escapeHtml(name)}</h2>
+                    <p class="eval-record-id">${escapeHtml(data.studentNo || '—')}</p>
+                </div>
+                <div class="eval-record-grade eval-record-grade--${tone}">
+                    <span>Grade</span>
+                    <strong>${escapeHtml(grade)}</strong>
+                </div>
+            </header>
+            <div class="eval-record-grid">${cardsHtml}</div>
+            ${extra ? `<div class="eval-record-actions">${extra}</div>` : ''}
+            ${commentHtml}
+        </article>
+    `;
+}
+
+let adminStudentEvalRequest = 0;
+
+function initAdminStudentEvalModal() {
+    if (document.body.dataset.evalStudentModalBound === '1') return;
+    document.body.dataset.evalStudentModalBound = '1';
+    document.body.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-eval-student-view]');
+        if (!button) return;
+        event.preventDefault();
+        const url = button.getAttribute('data-eval-student-view') || '';
+        if (!url) return;
+        const requestId = ++adminStudentEvalRequest;
+        openSlidePanel('<p class="muted">Loading evaluation...</p>');
+        fetch(url, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        })
+            .then((response) => {
+                if (!response.ok) throw new Error('load failed');
+                return response.text();
+            })
+            .then((html) => {
+                if (requestId !== adminStudentEvalRequest) return;
+                const modal = document.getElementById('modal');
+                const body = document.getElementById('modal-body');
+                if (!modal || !modal.classList.contains('open') || !body) return;
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const page = doc.querySelector('[data-ajax-page]');
+                const card = doc.querySelector('.eval-readonly-card');
+                if (!page || !card) throw new Error('missing evaluation');
+                const wrap = document.createElement('div');
+                wrap.className = 'eval-student-modal';
+                wrap.innerHTML = page.innerHTML;
+                body.replaceChildren(wrap);
+            })
+            .catch(() => {
+                if (requestId !== adminStudentEvalRequest) return;
+                const modal = document.getElementById('modal');
+                if (!modal || !modal.classList.contains('open')) return;
+                openSlidePanel('<h2>Evaluation</h2><p>Unable to open this evaluation. Please try again.</p>');
+            });
+    });
+}
+
+function initAdminEvalRecords() {
+    if (document.body.dataset.evalRecordBound === '1') return;
+    document.body.dataset.evalRecordBound = '1';
+    document.body.addEventListener('click', (event) => {
+        if (event.target.closest('[data-eval-close]')) {
+            event.preventDefault();
+            closeSlidePanel();
+            return;
+        }
+        const openButton = event.target.closest('[data-eval-open]');
+        const row = openButton ? openButton.closest('tr[data-eval-record]') : null;
+        if (!row) return;
+        event.preventDefault();
+        openSlidePanel(renderAdminEvalRecord(row));
+    });
+}
+
 function escapeHtml(value) {
     return String(value).replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#039;', '"': '&quot;' }[c]));
 }
@@ -10119,6 +10378,9 @@ function reinitAppPageContent() {
     initPartnerEvaluationForm();
     initPartnerOrientationProjectedEnd();
     initEmailLogViews();
+    initAdminEvalComments();
+    initAdminEvalRecords();
+    initAdminStudentEvalModal();
     initEmailLogsFeed();
     initRequirementReviewModals();
     initRegistrationRequestsReview();
@@ -10180,34 +10442,6 @@ function waitForMs(ms) {
     return new Promise(resolve => window.setTimeout(resolve, ms));
 }
 
-function coordinatorPageNavDirection(fromHref, toHref) {
-    const fromRoute = parseAppRoute(fromHref);
-    const toRoute = parseAppRoute(toHref);
-    if (fromRoute === 'coordinator_students' && toRoute === 'coordinator_student_final') {
-        return 'forward';
-    }
-    if (fromRoute === 'coordinator_student_final' && toRoute === 'coordinator_students') {
-        return 'back';
-    }
-    return '';
-}
-
-function studentSettingsNavDirection(fromHref, toHref) {
-    const fromRoute = parseAppRoute(fromHref);
-    const toRoute = parseAppRoute(toHref);
-    const family = new Set(['student_settings', 'student_profile', 'student_password']);
-    if (!family.has(fromRoute) || !family.has(toRoute) || fromRoute === toRoute) return '';
-    if (fromRoute === 'student_settings') return 'forward';
-    if (toRoute === 'student_settings') return 'back';
-    return 'soft';
-}
-
-function pageNavDirection(fromHref, toHref) {
-    return coordinatorPageNavDirection(fromHref, toHref)
-        || studentSettingsNavDirection(fromHref, toHref)
-        || 'soft';
-}
-
 function clearAjaxNavMotion(content) {
     content.classList.remove(
         'is-ajax-loading',
@@ -10242,41 +10476,19 @@ function initAppAjaxNav() {
         }
 
         loading = true;
-        const direction = pageNavDirection(currentAjaxHref, href);
-        const useMotion = !prefersReducedMotion();
-
-        if (useMotion) {
-            const modalOpen = document.getElementById('studentModal')?.classList.contains('open');
-            if (direction === 'back') {
-                content.classList.add('is-ajax-leave-back');
-            } else if (direction === 'forward' && !modalOpen) {
-                content.classList.add('is-ajax-leave-fwd');
-            } else if (direction === 'forward' && modalOpen) {
-                content.classList.add('is-ajax-leave');
-            } else {
-                content.classList.add('is-ajax-leave-soft');
-            }
-        } else {
-            content.classList.add('is-ajax-loading');
-        }
 
         try {
             destroyLiveChatIfNeeded();
             closeAdminPendingPeopleModal();
 
-            const leaveWait = useMotion ? waitForMs(direction === 'soft' ? 220 : 260) : Promise.resolve();
-
-            const [response] = await Promise.all([
-                fetch(buildAppAjaxUrl(href), {
-                    credentials: 'same-origin',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        Accept: 'text/html',
-                    },
-                    cache: 'no-store',
-                }),
-                leaveWait,
-            ]);
+            const response = await fetch(buildAppAjaxUrl(href), {
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    Accept: 'text/html',
+                },
+                cache: 'no-store',
+            });
 
             if (!response.ok) {
                 throw new Error('Failed to load page.');
@@ -10312,28 +10524,7 @@ function initAppAjaxNav() {
                 window.scrollTo({ top: 0, behavior: 'auto' });
             };
 
-            if (useMotion) {
-                applyPage();
-                if (direction === 'back') {
-                    content.classList.add('is-ajax-enter-back');
-                } else if (direction === 'forward') {
-                    content.classList.add('is-ajax-enter');
-                } else {
-                    content.classList.add('is-ajax-enter-soft');
-                }
-                content.classList.remove(
-                    'is-ajax-leave',
-                    'is-ajax-leave-fwd',
-                    'is-ajax-leave-back',
-                    'is-ajax-leave-soft',
-                    'is-ajax-loading'
-                );
-                void content.offsetWidth;
-                content.classList.add('is-ajax-enter-active');
-                await waitForMs(direction === 'soft' ? 320 : 360);
-            } else {
-                applyPage();
-            }
+            applyPage();
         } catch {
             window.location.assign(href);
         } finally {
