@@ -24,7 +24,7 @@
     <div class="table-wrap"><table class="data-table" data-hide-column-toggle><thead><tr>
         <th data-sort>Student</th>
         <th data-sort>Course</th>
-        <th data-sort>Company</th>
+        <th data-sort>HTE</th>
         <th data-sort>Start Date</th>
         <th data-sort>End Date</th>
         <th data-sort>Status</th>
