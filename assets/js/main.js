@@ -5266,7 +5266,7 @@ function initViewToggles() {
             const body = card.querySelector('p')?.textContent || '';
             const status = card.querySelector('.badge')?.textContent || '';
             const company = card.querySelector('small')?.textContent || '';
-            openSlidePanel(`<h2>${escapeHtml(title)}</h2><div class="detail-row"><span>Student</span><strong>${escapeHtml(body)}</strong></div><div class="detail-row"><span>Status</span><strong>${escapeHtml(status)}</strong></div><div class="detail-row"><span>Company</span><strong>${escapeHtml(company)}</strong></div>`);
+            openSlidePanel(`<h2>${escapeHtml(title)}</h2><div class="detail-row"><span>Student</span><strong>${escapeHtml(body)}</strong></div><div class="detail-row"><span>Status</span><strong>${escapeHtml(status)}</strong></div><div class="detail-row"><span>HTE</span><strong>${escapeHtml(company)}</strong></div>`);
         });
     });
 }
@@ -5596,7 +5596,7 @@ function renderReportRecordDetail(detail) {
 
     const overview = [
         ['Course', detail?.course],
-        ['Company', detail?.company],
+        ['HTE', detail?.company],
         ['Coordinator', detail?.coordinator],
         ['Start Date', detail?.start_date],
         ['End Date', detail?.end_date],
@@ -5950,7 +5950,7 @@ function initAdminEvalComments() {
         const company = button.dataset.company || '';
         const comment = String(button.dataset.comment || '').trim();
         const companyRow = company
-            ? `<div class="detail-row"><span>Company</span><strong>${escapeHtml(company)}</strong></div>`
+            ? `<div class="detail-row"><span>HTE</span><strong>${escapeHtml(company)}</strong></div>`
             : '';
         openSlidePanel(`
             <h2>Evaluation Comment</h2>
@@ -8875,7 +8875,7 @@ function buildPartnerCreateReviewHtml(form) {
     };
 
     const rows = [
-        ['Company', valueOf('company_name') || '?'],
+        ['HTE', valueOf('company_name') || '?'],
         ['Contact', valueOf('contact_person') || '?'],
         ['Email', valueOf('contact_email') || '?'],
         ['Phone', valueOf('contact_number') || '?'],

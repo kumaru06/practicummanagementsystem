@@ -117,7 +117,7 @@ class AdminReport
 
         return [
             'description' => $description,
-            'columns' => ['Student', 'Student ID', 'Course', 'Company', 'Coordinator', 'Start Date', 'End Date', 'Hours', 'Status'],
+            'columns' => ['Student', 'Student ID', 'Course', 'HTE', 'Coordinator', 'Start Date', 'End Date', 'Hours', 'Status'],
             'rows' => $rows,
             'ready' => true,
         ];
@@ -243,7 +243,7 @@ class AdminReport
 
         return [
             'description' => 'Attendance and rendered hours summary for all enrolled students.',
-            'columns' => ['Student', 'Student ID', 'Course', 'Company', 'Approved Hours', 'Pending Hours', 'DTR Entries', 'Progress'],
+            'columns' => ['Student', 'Student ID', 'Course', 'HTE', 'Approved Hours', 'Pending Hours', 'DTR Entries', 'Progress'],
             'rows' => $rows,
             'ready' => true,
         ];
@@ -266,7 +266,7 @@ class AdminReport
 
         return [
             'description' => 'List of all registered host training establishment companies.',
-            'columns' => ['Company', 'Contact Person', 'Email', 'Contact No.', 'Accepted Programs', 'Account Status'],
+            'columns' => ['HTE', 'Contact Person', 'Email', 'Contact No.', 'Accepted Programs', 'Account Status'],
             'rows' => $rows,
             'ready' => true,
         ];
@@ -299,7 +299,7 @@ class AdminReport
 
         return [
             'description' => 'Number of students assigned to each host training establishment.',
-            'columns' => ['Company', 'Total Students', 'Active', 'Completed', 'Pending'],
+            'columns' => ['HTE', 'Total Students', 'Active', 'Completed', 'Pending'],
             'rows' => $rows,
             'ready' => true,
         ];
@@ -342,7 +342,7 @@ class AdminReport
 
         return [
             'description' => 'Final evaluation results submitted by host training establishments.',
-            'columns' => ['Company', 'Student', 'Student ID', 'Final Grade', 'Submitted'],
+            'columns' => ['HTE', 'Student', 'Student ID', 'Final Grade', 'Submitted'],
             'rows' => $rows,
             'ready' => true,
         ];
@@ -475,7 +475,7 @@ class AdminReport
 
         return [
             'description' => 'Total approved and logged hours rendered per student.',
-            'columns' => ['Student', 'Student ID', 'Course', 'Company', 'Approved Hours', 'Total Logged', 'Required Hours'],
+            'columns' => ['Student', 'Student ID', 'Course', 'HTE', 'Approved Hours', 'Total Logged', 'Required Hours'],
             'rows' => $rows,
             'ready' => true,
         ];
@@ -603,7 +603,7 @@ class AdminReport
 
         return [
             'description' => 'Summary of all final OJT evaluations submitted by host training establishments.',
-            'columns' => ['Student', 'Student ID', 'Course', 'Company', 'Final Grade', 'Submitted'],
+            'columns' => ['Student', 'Student ID', 'Course', 'HTE', 'Final Grade', 'Submitted'],
             'rows' => $rows,
             'ready' => true,
         ];
@@ -745,7 +745,7 @@ class AdminReport
 
         return [
             'description' => 'Average OJT completion progress grouped by host training establishment.',
-            'columns' => ['Company', 'Students', 'Avg. Completion'],
+            'columns' => ['HTE', 'Students', 'Avg. Completion'],
             'rows' => $rows,
             'ready' => true,
         ];

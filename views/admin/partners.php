@@ -237,7 +237,7 @@ $inactivePartners = $totalPartners - $activePartners;
                 <table class="data-table no-row-details asu-students-table asu-partners-table" data-no-tools data-per-page="10">
                     <thead>
                         <tr>
-                            <th data-sort>Company</th>
+                            <th data-sort>HTE</th>
                             <th data-sort>Contact</th>
                             <th data-sort>Email</th>
                             <th data-sort>HTE ID</th>

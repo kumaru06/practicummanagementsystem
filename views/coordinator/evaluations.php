@@ -11,7 +11,7 @@
         <th data-sort>Student</th>
         <th data-sort>Student ID</th>
         <th data-sort>Course</th>
-        <th data-sort>Company</th>
+        <th data-sort>HTE</th>
         <th data-sort>Final Grade</th>
         <th>Certificate</th>
         <th data-sort>Submitted</th>
