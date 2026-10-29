@@ -162,7 +162,7 @@ function Resolve-FtpHost {
                 }
             } catch {}
         }
-        throw "Cannot resolve FTP host '$HostName'. Use the FTP IP from hPanel (e.g. 153.92.10.160)."
+        throw "Cannot resolve FTP host '$HostName'. Use the FTP IP from hPanel."
     }
 }
 
@@ -323,7 +323,7 @@ if (-not $test.Ok) {
     Write-Host ""
     Write-Step "Check hostinger.deploy.json:" Yellow
     Write-Step "  ftpHost  = from hPanel -> FTP Accounts (e.g. ftp.ama-ojtportal.com)" White
-    Write-Step "  ftpUser  = your FTP username (e.g. u859158056)" White
+    Write-Step "  ftpUser  = your FTP username from hPanel" White
     Write-Step "  ftpPass  = FTP account password (not always same as hPanel login)" White
     Write-Step "  remotePath = public_html" White
     exit 1

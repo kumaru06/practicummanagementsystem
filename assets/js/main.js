@@ -5987,7 +5987,6 @@ function renderHteEvalDetail(data) {
     const photo = String(data.photo || '').trim();
     const grade = data.grade || '—';
     const program = String(data.program || '').trim() || '—';
-    const term = String(data.term || '').trim() || '—';
     const hte = String(data.hte || '').trim() || '—';
     const submitted = data.submitted || '—';
     const comment = String(data.comment || '').trim() || 'No comment was submitted.';
@@ -6001,7 +6000,6 @@ function renderHteEvalDetail(data) {
     const facts = [
         ['Student ID', data.studentNo || '—'],
         ['Degree Program', program],
-        ['Academic Term', term],
         ['HTE', hte],
     ].map(([label, value]) => `
         <div class="eval-detail-fact">
@@ -6074,7 +6072,6 @@ function renderAdminEvalRecord(row) {
     const grade = data.grade || '—';
     const tone = evalRecordGradeTone(grade);
     const program = String(data.program || '').trim();
-    const term = String(data.term || '').trim();
     const type = String(data.type || '').trim();
     const hte = String(data.hte || '').trim() || '—';
     const submitted = data.submitted || '—';
@@ -6088,9 +6085,6 @@ function renderAdminEvalRecord(row) {
     }
     if (program) {
         cards.push(['Degree Program', program, 'program']);
-    }
-    if (kind === 'hte') {
-        cards.push(['Academic Term', term || '—', 'term']);
     }
     cards.push(['HTE', hte, 'hte']);
     cards.push(['Submitted', submitted, 'date']);

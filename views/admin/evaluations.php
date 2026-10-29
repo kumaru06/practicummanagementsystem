@@ -12,7 +12,6 @@
         <th data-sort>Student</th>
         <th data-sort>Student ID</th>
         <th data-sort>Degree Program</th>
-        <th data-sort>Academic Term</th>
         <th data-sort>HTE</th>
         <th class="eval-grade" data-sort>Final Grade</th>
         <th data-sort>Submitted</th>
@@ -21,7 +20,6 @@
         <?php foreach ($evaluations as $ev): ?>
         <?php
             $programName = trim((string)($ev['course'] ?? ''));
-            $academicTerm = trim((string)($ev['academic_term'] ?? ''));
             $comment = trim((string)($ev['comments'] ?? ''));
             $gradeLabel = isset($ev['final_grade']) && $ev['final_grade'] !== null
                 ? number_format((float)$ev['final_grade'], 2) . '%'
@@ -30,11 +28,10 @@
             $certificateUrl = !empty($ev['certificate_file']) ? asset($ev['certificate_file']) : '';
             $photoUrl = profile_photo_url($ev);
         ?>
-        <tr data-eval-record data-eval-kind="hte" data-student="<?= e($ev['student_name']) ?>" data-student-no="<?= e($ev['student_no']) ?>" data-program="<?= e($programName) ?>" data-term="<?= e($academicTerm) ?>" data-hte="<?= e($ev['company_name']) ?>" data-grade="<?= e($gradeLabel) ?>" data-submitted="<?= e($submittedLabel) ?>"<?php if ($photoUrl !== ''): ?> data-photo="<?= e($photoUrl) ?>"<?php endif; ?><?php if ($certificateUrl !== ''): ?> data-certificate="<?= e($certificateUrl) ?>"<?php endif; ?><?php if ($comment !== ''): ?> data-comment="<?= e($comment) ?>"<?php endif; ?>>
+        <tr data-eval-record data-eval-kind="hte" data-student="<?= e($ev['student_name']) ?>" data-student-no="<?= e($ev['student_no']) ?>" data-program="<?= e($programName) ?>" data-hte="<?= e($ev['company_name']) ?>" data-grade="<?= e($gradeLabel) ?>" data-submitted="<?= e($submittedLabel) ?>"<?php if ($photoUrl !== ''): ?> data-photo="<?= e($photoUrl) ?>"<?php endif; ?><?php if ($certificateUrl !== ''): ?> data-certificate="<?= e($certificateUrl) ?>"<?php endif; ?><?php if ($comment !== ''): ?> data-comment="<?= e($comment) ?>"<?php endif; ?>>
             <td><?= e($ev['student_name']) ?></td>
             <td><?= e($ev['student_no']) ?></td>
             <td class="eval-program"><?= e($programName) ?></td>
-            <td><?= e($academicTerm !== '' ? $academicTerm : '—') ?></td>
             <td><?= e($ev['company_name']) ?></td>
             <td class="eval-grade"><strong><?= e($gradeLabel) ?></strong></td>
             <td><?= e($submittedLabel) ?></td>
