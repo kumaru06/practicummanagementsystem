@@ -25,13 +25,15 @@
         <th data-sort>Student</th>
         <th data-sort>Course</th>
         <th data-sort>HTE</th>
-        <th data-sort>Start Date</th>
+        <th data-sort data-placement-col="start">Start Date</th>
+        <th data-sort data-placement-col="end" style="display:none">End Date</th>
         <th data-sort>Status</th>
     </tr></thead><tbody>
         <?php foreach ($placements as $placement): ?>
         <?php
             $status = (string)($placement['status'] ?? 'pending');
             $statusClass = in_array($status, ['active', 'pending', 'completed'], true) ? $status : 'pending';
+            $isCompleted = $status === 'completed';
             $predeployment = (string)($placement['predeployment_status'] ?? '');
             $searchHaystack = strtolower(trim(
                 ($placement['student_name'] ?? '') . ' ' .
@@ -45,7 +47,8 @@
             <td><?= e($placement['student_name']) ?></td>
             <td><?= e($placement['course']) ?></td>
             <td><?= e($placement['company_name']) ?></td>
-            <td><?= !empty($placement['placement_start']) ? e(date('M j, Y', strtotime((string)$placement['placement_start']))) : '<span class="muted">&mdash;</span>' ?></td>
+            <td><?= !$isCompleted && !empty($placement['placement_start']) ? e(date('M j, Y', strtotime((string)$placement['placement_start']))) : '<span class="muted">&mdash;</span>' ?></td>
+            <td style="display:none"><?= $isCompleted && !empty($placement['placement_end']) ? e(date('M j, Y', strtotime((string)$placement['placement_end']))) : '<span class="muted">&mdash;</span>' ?></td>
             <td><span class="badge <?= e($statusClass) ?>"><?= e(ucfirst($status)) ?></span></td>
         </tr>
         <?php endforeach; ?>

@@ -9032,6 +9032,16 @@ function initAdminOjtPlacementDirectory() {
             statusFilter._syncCustomSelect?.();
         }
 
+        const syncDateColumns = () => {
+            const showStart = statusValue !== 'completed';
+            const showEnd = statusValue === 'completed' || statusValue === 'all';
+            [...table.tHead.rows[0].cells].forEach((cell, index) => {
+                const kind = cell.dataset.placementCol || '';
+                if (kind !== 'start' && kind !== 'end') return;
+                setColumnVisible(table, index, kind === 'start' ? showStart : showEnd);
+            });
+        };
+
         const applyFilters = () => {
             table._applyRowFilter = row => {
                 if (statusValue === 'all') return true;
@@ -9039,6 +9049,7 @@ function initAdminOjtPlacementDirectory() {
                 if (statusValue === 'awaiting_orientation') return row.dataset.predeployment === 'accepted';
                 return row.dataset.placementStatus === statusValue;
             };
+            syncDateColumns();
             search?.dispatchEvent(new Event('input'));
         };
 
