@@ -547,7 +547,7 @@ class Enrollment
      */
     public function completionTimingByTerm(string $academicTerm): array
     {
-        $academicTerm = trim($academicTerm);
+        $academicTerm = $this->normalizeAcademicTerm($academicTerm);
         $empty = $this->emptyCompletionTiming($academicTerm);
         if ($academicTerm === '') {
             return $empty;
@@ -565,9 +565,9 @@ class Enrollment
              FROM ojt_enrollments e
              JOIN students s ON s.id = e.student_id
              LEFT JOIN programs p ON p.id = s.program_id
-             WHERE TRIM(e.academic_term) = ?'
+             WHERE REPLACE(REPLACE(REPLACE(TRIM(e.academic_term), ?, "-"), ?, "-"), ?, " ") = ?'
         );
-        $stmt->execute([$academicTerm]);
+        $stmt->execute(["\u{2013}", "\u{2014}", "\u{00A0}", $academicTerm]);
         $enrollments = $stmt->fetchAll(PDO::FETCH_ASSOC);
         if (!$enrollments) {
             return $empty;
@@ -602,28 +602,7 @@ class Enrollment
             $studentId = (int)$row['student_id'];
             $required = (float)$row['required_hours'];
             $records = $dtrsByStudent[$studentId] ?? [];
-            $approvedHours = 0.0;
-            $finishDate = null;
-            foreach ($records as $dtr) {
-                $approvedHours += (float)$dtr['hours'];
-                if ($finishDate === null && $required > 0 && $approvedHours >= $required) {
-                    $workDate = trim((string)($dtr['work_date'] ?? ''));
-                    if ($workDate !== '' && strtotime($workDate) !== false) {
-                        $finishDate = date('Y-m-d', strtotime($workDate));
-                    }
-                }
-            }
-
-            $finished = $approvedHours >= $required || ($row['status'] ?? '') === 'completed';
-            if (!$finished) {
-                continue;
-            }
-            if ($finishDate === null) {
-                $fallback = trim((string)($row['end_date'] ?? ''));
-                if ($fallback !== '' && strtotime($fallback) !== false) {
-                    $finishDate = date('Y-m-d', strtotime($fallback));
-                }
-            }
+            $finishDate = $this->approvedHoursFinishDate($records, $required);
             if ($finishDate === null) {
                 continue;
             }
@@ -761,6 +740,15 @@ class Enrollment
      * @param list<int> $counts
      * @return list<int>
      */
+    private function normalizeAcademicTerm(string $term): string
+    {
+        $term = trim($term);
+        $term = str_replace(["\u{2013}", "\u{2014}", "\u{00A0}"], ['-', '-', ' '], $term);
+        $collapsed = preg_replace('/\s+/', ' ', $term);
+
+        return $collapsed ?? $term;
+    }
+
     private function sharePercents(array $counts, int $total): array
     {
         if ($total <= 0) {

@@ -9050,8 +9050,21 @@ function initAdminOjtPlacementDirectory() {
                 return row.dataset.placementStatus === statusValue;
             };
             syncDateColumns();
+            directory.querySelectorAll('[data-opl-filter]').forEach(button => {
+                button.classList.toggle('is-on', button.dataset.oplFilter === statusValue);
+            });
             search?.dispatchEvent(new Event('input'));
         };
+
+        directory.querySelectorAll('[data-opl-filter]').forEach(button => {
+            button.addEventListener('click', () => {
+                const next = button.dataset.oplFilter || 'active';
+                if (!statusFilter.querySelector(`option[value="${next}"]`)) return;
+                statusFilter.value = next;
+                statusFilter._syncCustomSelect?.();
+                statusFilter.dispatchEvent(new Event('change'));
+            });
+        });
 
         table._resetDirectoryFilters = () => {
             statusValue = 'active';

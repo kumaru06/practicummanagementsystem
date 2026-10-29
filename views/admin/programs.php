@@ -9,7 +9,6 @@ $inactivePrograms = $totalPrograms - $activePrograms;
     <div class="programs-page-intro">
         <div class="programs-page-intro-copy">
             <p class="programs-page-eyebrow">Academic Setup</p>
-            <p class="programs-page-desc">Configure OJT programs and required hours for Host Training Establishments and student enrollment.</p>
         </div>
     </div>
 
@@ -54,7 +53,6 @@ $inactivePrograms = $totalPrograms - $activePrograms;
                     <div class="programs-panel-title-row">
                         <h2>Add Program / Course</h2>
                     </div>
-                    <p>Programs must be prepared first before Host Training Establishments can choose them.</p>
                 </div>
             </div>
 
@@ -97,7 +95,6 @@ $inactivePrograms = $totalPrograms - $activePrograms;
         <div class="programs-directory-head programs-directory-head--in-card">
             <div class="programs-directory-copy">
                 <h2>Program List</h2>
-                <p>Manage hours, rename programs, or change their active status.</p>
             </div>
             <div class="programs-directory-actions">
                 <div class="programs-search-box">
