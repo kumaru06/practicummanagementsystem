@@ -21402,6 +21402,15 @@ body.role-student .content:has(.spf-studio) {
     overflow: hidden;
 }
 
+.spf-panels:has(.custom-select.is-open),
+.spf-panel:has(.custom-select.is-open),
+.spf-panel-card:has(.custom-select.is-open),
+.spf-field-grid:has(.custom-select.is-open),
+.spf-field:has(.custom-select.is-open) {
+    overflow: visible;
+    z-index: 40;
+}
+
 .spf-panel[hidden] {
     display: none !important;
 }
