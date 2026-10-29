@@ -1537,7 +1537,7 @@ small,
     opacity: 0.7;
 }
 
-.nav-group.open .chevron {
+.nav-group.open > .nav-group-toggle > .chevron {
     transform: rotate(180deg);
 }
 
@@ -1559,12 +1559,88 @@ small,
         visibility 0.32s ease;
 }
 
-.nav-group.open .nav-group-items {
-    max-height: 320px;
+.nav-group.open > .nav-group-items {
+    max-height: 520px;
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
     pointer-events: auto;
+}
+
+.nav-group--students {
+    gap: 2px;
+}
+
+.nav-students-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    min-width: 0;
+    min-height: 38px;
+    padding-right: 14px;
+    border-radius: 5px;
+    color: rgba(235, 242, 255, 0.86);
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nav-students-row:hover,
+.nav-students-row:has(> .nav-link.active) {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.17), rgba(61, 95, 174, 0.2));
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.nav-students-row > .nav-link,
+.nav-students-row > .nav-link:hover,
+.nav-students-row > .nav-link.active {
+    flex: 1;
+    min-width: 0;
+    min-height: 38px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    padding-right: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.nav-students-chevron.nav-group-toggle,
+.nav-students-chevron.nav-group-toggle:hover {
+    flex: 0 0 18px;
+    width: 18px;
+    min-height: 38px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.nav-group--students.open .nav-students-chevron .chevron {
+    transform: rotate(180deg);
+}
+
+.nav-group--students > .nav-group-items {
+    margin: 0 0 2px 12px;
+    padding: 0;
+    gap: 2px;
+    border-left: none;
+}
+
+.nav-group--students > .nav-group-items > .nav-link {
+    min-height: 32px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    padding-left: 8px;
+}
+
+.sidebar-collapsed .nav-students-chevron,
+html.is-sidebar-collapsed-init .nav-students-chevron {
+    display: none;
+}
+
+.nav-group-items > .nav-group > .nav-group-items {
+    padding-left: 10px;
 }
 
 .nav-group.open > .nav-group-toggle,

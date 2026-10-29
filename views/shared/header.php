@@ -83,6 +83,7 @@ $headerRoute = (string)($_GET['r'] ?? ($user['role'] ?? 'admin'));
             <?php if ($role === 'admin'):
                 $userRoutes = ['admin_users', 'admin_registration_requests', 'admin_password_reset_requests', 'admin_coordinators', 'admin_partners'];
                 $userGroupOpen = in_array($currentRoute, $userRoutes, true);
+                $studentGroupOpen = $currentRoute === 'admin_registration_requests';
                 $adminPendingCounts = admin_pending_request_counts();
                 $pendingRegistrationCount = (int)($adminPendingCounts['registration'] ?? 0);
                 $pendingPasswordResetCount = (int)($adminPendingCounts['password_reset'] ?? 0);
@@ -97,10 +98,19 @@ $headerRoute = (string)($_GET['r'] ?? ($user['role'] ?? 'admin'));
                     <svg class="chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
                 </button>
                 <div class="nav-group-items">
-                    <a class="nav-link nav-sub <?= $currentRoute === 'admin_users' ? 'active' : '' ?>" href="index.php?r=admin_users"><svg viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 8-4v6h2V8L12 3Zm-6 9v4c2 3 10 3 12 0v-4l-6 3-6-3Z"/></svg><span class="nav-link-text">Students</span></a>
+                    <div class="nav-group nav-group--students <?= $studentGroupOpen ? 'open' : '' ?>">
+                        <div class="nav-students-row">
+                            <a class="nav-link nav-sub <?= $currentRoute === 'admin_users' ? 'active' : '' ?>" href="index.php?r=admin_users"><svg viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 8-4v6h2V8L12 3Zm-6 9v4c2 3 10 3 12 0v-4l-6 3-6-3Z"/></svg><span class="nav-link-text">Students</span><?php if ($pendingRegistrationCount > 0): ?><span class="nav-link-badge" aria-label="<?= (int)$pendingRegistrationCount ?> pending account requests"><?= $pendingRegistrationCount > 99 ? '99+' : (int)$pendingRegistrationCount ?></span><?php endif; ?></a>
+                            <button class="nav-group-toggle nav-students-chevron" type="button" aria-expanded="<?= $studentGroupOpen ? 'true' : 'false' ?>" aria-label="Show student account requests">
+                                <svg class="chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+                            </button>
+                        </div>
+                        <div class="nav-group-items">
+                            <a class="nav-link nav-sub <?= $currentRoute === 'admin_registration_requests' ? 'active' : '' ?>" href="index.php?r=admin_registration_requests" title="Student Account Requests"><svg viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-8 2h6v2h-6V5ZM7 7h10v2H7V7Zm0 4h10v2H7v-2Zm0 4h7v2H7v-2Z"/></svg><span class="nav-link-text">Student Account Requests</span><?php if ($pendingRegistrationCount > 0): ?><span class="nav-link-badge" aria-label="<?= (int)$pendingRegistrationCount ?> pending account requests"><?= $pendingRegistrationCount > 99 ? '99+' : (int)$pendingRegistrationCount ?></span><?php endif; ?></a>
+                        </div>
+                    </div>
                     <a class="nav-link nav-sub <?= $currentRoute === 'admin_coordinators' ? 'active' : '' ?>" href="index.php?r=admin_coordinators"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c.8-4 3.8-6 8-6s7.2 2 8 6H4Z"/></svg><span class="nav-link-text">Coordinators</span></a>
                     <a class="nav-link nav-sub <?= $currentRoute === 'admin_partners' ? 'active' : '' ?>" href="index.php?r=admin_partners" title="Host Training Establishments"><svg viewBox="0 0 24 24"><path d="M3 21V7l6-4 6 4v14H3Zm14 0V9h4v12h-4Z"/></svg><span class="nav-link-text">Host Establishments</span></a>
-                    <a class="nav-link nav-sub <?= $currentRoute === 'admin_registration_requests' ? 'active' : '' ?>" href="index.php?r=admin_registration_requests" title="Student Account Requests"><svg viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-8 2h6v2h-6V5ZM7 7h10v2H7V7Zm0 4h10v2H7v-2Zm0 4h7v2H7v-2Z"/></svg><span class="nav-link-text">Student Account Requests</span><?php if ($pendingRegistrationCount > 0): ?><span class="nav-link-badge" aria-label="<?= (int)$pendingRegistrationCount ?> pending account requests"><?= $pendingRegistrationCount > 99 ? '99+' : (int)$pendingRegistrationCount ?></span><?php endif; ?></a>
                     <a class="nav-link nav-sub <?= $currentRoute === 'admin_password_reset_requests' ? 'active' : '' ?>" href="index.php?r=admin_password_reset_requests" title="Password Reset Requests" data-admin-nav="password_reset"><svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 1 5 5v3h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1V7a5 5 0 0 1 5-5Zm0 2a3 3 0 0 0-3 3v3h6V7a3 3 0 0 0-3-3Zm0 9a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"/></svg><span class="nav-link-text">Password Reset Requests</span><?php if ($pendingPasswordResetCount > 0): ?><span class="nav-link-badge" data-admin-pending-password-reset aria-label="<?= (int)$pendingPasswordResetCount ?> pending password resets"><?= $pendingPasswordResetCount > 99 ? '99+' : (int)$pendingPasswordResetCount ?></span><?php endif; ?></a>
                 </div>
             </div><?php endif; ?>

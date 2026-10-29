@@ -10192,8 +10192,10 @@ function updateAppSidebarActive(route, currentHref = window.location.href) {
     document.querySelectorAll('.sidebar .nav-link, .student-docs-sheet-item').forEach(link => link.classList.remove('active'));
 
     if (role === 'admin') {
-        const userGroup = sidebar.querySelector('.nav-group:not(.nav-group--student-docs)');
+        const userGroup = sidebar.querySelector('.nav-group:not(.nav-group--student-docs):not(.nav-group--students)');
         userGroup?.classList.toggle('open', ADMIN_USER_ROUTES.has(route));
+        const studentGroup = sidebar.querySelector('.nav-group--students');
+        studentGroup?.classList.toggle('open', route === 'admin_registration_requests');
     }
 
     if (role === 'student') {
