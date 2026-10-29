@@ -299,6 +299,35 @@ check('password_strength_error rejects short passwords', password_strength_error
 check('password_strength_error rejects missing uppercase', password_strength_error('abcdefg1') !== null);
 check('password_strength_error accepts mixed case + number', password_strength_error('Abcdefg1') === null);
 
+fwrite(STDOUT, "\n=== OJT placement end date stays hidden until required hours are approved ===\n");
+$placementFor = static function (Enrollment $enroll, int $studentId): ?array {
+    foreach ($enroll->allPlacements() as $row) {
+        if ((int)$row['student_id'] === $studentId) {
+            return $row;
+        }
+    }
+    return null;
+};
+$shortPlacement = $placementFor($enroll, $s1);
+check('Student under the requirement is listed', $shortPlacement !== null);
+check('End date is hidden while approved hours are short', $shortPlacement !== null && empty($shortPlacement['placement_end']));
+
+$pdo->prepare('UPDATE ojt_enrollments SET required_hours = 16, status = "active" WHERE student_id = ?')->execute([$s1]);
+$exactPlacement = $placementFor($enroll, $s1);
+check('End date is the day approved hours first reach the requirement', ($exactPlacement['placement_end'] ?? null) === '2026-01-06');
+
+$insDtr->execute([$s1, '2026-01-08', 'approved']);
+$laterPlacement = $placementFor($enroll, $s1);
+check('A later approved DTR does not move the finished end date', ($laterPlacement['placement_end'] ?? null) === '2026-01-06');
+
+$pdo->prepare('UPDATE ojt_enrollments SET required_hours = 24 WHERE student_id = ?')->execute([$s1]);
+$thirdDay = $placementFor($enroll, $s1);
+check('Pending DTR is ignored and the next approved day completes the hours', ($thirdDay['placement_end'] ?? null) === '2026-01-08');
+
+$pdo->prepare('UPDATE ojt_enrollments SET required_hours = 25 WHERE student_id = ?')->execute([$s1]);
+$stillShort = $placementFor($enroll, $s1);
+check('Pending hours still do not reveal an end date', $stillShort !== null && empty($stillShort['placement_end']));
+
 // --- Summary ---
 $pass = (int)$GLOBALS['pass'];
 $fail = (int)$GLOBALS['fail'];

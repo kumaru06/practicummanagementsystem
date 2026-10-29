@@ -392,19 +392,14 @@ class Enrollment
 
     public function allPlacements(): array
     {
-        return $this->db->query('
+        $rows = $this->db->query('
             SELECT
                 e.id,
+                e.student_id,
                 e.status,
                 e.predeployment_status,
+                e.required_hours,
                 COALESCE(e.official_start_date, e.start_date) AS placement_start,
-                (
-                    SELECT MAX(d.work_date)
-                    FROM daily_time_records d
-                    WHERE d.student_id = e.student_id
-                      AND d.verification_status IN (\'pending\', \'approved\')
-                      AND d.work_date >= COALESCE(e.official_start_date, e.start_date)
-                ) AS placement_end,
                 u.name AS student_name,
                 s.student_no,
                 COALESCE(p.code, s.course) AS course,
@@ -418,6 +413,71 @@ class Enrollment
             LEFT JOIN student_final_requirements fr ON fr.student_id = s.id
             ORDER BY u.name
         ')->fetchAll();
+
+        $studentIds = array_values(array_unique(array_map(static fn ($row) => (int)$row['student_id'], $rows)));
+        $dtrsByStudent = $this->approvedDtrsByStudent($studentIds);
+        foreach ($rows as &$row) {
+            $row['placement_end'] = $this->approvedHoursFinishDate(
+                $dtrsByStudent[(int)$row['student_id']] ?? [],
+                (float)($row['required_hours'] ?? 0)
+            );
+        }
+        unset($row);
+
+        return $rows;
+    }
+
+    /**
+     * Approved DTR rows ordered so a running total can find the completion day.
+     *
+     * @param list<int> $studentIds
+     * @return array<int, list<array<string, mixed>>>
+     */
+    private function approvedDtrsByStudent(array $studentIds): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $studentIds))));
+        if (!$ids) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $this->db->prepare(
+            "SELECT student_id, work_date, hours
+             FROM daily_time_records
+             WHERE verification_status = 'approved'
+               AND student_id IN ($placeholders)
+             ORDER BY student_id, work_date, id"
+        );
+        $stmt->execute($ids);
+        $grouped = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $dtr) {
+            $grouped[(int)$dtr['student_id']][] = $dtr;
+        }
+        return $grouped;
+    }
+
+    /**
+     * Day the approved hours first reach the requirement. Empty until OJT hours are done.
+     *
+     * @param list<array<string, mixed>> $records
+     */
+    private function approvedHoursFinishDate(array $records, float $required): ?string
+    {
+        if ($required <= 0) {
+            return null;
+        }
+        $approvedHours = 0.0;
+        foreach ($records as $dtr) {
+            // Hours are DECIMAL(6,2). Round each step so 8.10 + 8.10 does not miss the requirement.
+            $approvedHours = round($approvedHours + (float)($dtr['hours'] ?? 0), 2);
+            if ($approvedHours < $required) {
+                continue;
+            }
+            $workDate = trim((string)($dtr['work_date'] ?? ''));
+            if ($workDate !== '' && strtotime($workDate) !== false) {
+                return date('Y-m-d', strtotime($workDate));
+            }
+        }
+        return null;
     }
 
     public function approveAndForward(int $enrollmentId, string $endorsementFile): void

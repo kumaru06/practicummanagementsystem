@@ -124,6 +124,38 @@ spl_autoload_register(static function (string $class) use ($root): void {
     }
 });
 
+$enrollSrcEarly = file_get_contents($root . '/models/Enrollment.php') ?: '';
+smoke_assert(!str_contains($enrollSrcEarly, 'SELECT MAX(d.work_date)'), 'Placement end date is not the latest DTR day');
+smoke_assert(str_contains($enrollSrcEarly, 'function approvedHoursFinishDate'), 'Placement end date uses the hours-completion day');
+$placementView = file_get_contents($root . '/views/admin/ojt_placement.php') ?: '';
+smoke_assert(str_contains($placementView, 'placement_end') && str_contains($placementView, '&mdash;'), 'OJT placement hides an empty end date');
+
+$finishDate = new ReflectionMethod(Enrollment::class, 'approvedHoursFinishDate');
+$finishDate->setAccessible(true);
+$enrollmentProbe = (new ReflectionClass(Enrollment::class))->newInstanceWithoutConstructor();
+$callFinish = static function (array $records, float $required) use ($finishDate, $enrollmentProbe): ?string {
+    $value = $finishDate->invoke($enrollmentProbe, $records, $required);
+    return $value === null ? null : (string)$value;
+};
+smoke_assert($callFinish([
+    ['work_date' => '2026-10-26', 'hours' => 8],
+    ['work_date' => '2026-10-27', 'hours' => 8],
+], 480.0) === null, 'End date stays hidden while approved hours are short');
+smoke_assert($callFinish([
+    ['work_date' => '2026-10-28', 'hours' => 8],
+    ['work_date' => '2026-10-29', 'hours' => 8],
+    ['work_date' => '2026-10-30', 'hours' => 8],
+], 16.0) === '2026-10-29', 'End date is the day required hours are first reached, not a later DTR');
+$decimalRows = [];
+for ($day = 1; $day <= 10; $day++) {
+    $decimalRows[] = ['work_date' => sprintf('2026-03-%02d', $day), 'hours' => '8.10'];
+}
+smoke_assert($callFinish($decimalRows, 81.0) === '2026-03-10', 'Decimal hours still land on the completion day');
+smoke_assert($callFinish([], 480.0) === null, 'No approved DTR means no end date');
+smoke_assert($callFinish([
+    ['work_date' => '2026-10-29', 'hours' => 8],
+], 0.0) === null, 'Zero required hours does not invent an end date');
+
 try {
     $db = db();
     smoke_pass('Database connection');
