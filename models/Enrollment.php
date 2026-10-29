@@ -402,6 +402,7 @@ class Enrollment
                 COALESCE(e.official_start_date, e.start_date) AS placement_start,
                 u.name AS student_name,
                 s.student_no,
+                s.photo_file,
                 COALESCE(p.code, s.course) AS course,
                 pc.name AS company_name,
                 fr.position_held

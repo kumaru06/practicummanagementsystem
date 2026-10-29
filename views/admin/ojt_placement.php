@@ -1,19 +1,6 @@
 <?php
 $placements = $placements ?? [];
 $oplTotal = count($placements);
-$oplActive = 0;
-$oplCompleted = 0;
-$oplPending = 0;
-foreach ($placements as $placementCount) {
-    $countStatus = (string)($placementCount['status'] ?? 'pending');
-    if ($countStatus === 'active') {
-        $oplActive++;
-    } elseif ($countStatus === 'completed') {
-        $oplCompleted++;
-    } else {
-        $oplPending++;
-    }
-}
 $oplInitials = static function (string $name): string {
     $parts = preg_split('/\s+/', trim($name)) ?: [];
     $letters = '';
@@ -38,25 +25,6 @@ $oplInitials = static function (string $name): string {
         <p class="opl-hero-count"><strong><?= (int)$oplTotal ?></strong><span>on record</span></p>
     </header>
 
-    <div class="opl-stats" role="group" aria-label="Filter placements">
-        <button class="opl-stat is-on" type="button" data-opl-filter="active">
-            <span>Active</span>
-            <strong><?= (int)$oplActive ?></strong>
-        </button>
-        <button class="opl-stat" type="button" data-opl-filter="completed">
-            <span>Completed</span>
-            <strong><?= (int)$oplCompleted ?></strong>
-        </button>
-        <button class="opl-stat" type="button" data-opl-filter="pending">
-            <span>In pipeline</span>
-            <strong><?= (int)$oplPending ?></strong>
-        </button>
-        <button class="opl-stat" type="button" data-opl-filter="all">
-            <span>All placements</span>
-            <strong><?= (int)$oplTotal ?></strong>
-        </button>
-    </div>
-
     <div class="opl-panel">
         <div class="opl-toolbar">
             <label class="filter-select-wrap asu-filter-select">
@@ -77,6 +45,7 @@ $oplInitials = static function (string $name): string {
         <?php else: ?>
         <div class="table-wrap opl-table-wrap"><table class="data-table opl-table" data-hide-column-toggle><thead><tr>
             <th data-sort>Student</th>
+            <th data-sort>USN</th>
             <th data-sort>Course</th>
             <th data-sort>HTE</th>
             <th data-sort data-placement-col="start">Start Date</th>
@@ -102,6 +71,7 @@ $oplInitials = static function (string $name): string {
                 }
                 $studentName = (string)($placement['student_name'] ?? '');
                 $studentNo = trim((string)($placement['student_no'] ?? ''));
+                $photoUrl = profile_photo_url($placement);
                 $position = trim((string)($placement['position_held'] ?? ''));
                 $searchHaystack = strtolower(trim(
                     $studentName . ' ' .
@@ -117,13 +87,17 @@ $oplInitials = static function (string $name): string {
             <tr data-placement-status="<?= e($statusClass) ?>" data-predeployment="<?= e($predeployment) ?>" data-search="<?= e($searchHaystack) ?>">
                 <td>
                     <div class="opl-person">
-                        <span class="opl-avatar" aria-hidden="true"><?= e($oplInitials($studentName)) ?></span>
+                        <?php if ($photoUrl !== ''): ?>
+                            <img class="opl-avatar" src="<?= e($photoUrl) ?>" alt="">
+                        <?php else: ?>
+                            <span class="opl-avatar" aria-hidden="true"><?= e($oplInitials($studentName)) ?></span>
+                        <?php endif; ?>
                         <span class="opl-person-copy">
                             <strong><?= e($studentName) ?></strong>
-                            <?php if ($studentNo !== ''): ?><small><?= e($studentNo) ?></small><?php endif; ?>
                         </span>
                     </div>
                 </td>
+                <td class="opl-usn"><?= $studentNo !== '' ? e($studentNo) : '<span class="muted">&mdash;</span>' ?></td>
                 <td><span class="opl-course"><?= e($placement['course']) ?></span></td>
                 <td>
                     <div class="opl-hte">

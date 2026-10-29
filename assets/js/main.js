@@ -5312,7 +5312,7 @@ function resetTableFilters(table, search) {
 function enhanceTable(table) {
     if (table.hasAttribute('data-no-enhance')) return;
     const card = table.closest('.card');
-    const directory = table.closest('[data-my-students-directory]') || table.closest('[data-enrollment-directory]');
+    const directory = table.closest('[data-my-students-directory]') || table.closest('[data-enrollment-directory]') || table.closest('[data-ojt-placement-directory]');
     const search = card?.querySelector('.table-search') || directory?.querySelector('.table-search');
     const tbody = table.tBodies[0];
     if (!tbody) return;
@@ -9050,21 +9050,12 @@ function initAdminOjtPlacementDirectory() {
                 return row.dataset.placementStatus === statusValue;
             };
             syncDateColumns();
-            directory.querySelectorAll('[data-opl-filter]').forEach(button => {
-                button.classList.toggle('is-on', button.dataset.oplFilter === statusValue);
-            });
-            search?.dispatchEvent(new Event('input'));
+            if (typeof table._rerender === 'function') {
+                table._rerender();
+            } else {
+                search?.dispatchEvent(new Event('input'));
+            }
         };
-
-        directory.querySelectorAll('[data-opl-filter]').forEach(button => {
-            button.addEventListener('click', () => {
-                const next = button.dataset.oplFilter || 'active';
-                if (!statusFilter.querySelector(`option[value="${next}"]`)) return;
-                statusFilter.value = next;
-                statusFilter._syncCustomSelect?.();
-                statusFilter.dispatchEvent(new Event('change'));
-            });
-        });
 
         table._resetDirectoryFilters = () => {
             statusValue = 'active';

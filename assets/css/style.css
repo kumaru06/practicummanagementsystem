@@ -115,6 +115,8 @@ td,
 .cfp-avatar,
 .cfp-avatar img,
 .cfp-avatar-fallback,
+.opl-avatar,
+img.opl-avatar,
 .cfp-ring,
 .cfp-ring::before,
 .topbar .app-user-identity--chip .app-user-identity__avatar,
@@ -49090,59 +49092,6 @@ body.page-chat .chat-message__avatar--photo img {
     color: rgba(255, 255, 255, 0.7);
 }
 
-.opl-stats {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-}
-
-.opl-stat {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-    padding: 16px 18px;
-    border: 1px solid #e7e5e4;
-    border-radius: 16px;
-    background: #fff;
-    color: #44403c;
-    text-align: left;
-    cursor: pointer;
-    box-shadow: 0 8px 24px rgba(28, 25, 23, 0.04);
-    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-}
-
-.opl-stat span {
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #78716c;
-}
-
-.opl-stat strong {
-    font-size: 1.7rem;
-    line-height: 1;
-    letter-spacing: -0.04em;
-    color: #1c1917;
-}
-
-.opl-stat:hover {
-    transform: translateY(-2px);
-    border-color: #fecdd3;
-}
-
-.opl-stat.is-on {
-    border-color: transparent;
-    background: linear-gradient(180deg, #fff 0%, #fff1f2 100%);
-    box-shadow: inset 0 0 0 1.5px #be123c, 0 12px 28px rgba(190, 18, 60, 0.12);
-}
-
-.opl-stat.is-on span,
-.opl-stat.is-on strong {
-    color: #9f1239;
-}
-
 .opl-panel {
     padding: 18px 18px 8px;
     border: 1px solid #e7e5e4;
@@ -49239,19 +49188,29 @@ body.page-chat .chat-message__avatar--photo img {
     font-size: 0.78rem;
 }
 
-.opl-avatar {
+.opl-avatar,
+img.opl-avatar {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 38px;
-    height: 38px;
-    flex: 0 0 38px;
-    border-radius: 12px;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    border-radius: 50% !important;
+    overflow: hidden;
     background: linear-gradient(145deg, #312e81, #be123c);
     color: #fff;
     font-size: 0.75rem;
     font-weight: 800;
     letter-spacing: 0.04em;
+    object-fit: cover;
+}
+
+.opl-usn {
+    font-variant-numeric: tabular-nums;
+    font-weight: 650;
+    color: #44403c;
+    white-space: nowrap;
 }
 
 .opl-course {
@@ -49326,7 +49285,4 @@ body.page-chat .chat-message__avatar--photo img {
         align-items: flex-start;
     }
 
-    .opl-stats {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
 }
